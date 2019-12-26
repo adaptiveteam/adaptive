@@ -1,0 +1,23 @@
+language: go
+
+go:
+  - 1.12.x
+  - 1.13.x
+
+os:
+  - linux
+
+dist: bionic
+
+sudo: false
+
+install: true
+
+env:
+  - GO111MODULE=on
+
+script:
+  - go test -v ./...
+
+notifications:
+  slack: geigsen2:TBhXpLjpz2ggwaNWOTcO7TSo
