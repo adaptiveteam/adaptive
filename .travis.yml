@@ -18,6 +18,7 @@ env:
 
 script:
   - go test -v ./...
+  - make test
 
 notifications:
   slack: geigsen2:TBhXpLjpz2ggwaNWOTcO7TSo
