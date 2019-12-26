@@ -8,7 +8,7 @@ CORE_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-core-lambdas
 STRATEGY_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-strategy-lambdas
 USER_COMMUNITY_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-user-community-lambdas
 
-.DEFAULT_GOAL := install
+.DEFAULT_GOAL := all
 
 .SHELLFLAGS = -ec
 
@@ -25,15 +25,15 @@ COACHING_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-coaching-lambdas
 STRATEGY_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-strategy-lambdas
 USER_COMMUNITY_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-user-community-lambdas
 
-include ../adaptive-core-lambdas/common.Makefile
-include ../adaptive-core-lambdas/core.Makefile
-include ../core-infra-terraform/core.tf.Makefile
-include ../adaptive-coaching-lambdas/coaching.Makefile
-include ../adaptive-coaching-infra-terraform/coaching.tf.Makefile
-include ../adaptive-strategy-lambdas/strategy.Makefile
-include ../adaptive-strategy-infra-terraform/strategy.tf.Makefile
-include ../adaptive-user-community-lambdas/user-community.Makefile
-include ../adaptive-user-community-infra-terraform/user-community.tf.Makefile
+# include ../adaptive-core-lambdas/common.Makefile
+# include ../adaptive-core-lambdas/core.Makefile
+# include ../core-infra-terraform/core.tf.Makefile
+# include ../adaptive-coaching-lambdas/coaching.Makefile
+# include ../adaptive-coaching-infra-terraform/coaching.tf.Makefile
+# include ../adaptive-strategy-lambdas/strategy.Makefile
+# include ../adaptive-strategy-infra-terraform/strategy.tf.Makefile
+# include ../adaptive-user-community-lambdas/user-community.Makefile
+# include ../adaptive-user-community-infra-terraform/user-community.tf.Makefile
 
 # Check preconditions
 
@@ -47,9 +47,9 @@ endif
 go-sources = $(wildcard $(1)/*.go) $(1)/go.mod $(1)/go.sum
 
 # install is the top level goal for installing all lambdas
-install: install-core install-coaching install-user-community install-strategy
+# install: install-core install-coaching install-user-community install-strategy
 
-compile: compile-core compile-coaching compile-user-community compile-strategy
+# compile: compile-core compile-coaching compile-user-community compile-strategy
 
 help: ## Prints description of all goals
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -96,3 +96,16 @@ restore-all:
 	pushd $(ADAPTIVE_REPOS)/core-infra-terraform ;\
 	make restore-all ;\
 	popd
+
+all: test
+
+test:
+	go test -v ./...  -coverprofile=cover.out
+clean:
+	go clean
+deps:
+	go build -v ./...
+upgrade:
+	go get -u
+coverage: test
+	go tool cover -html=cover.out
