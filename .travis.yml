@@ -6,7 +6,9 @@ go:
 
 os:
   - linux
-
+services:
+  - docker
+  
 dist: bionic
 
 sudo: false
@@ -23,11 +25,17 @@ notifications:
 before_install:
     - go get github.com/mattn/goveralls
 script:
+  - export AWS_LOCAL_HOST='localstack'
+  - export FORCE_NONINTERACTIVE=true
+  - export AWS_DEFAULT_REGION=eu-west-1
   - $GOPATH/bin/goveralls -service=travis-pro
   - make
+  - pushd aws-utils-go; go test -v; popd
     
 notifications:
   slack:
     rooms:
       secure: t09oDzKRnOCphzBF3pLMxJ4/NUzyy3ecoJfRDW3APP0D1Nc9yDmaHvWGItp1UIxfGOd0UjazphnbxSMGLxQoD/taycKYUB9xpEOiQcUchr7eAIxzoKtkUvndFxzDelsPXT2gXIr10FPBZ0utwZW/N7O5qKATAUHn2mzBNXtkhrMmRJJdjoZ5tXK6/7/HPXIwzCwgsx7z7BbsiIQ8zbQWAGxmI5wmO9BoAV3uhpQ9DNMWRHv3HItB3jnadcsUeGHeTiNxeccieB6T0Nz1O4bCD1L0xp81rbYL0JD6m0sCbKntN/1STh7/Wqla739kb1W802slgycMFFDZIOXLXhqaCKK+zUCN6NVG9ivMls1UiWHYBa8iOXcH44la3EuUGgBfR4fqARM1FyPkm4oOY6QZnfZ87PlsfhsCVWGzxm+JKWuHK+qajTO/ol3cSrkbjChHbPdbGhKA8MkPIEGcUy4LvENnx/G57jaZOzngvFwFUd/cdpZ14Uew+cHz0fJ+mGnmV1he80dvTUTvgK8zEdoKIbM3H0TlLO/K6vXcKH20l9JrRS5E1N7KqT3MXVjURmAwQHYjtZRVIpu9H/7FnG74qE6FoDIdcoQ+eX6WRAxhsGPbNAlRhpQTvTaI7Fk9T66mePL9JZlV0SW9uZXvC1ShE2TT4v02uQ8iWD677ZU6g6w=
-  
+
+notifications:
+  slack: geigsen2:TBhXpLjpz2ggwaNWOTcO7TSo
