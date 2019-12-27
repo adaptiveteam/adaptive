@@ -1,7 +1,7 @@
 package checks
 
 import (
-business_time "github.com/adaptiveteam/business-time"
+	business_time "github.com/adaptiveteam/adaptive/business-time"
 )
 
 var SimpleTestProfile = CheckFunctionMap{

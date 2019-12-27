@@ -1,7 +1,7 @@
 package checks
 
 import (
-	bt "github.com/adaptiveteam/business-time"
+	bt "github.com/adaptiveteam/adaptive/business-time"
 	"log"
 )
 

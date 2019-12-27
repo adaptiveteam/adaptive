@@ -11,11 +11,10 @@ import $file.FileEffects
 import FileEffects._
 
 @main def main(args: String*) = {
-    val rootDir = ".."
-    val fcs = renderProjects(workspace).map(rebase(rootDir))
+    // val rootDir = ".."
+    val fcs = renderProjects(workspace)//.map(rebase(rootDir))
     if(args.contains("--dry-run"))
         fcs.foreach(dryRun)
     else
         fcs.foreach(saveFile)
 }
-  
