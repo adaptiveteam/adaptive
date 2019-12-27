@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	bt "github.com/adaptiveteam/business-time"
+	bt "github.com/adaptiveteam/adaptive/business-time"
 )
 
 func TestCheckMap_Evaluate(t *testing.T) {
