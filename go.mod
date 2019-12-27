@@ -2,7 +2,6 @@ module github.com/adaptiveteam/adaptive
 
 require (
 	github.com/adaptiveteam/adaptive-utils-go v0.16.0
-	github.com/adaptiveteam/business-time v0.4.2
 
 	github.com/google/uuid v1.1.1
 	github.com/mattn/go-colorable v0.1.2
