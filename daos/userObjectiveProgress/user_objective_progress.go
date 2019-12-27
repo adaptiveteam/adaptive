@@ -4,8 +4,8 @@ package userObjectiveProgress
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
-	common "github.com/adaptiveteam/daos/common"
-	core "github.com/adaptiveteam/core-utils-go"
+	common "github.com/adaptiveteam/adaptive/daos/common"
+	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/pkg/errors"
 	"fmt"
