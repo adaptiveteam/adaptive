@@ -16,9 +16,6 @@ install: true
 env:
   - GO111MODULE=on COVERALLS_TOKEN=wHdTnciK7C03xnxA2YzIBEau8m8QBf32g
 
-script:
-  - go test -v ./...
-  - make test
 
 notifications:
   slack: geigsen2:TBhXpLjpz2ggwaNWOTcO7TSo
@@ -26,9 +23,9 @@ notifications:
 before_install:
     - go get github.com/mattn/goveralls
 script:
-    - $GOPATH/bin/goveralls -service=travis-pro
-    - go test -v
-  
+  - $GOPATH/bin/goveralls -service=travis-pro
+  - make
+    
 notifications:
   slack:
     rooms:
