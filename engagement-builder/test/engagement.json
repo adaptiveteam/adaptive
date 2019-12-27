@@ -1,0 +1,98 @@
+{
+  "id":"test_engage",
+  "text":"Would you like to play a game?",
+  "attachments":[
+    {
+      "title":"Slack API Documentation",
+      "text":"Optional text that appears within the attachment",
+      "pretext":"Optional text that appears above the attachment block",
+      "fallback":"Required plain-text summary of the attachment.",
+      "callback_id":"test_attach",
+      "identifier":"test_id",
+      "color":"#36a64f",
+      "fields":[
+        {
+          "title":"Priority",
+          "value":"High"
+        }
+      ],
+      "actions":[
+        {
+          "name":"recommend",
+          "text":"Recommend",
+          "type":"button",
+          "url":"http://example.com/path/to/thumb.png",
+          "value":"recommend",
+          "confirm":{
+            "title":"",
+            "text":"Really?",
+            "ok_text":"",
+            "dismiss_text":""
+          },
+          "style":"default",
+          "options":[
+            {
+              "text":"Hearts",
+              "value":"hearts",
+              "description":"test"
+            },
+            {
+              "text":"Bridge",
+              "value":"bridge",
+              "description":"test"
+            }
+          ],
+          "selected_options":{
+            "text":"Hearts",
+            "value":"hearts",
+            "description":"test"
+          },
+          "option_groups":[
+            {
+              "text":"Doggone bot antics",
+              "options":[
+                {
+                  "text":"Unexpected sentience",
+                  "value":"AI-2323"
+                }
+              ]
+            }
+          ],
+          "data_source":"users"
+        }
+      ],
+      "type":"default",
+      "footer":{
+        "text":"Slack API",
+        "icon":"https://platform.slack-edge.com/img/default_application_icon.png",
+        "timestamp":123456789
+      },
+      "title_link":"https://api.slack.com/",
+      "image_url":"http://my-website.com/path/to/image.jpg",
+      "thumb_url":"http://example.com/path/to/thumb.png",
+      "mrkdwn_in":[
+        "text"
+      ],
+      "author":{
+        "name":"Bobby Tables",
+        "link":"http://flickr.com/bobby/",
+        "icon":"http://flickr.com/icons/bobby.jpg"
+      }
+    }
+  ],
+  "response_type":"in_channel",
+  "effective_start_date":"0001-01-01T00:00:00Z",
+  "tags":[
+    "test"
+  ],
+  "time_to_answer":1,
+  "platform":{
+    "name":"slack",
+    "token":"token",
+    "admin":{
+      "first_name":"",
+      "last_name":"",
+      "mail":""
+    }
+  }
+}
