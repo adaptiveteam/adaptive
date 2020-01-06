@@ -3,7 +3,7 @@
 package say
 
 import (
-	"github.com/adaptiveteam/engagement-builder/ui"
+	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 )
 
 // ResourceKey is the type of the key for accessing templates

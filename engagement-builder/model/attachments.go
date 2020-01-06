@@ -3,7 +3,7 @@ package model
 import (
 	"reflect"
 
-	"github.com/adaptiveteam/engagement-builder/ui"
+	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 )
 
 type Attachment struct {

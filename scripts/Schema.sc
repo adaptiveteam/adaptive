@@ -24,7 +24,7 @@ def goField(decl: String): Field = goFieldParser(goTypes)(decl)
 val coreImport = ImportClause(Some("core"), "github.com/adaptiveteam/adaptive/core-utils-go")
 val imports = Imports(List(
     ImportClause(None, "github.com/aws/aws-sdk-go/aws"),
-    ImportClause(Some("awsutils"), "github.com/adaptiveteam/aws-utils-go"),
+    ImportClause(Some("awsutils"), "github.com/adaptiveteam/adaptive/aws-utils-go"),
     ImportClause(Some("common"), "github.com/adaptiveteam/adaptive/daos/common"),
     coreImport,
     ImportClause(None, "github.com/aws/aws-sdk-go/service/dynamodb"),
@@ -176,7 +176,7 @@ val priorityField = ("Priority".camel :: priorityValue) \\ "Priority of the enga
 val ignoredField = ("Ignored".camel :: int) \\ "Flag indicating if an engagement is ignored, 1 for yes, 0 for no"
 
 
-val ebmImport = ImportClause(Some("ebm"), "github.com/adaptiveteam/engagement-builder/model")
+val ebmImport = ImportClause(Some("ebm"), "github.com/adaptiveteam/adaptive/engagement-builder/model")
 
 val UserEngagement = Entity(
     "UserEngagement".camel,

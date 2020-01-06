@@ -1,7 +1,7 @@
 package EngagementBuilder
 
 import (
-	"github.com/adaptiveteam/engagement-builder/model"
+	"github.com/adaptiveteam/adaptive/engagement-builder/model"
 )
 
 // MenuOptionBuilder pattern code

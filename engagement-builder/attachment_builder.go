@@ -1,6 +1,6 @@
 package EngagementBuilder
 
-import "github.com/adaptiveteam/engagement-builder/model"
+import "github.com/adaptiveteam/adaptive/engagement-builder/model"
 
 // Attachment builder pattern code
 type AttachmentBuilder struct {

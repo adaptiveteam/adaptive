@@ -3,7 +3,7 @@ package aws_utils_go
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/adaptiveteam/core-utils-go/logger"
+	"github.com/adaptiveteam/adaptive/core-utils-go/logger"
 	"github.com/aws/aws-dax-go/dax"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"

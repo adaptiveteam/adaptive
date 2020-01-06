@@ -1,9 +1,9 @@
 package EngagementBuilder
 
 import (
-	"github.com/adaptiveteam/engagement-builder/model"
-	"github.com/adaptiveteam/engagement-builder/say"
-	"github.com/adaptiveteam/engagement-builder/ui"
+	"github.com/adaptiveteam/adaptive/engagement-builder/model"
+	"github.com/adaptiveteam/adaptive/engagement-builder/say"
+	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 )
 
 // AttachmentAction builder pattern code
@@ -79,7 +79,7 @@ func (b *AttachmentActionBuilder) DataSource(source model.AttachmentActionDataSo
 
 // Build converts builder to AttachmentAction.
 // deprecated. Use ToAttachmentAction
-// This method is misleading as it always returns `nil` as the second 
+// This method is misleading as it always returns `nil` as the second
 func (b *AttachmentActionBuilder) Build() (*model.AttachmentAction, error) {
 	return b.attachmentAction, nil
 }
