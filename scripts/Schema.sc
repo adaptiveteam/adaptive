@@ -23,7 +23,7 @@ def goField(decl: String): Field = goFieldParser(goTypes)(decl)
 
 val coreImport = ImportClause(Some("core"), "github.com/adaptiveteam/adaptive/core-utils-go")
 val imports = Imports(List(
-    // ImportClause(None, "github.com/aws/aws-sdk-go/aws"),
+    ImportClause(None, "github.com/aws/aws-sdk-go/aws"),
     ImportClause(Some("awsutils"), "github.com/adaptiveteam/aws-utils-go"),
     ImportClause(Some("common"), "github.com/adaptiveteam/adaptive/daos/common"),
     coreImport,
@@ -414,8 +414,8 @@ val UserObjectiveProgress = Entity(
         "PercentTimeLapsed".camel :: string,
         "StatusColor".camel :: ObjectiveStatusColor,//.typeAliasTypeInfo,
         "ReviewedByPartner".camel :: bool,
-        "PartnerComments".camel :: string,
-        "PartnerReportedProgress".camel :: string
+        "PartnerComments".camel :: optionString,
+        "PartnerReportedProgress".camel :: optionString
     )
 )
 
