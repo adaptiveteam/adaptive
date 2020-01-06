@@ -3,6 +3,7 @@ package userObjectiveProgress
 // The changes will be overridden by the next automatic generation.
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -24,8 +25,8 @@ type UserObjectiveProgress struct  {
 	PercentTimeLapsed string `json:"percent_time_lapsed"`
 	StatusColor models.ObjectiveStatusColor `json:"status_color"`
 	ReviewedByPartner bool `json:"reviewed_by_partner"`
-	PartnerComments string `json:"partner_comments"`
-	PartnerReportedProgress string `json:"partner_reported_progress"`
+	PartnerComments string `json:"partner_comments,omitempty"`
+	PartnerReportedProgress string `json:"partner_reported_progress,omitempty"`
 }
 
 // CollectEmptyFields returns entity field names that are empty.
@@ -39,8 +40,6 @@ func (userObjectiveProgress UserObjectiveProgress)CollectEmptyFields() (emptyFie
 	if userObjectiveProgress.Comments == "" { emptyFields = append(emptyFields, "Comments")}
 	if userObjectiveProgress.PercentTimeLapsed == "" { emptyFields = append(emptyFields, "PercentTimeLapsed")}
 	if userObjectiveProgress.StatusColor == "" { emptyFields = append(emptyFields, "StatusColor")}
-	if userObjectiveProgress.PartnerComments == "" { emptyFields = append(emptyFields, "PartnerComments")}
-	if userObjectiveProgress.PartnerReportedProgress == "" { emptyFields = append(emptyFields, "PartnerReportedProgress")}
 	ok = len(emptyFields) == 0
 	return
 }
@@ -56,8 +55,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(userObjectiveProgress UserObjectiveProgress)
 	Delete(id string, createdOn string) error
 	DeleteUnsafe(id string, createdOn string)
-	ReadByIDCreatedOn(id string, createdOn string) (userObjectiveProgress []UserObjectiveProgress, err error)
-	ReadByIDCreatedOnUnsafe(id string, createdOn string) (userObjectiveProgress []UserObjectiveProgress)
 	ReadByID(id string) (userObjectiveProgress []UserObjectiveProgress, err error)
 	ReadByIDUnsafe(id string) (userObjectiveProgress []UserObjectiveProgress)
 	ReadByCreatedOn(createdOn string) (userObjectiveProgress []UserObjectiveProgress, err error)
@@ -128,6 +125,8 @@ func (d DAOImpl) ReadOrEmpty(id string, createdOn string) (out []UserObjectivePr
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id && outOrEmpty.CreatedOn == createdOn {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "UserObjectiveProgress DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -153,14 +152,22 @@ func (d DAOImpl) CreateOrUpdate(userObjectiveProgress UserObjectiveProgress) (er
 			err = errors.Wrapf(err, "UserObjectiveProgress DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
 			old := olds[0]
-			ids := idParams(old.ID, old.CreatedOn)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(userObjectiveProgress, old),
-				ids,
-				updateExpression(userObjectiveProgress, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "UserObjectiveProgress DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+			
+			key := idParams(old.ID, old.CreatedOn)
+			expr, exprAttributes, names := updateExpression(userObjectiveProgress, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "UserObjectiveProgress DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -184,28 +191,6 @@ func (d DAOImpl)Delete(id string, createdOn string) error {
 func (d DAOImpl)DeleteUnsafe(id string, createdOn string) {
 	err := d.Delete(id, createdOn)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s, createdOn==%s in %s\n", id, createdOn, d.Name))
-}
-
-
-func (d DAOImpl)ReadByIDCreatedOn(id string, createdOn string) (out []UserObjectiveProgress, err error) {
-	var instances []UserObjectiveProgress
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "IDCreatedOnIndex",
-		Condition: "id = :a0 and created_on = :a1",
-		Attributes: map[string]interface{}{
-			":a0": id,
-			":a1": createdOn,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = instances
-	return
-}
-
-
-func (d DAOImpl)ReadByIDCreatedOnUnsafe(id string, createdOn string) (out []UserObjectiveProgress) {
-	out, err := d.ReadByIDCreatedOn(id, createdOn)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query IDCreatedOnIndex on %s table\n", d.Name))
-	return
 }
 
 
@@ -258,38 +243,38 @@ func idParams(id string, createdOn string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(userObjectiveProgress UserObjectiveProgress, old UserObjectiveProgress) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if userObjectiveProgress.ID != old.ID { params["a0"] = common.DynS(userObjectiveProgress.ID) }
-		if userObjectiveProgress.CreatedOn != old.CreatedOn { params["a1"] = common.DynS(userObjectiveProgress.CreatedOn) }
-		if userObjectiveProgress.PlatformID != old.PlatformID { params["a2"] = common.DynS(string(userObjectiveProgress.PlatformID)) }
-		if userObjectiveProgress.UserID != old.UserID { params["a3"] = common.DynS(userObjectiveProgress.UserID) }
-		if userObjectiveProgress.PartnerID != old.PartnerID { params["a4"] = common.DynS(userObjectiveProgress.PartnerID) }
-		if userObjectiveProgress.Comments != old.Comments { params["a5"] = common.DynS(userObjectiveProgress.Comments) }
-		if userObjectiveProgress.Closeout != old.Closeout { params["a6"] = common.DynN(userObjectiveProgress.Closeout) }
-		if userObjectiveProgress.PercentTimeLapsed != old.PercentTimeLapsed { params["a7"] = common.DynS(userObjectiveProgress.PercentTimeLapsed) }
-		if userObjectiveProgress.StatusColor != old.StatusColor { params["a8"] = common.DynS(string(userObjectiveProgress.StatusColor)) }
-		if userObjectiveProgress.ReviewedByPartner != old.ReviewedByPartner { params["a9"] = common.DynBOOL(userObjectiveProgress.ReviewedByPartner) }
-		if userObjectiveProgress.PartnerComments != old.PartnerComments { params["a10"] = common.DynS(userObjectiveProgress.PartnerComments) }
-		if userObjectiveProgress.PartnerReportedProgress != old.PartnerReportedProgress { params["a11"] = common.DynS(userObjectiveProgress.PartnerReportedProgress) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if userObjectiveProgress.ID != old.ID { params[":a0"] = common.DynS(userObjectiveProgress.ID) }
+	if userObjectiveProgress.CreatedOn != old.CreatedOn { params[":a1"] = common.DynS(userObjectiveProgress.CreatedOn) }
+	if userObjectiveProgress.PlatformID != old.PlatformID { params[":a2"] = common.DynS(string(userObjectiveProgress.PlatformID)) }
+	if userObjectiveProgress.UserID != old.UserID { params[":a3"] = common.DynS(userObjectiveProgress.UserID) }
+	if userObjectiveProgress.PartnerID != old.PartnerID { params[":a4"] = common.DynS(userObjectiveProgress.PartnerID) }
+	if userObjectiveProgress.Comments != old.Comments { params[":a5"] = common.DynS(userObjectiveProgress.Comments) }
+	if userObjectiveProgress.Closeout != old.Closeout { params[":a6"] = common.DynN(userObjectiveProgress.Closeout) }
+	if userObjectiveProgress.PercentTimeLapsed != old.PercentTimeLapsed { params[":a7"] = common.DynS(userObjectiveProgress.PercentTimeLapsed) }
+	if userObjectiveProgress.StatusColor != old.StatusColor { params[":a8"] = common.DynS(string(userObjectiveProgress.StatusColor)) }
+	if userObjectiveProgress.ReviewedByPartner != old.ReviewedByPartner { params[":a9"] = common.DynBOOL(userObjectiveProgress.ReviewedByPartner) }
+	if userObjectiveProgress.PartnerComments != old.PartnerComments { params[":a10"] = common.DynS(userObjectiveProgress.PartnerComments) }
+	if userObjectiveProgress.PartnerReportedProgress != old.PartnerReportedProgress { params[":a11"] = common.DynS(userObjectiveProgress.PartnerReportedProgress) }
 	return
 }
-func updateExpression(userObjectiveProgress UserObjectiveProgress, old UserObjectiveProgress) string {
+func updateExpression(userObjectiveProgress UserObjectiveProgress, old UserObjectiveProgress) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if userObjectiveProgress.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if userObjectiveProgress.CreatedOn != old.CreatedOn { updateParts = append(updateParts, "created_on = :a1") }
-		if userObjectiveProgress.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a2") }
-		if userObjectiveProgress.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a3") }
-		if userObjectiveProgress.PartnerID != old.PartnerID { updateParts = append(updateParts, "partner_id = :a4") }
-		if userObjectiveProgress.Comments != old.Comments { updateParts = append(updateParts, "comments = :a5") }
-		if userObjectiveProgress.Closeout != old.Closeout { updateParts = append(updateParts, "closeout = :a6") }
-		if userObjectiveProgress.PercentTimeLapsed != old.PercentTimeLapsed { updateParts = append(updateParts, "percent_time_lapsed = :a7") }
-		if userObjectiveProgress.StatusColor != old.StatusColor { updateParts = append(updateParts, "status_color = :a8") }
-		if userObjectiveProgress.ReviewedByPartner != old.ReviewedByPartner { updateParts = append(updateParts, "reviewed_by_partner = :a9") }
-		if userObjectiveProgress.PartnerComments != old.PartnerComments { updateParts = append(updateParts, "partner_comments = :a10") }
-		if userObjectiveProgress.PartnerReportedProgress != old.PartnerReportedProgress { updateParts = append(updateParts, "partner_reported_progress = :a11") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if userObjectiveProgress.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(userObjectiveProgress.ID);  }
+	if userObjectiveProgress.CreatedOn != old.CreatedOn { updateParts = append(updateParts, "created_on = :a1"); params[":a1"] = common.DynS(userObjectiveProgress.CreatedOn);  }
+	if userObjectiveProgress.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a2"); params[":a2"] = common.DynS(string(userObjectiveProgress.PlatformID));  }
+	if userObjectiveProgress.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a3"); params[":a3"] = common.DynS(userObjectiveProgress.UserID);  }
+	if userObjectiveProgress.PartnerID != old.PartnerID { updateParts = append(updateParts, "partner_id = :a4"); params[":a4"] = common.DynS(userObjectiveProgress.PartnerID);  }
+	if userObjectiveProgress.Comments != old.Comments { updateParts = append(updateParts, "comments = :a5"); params[":a5"] = common.DynS(userObjectiveProgress.Comments);  }
+	if userObjectiveProgress.Closeout != old.Closeout { updateParts = append(updateParts, "closeout = :a6"); params[":a6"] = common.DynN(userObjectiveProgress.Closeout);  }
+	if userObjectiveProgress.PercentTimeLapsed != old.PercentTimeLapsed { updateParts = append(updateParts, "percent_time_lapsed = :a7"); params[":a7"] = common.DynS(userObjectiveProgress.PercentTimeLapsed);  }
+	if userObjectiveProgress.StatusColor != old.StatusColor { updateParts = append(updateParts, "status_color = :a8"); params[":a8"] = common.DynS(string(userObjectiveProgress.StatusColor));  }
+	if userObjectiveProgress.ReviewedByPartner != old.ReviewedByPartner { updateParts = append(updateParts, "reviewed_by_partner = :a9"); params[":a9"] = common.DynBOOL(userObjectiveProgress.ReviewedByPartner);  }
+	if userObjectiveProgress.PartnerComments != old.PartnerComments { updateParts = append(updateParts, "partner_comments = :a10"); params[":a10"] = common.DynS(userObjectiveProgress.PartnerComments);  }
+	if userObjectiveProgress.PartnerReportedProgress != old.PartnerReportedProgress { updateParts = append(updateParts, "partner_reported_progress = :a11"); params[":a11"] = common.DynS(userObjectiveProgress.PartnerReportedProgress);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }

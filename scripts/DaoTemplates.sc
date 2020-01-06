@@ -210,6 +210,8 @@ func (d DAOImpl) ReadOrEmpty($idArgs) (out []$structName, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if ${entity.primaryKeyFields.map(fld => "outOrEmpty." + goPublicName(fld.name) + " == " + goPrivateName(fld.name)).mkString(" && ")} {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "$structName DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -248,14 +250,22 @@ func (d DAOImpl) CreateOrUpdate($structVarName $structName) (err error) {
 				if(entity.supports(CreatedModifiedTimesTrait)) {
 					s"$structVarName.ModifiedAt = core.TimestampLayout.Format(time.Now())" + "\n"
 				} else ""
-			}ids := idParams(${idFieldNames.map("old." + _).mkString(", ")})
-			err = d.Dynamo.UpdateTableEntry(
-				allParams($structVarName, old),
-				ids,
-				updateExpression($structVarName, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+			}
+			key := idParams(${idFieldNames.map("old." + _).mkString(", ")})
+			expr, exprAttributes, names := updateExpression($structVarName, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -375,30 +385,30 @@ func (d DAOImpl)ReadBy${indexShortName}Unsafe($args) (out []$structName) {
 			case _ => s"""$accessField != $accessOldField"""
 		}
 	}
+	def dynFieldValueExpr(structVarName: String, fld: Field): String = {
+		val accessField = structVarName + "." + fieldName(fld)
+		// val accessOldField = "old." + fieldName(fld)
+		val fldValueAsString = fld.tpe match {
+			case SimpleTypeInfo(_, QualifiedName(_,_), _, _, _, _) => s"string($accessField)"
+			case TypeAliasTypeInfo(_) => s"string($accessField)"
+			case _ => accessField
+		}
+		"common.Dyn" + dynamoType(fld.tpe) + "(" + fldValueAsString + ")"
+	}
 	def allParamsTemplate: List[String] = {
 		
 		val body = (
 			if(entity.fields.exists(_.tpe.isInstanceOf[StructTypeInfo])) 
 				List("panic(\"struct fields are not supported in " + structName + ".CreateOrUpdate/allParams\")", "return")
 			else
-		lines(
-s"""
-	params = map[string]*dynamodb.AttributeValue{}
-""") ++
-	(entity.fields ::: entity.virtualFields).filterNot(_.tpe.isInstanceOf[StructTypeInfo]).zipWithIndex.map{
-		case (fld, i) => 
-			val accessField = structVarName + "." + fieldName(fld)
-			val accessOldField = "old." + fieldName(fld)
-			val fldValueAsString = fld.tpe match {
-				case SimpleTypeInfo(_, QualifiedName(_,_), _, _, _, _) => s"string($accessField)"
-				case TypeAliasTypeInfo(_) => s"string($accessField)"
-				case _ => accessField
-			}
-			val changed = isFieldChangedTemplate(fld, structVarName, "old")
-			val dynAttrValue = "common.Dyn" + dynamoType(fld.tpe) + "(" + fldValueAsString + ")"
-			s"""if $changed { params["a$i"] = """ + dynAttrValue + " }"
-	}.map(indentLine) ++
-	lines("return")
+				lines(s"""params = map[string]*dynamodb.AttributeValue{}""") ++
+				(entity.fields ::: entity.virtualFields).filterNot(_.tpe.isInstanceOf[StructTypeInfo]).zipWithIndex.map{
+					case (fld, i) => 
+						val changed = isFieldChangedTemplate(fld, structVarName, "old")
+						val dynAttrValue = dynFieldValueExpr(structVarName, fld)
+						s"""if $changed { params[":a$i"] = """ + dynAttrValue + " }"
+				} ++
+				lines("return")
 		)
 		blockNamed(s"func allParams($structVarName $structName, old $structName) (params map[string]*dynamodb.AttributeValue)",
 			body
@@ -407,25 +417,33 @@ s"""
 
 	def updateExpressionTemplate: List[String] = {
 		val body = 			
-		lines(
-s"""
-	
-		""") ++
 		(entity.fields ::: entity.virtualFields).zipWithIndex.map{
 			case (fld@Field(_, _ : StructTypeInfo, _, _), _) => 
 				"panic(\"struct fields are not supported in " + structName + s".CreateOrUpdate/updateExpression " + fieldName(fld) + "\")"
 			case (fld, i) => 
 				val changed = isFieldChangedTemplate(fld, structVarName, "old")
-
-				s"if $changed { updateParts = append(updateParts, "+
-				"\"" + dbExprParam(fld) + " = :a" + i.toString + "\"" +
-				") }"
-		}.map(indentLine)
-		
-		blockNamed(s"func updateExpression($structVarName $structName, old $structName) string",
+				val dbExpr = dbExprParam(fld)
+				val dynAttrValue = dynFieldValueExpr(structVarName, fld)
+				val paramsStmt = s"""params[":a$i"] = """ + dynAttrValue
+				val updateStmt = s"updateParts = append(updateParts, "+"\"" + dbExpr + " = :a" + i.toString + "\")"
+				val nameStmt = (
+					if(dbExpr.startsWith("#")) 
+						"fldName := \"" + dbName(fld) + "\"; names[\""+dbExpr+"\"] = &fldName" 
+					else 
+						""
+					)
+				s"if $changed { "+updateStmt+"; "+ paramsStmt + "; " + nameStmt + " }"
+		}		
+		blockNamed(
+			s"func updateExpression($structVarName $structName, old $structName) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string)",
 			"var updateParts []string" :: 
+			"params = map[string]*dynamodb.AttributeValue{}" :: 
+			"names := map[string]*string{}" :: 
 			body ::: 
-			lines("""return strings.Join(updateParts, " and ")""")
+			List("""expr = "set " + strings.Join(updateParts, ", ")""",
+				"if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty",
+				"return"
+			)
 		)
 	}
 

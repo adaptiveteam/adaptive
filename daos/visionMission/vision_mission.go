@@ -4,6 +4,7 @@ package visionMission
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	"time"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -50,8 +51,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(visionMission VisionMission)
 	Delete(id string) error
 	DeleteUnsafe(id string)
-	ReadByPlatformID(platformID models.PlatformID) (visionMission []VisionMission, err error)
-	ReadByPlatformIDUnsafe(platformID models.PlatformID) (visionMission []VisionMission)
 }
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
@@ -120,6 +119,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []VisionMission, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "VisionMission DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -148,14 +149,22 @@ func (d DAOImpl) CreateOrUpdate(visionMission VisionMission) (err error) {
 		} else {
 			old := olds[0]
 			visionMission.ModifiedAt = core.TimestampLayout.Format(time.Now())
-ids := idParams(old.ID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(visionMission, old),
-				ids,
-				updateExpression(visionMission, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "VisionMission DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+
+			key := idParams(old.ID)
+			expr, exprAttributes, names := updateExpression(visionMission, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "VisionMission DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -181,27 +190,6 @@ func (d DAOImpl)DeleteUnsafe(id string) {
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
 }
 
-
-func (d DAOImpl)ReadByPlatformID(platformID models.PlatformID) (out []VisionMission, err error) {
-	var instances []VisionMission
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "PlatformIDIndex",
-		Condition: "platform_id = :a0",
-		Attributes: map[string]interface{}{
-			":a0": platformID,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = instances
-	return
-}
-
-
-func (d DAOImpl)ReadByPlatformIDUnsafe(platformID models.PlatformID) (out []VisionMission) {
-	out, err := d.ReadByPlatformID(platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
-	return
-}
-
 func idParams(id string) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue {
 		"id": common.DynS(id),
@@ -209,30 +197,30 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(visionMission VisionMission, old VisionMission) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if visionMission.ID != old.ID { params["a0"] = common.DynS(visionMission.ID) }
-		if visionMission.PlatformID != old.PlatformID { params["a1"] = common.DynS(string(visionMission.PlatformID)) }
-		if visionMission.Mission != old.Mission { params["a2"] = common.DynS(visionMission.Mission) }
-		if visionMission.Vision != old.Vision { params["a3"] = common.DynS(visionMission.Vision) }
-		if visionMission.Advocate != old.Advocate { params["a4"] = common.DynS(visionMission.Advocate) }
-		if visionMission.CreatedBy != old.CreatedBy { params["a5"] = common.DynS(visionMission.CreatedBy) }
-		if visionMission.CreatedAt != old.CreatedAt { params["a6"] = common.DynS(visionMission.CreatedAt) }
-		if visionMission.ModifiedAt != old.ModifiedAt { params["a7"] = common.DynS(visionMission.ModifiedAt) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if visionMission.ID != old.ID { params[":a0"] = common.DynS(visionMission.ID) }
+	if visionMission.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(visionMission.PlatformID)) }
+	if visionMission.Mission != old.Mission { params[":a2"] = common.DynS(visionMission.Mission) }
+	if visionMission.Vision != old.Vision { params[":a3"] = common.DynS(visionMission.Vision) }
+	if visionMission.Advocate != old.Advocate { params[":a4"] = common.DynS(visionMission.Advocate) }
+	if visionMission.CreatedBy != old.CreatedBy { params[":a5"] = common.DynS(visionMission.CreatedBy) }
+	if visionMission.CreatedAt != old.CreatedAt { params[":a6"] = common.DynS(visionMission.CreatedAt) }
+	if visionMission.ModifiedAt != old.ModifiedAt { params[":a7"] = common.DynS(visionMission.ModifiedAt) }
 	return
 }
-func updateExpression(visionMission VisionMission, old VisionMission) string {
+func updateExpression(visionMission VisionMission, old VisionMission) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if visionMission.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if visionMission.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1") }
-		if visionMission.Mission != old.Mission { updateParts = append(updateParts, "mission = :a2") }
-		if visionMission.Vision != old.Vision { updateParts = append(updateParts, "vision = :a3") }
-		if visionMission.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a4") }
-		if visionMission.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a5") }
-		if visionMission.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a6") }
-		if visionMission.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a7") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if visionMission.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(visionMission.ID);  }
+	if visionMission.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(visionMission.PlatformID));  }
+	if visionMission.Mission != old.Mission { updateParts = append(updateParts, "mission = :a2"); params[":a2"] = common.DynS(visionMission.Mission);  }
+	if visionMission.Vision != old.Vision { updateParts = append(updateParts, "vision = :a3"); params[":a3"] = common.DynS(visionMission.Vision);  }
+	if visionMission.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a4"); params[":a4"] = common.DynS(visionMission.Advocate);  }
+	if visionMission.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a5"); params[":a5"] = common.DynS(visionMission.CreatedBy);  }
+	if visionMission.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a6"); params[":a6"] = common.DynS(visionMission.CreatedAt);  }
+	if visionMission.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a7"); params[":a7"] = common.DynS(visionMission.ModifiedAt);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }

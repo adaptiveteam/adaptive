@@ -4,6 +4,7 @@ package strategyInitiativeCommunity
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	"time"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -52,8 +53,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(strategyInitiativeCommunity StrategyInitiativeCommunity)
 	Delete(id string) error
 	DeleteUnsafe(id string)
-	ReadByIDPlatformID(id string, platformID models.PlatformID) (strategyInitiativeCommunity []StrategyInitiativeCommunity, err error)
-	ReadByIDPlatformIDUnsafe(id string, platformID models.PlatformID) (strategyInitiativeCommunity []StrategyInitiativeCommunity)
 	ReadByPlatformID(platformID models.PlatformID) (strategyInitiativeCommunity []StrategyInitiativeCommunity, err error)
 	ReadByPlatformIDUnsafe(platformID models.PlatformID) (strategyInitiativeCommunity []StrategyInitiativeCommunity)
 }
@@ -124,6 +123,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyInitiativeCommunity, err 
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "StrategyInitiativeCommunity DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -152,14 +153,22 @@ func (d DAOImpl) CreateOrUpdate(strategyInitiativeCommunity StrategyInitiativeCo
 		} else {
 			old := olds[0]
 			strategyInitiativeCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
-ids := idParams(old.ID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(strategyInitiativeCommunity, old),
-				ids,
-				updateExpression(strategyInitiativeCommunity, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "StrategyInitiativeCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+
+			key := idParams(old.ID)
+			expr, exprAttributes, names := updateExpression(strategyInitiativeCommunity, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "StrategyInitiativeCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -183,28 +192,6 @@ func (d DAOImpl)Delete(id string) error {
 func (d DAOImpl)DeleteUnsafe(id string) {
 	err := d.Delete(id)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
-}
-
-
-func (d DAOImpl)ReadByIDPlatformID(id string, platformID models.PlatformID) (out []StrategyInitiativeCommunity, err error) {
-	var instances []StrategyInitiativeCommunity
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "IDPlatformIDIndex",
-		Condition: "id = :a0 and platform_id = :a1",
-		Attributes: map[string]interface{}{
-			":a0": id,
-			":a1": platformID,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = instances
-	return
-}
-
-
-func (d DAOImpl)ReadByIDPlatformIDUnsafe(id string, platformID models.PlatformID) (out []StrategyInitiativeCommunity) {
-	out, err := d.ReadByIDPlatformID(id, platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query IDPlatformIDIndex on %s table\n", d.Name))
-	return
 }
 
 
@@ -235,32 +222,32 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(strategyInitiativeCommunity StrategyInitiativeCommunity, old StrategyInitiativeCommunity) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if strategyInitiativeCommunity.ID != old.ID { params["a0"] = common.DynS(strategyInitiativeCommunity.ID) }
-		if strategyInitiativeCommunity.PlatformID != old.PlatformID { params["a1"] = common.DynS(string(strategyInitiativeCommunity.PlatformID)) }
-		if strategyInitiativeCommunity.Name != old.Name { params["a2"] = common.DynS(strategyInitiativeCommunity.Name) }
-		if strategyInitiativeCommunity.Description != old.Description { params["a3"] = common.DynS(strategyInitiativeCommunity.Description) }
-		if strategyInitiativeCommunity.Advocate != old.Advocate { params["a4"] = common.DynS(strategyInitiativeCommunity.Advocate) }
-		if strategyInitiativeCommunity.CapabilityCommunityID != old.CapabilityCommunityID { params["a5"] = common.DynS(strategyInitiativeCommunity.CapabilityCommunityID) }
-		if strategyInitiativeCommunity.CreatedBy != old.CreatedBy { params["a6"] = common.DynS(strategyInitiativeCommunity.CreatedBy) }
-		if strategyInitiativeCommunity.CreatedAt != old.CreatedAt { params["a7"] = common.DynS(strategyInitiativeCommunity.CreatedAt) }
-		if strategyInitiativeCommunity.ModifiedAt != old.ModifiedAt { params["a8"] = common.DynS(strategyInitiativeCommunity.ModifiedAt) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if strategyInitiativeCommunity.ID != old.ID { params[":a0"] = common.DynS(strategyInitiativeCommunity.ID) }
+	if strategyInitiativeCommunity.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(strategyInitiativeCommunity.PlatformID)) }
+	if strategyInitiativeCommunity.Name != old.Name { params[":a2"] = common.DynS(strategyInitiativeCommunity.Name) }
+	if strategyInitiativeCommunity.Description != old.Description { params[":a3"] = common.DynS(strategyInitiativeCommunity.Description) }
+	if strategyInitiativeCommunity.Advocate != old.Advocate { params[":a4"] = common.DynS(strategyInitiativeCommunity.Advocate) }
+	if strategyInitiativeCommunity.CapabilityCommunityID != old.CapabilityCommunityID { params[":a5"] = common.DynS(strategyInitiativeCommunity.CapabilityCommunityID) }
+	if strategyInitiativeCommunity.CreatedBy != old.CreatedBy { params[":a6"] = common.DynS(strategyInitiativeCommunity.CreatedBy) }
+	if strategyInitiativeCommunity.CreatedAt != old.CreatedAt { params[":a7"] = common.DynS(strategyInitiativeCommunity.CreatedAt) }
+	if strategyInitiativeCommunity.ModifiedAt != old.ModifiedAt { params[":a8"] = common.DynS(strategyInitiativeCommunity.ModifiedAt) }
 	return
 }
-func updateExpression(strategyInitiativeCommunity StrategyInitiativeCommunity, old StrategyInitiativeCommunity) string {
+func updateExpression(strategyInitiativeCommunity StrategyInitiativeCommunity, old StrategyInitiativeCommunity) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if strategyInitiativeCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if strategyInitiativeCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1") }
-		if strategyInitiativeCommunity.Name != old.Name { updateParts = append(updateParts, "#name = :a2") }
-		if strategyInitiativeCommunity.Description != old.Description { updateParts = append(updateParts, "description = :a3") }
-		if strategyInitiativeCommunity.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a4") }
-		if strategyInitiativeCommunity.CapabilityCommunityID != old.CapabilityCommunityID { updateParts = append(updateParts, "capability_community_id = :a5") }
-		if strategyInitiativeCommunity.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a6") }
-		if strategyInitiativeCommunity.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a7") }
-		if strategyInitiativeCommunity.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a8") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if strategyInitiativeCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(strategyInitiativeCommunity.ID);  }
+	if strategyInitiativeCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(strategyInitiativeCommunity.PlatformID));  }
+	if strategyInitiativeCommunity.Name != old.Name { updateParts = append(updateParts, "#name = :a2"); params[":a2"] = common.DynS(strategyInitiativeCommunity.Name); fldName := "name"; names["#name"] = &fldName }
+	if strategyInitiativeCommunity.Description != old.Description { updateParts = append(updateParts, "description = :a3"); params[":a3"] = common.DynS(strategyInitiativeCommunity.Description);  }
+	if strategyInitiativeCommunity.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a4"); params[":a4"] = common.DynS(strategyInitiativeCommunity.Advocate);  }
+	if strategyInitiativeCommunity.CapabilityCommunityID != old.CapabilityCommunityID { updateParts = append(updateParts, "capability_community_id = :a5"); params[":a5"] = common.DynS(strategyInitiativeCommunity.CapabilityCommunityID);  }
+	if strategyInitiativeCommunity.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a6"); params[":a6"] = common.DynS(strategyInitiativeCommunity.CreatedBy);  }
+	if strategyInitiativeCommunity.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a7"); params[":a7"] = common.DynS(strategyInitiativeCommunity.CreatedAt);  }
+	if strategyInitiativeCommunity.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a8"); params[":a8"] = common.DynS(strategyInitiativeCommunity.ModifiedAt);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }

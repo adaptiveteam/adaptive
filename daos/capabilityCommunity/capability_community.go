@@ -4,6 +4,7 @@ package capabilityCommunity
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	"time"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -50,8 +51,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(capabilityCommunity CapabilityCommunity)
 	Delete(id string) error
 	DeleteUnsafe(id string)
-	ReadByIDPlatformID(id string, platformID models.PlatformID) (capabilityCommunity []CapabilityCommunity, err error)
-	ReadByIDPlatformIDUnsafe(id string, platformID models.PlatformID) (capabilityCommunity []CapabilityCommunity)
 	ReadByPlatformID(platformID models.PlatformID) (capabilityCommunity []CapabilityCommunity, err error)
 	ReadByPlatformIDUnsafe(platformID models.PlatformID) (capabilityCommunity []CapabilityCommunity)
 }
@@ -122,6 +121,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []CapabilityCommunity, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "CapabilityCommunity DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -150,14 +151,22 @@ func (d DAOImpl) CreateOrUpdate(capabilityCommunity CapabilityCommunity) (err er
 		} else {
 			old := olds[0]
 			capabilityCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
-ids := idParams(old.ID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(capabilityCommunity, old),
-				ids,
-				updateExpression(capabilityCommunity, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+
+			key := idParams(old.ID)
+			expr, exprAttributes, names := updateExpression(capabilityCommunity, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -181,28 +190,6 @@ func (d DAOImpl)Delete(id string) error {
 func (d DAOImpl)DeleteUnsafe(id string) {
 	err := d.Delete(id)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
-}
-
-
-func (d DAOImpl)ReadByIDPlatformID(id string, platformID models.PlatformID) (out []CapabilityCommunity, err error) {
-	var instances []CapabilityCommunity
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "IDPlatformIDIndex",
-		Condition: "id = :a0 and platform_id = :a1",
-		Attributes: map[string]interface{}{
-			":a0": id,
-			":a1": platformID,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = instances
-	return
-}
-
-
-func (d DAOImpl)ReadByIDPlatformIDUnsafe(id string, platformID models.PlatformID) (out []CapabilityCommunity) {
-	out, err := d.ReadByIDPlatformID(id, platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query IDPlatformIDIndex on %s table\n", d.Name))
-	return
 }
 
 
@@ -233,30 +220,30 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(capabilityCommunity CapabilityCommunity, old CapabilityCommunity) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if capabilityCommunity.ID != old.ID { params["a0"] = common.DynS(capabilityCommunity.ID) }
-		if capabilityCommunity.PlatformID != old.PlatformID { params["a1"] = common.DynS(string(capabilityCommunity.PlatformID)) }
-		if capabilityCommunity.Name != old.Name { params["a2"] = common.DynS(capabilityCommunity.Name) }
-		if capabilityCommunity.Description != old.Description { params["a3"] = common.DynS(capabilityCommunity.Description) }
-		if capabilityCommunity.Advocate != old.Advocate { params["a4"] = common.DynS(capabilityCommunity.Advocate) }
-		if capabilityCommunity.CreatedBy != old.CreatedBy { params["a5"] = common.DynS(capabilityCommunity.CreatedBy) }
-		if capabilityCommunity.CreatedAt != old.CreatedAt { params["a6"] = common.DynS(capabilityCommunity.CreatedAt) }
-		if capabilityCommunity.ModifiedAt != old.ModifiedAt { params["a7"] = common.DynS(capabilityCommunity.ModifiedAt) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if capabilityCommunity.ID != old.ID { params[":a0"] = common.DynS(capabilityCommunity.ID) }
+	if capabilityCommunity.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(capabilityCommunity.PlatformID)) }
+	if capabilityCommunity.Name != old.Name { params[":a2"] = common.DynS(capabilityCommunity.Name) }
+	if capabilityCommunity.Description != old.Description { params[":a3"] = common.DynS(capabilityCommunity.Description) }
+	if capabilityCommunity.Advocate != old.Advocate { params[":a4"] = common.DynS(capabilityCommunity.Advocate) }
+	if capabilityCommunity.CreatedBy != old.CreatedBy { params[":a5"] = common.DynS(capabilityCommunity.CreatedBy) }
+	if capabilityCommunity.CreatedAt != old.CreatedAt { params[":a6"] = common.DynS(capabilityCommunity.CreatedAt) }
+	if capabilityCommunity.ModifiedAt != old.ModifiedAt { params[":a7"] = common.DynS(capabilityCommunity.ModifiedAt) }
 	return
 }
-func updateExpression(capabilityCommunity CapabilityCommunity, old CapabilityCommunity) string {
+func updateExpression(capabilityCommunity CapabilityCommunity, old CapabilityCommunity) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if capabilityCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if capabilityCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1") }
-		if capabilityCommunity.Name != old.Name { updateParts = append(updateParts, "#name = :a2") }
-		if capabilityCommunity.Description != old.Description { updateParts = append(updateParts, "description = :a3") }
-		if capabilityCommunity.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a4") }
-		if capabilityCommunity.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a5") }
-		if capabilityCommunity.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a6") }
-		if capabilityCommunity.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a7") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if capabilityCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(capabilityCommunity.ID);  }
+	if capabilityCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(capabilityCommunity.PlatformID));  }
+	if capabilityCommunity.Name != old.Name { updateParts = append(updateParts, "#name = :a2"); params[":a2"] = common.DynS(capabilityCommunity.Name); fldName := "name"; names["#name"] = &fldName }
+	if capabilityCommunity.Description != old.Description { updateParts = append(updateParts, "description = :a3"); params[":a3"] = common.DynS(capabilityCommunity.Description);  }
+	if capabilityCommunity.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a4"); params[":a4"] = common.DynS(capabilityCommunity.Advocate);  }
+	if capabilityCommunity.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a5"); params[":a5"] = common.DynS(capabilityCommunity.CreatedBy);  }
+	if capabilityCommunity.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a6"); params[":a6"] = common.DynS(capabilityCommunity.CreatedAt);  }
+	if capabilityCommunity.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a7"); params[":a7"] = common.DynS(capabilityCommunity.ModifiedAt);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }

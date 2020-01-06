@@ -5,6 +5,7 @@ import (
 	ebm "github.com/adaptiveteam/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	"time"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -86,8 +87,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(userEngagement UserEngagement)
 	Delete(id string) error
 	DeleteUnsafe(id string)
-	ReadByUserIDID(userID string, id string) (userEngagement []UserEngagement, err error)
-	ReadByUserIDIDUnsafe(userID string, id string) (userEngagement []UserEngagement)
 	ReadByUserIDAnswered(userID string, answered int) (userEngagement []UserEngagement, err error)
 	ReadByUserIDAnsweredUnsafe(userID string, answered int) (userEngagement []UserEngagement)
 }
@@ -158,6 +157,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserEngagement, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "UserEngagement DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -186,14 +187,22 @@ func (d DAOImpl) CreateOrUpdate(userEngagement UserEngagement) (err error) {
 		} else {
 			old := olds[0]
 			userEngagement.ModifiedAt = core.TimestampLayout.Format(time.Now())
-ids := idParams(old.ID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(userEngagement, old),
-				ids,
-				updateExpression(userEngagement, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+
+			key := idParams(old.ID)
+			expr, exprAttributes, names := updateExpression(userEngagement, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -217,28 +226,6 @@ func (d DAOImpl)Delete(id string) error {
 func (d DAOImpl)DeleteUnsafe(id string) {
 	err := d.Delete(id)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
-}
-
-
-func (d DAOImpl)ReadByUserIDID(userID string, id string) (out []UserEngagement, err error) {
-	var instances []UserEngagement
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "UserIDIDIndex",
-		Condition: "user_id = :a0 and id = :a1",
-		Attributes: map[string]interface{}{
-			":a0": userID,
-			":a1": id,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = instances
-	return
-}
-
-
-func (d DAOImpl)ReadByUserIDIDUnsafe(userID string, id string) (out []UserEngagement) {
-	out, err := d.ReadByUserIDID(userID, id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query UserIDIDIndex on %s table\n", d.Name))
-	return
 }
 
 
@@ -273,28 +260,29 @@ func allParams(userEngagement UserEngagement, old UserEngagement) (params map[st
 	panic("struct fields are not supported in UserEngagement.CreateOrUpdate/allParams")
 	return
 }
-func updateExpression(userEngagement UserEngagement, old UserEngagement) string {
+func updateExpression(userEngagement UserEngagement, old UserEngagement) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if userEngagement.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if userEngagement.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1") }
-		if userEngagement.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a2") }
-		if userEngagement.TargetID != old.TargetID { updateParts = append(updateParts, "target_id = :a3") }
-		if userEngagement.Namespace != old.Namespace { updateParts = append(updateParts, "namespace = :a4") }
-		if userEngagement.CheckIdentifier != old.CheckIdentifier { updateParts = append(updateParts, "check_identifier = :a5") }
-		if userEngagement.CheckValue != old.CheckValue { updateParts = append(updateParts, "check_value = :a6") }
-		if userEngagement.Script != old.Script { updateParts = append(updateParts, "script = :a7") }
-		panic("struct fields are not supported in UserEngagement.CreateOrUpdate/updateExpression Message")
-		if userEngagement.Priority != old.Priority { updateParts = append(updateParts, "priority = :a9") }
-		if userEngagement.Optional != old.Optional { updateParts = append(updateParts, "optional = :a10") }
-		if userEngagement.Answered != old.Answered { updateParts = append(updateParts, "answered = :a11") }
-		if userEngagement.Ignored != old.Ignored { updateParts = append(updateParts, "ignored = :a12") }
-		if userEngagement.EffectiveStartDate != old.EffectiveStartDate { updateParts = append(updateParts, "effective_start_date = :a13") }
-		if userEngagement.EffectiveEndDate != old.EffectiveEndDate { updateParts = append(updateParts, "effective_end_date = :a14") }
-		if userEngagement.RescheduledFrom != old.RescheduledFrom { updateParts = append(updateParts, "rescheduled_from = :a15") }
-		if userEngagement.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a16") }
-		if userEngagement.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a17") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if userEngagement.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(userEngagement.ID);  }
+	if userEngagement.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(userEngagement.PlatformID));  }
+	if userEngagement.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a2"); params[":a2"] = common.DynS(userEngagement.UserID);  }
+	if userEngagement.TargetID != old.TargetID { updateParts = append(updateParts, "target_id = :a3"); params[":a3"] = common.DynS(userEngagement.TargetID);  }
+	if userEngagement.Namespace != old.Namespace { updateParts = append(updateParts, "namespace = :a4"); params[":a4"] = common.DynS(userEngagement.Namespace);  }
+	if userEngagement.CheckIdentifier != old.CheckIdentifier { updateParts = append(updateParts, "check_identifier = :a5"); params[":a5"] = common.DynS(userEngagement.CheckIdentifier);  }
+	if userEngagement.CheckValue != old.CheckValue { updateParts = append(updateParts, "check_value = :a6"); params[":a6"] = common.DynBOOL(userEngagement.CheckValue);  }
+	if userEngagement.Script != old.Script { updateParts = append(updateParts, "script = :a7"); params[":a7"] = common.DynS(userEngagement.Script);  }
+	panic("struct fields are not supported in UserEngagement.CreateOrUpdate/updateExpression Message")
+	if userEngagement.Priority != old.Priority { updateParts = append(updateParts, "priority = :a9"); params[":a9"] = common.DynS(string(userEngagement.Priority));  }
+	if userEngagement.Optional != old.Optional { updateParts = append(updateParts, "optional = :a10"); params[":a10"] = common.DynBOOL(userEngagement.Optional);  }
+	if userEngagement.Answered != old.Answered { updateParts = append(updateParts, "answered = :a11"); params[":a11"] = common.DynN(userEngagement.Answered);  }
+	if userEngagement.Ignored != old.Ignored { updateParts = append(updateParts, "ignored = :a12"); params[":a12"] = common.DynN(userEngagement.Ignored);  }
+	if userEngagement.EffectiveStartDate != old.EffectiveStartDate { updateParts = append(updateParts, "effective_start_date = :a13"); params[":a13"] = common.DynS(userEngagement.EffectiveStartDate);  }
+	if userEngagement.EffectiveEndDate != old.EffectiveEndDate { updateParts = append(updateParts, "effective_end_date = :a14"); params[":a14"] = common.DynS(userEngagement.EffectiveEndDate);  }
+	if userEngagement.RescheduledFrom != old.RescheduledFrom { updateParts = append(updateParts, "rescheduled_from = :a15"); params[":a15"] = common.DynS(userEngagement.RescheduledFrom);  }
+	if userEngagement.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a16"); params[":a16"] = common.DynS(userEngagement.CreatedAt);  }
+	if userEngagement.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a17"); params[":a17"] = common.DynS(userEngagement.ModifiedAt);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }

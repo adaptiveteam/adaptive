@@ -4,6 +4,7 @@ package userObjective
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	"time"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -88,8 +89,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(userObjective UserObjective)
 	Delete(id string) error
 	DeleteUnsafe(id string)
-	ReadByID(id string) (userObjective []UserObjective, err error)
-	ReadByIDUnsafe(id string) (userObjective []UserObjective)
 	ReadByUserIDCompleted(userID string, completed int) (userObjective []UserObjective, err error)
 	ReadByUserIDCompletedUnsafe(userID string, completed int) (userObjective []UserObjective)
 	ReadByAccepted(accepted int) (userObjective []UserObjective, err error)
@@ -166,6 +165,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserObjective, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "UserObjective DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -194,14 +195,22 @@ func (d DAOImpl) CreateOrUpdate(userObjective UserObjective) (err error) {
 		} else {
 			old := olds[0]
 			userObjective.ModifiedAt = core.TimestampLayout.Format(time.Now())
-ids := idParams(old.ID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(userObjective, old),
-				ids,
-				updateExpression(userObjective, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "UserObjective DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+
+			key := idParams(old.ID)
+			expr, exprAttributes, names := updateExpression(userObjective, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "UserObjective DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -225,27 +234,6 @@ func (d DAOImpl)Delete(id string) error {
 func (d DAOImpl)DeleteUnsafe(id string) {
 	err := d.Delete(id)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
-}
-
-
-func (d DAOImpl)ReadByID(id string) (out []UserObjective, err error) {
-	var instances []UserObjective
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "IDIndex",
-		Condition: "id = :a0",
-		Attributes: map[string]interface{}{
-			":a0": id,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = instances
-	return
-}
-
-
-func (d DAOImpl)ReadByIDUnsafe(id string) (out []UserObjective) {
-	out, err := d.ReadByID(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query IDIndex on %s table\n", d.Name))
-	return
 }
 
 
@@ -341,58 +329,58 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(userObjective UserObjective, old UserObjective) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if userObjective.ID != old.ID { params["a0"] = common.DynS(userObjective.ID) }
-		if userObjective.PlatformID != old.PlatformID { params["a1"] = common.DynS(string(userObjective.PlatformID)) }
-		if userObjective.UserID != old.UserID { params["a2"] = common.DynS(userObjective.UserID) }
-		if userObjective.Name != old.Name { params["a3"] = common.DynS(userObjective.Name) }
-		if userObjective.Description != old.Description { params["a4"] = common.DynS(userObjective.Description) }
-		if userObjective.AccountabilityPartner != old.AccountabilityPartner { params["a5"] = common.DynS(userObjective.AccountabilityPartner) }
-		if userObjective.Accepted != old.Accepted { params["a6"] = common.DynN(userObjective.Accepted) }
-		if userObjective.ObjectiveType != old.ObjectiveType { params["a7"] = common.DynS(string(userObjective.ObjectiveType)) }
-		if userObjective.StrategyAlignmentEntityID != old.StrategyAlignmentEntityID { params["a8"] = common.DynS(userObjective.StrategyAlignmentEntityID) }
-		if userObjective.StrategyAlignmentEntityType != old.StrategyAlignmentEntityType { params["a9"] = common.DynS(string(userObjective.StrategyAlignmentEntityType)) }
-		if userObjective.Quarter != old.Quarter { params["a10"] = common.DynN(userObjective.Quarter) }
-		if userObjective.Year != old.Year { params["a11"] = common.DynN(userObjective.Year) }
-		if userObjective.CreatedDate != old.CreatedDate { params["a12"] = common.DynS(userObjective.CreatedDate) }
-		if userObjective.ExpectedEndDate != old.ExpectedEndDate { params["a13"] = common.DynS(userObjective.ExpectedEndDate) }
-		if userObjective.Completed != old.Completed { params["a14"] = common.DynN(userObjective.Completed) }
-		if userObjective.PartnerVerifiedCompletion != old.PartnerVerifiedCompletion { params["a15"] = common.DynBOOL(userObjective.PartnerVerifiedCompletion) }
-		if userObjective.CompletedDate != old.CompletedDate { params["a16"] = common.DynS(userObjective.CompletedDate) }
-		if userObjective.PartnerVerifiedCompletionDate != old.PartnerVerifiedCompletionDate { params["a17"] = common.DynS(userObjective.PartnerVerifiedCompletionDate) }
-		if userObjective.Comments != old.Comments { params["a18"] = common.DynS(userObjective.Comments) }
-		if userObjective.Cancelled != old.Cancelled { params["a19"] = common.DynN(userObjective.Cancelled) }
-		if userObjective.CreatedAt != old.CreatedAt { params["a20"] = common.DynS(userObjective.CreatedAt) }
-		if userObjective.ModifiedAt != old.ModifiedAt { params["a21"] = common.DynS(userObjective.ModifiedAt) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if userObjective.ID != old.ID { params[":a0"] = common.DynS(userObjective.ID) }
+	if userObjective.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(userObjective.PlatformID)) }
+	if userObjective.UserID != old.UserID { params[":a2"] = common.DynS(userObjective.UserID) }
+	if userObjective.Name != old.Name { params[":a3"] = common.DynS(userObjective.Name) }
+	if userObjective.Description != old.Description { params[":a4"] = common.DynS(userObjective.Description) }
+	if userObjective.AccountabilityPartner != old.AccountabilityPartner { params[":a5"] = common.DynS(userObjective.AccountabilityPartner) }
+	if userObjective.Accepted != old.Accepted { params[":a6"] = common.DynN(userObjective.Accepted) }
+	if userObjective.ObjectiveType != old.ObjectiveType { params[":a7"] = common.DynS(string(userObjective.ObjectiveType)) }
+	if userObjective.StrategyAlignmentEntityID != old.StrategyAlignmentEntityID { params[":a8"] = common.DynS(userObjective.StrategyAlignmentEntityID) }
+	if userObjective.StrategyAlignmentEntityType != old.StrategyAlignmentEntityType { params[":a9"] = common.DynS(string(userObjective.StrategyAlignmentEntityType)) }
+	if userObjective.Quarter != old.Quarter { params[":a10"] = common.DynN(userObjective.Quarter) }
+	if userObjective.Year != old.Year { params[":a11"] = common.DynN(userObjective.Year) }
+	if userObjective.CreatedDate != old.CreatedDate { params[":a12"] = common.DynS(userObjective.CreatedDate) }
+	if userObjective.ExpectedEndDate != old.ExpectedEndDate { params[":a13"] = common.DynS(userObjective.ExpectedEndDate) }
+	if userObjective.Completed != old.Completed { params[":a14"] = common.DynN(userObjective.Completed) }
+	if userObjective.PartnerVerifiedCompletion != old.PartnerVerifiedCompletion { params[":a15"] = common.DynBOOL(userObjective.PartnerVerifiedCompletion) }
+	if userObjective.CompletedDate != old.CompletedDate { params[":a16"] = common.DynS(userObjective.CompletedDate) }
+	if userObjective.PartnerVerifiedCompletionDate != old.PartnerVerifiedCompletionDate { params[":a17"] = common.DynS(userObjective.PartnerVerifiedCompletionDate) }
+	if userObjective.Comments != old.Comments { params[":a18"] = common.DynS(userObjective.Comments) }
+	if userObjective.Cancelled != old.Cancelled { params[":a19"] = common.DynN(userObjective.Cancelled) }
+	if userObjective.CreatedAt != old.CreatedAt { params[":a20"] = common.DynS(userObjective.CreatedAt) }
+	if userObjective.ModifiedAt != old.ModifiedAt { params[":a21"] = common.DynS(userObjective.ModifiedAt) }
 	return
 }
-func updateExpression(userObjective UserObjective, old UserObjective) string {
+func updateExpression(userObjective UserObjective, old UserObjective) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if userObjective.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if userObjective.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1") }
-		if userObjective.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a2") }
-		if userObjective.Name != old.Name { updateParts = append(updateParts, "#name = :a3") }
-		if userObjective.Description != old.Description { updateParts = append(updateParts, "description = :a4") }
-		if userObjective.AccountabilityPartner != old.AccountabilityPartner { updateParts = append(updateParts, "accountability_partner = :a5") }
-		if userObjective.Accepted != old.Accepted { updateParts = append(updateParts, "accepted = :a6") }
-		if userObjective.ObjectiveType != old.ObjectiveType { updateParts = append(updateParts, "#type = :a7") }
-		if userObjective.StrategyAlignmentEntityID != old.StrategyAlignmentEntityID { updateParts = append(updateParts, "strategy_alignment_entity_id = :a8") }
-		if userObjective.StrategyAlignmentEntityType != old.StrategyAlignmentEntityType { updateParts = append(updateParts, "strategy_alignment_entity_type = :a9") }
-		if userObjective.Quarter != old.Quarter { updateParts = append(updateParts, "quarter = :a10") }
-		if userObjective.Year != old.Year { updateParts = append(updateParts, "#year = :a11") }
-		if userObjective.CreatedDate != old.CreatedDate { updateParts = append(updateParts, "created_date = :a12") }
-		if userObjective.ExpectedEndDate != old.ExpectedEndDate { updateParts = append(updateParts, "expected_end_date = :a13") }
-		if userObjective.Completed != old.Completed { updateParts = append(updateParts, "completed = :a14") }
-		if userObjective.PartnerVerifiedCompletion != old.PartnerVerifiedCompletion { updateParts = append(updateParts, "partner_verified_completion = :a15") }
-		if userObjective.CompletedDate != old.CompletedDate { updateParts = append(updateParts, "completed_date = :a16") }
-		if userObjective.PartnerVerifiedCompletionDate != old.PartnerVerifiedCompletionDate { updateParts = append(updateParts, "partner_verified_completion_date = :a17") }
-		if userObjective.Comments != old.Comments { updateParts = append(updateParts, "comments = :a18") }
-		if userObjective.Cancelled != old.Cancelled { updateParts = append(updateParts, "cancelled = :a19") }
-		if userObjective.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a20") }
-		if userObjective.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a21") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if userObjective.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(userObjective.ID);  }
+	if userObjective.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(userObjective.PlatformID));  }
+	if userObjective.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a2"); params[":a2"] = common.DynS(userObjective.UserID);  }
+	if userObjective.Name != old.Name { updateParts = append(updateParts, "#name = :a3"); params[":a3"] = common.DynS(userObjective.Name); fldName := "name"; names["#name"] = &fldName }
+	if userObjective.Description != old.Description { updateParts = append(updateParts, "description = :a4"); params[":a4"] = common.DynS(userObjective.Description);  }
+	if userObjective.AccountabilityPartner != old.AccountabilityPartner { updateParts = append(updateParts, "accountability_partner = :a5"); params[":a5"] = common.DynS(userObjective.AccountabilityPartner);  }
+	if userObjective.Accepted != old.Accepted { updateParts = append(updateParts, "accepted = :a6"); params[":a6"] = common.DynN(userObjective.Accepted);  }
+	if userObjective.ObjectiveType != old.ObjectiveType { updateParts = append(updateParts, "#type = :a7"); params[":a7"] = common.DynS(string(userObjective.ObjectiveType)); fldName := "type"; names["#type"] = &fldName }
+	if userObjective.StrategyAlignmentEntityID != old.StrategyAlignmentEntityID { updateParts = append(updateParts, "strategy_alignment_entity_id = :a8"); params[":a8"] = common.DynS(userObjective.StrategyAlignmentEntityID);  }
+	if userObjective.StrategyAlignmentEntityType != old.StrategyAlignmentEntityType { updateParts = append(updateParts, "strategy_alignment_entity_type = :a9"); params[":a9"] = common.DynS(string(userObjective.StrategyAlignmentEntityType));  }
+	if userObjective.Quarter != old.Quarter { updateParts = append(updateParts, "quarter = :a10"); params[":a10"] = common.DynN(userObjective.Quarter);  }
+	if userObjective.Year != old.Year { updateParts = append(updateParts, "#year = :a11"); params[":a11"] = common.DynN(userObjective.Year); fldName := "year"; names["#year"] = &fldName }
+	if userObjective.CreatedDate != old.CreatedDate { updateParts = append(updateParts, "created_date = :a12"); params[":a12"] = common.DynS(userObjective.CreatedDate);  }
+	if userObjective.ExpectedEndDate != old.ExpectedEndDate { updateParts = append(updateParts, "expected_end_date = :a13"); params[":a13"] = common.DynS(userObjective.ExpectedEndDate);  }
+	if userObjective.Completed != old.Completed { updateParts = append(updateParts, "completed = :a14"); params[":a14"] = common.DynN(userObjective.Completed);  }
+	if userObjective.PartnerVerifiedCompletion != old.PartnerVerifiedCompletion { updateParts = append(updateParts, "partner_verified_completion = :a15"); params[":a15"] = common.DynBOOL(userObjective.PartnerVerifiedCompletion);  }
+	if userObjective.CompletedDate != old.CompletedDate { updateParts = append(updateParts, "completed_date = :a16"); params[":a16"] = common.DynS(userObjective.CompletedDate);  }
+	if userObjective.PartnerVerifiedCompletionDate != old.PartnerVerifiedCompletionDate { updateParts = append(updateParts, "partner_verified_completion_date = :a17"); params[":a17"] = common.DynS(userObjective.PartnerVerifiedCompletionDate);  }
+	if userObjective.Comments != old.Comments { updateParts = append(updateParts, "comments = :a18"); params[":a18"] = common.DynS(userObjective.Comments);  }
+	if userObjective.Cancelled != old.Cancelled { updateParts = append(updateParts, "cancelled = :a19"); params[":a19"] = common.DynN(userObjective.Cancelled);  }
+	if userObjective.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a20"); params[":a20"] = common.DynS(userObjective.CreatedAt);  }
+	if userObjective.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a21"); params[":a21"] = common.DynS(userObjective.ModifiedAt);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }
