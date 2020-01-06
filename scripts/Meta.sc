@@ -159,8 +159,8 @@ case class Dao(table: Table) extends GoDefinition {
         DaoReadRow,
         DaoReadOrEmptyRow,
         DaoUpdateRow,
-        DaoDeleteRow,
-        DaoQueryRow(table.defaultIndex)
+        DaoDeleteRow//,
+        // DaoQueryRow(table.defaultIndex)
     ) ::: table.indices.map(DaoQueryRow)
 }
 
