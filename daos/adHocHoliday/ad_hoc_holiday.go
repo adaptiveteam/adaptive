@@ -4,6 +4,7 @@ package adHocHoliday
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	"time"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -58,8 +59,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(adHocHoliday AdHocHoliday)
 	Deactivate(id string) error
 	DeactivateUnsafe(id string)
-	ReadByID(id string) (adHocHoliday []AdHocHoliday, err error)
-	ReadByIDUnsafe(id string) (adHocHoliday []AdHocHoliday)
 	ReadByDatePlatformID(date string, platformID models.PlatformID) (adHocHoliday []AdHocHoliday, err error)
 	ReadByDatePlatformIDUnsafe(date string, platformID models.PlatformID) (adHocHoliday []AdHocHoliday)
 }
@@ -128,6 +127,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []AdHocHoliday, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "AdHocHoliday DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -153,14 +154,22 @@ func (d DAOImpl) CreateOrUpdate(adHocHoliday AdHocHoliday) (err error) {
 			err = errors.Wrapf(err, "AdHocHoliday DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
 			old := olds[0]
-			ids := idParams(old.ID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(adHocHoliday, old),
-				ids,
-				updateExpression(adHocHoliday, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "AdHocHoliday DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+			
+			key := idParams(old.ID)
+			expr, exprAttributes, names := updateExpression(adHocHoliday, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "AdHocHoliday DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -194,27 +203,6 @@ func (d DAOImpl)DeactivateUnsafe(id string) {
 }
 
 
-func (d DAOImpl)ReadByID(id string) (out []AdHocHoliday, err error) {
-	var instances []AdHocHoliday
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "IDIndex",
-		Condition: "id = :a0",
-		Attributes: map[string]interface{}{
-			":a0": id,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = AdHocHolidayFilterActive(instances)
-	return
-}
-
-
-func (d DAOImpl)ReadByIDUnsafe(id string) (out []AdHocHoliday) {
-	out, err := d.ReadByID(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query IDIndex on %s table\n", d.Name))
-	return
-}
-
-
 func (d DAOImpl)ReadByDatePlatformID(date string, platformID models.PlatformID) (out []AdHocHoliday, err error) {
 	var instances []AdHocHoliday
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
@@ -243,28 +231,28 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(adHocHoliday AdHocHoliday, old AdHocHoliday) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if adHocHoliday.ID != old.ID { params["a0"] = common.DynS(adHocHoliday.ID) }
-		if adHocHoliday.PlatformID != old.PlatformID { params["a1"] = common.DynS(string(adHocHoliday.PlatformID)) }
-		if adHocHoliday.Date != old.Date { params["a2"] = common.DynS(adHocHoliday.Date) }
-		if adHocHoliday.Name != old.Name { params["a3"] = common.DynS(adHocHoliday.Name) }
-		if adHocHoliday.Description != old.Description { params["a4"] = common.DynS(adHocHoliday.Description) }
-		if adHocHoliday.ScopeCommunities != old.ScopeCommunities { params["a5"] = common.DynS(adHocHoliday.ScopeCommunities) }
-		if adHocHoliday.DeactivatedOn != old.DeactivatedOn { params["a6"] = common.DynS(adHocHoliday.DeactivatedOn) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if adHocHoliday.ID != old.ID { params[":a0"] = common.DynS(adHocHoliday.ID) }
+	if adHocHoliday.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(adHocHoliday.PlatformID)) }
+	if adHocHoliday.Date != old.Date { params[":a2"] = common.DynS(adHocHoliday.Date) }
+	if adHocHoliday.Name != old.Name { params[":a3"] = common.DynS(adHocHoliday.Name) }
+	if adHocHoliday.Description != old.Description { params[":a4"] = common.DynS(adHocHoliday.Description) }
+	if adHocHoliday.ScopeCommunities != old.ScopeCommunities { params[":a5"] = common.DynS(adHocHoliday.ScopeCommunities) }
+	if adHocHoliday.DeactivatedOn != old.DeactivatedOn { params[":a6"] = common.DynS(adHocHoliday.DeactivatedOn) }
 	return
 }
-func updateExpression(adHocHoliday AdHocHoliday, old AdHocHoliday) string {
+func updateExpression(adHocHoliday AdHocHoliday, old AdHocHoliday) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if adHocHoliday.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if adHocHoliday.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1") }
-		if adHocHoliday.Date != old.Date { updateParts = append(updateParts, "#date = :a2") }
-		if adHocHoliday.Name != old.Name { updateParts = append(updateParts, "#name = :a3") }
-		if adHocHoliday.Description != old.Description { updateParts = append(updateParts, "description = :a4") }
-		if adHocHoliday.ScopeCommunities != old.ScopeCommunities { updateParts = append(updateParts, "scope_communities = :a5") }
-		if adHocHoliday.DeactivatedOn != old.DeactivatedOn { updateParts = append(updateParts, "deactivated_on = :a6") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if adHocHoliday.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(adHocHoliday.ID);  }
+	if adHocHoliday.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(adHocHoliday.PlatformID));  }
+	if adHocHoliday.Date != old.Date { updateParts = append(updateParts, "#date = :a2"); params[":a2"] = common.DynS(adHocHoliday.Date); fldName := "date"; names["#date"] = &fldName }
+	if adHocHoliday.Name != old.Name { updateParts = append(updateParts, "#name = :a3"); params[":a3"] = common.DynS(adHocHoliday.Name); fldName := "name"; names["#name"] = &fldName }
+	if adHocHoliday.Description != old.Description { updateParts = append(updateParts, "description = :a4"); params[":a4"] = common.DynS(adHocHoliday.Description);  }
+	if adHocHoliday.ScopeCommunities != old.ScopeCommunities { updateParts = append(updateParts, "scope_communities = :a5"); params[":a5"] = common.DynS(adHocHoliday.ScopeCommunities);  }
+	if adHocHoliday.DeactivatedOn != old.DeactivatedOn { updateParts = append(updateParts, "deactivated_on = :a6"); params[":a6"] = common.DynS(adHocHoliday.DeactivatedOn);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }

@@ -4,6 +4,7 @@ package strategyObjective
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	"time"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -64,8 +65,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(strategyObjective StrategyObjective)
 	Delete(id string) error
 	DeleteUnsafe(id string)
-	ReadByIDPlatformID(id string, platformID models.PlatformID) (strategyObjective []StrategyObjective, err error)
-	ReadByIDPlatformIDUnsafe(id string, platformID models.PlatformID) (strategyObjective []StrategyObjective)
 	ReadByPlatformID(platformID models.PlatformID) (strategyObjective []StrategyObjective, err error)
 	ReadByPlatformIDUnsafe(platformID models.PlatformID) (strategyObjective []StrategyObjective)
 }
@@ -136,6 +135,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyObjective, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "StrategyObjective DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -164,14 +165,22 @@ func (d DAOImpl) CreateOrUpdate(strategyObjective StrategyObjective) (err error)
 		} else {
 			old := olds[0]
 			strategyObjective.ModifiedAt = core.TimestampLayout.Format(time.Now())
-ids := idParams(old.ID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(strategyObjective, old),
-				ids,
-				updateExpression(strategyObjective, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "StrategyObjective DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+
+			key := idParams(old.ID)
+			expr, exprAttributes, names := updateExpression(strategyObjective, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "StrategyObjective DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -195,28 +204,6 @@ func (d DAOImpl)Delete(id string) error {
 func (d DAOImpl)DeleteUnsafe(id string) {
 	err := d.Delete(id)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
-}
-
-
-func (d DAOImpl)ReadByIDPlatformID(id string, platformID models.PlatformID) (out []StrategyObjective, err error) {
-	var instances []StrategyObjective
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "IDPlatformIDIndex",
-		Condition: "id = :a0 and platform_id = :a1",
-		Attributes: map[string]interface{}{
-			":a0": id,
-			":a1": platformID,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = instances
-	return
-}
-
-
-func (d DAOImpl)ReadByIDPlatformIDUnsafe(id string, platformID models.PlatformID) (out []StrategyObjective) {
-	out, err := d.ReadByIDPlatformID(id, platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query IDPlatformIDIndex on %s table\n", d.Name))
-	return
 }
 
 
@@ -247,40 +234,40 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(strategyObjective StrategyObjective, old StrategyObjective) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if strategyObjective.ID != old.ID { params["a0"] = common.DynS(strategyObjective.ID) }
-		if strategyObjective.PlatformID != old.PlatformID { params["a1"] = common.DynS(string(strategyObjective.PlatformID)) }
-		if strategyObjective.Name != old.Name { params["a2"] = common.DynS(strategyObjective.Name) }
-		if strategyObjective.Description != old.Description { params["a3"] = common.DynS(strategyObjective.Description) }
-		if strategyObjective.AsMeasuredBy != old.AsMeasuredBy { params["a4"] = common.DynS(strategyObjective.AsMeasuredBy) }
-		if strategyObjective.Targets != old.Targets { params["a5"] = common.DynS(strategyObjective.Targets) }
-		if strategyObjective.ObjectiveType != old.ObjectiveType { params["a6"] = common.DynS(string(strategyObjective.ObjectiveType)) }
-		if strategyObjective.Advocate != old.Advocate { params["a7"] = common.DynS(strategyObjective.Advocate) }
-		if !common.StringArraysEqual(strategyObjective.CapabilityCommunityIDs, old.CapabilityCommunityIDs) { params["a8"] = common.DynSS(strategyObjective.CapabilityCommunityIDs) }
-		if strategyObjective.ExpectedEndDate != old.ExpectedEndDate { params["a9"] = common.DynS(strategyObjective.ExpectedEndDate) }
-		if strategyObjective.CreatedBy != old.CreatedBy { params["a10"] = common.DynS(strategyObjective.CreatedBy) }
-		if strategyObjective.CreatedAt != old.CreatedAt { params["a11"] = common.DynS(strategyObjective.CreatedAt) }
-		if strategyObjective.ModifiedAt != old.ModifiedAt { params["a12"] = common.DynS(strategyObjective.ModifiedAt) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if strategyObjective.ID != old.ID { params[":a0"] = common.DynS(strategyObjective.ID) }
+	if strategyObjective.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(strategyObjective.PlatformID)) }
+	if strategyObjective.Name != old.Name { params[":a2"] = common.DynS(strategyObjective.Name) }
+	if strategyObjective.Description != old.Description { params[":a3"] = common.DynS(strategyObjective.Description) }
+	if strategyObjective.AsMeasuredBy != old.AsMeasuredBy { params[":a4"] = common.DynS(strategyObjective.AsMeasuredBy) }
+	if strategyObjective.Targets != old.Targets { params[":a5"] = common.DynS(strategyObjective.Targets) }
+	if strategyObjective.ObjectiveType != old.ObjectiveType { params[":a6"] = common.DynS(string(strategyObjective.ObjectiveType)) }
+	if strategyObjective.Advocate != old.Advocate { params[":a7"] = common.DynS(strategyObjective.Advocate) }
+	if !common.StringArraysEqual(strategyObjective.CapabilityCommunityIDs, old.CapabilityCommunityIDs) { params[":a8"] = common.DynSS(strategyObjective.CapabilityCommunityIDs) }
+	if strategyObjective.ExpectedEndDate != old.ExpectedEndDate { params[":a9"] = common.DynS(strategyObjective.ExpectedEndDate) }
+	if strategyObjective.CreatedBy != old.CreatedBy { params[":a10"] = common.DynS(strategyObjective.CreatedBy) }
+	if strategyObjective.CreatedAt != old.CreatedAt { params[":a11"] = common.DynS(strategyObjective.CreatedAt) }
+	if strategyObjective.ModifiedAt != old.ModifiedAt { params[":a12"] = common.DynS(strategyObjective.ModifiedAt) }
 	return
 }
-func updateExpression(strategyObjective StrategyObjective, old StrategyObjective) string {
+func updateExpression(strategyObjective StrategyObjective, old StrategyObjective) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if strategyObjective.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if strategyObjective.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1") }
-		if strategyObjective.Name != old.Name { updateParts = append(updateParts, "#name = :a2") }
-		if strategyObjective.Description != old.Description { updateParts = append(updateParts, "description = :a3") }
-		if strategyObjective.AsMeasuredBy != old.AsMeasuredBy { updateParts = append(updateParts, "as_measured_by = :a4") }
-		if strategyObjective.Targets != old.Targets { updateParts = append(updateParts, "targets = :a5") }
-		if strategyObjective.ObjectiveType != old.ObjectiveType { updateParts = append(updateParts, "objective_type = :a6") }
-		if strategyObjective.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a7") }
-		if !common.StringArraysEqual(strategyObjective.CapabilityCommunityIDs, old.CapabilityCommunityIDs) { updateParts = append(updateParts, "capability_community_i_ds = :a8") }
-		if strategyObjective.ExpectedEndDate != old.ExpectedEndDate { updateParts = append(updateParts, "expected_end_date = :a9") }
-		if strategyObjective.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a10") }
-		if strategyObjective.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a11") }
-		if strategyObjective.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a12") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if strategyObjective.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(strategyObjective.ID);  }
+	if strategyObjective.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(strategyObjective.PlatformID));  }
+	if strategyObjective.Name != old.Name { updateParts = append(updateParts, "#name = :a2"); params[":a2"] = common.DynS(strategyObjective.Name); fldName := "name"; names["#name"] = &fldName }
+	if strategyObjective.Description != old.Description { updateParts = append(updateParts, "description = :a3"); params[":a3"] = common.DynS(strategyObjective.Description);  }
+	if strategyObjective.AsMeasuredBy != old.AsMeasuredBy { updateParts = append(updateParts, "as_measured_by = :a4"); params[":a4"] = common.DynS(strategyObjective.AsMeasuredBy);  }
+	if strategyObjective.Targets != old.Targets { updateParts = append(updateParts, "targets = :a5"); params[":a5"] = common.DynS(strategyObjective.Targets);  }
+	if strategyObjective.ObjectiveType != old.ObjectiveType { updateParts = append(updateParts, "objective_type = :a6"); params[":a6"] = common.DynS(string(strategyObjective.ObjectiveType));  }
+	if strategyObjective.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a7"); params[":a7"] = common.DynS(strategyObjective.Advocate);  }
+	if !common.StringArraysEqual(strategyObjective.CapabilityCommunityIDs, old.CapabilityCommunityIDs) { updateParts = append(updateParts, "capability_community_i_ds = :a8"); params[":a8"] = common.DynSS(strategyObjective.CapabilityCommunityIDs);  }
+	if strategyObjective.ExpectedEndDate != old.ExpectedEndDate { updateParts = append(updateParts, "expected_end_date = :a9"); params[":a9"] = common.DynS(strategyObjective.ExpectedEndDate);  }
+	if strategyObjective.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a10"); params[":a10"] = common.DynS(strategyObjective.CreatedBy);  }
+	if strategyObjective.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a11"); params[":a11"] = common.DynS(strategyObjective.CreatedAt);  }
+	if strategyObjective.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a12"); params[":a12"] = common.DynS(strategyObjective.ModifiedAt);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }

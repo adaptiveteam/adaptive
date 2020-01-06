@@ -4,6 +4,7 @@ package adaptiveValue
 import (
 	"time"
 	"github.com/adaptiveteam/adaptive-utils-go/models"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -56,8 +57,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(adaptiveValue AdaptiveValue)
 	Deactivate(id string) error
 	DeactivateUnsafe(id string)
-	ReadByID(id string) (adaptiveValue []AdaptiveValue, err error)
-	ReadByIDUnsafe(id string) (adaptiveValue []AdaptiveValue)
 	ReadByPlatformID(platformID models.PlatformID) (adaptiveValue []AdaptiveValue, err error)
 	ReadByPlatformIDUnsafe(platformID models.PlatformID) (adaptiveValue []AdaptiveValue)
 }
@@ -126,6 +125,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveValue, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "AdaptiveValue DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -151,14 +152,22 @@ func (d DAOImpl) CreateOrUpdate(adaptiveValue AdaptiveValue) (err error) {
 			err = errors.Wrapf(err, "AdaptiveValue DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
 			old := olds[0]
-			ids := idParams(old.ID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(adaptiveValue, old),
-				ids,
-				updateExpression(adaptiveValue, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "AdaptiveValue DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+			
+			key := idParams(old.ID)
+			expr, exprAttributes, names := updateExpression(adaptiveValue, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "AdaptiveValue DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -192,27 +201,6 @@ func (d DAOImpl)DeactivateUnsafe(id string) {
 }
 
 
-func (d DAOImpl)ReadByID(id string) (out []AdaptiveValue, err error) {
-	var instances []AdaptiveValue
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "IDIndex",
-		Condition: "id = :a0",
-		Attributes: map[string]interface{}{
-			":a0": id,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = AdaptiveValueFilterActive(instances)
-	return
-}
-
-
-func (d DAOImpl)ReadByIDUnsafe(id string) (out []AdaptiveValue) {
-	out, err := d.ReadByID(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query IDIndex on %s table\n", d.Name))
-	return
-}
-
-
 func (d DAOImpl)ReadByPlatformID(platformID models.PlatformID) (out []AdaptiveValue, err error) {
 	var instances []AdaptiveValue
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
@@ -240,26 +228,26 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(adaptiveValue AdaptiveValue, old AdaptiveValue) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if adaptiveValue.ID != old.ID { params["a0"] = common.DynS(adaptiveValue.ID) }
-		if adaptiveValue.PlatformID != old.PlatformID { params["a1"] = common.DynS(string(adaptiveValue.PlatformID)) }
-		if adaptiveValue.Name != old.Name { params["a2"] = common.DynS(adaptiveValue.Name) }
-		if adaptiveValue.ValueType != old.ValueType { params["a3"] = common.DynS(adaptiveValue.ValueType) }
-		if adaptiveValue.Description != old.Description { params["a4"] = common.DynS(adaptiveValue.Description) }
-		if adaptiveValue.DeactivatedOn != old.DeactivatedOn { params["a5"] = common.DynS(adaptiveValue.DeactivatedOn) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if adaptiveValue.ID != old.ID { params[":a0"] = common.DynS(adaptiveValue.ID) }
+	if adaptiveValue.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(adaptiveValue.PlatformID)) }
+	if adaptiveValue.Name != old.Name { params[":a2"] = common.DynS(adaptiveValue.Name) }
+	if adaptiveValue.ValueType != old.ValueType { params[":a3"] = common.DynS(adaptiveValue.ValueType) }
+	if adaptiveValue.Description != old.Description { params[":a4"] = common.DynS(adaptiveValue.Description) }
+	if adaptiveValue.DeactivatedOn != old.DeactivatedOn { params[":a5"] = common.DynS(adaptiveValue.DeactivatedOn) }
 	return
 }
-func updateExpression(adaptiveValue AdaptiveValue, old AdaptiveValue) string {
+func updateExpression(adaptiveValue AdaptiveValue, old AdaptiveValue) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if adaptiveValue.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if adaptiveValue.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1") }
-		if adaptiveValue.Name != old.Name { updateParts = append(updateParts, "value_name = :a2") }
-		if adaptiveValue.ValueType != old.ValueType { updateParts = append(updateParts, "value_type = :a3") }
-		if adaptiveValue.Description != old.Description { updateParts = append(updateParts, "description = :a4") }
-		if adaptiveValue.DeactivatedOn != old.DeactivatedOn { updateParts = append(updateParts, "deactivated_on = :a5") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if adaptiveValue.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(adaptiveValue.ID);  }
+	if adaptiveValue.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(adaptiveValue.PlatformID));  }
+	if adaptiveValue.Name != old.Name { updateParts = append(updateParts, "value_name = :a2"); params[":a2"] = common.DynS(adaptiveValue.Name);  }
+	if adaptiveValue.ValueType != old.ValueType { updateParts = append(updateParts, "value_type = :a3"); params[":a3"] = common.DynS(adaptiveValue.ValueType);  }
+	if adaptiveValue.Description != old.Description { updateParts = append(updateParts, "description = :a4"); params[":a4"] = common.DynS(adaptiveValue.Description);  }
+	if adaptiveValue.DeactivatedOn != old.DeactivatedOn { updateParts = append(updateParts, "deactivated_on = :a5"); params[":a5"] = common.DynS(adaptiveValue.DeactivatedOn);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }

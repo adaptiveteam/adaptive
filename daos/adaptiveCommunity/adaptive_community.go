@@ -4,6 +4,7 @@ package adaptiveCommunity
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	"time"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -47,8 +48,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(adaptiveCommunity AdaptiveCommunity)
 	Delete(id string) error
 	DeleteUnsafe(id string)
-	ReadByIDPlatformID(id string, platformID models.PlatformID) (adaptiveCommunity []AdaptiveCommunity, err error)
-	ReadByIDPlatformIDUnsafe(id string, platformID models.PlatformID) (adaptiveCommunity []AdaptiveCommunity)
 	ReadByChannel(channel string) (adaptiveCommunity []AdaptiveCommunity, err error)
 	ReadByChannelUnsafe(channel string) (adaptiveCommunity []AdaptiveCommunity)
 	ReadByPlatformID(platformID models.PlatformID) (adaptiveCommunity []AdaptiveCommunity, err error)
@@ -121,6 +120,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveCommunity, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "AdaptiveCommunity DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -149,14 +150,22 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunity AdaptiveCommunity) (err error)
 		} else {
 			old := olds[0]
 			adaptiveCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
-ids := idParams(old.ID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(adaptiveCommunity, old),
-				ids,
-				updateExpression(adaptiveCommunity, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "AdaptiveCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+
+			key := idParams(old.ID)
+			expr, exprAttributes, names := updateExpression(adaptiveCommunity, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "AdaptiveCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -180,28 +189,6 @@ func (d DAOImpl)Delete(id string) error {
 func (d DAOImpl)DeleteUnsafe(id string) {
 	err := d.Delete(id)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
-}
-
-
-func (d DAOImpl)ReadByIDPlatformID(id string, platformID models.PlatformID) (out []AdaptiveCommunity, err error) {
-	var instances []AdaptiveCommunity
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "IDPlatformIDIndex",
-		Condition: "id = :a0 and platform_id = :a1",
-		Attributes: map[string]interface{}{
-			":a0": id,
-			":a1": platformID,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = instances
-	return
-}
-
-
-func (d DAOImpl)ReadByIDPlatformIDUnsafe(id string, platformID models.PlatformID) (out []AdaptiveCommunity) {
-	out, err := d.ReadByIDPlatformID(id, platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query IDPlatformIDIndex on %s table\n", d.Name))
-	return
 }
 
 
@@ -253,28 +240,28 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(adaptiveCommunity AdaptiveCommunity, old AdaptiveCommunity) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if adaptiveCommunity.ID != old.ID { params["a0"] = common.DynS(adaptiveCommunity.ID) }
-		if adaptiveCommunity.PlatformID != old.PlatformID { params["a1"] = common.DynS(string(adaptiveCommunity.PlatformID)) }
-		if adaptiveCommunity.Channel != old.Channel { params["a2"] = common.DynS(adaptiveCommunity.Channel) }
-		if adaptiveCommunity.Active != old.Active { params["a3"] = common.DynBOOL(adaptiveCommunity.Active) }
-		if adaptiveCommunity.RequestedBy != old.RequestedBy { params["a4"] = common.DynS(adaptiveCommunity.RequestedBy) }
-		if adaptiveCommunity.CreatedAt != old.CreatedAt { params["a5"] = common.DynS(adaptiveCommunity.CreatedAt) }
-		if adaptiveCommunity.ModifiedAt != old.ModifiedAt { params["a6"] = common.DynS(adaptiveCommunity.ModifiedAt) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if adaptiveCommunity.ID != old.ID { params[":a0"] = common.DynS(adaptiveCommunity.ID) }
+	if adaptiveCommunity.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(adaptiveCommunity.PlatformID)) }
+	if adaptiveCommunity.Channel != old.Channel { params[":a2"] = common.DynS(adaptiveCommunity.Channel) }
+	if adaptiveCommunity.Active != old.Active { params[":a3"] = common.DynBOOL(adaptiveCommunity.Active) }
+	if adaptiveCommunity.RequestedBy != old.RequestedBy { params[":a4"] = common.DynS(adaptiveCommunity.RequestedBy) }
+	if adaptiveCommunity.CreatedAt != old.CreatedAt { params[":a5"] = common.DynS(adaptiveCommunity.CreatedAt) }
+	if adaptiveCommunity.ModifiedAt != old.ModifiedAt { params[":a6"] = common.DynS(adaptiveCommunity.ModifiedAt) }
 	return
 }
-func updateExpression(adaptiveCommunity AdaptiveCommunity, old AdaptiveCommunity) string {
+func updateExpression(adaptiveCommunity AdaptiveCommunity, old AdaptiveCommunity) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if adaptiveCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if adaptiveCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1") }
-		if adaptiveCommunity.Channel != old.Channel { updateParts = append(updateParts, "channel = :a2") }
-		if adaptiveCommunity.Active != old.Active { updateParts = append(updateParts, "active = :a3") }
-		if adaptiveCommunity.RequestedBy != old.RequestedBy { updateParts = append(updateParts, "requested_by = :a4") }
-		if adaptiveCommunity.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a5") }
-		if adaptiveCommunity.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a6") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if adaptiveCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(adaptiveCommunity.ID);  }
+	if adaptiveCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(adaptiveCommunity.PlatformID));  }
+	if adaptiveCommunity.Channel != old.Channel { updateParts = append(updateParts, "channel = :a2"); params[":a2"] = common.DynS(adaptiveCommunity.Channel);  }
+	if adaptiveCommunity.Active != old.Active { updateParts = append(updateParts, "active = :a3"); params[":a3"] = common.DynBOOL(adaptiveCommunity.Active);  }
+	if adaptiveCommunity.RequestedBy != old.RequestedBy { updateParts = append(updateParts, "requested_by = :a4"); params[":a4"] = common.DynS(adaptiveCommunity.RequestedBy);  }
+	if adaptiveCommunity.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a5"); params[":a5"] = common.DynS(adaptiveCommunity.CreatedAt);  }
+	if adaptiveCommunity.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a6"); params[":a6"] = common.DynS(adaptiveCommunity.ModifiedAt);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }

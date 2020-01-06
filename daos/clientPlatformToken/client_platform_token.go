@@ -3,6 +3,7 @@ package clientPlatformToken
 // The changes will be overridden by the next automatic generation.
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -49,8 +50,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(clientPlatformToken ClientPlatformToken)
 	Delete(platformID models.PlatformID) error
 	DeleteUnsafe(platformID models.PlatformID)
-	ReadByPlatformID(platformID models.PlatformID) (clientPlatformToken []ClientPlatformToken, err error)
-	ReadByPlatformIDUnsafe(platformID models.PlatformID) (clientPlatformToken []ClientPlatformToken)
 }
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
@@ -117,6 +116,8 @@ func (d DAOImpl) ReadOrEmpty(platformID models.PlatformID) (out []ClientPlatform
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.PlatformID == platformID {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "ClientPlatformToken DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -142,14 +143,22 @@ func (d DAOImpl) CreateOrUpdate(clientPlatformToken ClientPlatformToken) (err er
 			err = errors.Wrapf(err, "ClientPlatformToken DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
 			old := olds[0]
-			ids := idParams(old.PlatformID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(clientPlatformToken, old),
-				ids,
-				updateExpression(clientPlatformToken, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "ClientPlatformToken DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+			
+			key := idParams(old.PlatformID)
+			expr, exprAttributes, names := updateExpression(clientPlatformToken, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "ClientPlatformToken DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -175,27 +184,6 @@ func (d DAOImpl)DeleteUnsafe(platformID models.PlatformID) {
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete platformID==%s in %s\n", platformID, d.Name))
 }
 
-
-func (d DAOImpl)ReadByPlatformID(platformID models.PlatformID) (out []ClientPlatformToken, err error) {
-	var instances []ClientPlatformToken
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "PlatformIDIndex",
-		Condition: "platform_id = :a0",
-		Attributes: map[string]interface{}{
-			":a0": platformID,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = instances
-	return
-}
-
-
-func (d DAOImpl)ReadByPlatformIDUnsafe(platformID models.PlatformID) (out []ClientPlatformToken) {
-	out, err := d.ReadByPlatformID(platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
-	return
-}
-
 func idParams(platformID models.PlatformID) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue {
 		"platform_id": common.DynS(string(platformID)),
@@ -203,28 +191,28 @@ func idParams(platformID models.PlatformID) map[string]*dynamodb.AttributeValue 
 	return params
 }
 func allParams(clientPlatformToken ClientPlatformToken, old ClientPlatformToken) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if clientPlatformToken.PlatformID != old.PlatformID { params["a0"] = common.DynS(string(clientPlatformToken.PlatformID)) }
-		if clientPlatformToken.Org != old.Org { params["a1"] = common.DynS(clientPlatformToken.Org) }
-		if clientPlatformToken.PlatformName != old.PlatformName { params["a2"] = common.DynS(string(clientPlatformToken.PlatformName)) }
-		if clientPlatformToken.PlatformToken != old.PlatformToken { params["a3"] = common.DynS(clientPlatformToken.PlatformToken) }
-		if clientPlatformToken.ContactFirstName != old.ContactFirstName { params["a4"] = common.DynS(clientPlatformToken.ContactFirstName) }
-		if clientPlatformToken.ContactLastName != old.ContactLastName { params["a5"] = common.DynS(clientPlatformToken.ContactLastName) }
-		if clientPlatformToken.ContactMail != old.ContactMail { params["a6"] = common.DynS(clientPlatformToken.ContactMail) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if clientPlatformToken.PlatformID != old.PlatformID { params[":a0"] = common.DynS(string(clientPlatformToken.PlatformID)) }
+	if clientPlatformToken.Org != old.Org { params[":a1"] = common.DynS(clientPlatformToken.Org) }
+	if clientPlatformToken.PlatformName != old.PlatformName { params[":a2"] = common.DynS(string(clientPlatformToken.PlatformName)) }
+	if clientPlatformToken.PlatformToken != old.PlatformToken { params[":a3"] = common.DynS(clientPlatformToken.PlatformToken) }
+	if clientPlatformToken.ContactFirstName != old.ContactFirstName { params[":a4"] = common.DynS(clientPlatformToken.ContactFirstName) }
+	if clientPlatformToken.ContactLastName != old.ContactLastName { params[":a5"] = common.DynS(clientPlatformToken.ContactLastName) }
+	if clientPlatformToken.ContactMail != old.ContactMail { params[":a6"] = common.DynS(clientPlatformToken.ContactMail) }
 	return
 }
-func updateExpression(clientPlatformToken ClientPlatformToken, old ClientPlatformToken) string {
+func updateExpression(clientPlatformToken ClientPlatformToken, old ClientPlatformToken) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if clientPlatformToken.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a0") }
-		if clientPlatformToken.Org != old.Org { updateParts = append(updateParts, "org = :a1") }
-		if clientPlatformToken.PlatformName != old.PlatformName { updateParts = append(updateParts, "platform_name = :a2") }
-		if clientPlatformToken.PlatformToken != old.PlatformToken { updateParts = append(updateParts, "platform_token = :a3") }
-		if clientPlatformToken.ContactFirstName != old.ContactFirstName { updateParts = append(updateParts, "contact_first_name = :a4") }
-		if clientPlatformToken.ContactLastName != old.ContactLastName { updateParts = append(updateParts, "contact_last_name = :a5") }
-		if clientPlatformToken.ContactMail != old.ContactMail { updateParts = append(updateParts, "contact_mail = :a6") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if clientPlatformToken.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a0"); params[":a0"] = common.DynS(string(clientPlatformToken.PlatformID));  }
+	if clientPlatformToken.Org != old.Org { updateParts = append(updateParts, "org = :a1"); params[":a1"] = common.DynS(clientPlatformToken.Org);  }
+	if clientPlatformToken.PlatformName != old.PlatformName { updateParts = append(updateParts, "platform_name = :a2"); params[":a2"] = common.DynS(string(clientPlatformToken.PlatformName));  }
+	if clientPlatformToken.PlatformToken != old.PlatformToken { updateParts = append(updateParts, "platform_token = :a3"); params[":a3"] = common.DynS(clientPlatformToken.PlatformToken);  }
+	if clientPlatformToken.ContactFirstName != old.ContactFirstName { updateParts = append(updateParts, "contact_first_name = :a4"); params[":a4"] = common.DynS(clientPlatformToken.ContactFirstName);  }
+	if clientPlatformToken.ContactLastName != old.ContactLastName { updateParts = append(updateParts, "contact_last_name = :a5"); params[":a5"] = common.DynS(clientPlatformToken.ContactLastName);  }
+	if clientPlatformToken.ContactMail != old.ContactMail { updateParts = append(updateParts, "contact_mail = :a6"); params[":a6"] = common.DynS(clientPlatformToken.ContactMail);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }

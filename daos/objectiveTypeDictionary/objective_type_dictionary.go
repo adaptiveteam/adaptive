@@ -4,6 +4,7 @@ package objectiveTypeDictionary
 import (
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	"time"
+	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -59,8 +60,6 @@ type DAO interface {
 	CreateOrUpdateUnsafe(objectiveTypeDictionary ObjectiveTypeDictionary)
 	Deactivate(id string) error
 	DeactivateUnsafe(id string)
-	ReadByIDPlatformID(id string, platformID models.PlatformID) (objectiveTypeDictionary []ObjectiveTypeDictionary, err error)
-	ReadByIDPlatformIDUnsafe(id string, platformID models.PlatformID) (objectiveTypeDictionary []ObjectiveTypeDictionary)
 	ReadByPlatformID(platformID models.PlatformID) (objectiveTypeDictionary []ObjectiveTypeDictionary, err error)
 	ReadByPlatformIDUnsafe(platformID models.PlatformID) (objectiveTypeDictionary []ObjectiveTypeDictionary)
 }
@@ -131,6 +130,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []ObjectiveTypeDictionary, err erro
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
+	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -159,14 +160,22 @@ func (d DAOImpl) CreateOrUpdate(objectiveTypeDictionary ObjectiveTypeDictionary)
 		} else {
 			old := olds[0]
 			objectiveTypeDictionary.ModifiedAt = core.TimestampLayout.Format(time.Now())
-ids := idParams(old.ID)
-			err = d.Dynamo.UpdateTableEntry(
-				allParams(objectiveTypeDictionary, old),
-				ids,
-				updateExpression(objectiveTypeDictionary, old),
-				d.Name,
-			)
-			err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", ids, d.Name)
+
+			key := idParams(old.ID)
+			expr, exprAttributes, names := updateExpression(objectiveTypeDictionary, old)
+			input := dynamodb.UpdateItemInput{
+				ExpressionAttributeValues: exprAttributes,
+				TableName:                 aws.String(d.Name),
+				Key:                       key,
+				ReturnValues:              aws.String("UPDATED_NEW"),
+				UpdateExpression:          aws.String(expr),
+			}
+			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+			if err == nil {
+				err = d.Dynamo.UpdateItemInternal(input)
+			}
+			err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
+			return
 		}
 	}
 	return 
@@ -200,28 +209,6 @@ func (d DAOImpl)DeactivateUnsafe(id string) {
 }
 
 
-func (d DAOImpl)ReadByIDPlatformID(id string, platformID models.PlatformID) (out []ObjectiveTypeDictionary, err error) {
-	var instances []ObjectiveTypeDictionary
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "IDPlatformIDIndex",
-		Condition: "id = :a0 and platform_id = :a1",
-		Attributes: map[string]interface{}{
-			":a0": id,
-			":a1": platformID,
-		},
-	}, map[string]string{}, true, -1, &instances)
-	out = ObjectiveTypeDictionaryFilterActive(instances)
-	return
-}
-
-
-func (d DAOImpl)ReadByIDPlatformIDUnsafe(id string, platformID models.PlatformID) (out []ObjectiveTypeDictionary) {
-	out, err := d.ReadByIDPlatformID(id, platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query IDPlatformIDIndex on %s table\n", d.Name))
-	return
-}
-
-
 func (d DAOImpl)ReadByPlatformID(platformID models.PlatformID) (out []ObjectiveTypeDictionary, err error) {
 	var instances []ObjectiveTypeDictionary
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
@@ -249,28 +236,28 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(objectiveTypeDictionary ObjectiveTypeDictionary, old ObjectiveTypeDictionary) (params map[string]*dynamodb.AttributeValue) {
-	
-		params = map[string]*dynamodb.AttributeValue{}
-		if objectiveTypeDictionary.ID != old.ID { params["a0"] = common.DynS(objectiveTypeDictionary.ID) }
-		if objectiveTypeDictionary.PlatformID != old.PlatformID { params["a1"] = common.DynS(string(objectiveTypeDictionary.PlatformID)) }
-		if objectiveTypeDictionary.Name != old.Name { params["a2"] = common.DynS(objectiveTypeDictionary.Name) }
-		if objectiveTypeDictionary.Description != old.Description { params["a3"] = common.DynS(objectiveTypeDictionary.Description) }
-		if objectiveTypeDictionary.CreatedAt != old.CreatedAt { params["a4"] = common.DynS(objectiveTypeDictionary.CreatedAt) }
-		if objectiveTypeDictionary.ModifiedAt != old.ModifiedAt { params["a5"] = common.DynS(objectiveTypeDictionary.ModifiedAt) }
-		if objectiveTypeDictionary.DeactivatedOn != old.DeactivatedOn { params["a6"] = common.DynS(objectiveTypeDictionary.DeactivatedOn) }
+	params = map[string]*dynamodb.AttributeValue{}
+	if objectiveTypeDictionary.ID != old.ID { params[":a0"] = common.DynS(objectiveTypeDictionary.ID) }
+	if objectiveTypeDictionary.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(objectiveTypeDictionary.PlatformID)) }
+	if objectiveTypeDictionary.Name != old.Name { params[":a2"] = common.DynS(objectiveTypeDictionary.Name) }
+	if objectiveTypeDictionary.Description != old.Description { params[":a3"] = common.DynS(objectiveTypeDictionary.Description) }
+	if objectiveTypeDictionary.CreatedAt != old.CreatedAt { params[":a4"] = common.DynS(objectiveTypeDictionary.CreatedAt) }
+	if objectiveTypeDictionary.ModifiedAt != old.ModifiedAt { params[":a5"] = common.DynS(objectiveTypeDictionary.ModifiedAt) }
+	if objectiveTypeDictionary.DeactivatedOn != old.DeactivatedOn { params[":a6"] = common.DynS(objectiveTypeDictionary.DeactivatedOn) }
 	return
 }
-func updateExpression(objectiveTypeDictionary ObjectiveTypeDictionary, old ObjectiveTypeDictionary) string {
+func updateExpression(objectiveTypeDictionary ObjectiveTypeDictionary, old ObjectiveTypeDictionary) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
 	var updateParts []string
-	
-		
-			
-		if objectiveTypeDictionary.ID != old.ID { updateParts = append(updateParts, "id = :a0") }
-		if objectiveTypeDictionary.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1") }
-		if objectiveTypeDictionary.Name != old.Name { updateParts = append(updateParts, "#name = :a2") }
-		if objectiveTypeDictionary.Description != old.Description { updateParts = append(updateParts, "description = :a3") }
-		if objectiveTypeDictionary.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a4") }
-		if objectiveTypeDictionary.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a5") }
-		if objectiveTypeDictionary.DeactivatedOn != old.DeactivatedOn { updateParts = append(updateParts, "deactivated_on = :a6") }
-	return strings.Join(updateParts, " and ")
+	params = map[string]*dynamodb.AttributeValue{}
+	names := map[string]*string{}
+	if objectiveTypeDictionary.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(objectiveTypeDictionary.ID);  }
+	if objectiveTypeDictionary.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(objectiveTypeDictionary.PlatformID));  }
+	if objectiveTypeDictionary.Name != old.Name { updateParts = append(updateParts, "#name = :a2"); params[":a2"] = common.DynS(objectiveTypeDictionary.Name); fldName := "name"; names["#name"] = &fldName }
+	if objectiveTypeDictionary.Description != old.Description { updateParts = append(updateParts, "description = :a3"); params[":a3"] = common.DynS(objectiveTypeDictionary.Description);  }
+	if objectiveTypeDictionary.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a4"); params[":a4"] = common.DynS(objectiveTypeDictionary.CreatedAt);  }
+	if objectiveTypeDictionary.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a5"); params[":a5"] = common.DynS(objectiveTypeDictionary.ModifiedAt);  }
+	if objectiveTypeDictionary.DeactivatedOn != old.DeactivatedOn { updateParts = append(updateParts, "deactivated_on = :a6"); params[":a6"] = common.DynS(objectiveTypeDictionary.DeactivatedOn);  }
+	expr = "set " + strings.Join(updateParts, ", ")
+	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
+	return
 }
