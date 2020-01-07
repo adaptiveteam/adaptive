@@ -28,7 +28,7 @@ type StrategyObjective struct  {
 	ObjectiveType StrategyObjectiveType `json:"objective_type"`
 	Advocate string `json:"advocate"`
 	// community id not require d for customer/financial objectives
-	CapabilityCommunityIDs []string `json:"capability_community_i_ds"`
+	CapabilityCommunityIDs []string `json:"capability_community_ids"`
 	ExpectedEndDate string `json:"expected_end_date"`
 	CreatedBy string `json:"created_by"`
 	// Automatically maintained field
@@ -262,7 +262,7 @@ func updateExpression(strategyObjective StrategyObjective, old StrategyObjective
 	if strategyObjective.Targets != old.Targets { updateParts = append(updateParts, "targets = :a5"); params[":a5"] = common.DynS(strategyObjective.Targets);  }
 	if strategyObjective.ObjectiveType != old.ObjectiveType { updateParts = append(updateParts, "objective_type = :a6"); params[":a6"] = common.DynS(string(strategyObjective.ObjectiveType));  }
 	if strategyObjective.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a7"); params[":a7"] = common.DynS(strategyObjective.Advocate);  }
-	if !common.StringArraysEqual(strategyObjective.CapabilityCommunityIDs, old.CapabilityCommunityIDs) { updateParts = append(updateParts, "capability_community_i_ds = :a8"); params[":a8"] = common.DynSS(strategyObjective.CapabilityCommunityIDs);  }
+	if !common.StringArraysEqual(strategyObjective.CapabilityCommunityIDs, old.CapabilityCommunityIDs) { updateParts = append(updateParts, "capability_community_ids = :a8"); params[":a8"] = common.DynSS(strategyObjective.CapabilityCommunityIDs);  }
 	if strategyObjective.ExpectedEndDate != old.ExpectedEndDate { updateParts = append(updateParts, "expected_end_date = :a9"); params[":a9"] = common.DynS(strategyObjective.ExpectedEndDate);  }
 	if strategyObjective.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a10"); params[":a10"] = common.DynS(strategyObjective.CreatedBy);  }
 	if strategyObjective.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a11"); params[":a11"] = common.DynS(strategyObjective.CreatedAt);  }
