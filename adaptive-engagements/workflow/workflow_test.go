@@ -11,7 +11,7 @@ import (
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/sirupsen/logrus"
-	mapper "github.com/adaptiveteam/engagement-slack-mapper"
+	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 
 )
 

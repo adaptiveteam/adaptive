@@ -8,7 +8,7 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
-	mapper "github.com/adaptiveteam/engagement-slack-mapper"
+	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/nlopes/slack"
 )
 
