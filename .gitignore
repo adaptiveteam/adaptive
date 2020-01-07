@@ -19,3 +19,15 @@
 
 .DS_Store
 bin/
+*.bak
+*~
+.*.swp
+
+
+# Local .terraform directories
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+
+example.tf
+terraform.tfplan
