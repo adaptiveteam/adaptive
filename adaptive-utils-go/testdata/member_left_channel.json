@@ -1,0 +1,116 @@
+{
+  "resource": "/{proxy+}",
+  "path": "/%7Bproxy+%7D",
+  "httpMethod": "POST",
+  "headers": {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip,deflate",
+    "CloudFront-Forwarded-Proto": "https",
+    "CloudFront-Is-Desktop-Viewer": "true",
+    "CloudFront-Is-Mobile-Viewer": "false",
+    "CloudFront-Is-SmartTV-Viewer": "false",
+    "CloudFront-Is-Tablet-Viewer": "false",
+    "CloudFront-Viewer-Country": "US",
+    "Content-Type": "application/json",
+    "Host": "jbff2u72eb.execute-api.us-east-1.amazonaws.com",
+    "User-Agent": "Slackbot 1.0 (+https://api.slack.com/robots)",
+    "Via": "1.1 3a1e70c78656c6ac2aff397e15ed0d04.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Id": "3VxcXviQRCerTgqByD43ycmYZREfAWVYB0PmBzwdMGPnQycxJeWKUw==",
+    "X-Amzn-Trace-Id": "Root=1-5d4d93f4-e23f5450fe4e02a01587d3f0",
+    "X-Forwarded-For": "35.175.225.168, 70.132.59.149",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https",
+    "X-Slack-Request-Timestamp": "1565365236",
+    "X-Slack-Signature": "v0=502ee30188f8e6a67439927f5626e1663f7502475fe2e62042b5e3427e663084"
+  },
+  "multiValueHeaders": {
+    "Accept": [
+      "*/*"
+    ],
+    "Accept-Encoding": [
+      "gzip,deflate"
+    ],
+    "CloudFront-Forwarded-Proto": [
+      "https"
+    ],
+    "CloudFront-Is-Desktop-Viewer": [
+      "true"
+    ],
+    "CloudFront-Is-Mobile-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-SmartTV-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-Tablet-Viewer": [
+      "false"
+    ],
+    "CloudFront-Viewer-Country": [
+      "US"
+    ],
+    "Content-Type": [
+      "application/json"
+    ],
+    "Host": [
+      "jbff2u72eb.execute-api.us-east-1.amazonaws.com"
+    ],
+    "User-Agent": [
+      "Slackbot 1.0 (+https://api.slack.com/robots)"
+    ],
+    "Via": [
+      "1.1 3a1e70c78656c6ac2aff397e15ed0d04.cloudfront.net (CloudFront)"
+    ],
+    "X-Amz-Cf-Id": [
+      "3VxcXviQRCerTgqByD43ycmYZREfAWVYB0PmBzwdMGPnQycxJeWKUw=="
+    ],
+    "X-Amzn-Trace-Id": [
+      "Root=1-5d4d93f4-e23f5450fe4e02a01587d3f0"
+    ],
+    "X-Forwarded-For": [
+      "35.175.225.168, 70.132.59.149"
+    ],
+    "X-Forwarded-Port": [
+      "443"
+    ],
+    "X-Forwarded-Proto": [
+      "https"
+    ],
+    "X-Slack-Request-Timestamp": [
+      "1565365236"
+    ],
+    "X-Slack-Signature": [
+      "v0=502ee30188f8e6a67439927f5626e1663f7502475fe2e62042b5e3427e663084"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": {
+    "proxy": "%7Bproxy+%7D"
+  },
+  "stageVariables": null,
+  "requestContext": {
+    "accountId": "221851954636",
+    "resourceId": "vl5z7n",
+    "stage": "dev",
+    "requestId": "081fa3b7-babc-11e9-b45f-bb1b2109f45f",
+    "identity": {
+      "cognitoIdentityPoolId": "",
+      "accountId": "",
+      "cognitoIdentityId": "",
+      "caller": "",
+      "apiKey": "",
+      "accessKey": "",
+      "sourceIp": "35.175.225.168",
+      "cognitoAuthenticationType": "",
+      "cognitoAuthenticationProvider": "",
+      "userArn": "",
+      "userAgent": "Slackbot 1.0 (+https://api.slack.com/robots)",
+      "user": ""
+    },
+    "resourcePath": "/{proxy+}",
+    "authorizer": null,
+    "httpMethod": "POST",
+    "apiId": "jbff2u72eb"
+  },
+  "body": "{\"token\":\"UMzSzl0WYA77I0rBiKGUmUe6\",\"team_id\":\"TCUFJTB45\",\"api_app_id\":\"AEGV67SN9\",\"event\":{\"type\":\"member_left_channel\",\"user\":\"UHBGM1KJ9\",\"channel\":\"GL99PRS0Y\",\"channel_type\":\"G\",\"team\":\"TCUFJTB45\",\"event_ts\":\"1565365236.000700\"},\"type\":\"event_callback\",\"event_id\":\"EvM7S2MG0M\",\"event_time\":1565365236,\"authed_users\":[\"UEGPLFT5G\"]}"
+}

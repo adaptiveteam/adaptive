@@ -2,7 +2,7 @@ package nlp
 
 import (
 	"fmt"
-	fetch_dialog "github.com/adaptiveteam/dialog-fetcher"
+	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"net/url"
 	"os"
 	"testing"

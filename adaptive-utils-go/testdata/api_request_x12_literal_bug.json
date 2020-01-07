@@ -1,0 +1,124 @@
+{
+  "resource": "/{proxy+}",
+  "path": "/%7Bproxy+%7D",
+  "httpMethod": "POST",
+  "headers": {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip,deflate",
+    "CloudFront-Forwarded-Proto": "https",
+    "CloudFront-Is-Desktop-Viewer": "true",
+    "CloudFront-Is-Mobile-Viewer": "false",
+    "CloudFront-Is-SmartTV-Viewer": "false",
+    "CloudFront-Is-Tablet-Viewer": "false",
+    "CloudFront-Viewer-Country": "US",
+    "Content-Type": "application/json",
+    "Host": "jbff2u72eb.execute-api.us-east-1.amazonaws.com",
+    "User-Agent": "Slackbot 1.0 (+https://api.slack.com/robots)",
+    "Via": "1.1 b811db48800bf619dbaff61a71022f7f.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Id": "dSUINRV0jFdZJnSbLRO3um2-_OU-SWAc83YLl_Re5aDjStokCqcANA==",
+    "X-Amzn-Trace-Id": "Root=1-5d4d7caa-6fa60b98652a867831c0e7d8",
+    "X-Forwarded-For": "52.23.175.119, 64.252.151.75",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https",
+    "X-Slack-Request-Timestamp": "1565359273",
+    "X-Slack-Retry-Num": "1",
+    "X-Slack-Retry-Reason": "http_error",
+    "X-Slack-Signature": "v0=8e3f5cb3dcc09794798d70773098dbb039abca3be55af5ff99efbcd6d27be45d"
+  },
+  "multiValueHeaders": {
+    "Accept": [
+      "*/*"
+    ],
+    "Accept-Encoding": [
+      "gzip,deflate"
+    ],
+    "CloudFront-Forwarded-Proto": [
+      "https"
+    ],
+    "CloudFront-Is-Desktop-Viewer": [
+      "true"
+    ],
+    "CloudFront-Is-Mobile-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-SmartTV-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-Tablet-Viewer": [
+      "false"
+    ],
+    "CloudFront-Viewer-Country": [
+      "US"
+    ],
+    "Content-Type": [
+      "application/json"
+    ],
+    "Host": [
+      "jbff2u72eb.execute-api.us-east-1.amazonaws.com"
+    ],
+    "User-Agent": [
+      "Slackbot 1.0 (+https://api.slack.com/robots)"
+    ],
+    "Via": [
+      "1.1 b811db48800bf619dbaff61a71022f7f.cloudfront.net (CloudFront)"
+    ],
+    "X-Amz-Cf-Id": [
+      "dSUINRV0jFdZJnSbLRO3um2-_OU-SWAc83YLl_Re5aDjStokCqcANA=="
+    ],
+    "X-Amzn-Trace-Id": [
+      "Root=1-5d4d7caa-6fa60b98652a867831c0e7d8"
+    ],
+    "X-Forwarded-For": [
+      "52.23.175.119, 64.252.151.75"
+    ],
+    "X-Forwarded-Port": [
+      "443"
+    ],
+    "X-Forwarded-Proto": [
+      "https"
+    ],
+    "X-Slack-Request-Timestamp": [
+      "1565359273"
+    ],
+    "X-Slack-Retry-Num": [
+      "1"
+    ],
+    "X-Slack-Retry-Reason": [
+      "http_error"
+    ],
+    "X-Slack-Signature": [
+      "v0=8e3f5cb3dcc09794798d70773098dbb039abca3be55af5ff99efbcd6d27be45d"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": {
+    "proxy": "%7Bproxy+%7D"
+  },
+  "stageVariables": null,
+  "requestContext": {
+    "accountId": "221851954636",
+    "resourceId": "vl5z7n",
+    "stage": "dev",
+    "requestId": "263b7fcc-baae-11e9-a9f9-ab0ac41c318e",
+    "identity": {
+      "cognitoIdentityPoolId": "",
+      "accountId": "",
+      "cognitoIdentityId": "",
+      "caller": "",
+      "apiKey": "",
+      "accessKey": "",
+      "sourceIp": "52.23.175.119",
+      "cognitoAuthenticationType": "",
+      "cognitoAuthenticationProvider": "",
+      "userArn": "",
+      "userAgent": "Slackbot 1.0 (+https://api.slack.com/robots)",
+      "user": ""
+    },
+    "resourcePath": "/{proxy+}",
+    "authorizer": null,
+    "httpMethod": "POST",
+    "apiId": "jbff2u72eb"
+  },
+  "body": "{\"token\":\"UMzSzl0WYA77I0rBiKGUmUe6\",\"team_id\":\"TCUFJTB45\",\"api_app_id\":\"AEGV67SN9\",\"event\":{\"bot_id\":\"BEHR3AE2K\",\"type\":\"message\",\"text\":\"\",\"user\":\"UEGPLFT5G\",\"ts\":\"1565359273.005700\",\"team\":\"TCUFJTB45\",\"attachments\":[{\"callback_id\":\"objectives:UE48A5TC0:init:ask:f7a05533-261e-478b-a91b-a9ab6abde896_6efcff1e-0a8a-49d5-845d-a6e1d365b0c3:8:2019\",\"id\":1,\"color\":\"3AA3E3\",\"fields\":[{\"title\":\"Name\",\"value\":\"Cap Obj 12\",\"short\":false},{\"title\":\"Description\",\"value\":\"Cap Obj 12 Desc %12345\",\"short\":false},{\"title\":\"Timeline\",\"value\":\"Created: August 2, 2019 \\nExpected End: October 31, 2019 \\nRemaining Days: 83 \\nElapsed Days: 7 \\n\",\"short\":false},{\"title\":\"Strategy Association(s)\",\"value\":\"`Capability Objective`\\n*Capability Communities* \\n:small_blue_diamond:  \\n*Capability Objectives* \\n:small_blue_diamond:  \\n\",\"short\":false}],\"actions\":[{\"id\":\"1\",\"name\":\"ask_now\",\"text\":\"Made some progress\",\"type\":\"button\",\"value\":\"objectives:UE48A5TC0:Comments:ask:f7a05533-261e-478b-a91b-a9ab6abde896_6efcff1e-0a8a-49d5-845d-a6e1d365b0c3:8:2019\",\"style\":\"primary\"},{\"id\":\"2\",\"name\":\"ask_view progress\",\"text\":\"Show entire progress\",\"type\":\"button\",\"value\":\"objectives:UE48A5TC0:init:ask:f7a05533-261e-478b-a91b-a9ab6abde896_6efcff1e-0a8a-49d5-845d-a6e1d365b0c3:8:2019\",\"style\":\"primary\"},{\"id\":\"3\",\"name\":\"ask_closeout\",\"text\":\"Closeout\",\"type\":\"button\",\"value\":\"objectives:UE48A5TC0:init:ask:f7a05533-261e-478b-a91b-a9ab6abde896_6efcff1e-0a8a-49d5-845d-a6e1d365b0c3:8:2019\",\"style\":\"danger\",\"confirm\":{\"text\":\"Congratulations! Good job closing out this objective. I\\u2019m going to ask your partner if they agree. If they do, I\\u2019ll close this out for you.\",\"title\":\"Are you sure?\",\"ok_text\":\"Yes\",\"dismiss_text\":\"Cancel\"}}]}],\"channel\":\"DEG5UN8KT\",\"event_ts\":\"1565359273.005700\",\"channel_type\":\"im\"},\"type\":\"event_callback\",\"event_id\":\"EvM7N4PNJH\",\"event_time\":1565359273,\"authed_users\":[\"UEGPLFT5G\"]}"
+}

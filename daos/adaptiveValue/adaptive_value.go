@@ -3,7 +3,7 @@ package adaptiveValue
 // The changes will be overridden by the next automatic generation.
 import (
 	"time"
-	"github.com/adaptiveteam/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"

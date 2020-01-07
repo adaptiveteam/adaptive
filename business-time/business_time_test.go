@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adaptiveteam/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 )
 
 func EqualBytes(s1, s2 []byte) (bool, error) {
