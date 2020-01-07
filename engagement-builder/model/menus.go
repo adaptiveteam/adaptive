@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/adaptiveteam/engagement-builder/ui"
+	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 )
 
 type MenuOption struct {

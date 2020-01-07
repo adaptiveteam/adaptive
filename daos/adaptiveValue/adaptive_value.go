@@ -5,7 +5,7 @@ import (
 	"time"
 	"github.com/adaptiveteam/adaptive-utils-go/models"
 	"github.com/aws/aws-sdk-go/aws"
-	awsutils "github.com/adaptiveteam/aws-utils-go"
+	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/aws/aws-sdk-go/service/dynamodb"

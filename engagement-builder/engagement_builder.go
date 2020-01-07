@@ -2,7 +2,7 @@ package EngagementBuilder
 
 import (
 	"encoding/json"
-	"github.com/adaptiveteam/engagement-builder/model"
+	"github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"time"
 )
 

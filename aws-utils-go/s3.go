@@ -3,7 +3,7 @@ package aws_utils_go
 import (
 	"bytes"
 	"fmt"
-	"github.com/adaptiveteam/core-utils-go/logger"
+	"github.com/adaptiveteam/adaptive/core-utils-go/logger"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
