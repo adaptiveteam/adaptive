@@ -158,7 +158,7 @@ case class OperationImplementationTemplates(table: Table){
 	def DaoOperationCreateTemplate: String =
 s"""
 // Create saves the $structName.
-func (d DAOImpl) Create($structVarName $structName) error {
+func (d DAOImpl) Create($structVarName $structName) (err error) {
 	emptyFields, ok := ${structVarName}.CollectEmptyFields()
 	if ok {
 		${
@@ -244,7 +244,7 @@ func (d DAOImpl) CreateOrUpdate($structVarName $structName) (err error) {
 	}
 	var olds []$structName
 	olds, err = d.ReadOrEmpty(${idFieldNames.map(structVarName + "." + _).mkString(", ")})
-	err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate(id = $formatIds) couldn't ReadOrEmpty", ${idFieldNames.map(structVarName + "." + _).mkString(", ")})
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create($structVarName)
