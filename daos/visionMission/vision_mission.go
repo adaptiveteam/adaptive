@@ -77,7 +77,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the VisionMission.
-func (d DAOImpl) Create(visionMission VisionMission) error {
+func (d DAOImpl) Create(visionMission VisionMission) (err error) {
 	emptyFields, ok := visionMission.CollectEmptyFields()
 	if ok {
 		visionMission.ModifiedAt = core.TimestampLayout.Format(time.Now())
@@ -146,7 +146,7 @@ func (d DAOImpl) CreateOrUpdate(visionMission VisionMission) (err error) {
 	
 	var olds []VisionMission
 	olds, err = d.ReadOrEmpty(visionMission.ID)
-	err = errors.Wrapf(err, "VisionMission DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "VisionMission DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", visionMission.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(visionMission)

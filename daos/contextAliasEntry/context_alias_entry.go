@@ -68,7 +68,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the ContextAliasEntry.
-func (d DAOImpl) Create(contextAliasEntry ContextAliasEntry) error {
+func (d DAOImpl) Create(contextAliasEntry ContextAliasEntry) (err error) {
 	emptyFields, ok := contextAliasEntry.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(contextAliasEntry, d.Name)
@@ -133,7 +133,7 @@ func (d DAOImpl) CreateOrUpdate(contextAliasEntry ContextAliasEntry) (err error)
 	
 	var olds []ContextAliasEntry
 	olds, err = d.ReadOrEmpty(contextAliasEntry.ApplicationAlias)
-	err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate(id = applicationAlias==%s) couldn't ReadOrEmpty", contextAliasEntry.ApplicationAlias)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(contextAliasEntry)

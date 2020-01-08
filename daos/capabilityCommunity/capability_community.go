@@ -79,7 +79,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the CapabilityCommunity.
-func (d DAOImpl) Create(capabilityCommunity CapabilityCommunity) error {
+func (d DAOImpl) Create(capabilityCommunity CapabilityCommunity) (err error) {
 	emptyFields, ok := capabilityCommunity.CollectEmptyFields()
 	if ok {
 		capabilityCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
@@ -148,7 +148,7 @@ func (d DAOImpl) CreateOrUpdate(capabilityCommunity CapabilityCommunity) (err er
 	
 	var olds []CapabilityCommunity
 	olds, err = d.ReadOrEmpty(capabilityCommunity.ID)
-	err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", capabilityCommunity.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(capabilityCommunity)

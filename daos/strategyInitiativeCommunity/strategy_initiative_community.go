@@ -81,7 +81,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the StrategyInitiativeCommunity.
-func (d DAOImpl) Create(strategyInitiativeCommunity StrategyInitiativeCommunity) error {
+func (d DAOImpl) Create(strategyInitiativeCommunity StrategyInitiativeCommunity) (err error) {
 	emptyFields, ok := strategyInitiativeCommunity.CollectEmptyFields()
 	if ok {
 		strategyInitiativeCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
@@ -150,7 +150,7 @@ func (d DAOImpl) CreateOrUpdate(strategyInitiativeCommunity StrategyInitiativeCo
 	
 	var olds []StrategyInitiativeCommunity
 	olds, err = d.ReadOrEmpty(strategyInitiativeCommunity.ID)
-	err = errors.Wrapf(err, "StrategyInitiativeCommunity DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "StrategyInitiativeCommunity DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", strategyInitiativeCommunity.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(strategyInitiativeCommunity)

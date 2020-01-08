@@ -75,7 +75,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the CoachingRelationship.
-func (d DAOImpl) Create(coachingRelationship CoachingRelationship) error {
+func (d DAOImpl) Create(coachingRelationship CoachingRelationship) (err error) {
 	emptyFields, ok := coachingRelationship.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(coachingRelationship, d.Name)
@@ -140,7 +140,7 @@ func (d DAOImpl) CreateOrUpdate(coachingRelationship CoachingRelationship) (err 
 	
 	var olds []CoachingRelationship
 	olds, err = d.ReadOrEmpty(coachingRelationship.CoachQuarterYear)
-	err = errors.Wrapf(err, "CoachingRelationship DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "CoachingRelationship DAO.CreateOrUpdate(id = coachQuarterYear==%s) couldn't ReadOrEmpty", coachingRelationship.CoachQuarterYear)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(coachingRelationship)

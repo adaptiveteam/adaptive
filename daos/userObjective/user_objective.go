@@ -123,7 +123,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the UserObjective.
-func (d DAOImpl) Create(userObjective UserObjective) error {
+func (d DAOImpl) Create(userObjective UserObjective) (err error) {
 	emptyFields, ok := userObjective.CollectEmptyFields()
 	if ok {
 		userObjective.ModifiedAt = core.TimestampLayout.Format(time.Now())
@@ -192,7 +192,7 @@ func (d DAOImpl) CreateOrUpdate(userObjective UserObjective) (err error) {
 	
 	var olds []UserObjective
 	olds, err = d.ReadOrEmpty(userObjective.ID)
-	err = errors.Wrapf(err, "UserObjective DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "UserObjective DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", userObjective.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userObjective)

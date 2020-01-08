@@ -88,7 +88,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the ObjectiveTypeDictionary.
-func (d DAOImpl) Create(objectiveTypeDictionary ObjectiveTypeDictionary) error {
+func (d DAOImpl) Create(objectiveTypeDictionary ObjectiveTypeDictionary) (err error) {
 	emptyFields, ok := objectiveTypeDictionary.CollectEmptyFields()
 	if ok {
 		objectiveTypeDictionary.ModifiedAt = core.TimestampLayout.Format(time.Now())
@@ -157,7 +157,7 @@ func (d DAOImpl) CreateOrUpdate(objectiveTypeDictionary ObjectiveTypeDictionary)
 	
 	var olds []ObjectiveTypeDictionary
 	olds, err = d.ReadOrEmpty(objectiveTypeDictionary.ID)
-	err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", objectiveTypeDictionary.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(objectiveTypeDictionary)

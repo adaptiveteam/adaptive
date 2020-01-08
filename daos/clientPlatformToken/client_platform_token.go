@@ -76,7 +76,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the ClientPlatformToken.
-func (d DAOImpl) Create(clientPlatformToken ClientPlatformToken) error {
+func (d DAOImpl) Create(clientPlatformToken ClientPlatformToken) (err error) {
 	emptyFields, ok := clientPlatformToken.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(clientPlatformToken, d.Name)
@@ -141,7 +141,7 @@ func (d DAOImpl) CreateOrUpdate(clientPlatformToken ClientPlatformToken) (err er
 	
 	var olds []ClientPlatformToken
 	olds, err = d.ReadOrEmpty(clientPlatformToken.PlatformID)
-	err = errors.Wrapf(err, "ClientPlatformToken DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "ClientPlatformToken DAO.CreateOrUpdate(id = platformID==%s) couldn't ReadOrEmpty", clientPlatformToken.PlatformID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(clientPlatformToken)

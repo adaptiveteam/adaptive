@@ -87,7 +87,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the AdHocHoliday.
-func (d DAOImpl) Create(adHocHoliday AdHocHoliday) error {
+func (d DAOImpl) Create(adHocHoliday AdHocHoliday) (err error) {
 	emptyFields, ok := adHocHoliday.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(adHocHoliday, d.Name)
@@ -152,7 +152,7 @@ func (d DAOImpl) CreateOrUpdate(adHocHoliday AdHocHoliday) (err error) {
 	
 	var olds []AdHocHoliday
 	olds, err = d.ReadOrEmpty(adHocHoliday.ID)
-	err = errors.Wrapf(err, "AdHocHoliday DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "AdHocHoliday DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", adHocHoliday.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(adHocHoliday)

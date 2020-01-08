@@ -85,7 +85,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the UserObjectiveProgress.
-func (d DAOImpl) Create(userObjectiveProgress UserObjectiveProgress) error {
+func (d DAOImpl) Create(userObjectiveProgress UserObjectiveProgress) (err error) {
 	emptyFields, ok := userObjectiveProgress.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(userObjectiveProgress, d.Name)
@@ -150,7 +150,7 @@ func (d DAOImpl) CreateOrUpdate(userObjectiveProgress UserObjectiveProgress) (er
 	
 	var olds []UserObjectiveProgress
 	olds, err = d.ReadOrEmpty(userObjectiveProgress.ID, userObjectiveProgress.CreatedOn)
-	err = errors.Wrapf(err, "UserObjectiveProgress DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "UserObjectiveProgress DAO.CreateOrUpdate(id = id==%s, createdOn==%s) couldn't ReadOrEmpty", userObjectiveProgress.ID, userObjectiveProgress.CreatedOn)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userObjectiveProgress)

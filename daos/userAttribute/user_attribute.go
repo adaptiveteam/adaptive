@@ -73,7 +73,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the UserAttribute.
-func (d DAOImpl) Create(userAttribute UserAttribute) error {
+func (d DAOImpl) Create(userAttribute UserAttribute) (err error) {
 	emptyFields, ok := userAttribute.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(userAttribute, d.Name)
@@ -138,7 +138,7 @@ func (d DAOImpl) CreateOrUpdate(userAttribute UserAttribute) (err error) {
 	
 	var olds []UserAttribute
 	olds, err = d.ReadOrEmpty(userAttribute.UserID, userAttribute.AttrKey)
-	err = errors.Wrapf(err, "UserAttribute DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "UserAttribute DAO.CreateOrUpdate(id = userID==%s, attrKey==%s) couldn't ReadOrEmpty", userAttribute.UserID, userAttribute.AttrKey)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userAttribute)

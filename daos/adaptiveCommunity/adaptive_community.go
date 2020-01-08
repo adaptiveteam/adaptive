@@ -78,7 +78,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the AdaptiveCommunity.
-func (d DAOImpl) Create(adaptiveCommunity AdaptiveCommunity) error {
+func (d DAOImpl) Create(adaptiveCommunity AdaptiveCommunity) (err error) {
 	emptyFields, ok := adaptiveCommunity.CollectEmptyFields()
 	if ok {
 		adaptiveCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
@@ -147,7 +147,7 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunity AdaptiveCommunity) (err error)
 	
 	var olds []AdaptiveCommunity
 	olds, err = d.ReadOrEmpty(adaptiveCommunity.ID)
-	err = errors.Wrapf(err, "AdaptiveCommunity DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "AdaptiveCommunity DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", adaptiveCommunity.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(adaptiveCommunity)

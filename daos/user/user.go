@@ -88,7 +88,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the User.
-func (d DAOImpl) Create(user User) error {
+func (d DAOImpl) Create(user User) (err error) {
 	emptyFields, ok := user.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(user, d.Name)
@@ -153,7 +153,7 @@ func (d DAOImpl) CreateOrUpdate(user User) (err error) {
 	
 	var olds []User
 	olds, err = d.ReadOrEmpty(user.ID)
-	err = errors.Wrapf(err, "User DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "User DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", user.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(user)

@@ -85,7 +85,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the AdaptiveValue.
-func (d DAOImpl) Create(adaptiveValue AdaptiveValue) error {
+func (d DAOImpl) Create(adaptiveValue AdaptiveValue) (err error) {
 	emptyFields, ok := adaptiveValue.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(adaptiveValue, d.Name)
@@ -150,7 +150,7 @@ func (d DAOImpl) CreateOrUpdate(adaptiveValue AdaptiveValue) (err error) {
 	
 	var olds []AdaptiveValue
 	olds, err = d.ReadOrEmpty(adaptiveValue.ID)
-	err = errors.Wrapf(err, "AdaptiveValue DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "AdaptiveValue DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", adaptiveValue.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(adaptiveValue)

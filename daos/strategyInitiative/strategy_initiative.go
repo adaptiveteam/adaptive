@@ -93,7 +93,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the StrategyInitiative.
-func (d DAOImpl) Create(strategyInitiative StrategyInitiative) error {
+func (d DAOImpl) Create(strategyInitiative StrategyInitiative) (err error) {
 	emptyFields, ok := strategyInitiative.CollectEmptyFields()
 	if ok {
 		strategyInitiative.ModifiedAt = core.TimestampLayout.Format(time.Now())
@@ -162,7 +162,7 @@ func (d DAOImpl) CreateOrUpdate(strategyInitiative StrategyInitiative) (err erro
 	
 	var olds []StrategyInitiative
 	olds, err = d.ReadOrEmpty(strategyInitiative.ID)
-	err = errors.Wrapf(err, "StrategyInitiative DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "StrategyInitiative DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", strategyInitiative.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(strategyInitiative)

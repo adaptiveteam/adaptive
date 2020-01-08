@@ -94,7 +94,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the DialogEntry.
-func (d DAOImpl) Create(dialogEntry DialogEntry) error {
+func (d DAOImpl) Create(dialogEntry DialogEntry) (err error) {
 	emptyFields, ok := dialogEntry.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(dialogEntry, d.Name)
@@ -159,7 +159,7 @@ func (d DAOImpl) CreateOrUpdate(dialogEntry DialogEntry) (err error) {
 	
 	var olds []DialogEntry
 	olds, err = d.ReadOrEmpty(dialogEntry.DialogID)
-	err = errors.Wrapf(err, "DialogEntry DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "DialogEntry DAO.CreateOrUpdate(id = dialogID==%s) couldn't ReadOrEmpty", dialogEntry.DialogID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(dialogEntry)

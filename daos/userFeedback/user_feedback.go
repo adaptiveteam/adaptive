@@ -84,7 +84,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the UserFeedback.
-func (d DAOImpl) Create(userFeedback UserFeedback) error {
+func (d DAOImpl) Create(userFeedback UserFeedback) (err error) {
 	emptyFields, ok := userFeedback.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(userFeedback, d.Name)
@@ -149,7 +149,7 @@ func (d DAOImpl) CreateOrUpdate(userFeedback UserFeedback) (err error) {
 	
 	var olds []UserFeedback
 	olds, err = d.ReadOrEmpty(userFeedback.ID)
-	err = errors.Wrapf(err, "UserFeedback DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "UserFeedback DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", userFeedback.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userFeedback)

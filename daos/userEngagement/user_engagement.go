@@ -115,7 +115,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the UserEngagement.
-func (d DAOImpl) Create(userEngagement UserEngagement) error {
+func (d DAOImpl) Create(userEngagement UserEngagement) (err error) {
 	emptyFields, ok := userEngagement.CollectEmptyFields()
 	if ok {
 		userEngagement.ModifiedAt = core.TimestampLayout.Format(time.Now())
@@ -184,7 +184,7 @@ func (d DAOImpl) CreateOrUpdate(userEngagement UserEngagement) (err error) {
 	
 	var olds []UserEngagement
 	olds, err = d.ReadOrEmpty(userEngagement.ID)
-	err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", userEngagement.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userEngagement)

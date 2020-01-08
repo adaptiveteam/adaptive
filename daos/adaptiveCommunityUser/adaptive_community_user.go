@@ -76,7 +76,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the AdaptiveCommunityUser.
-func (d DAOImpl) Create(adaptiveCommunityUser AdaptiveCommunityUser) error {
+func (d DAOImpl) Create(adaptiveCommunityUser AdaptiveCommunityUser) (err error) {
 	emptyFields, ok := adaptiveCommunityUser.CollectEmptyFields()
 	if ok {
 		err = d.Dynamo.PutTableEntry(adaptiveCommunityUser, d.Name)
@@ -141,7 +141,7 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunityUser AdaptiveCommunityUser) (er
 	
 	var olds []AdaptiveCommunityUser
 	olds, err = d.ReadOrEmpty(adaptiveCommunityUser.ChannelID, adaptiveCommunityUser.UserID)
-	err = errors.Wrapf(err, "AdaptiveCommunityUser DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
+	err = errors.Wrapf(err, "AdaptiveCommunityUser DAO.CreateOrUpdate(id = channelID==%s, userID==%s) couldn't ReadOrEmpty", adaptiveCommunityUser.ChannelID, adaptiveCommunityUser.UserID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(adaptiveCommunityUser)
