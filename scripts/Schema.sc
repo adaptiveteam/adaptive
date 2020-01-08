@@ -355,7 +355,7 @@ val UserObjective = Entity(
         accountabilityPartnerField,
         acceptedField,
         objectiveTypeField,
-        "StrategyAlignmentEntityID".camel :: string,
+        "StrategyAlignmentEntityID".camel :: optionString,
         "StrategyAlignmentEntityType".camel :: AlignedStrategyType.typeAliasTypeInfo,
         "Quarter".camel :: int,
         "Year".camel :: int,
@@ -365,7 +365,7 @@ val UserObjective = Entity(
         "PartnerVerifiedCompletion".camel :: boolean,
         "CompletedDate".camel :: optionTimestamp,
         "PartnerVerifiedCompletionDate".camel :: optionTimestamp,
-        "Comments".camel :: string, 
+        "Comments".camel :: optionString, 
         ("Cancelled".camel :: int) \\ "1 for true, 0 for false"    
     ),
     Nil, List(CreatedModifiedTimesTrait)

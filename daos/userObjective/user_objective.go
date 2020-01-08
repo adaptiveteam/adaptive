@@ -40,7 +40,7 @@ type UserObjective struct  {
 	// 1 for true, 0 for false
 	Accepted int `json:"accepted"`
 	ObjectiveType DevelopmentObjectiveType `json:"type"`
-	StrategyAlignmentEntityID string `json:"strategy_alignment_entity_id"`
+	StrategyAlignmentEntityID string `json:"strategy_alignment_entity_id,omitempty"`
 	StrategyAlignmentEntityType AlignedStrategyType `json:"strategy_alignment_entity_type"`
 	Quarter int `json:"quarter"`
 	Year int `json:"year"`
@@ -52,7 +52,7 @@ type UserObjective struct  {
 	PartnerVerifiedCompletion bool `json:"partner_verified_completion"`
 	CompletedDate string `json:"completed_date,omitempty"`
 	PartnerVerifiedCompletionDate string `json:"partner_verified_completion_date,omitempty"`
-	Comments string `json:"comments"`
+	Comments string `json:"comments,omitempty"`
 	// 1 for true, 0 for false
 	Cancelled int `json:"cancelled"`
 	// Automatically maintained field
@@ -70,10 +70,8 @@ func (userObjective UserObjective)CollectEmptyFields() (emptyFields []string, ok
 	if userObjective.Name == "" { emptyFields = append(emptyFields, "Name")}
 	if userObjective.Description == "" { emptyFields = append(emptyFields, "Description")}
 	if userObjective.AccountabilityPartner == "" { emptyFields = append(emptyFields, "AccountabilityPartner")}
-	if userObjective.StrategyAlignmentEntityID == "" { emptyFields = append(emptyFields, "StrategyAlignmentEntityID")}
 	if userObjective.CreatedDate == "" { emptyFields = append(emptyFields, "CreatedDate")}
 	if userObjective.ExpectedEndDate == "" { emptyFields = append(emptyFields, "ExpectedEndDate")}
-	if userObjective.Comments == "" { emptyFields = append(emptyFields, "Comments")}
 	ok = len(emptyFields) == 0
 	return
 }
