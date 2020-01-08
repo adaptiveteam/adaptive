@@ -99,6 +99,11 @@ restore-all:
 
 all: test
 
+test-with-localstack:
+	docker-compose up -d ;\
+	go test -v ./...  -coverprofile=cover.out ;\
+	docker-compose down
+
 test:
 	go test -v ./...  -coverprofile=cover.out
 clean:
