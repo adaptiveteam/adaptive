@@ -95,10 +95,14 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 // Create saves the StrategyObjective.
 func (d DAOImpl) Create(strategyObjective StrategyObjective) error {
 	emptyFields, ok := strategyObjective.CollectEmptyFields()
-	if !ok {return fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)}
-	strategyObjective.ModifiedAt = core.TimestampLayout.Format(time.Now())
+	if ok {
+		strategyObjective.ModifiedAt = core.TimestampLayout.Format(time.Now())
 	strategyObjective.CreatedAt = strategyObjective.ModifiedAt
-	return d.Dynamo.PutTableEntry(strategyObjective, d.Name)
+	err = d.Dynamo.PutTableEntry(strategyObjective, d.Name)
+	} else {
+		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
+	}
+	return
 }
 
 
@@ -158,29 +162,34 @@ func (d DAOImpl) CreateOrUpdate(strategyObjective StrategyObjective) (err error)
 	
 	var olds []StrategyObjective
 	olds, err = d.ReadOrEmpty(strategyObjective.ID)
+	err = errors.Wrapf(err, "StrategyObjective DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(strategyObjective)
 			err = errors.Wrapf(err, "StrategyObjective DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
-			old := olds[0]
-			strategyObjective.ModifiedAt = core.TimestampLayout.Format(time.Now())
+			emptyFields, ok := strategyObjective.CollectEmptyFields()
+			if ok {
+				old := olds[0]
+				strategyObjective.ModifiedAt = core.TimestampLayout.Format(time.Now())
 
-			key := idParams(old.ID)
-			expr, exprAttributes, names := updateExpression(strategyObjective, old)
-			input := dynamodb.UpdateItemInput{
-				ExpressionAttributeValues: exprAttributes,
-				TableName:                 aws.String(d.Name),
-				Key:                       key,
-				ReturnValues:              aws.String("UPDATED_NEW"),
-				UpdateExpression:          aws.String(expr),
+				key := idParams(old.ID)
+				expr, exprAttributes, names := updateExpression(strategyObjective, old)
+				input := dynamodb.UpdateItemInput{
+					ExpressionAttributeValues: exprAttributes,
+					TableName:                 aws.String(d.Name),
+					Key:                       key,
+					ReturnValues:              aws.String("UPDATED_NEW"),
+					UpdateExpression:          aws.String(expr),
+				}
+				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+				if err == nil {
+					err = d.Dynamo.UpdateItemInternal(input)
+				}
+				err = errors.Wrapf(err, "StrategyObjective DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+			} else {
+				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
-			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-			if err == nil {
-				err = d.Dynamo.UpdateItemInternal(input)
-			}
-			err = errors.Wrapf(err, "StrategyObjective DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
-			return
 		}
 	}
 	return 

@@ -117,10 +117,14 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 // Create saves the UserEngagement.
 func (d DAOImpl) Create(userEngagement UserEngagement) error {
 	emptyFields, ok := userEngagement.CollectEmptyFields()
-	if !ok {return fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)}
-	userEngagement.ModifiedAt = core.TimestampLayout.Format(time.Now())
+	if ok {
+		userEngagement.ModifiedAt = core.TimestampLayout.Format(time.Now())
 	userEngagement.CreatedAt = userEngagement.ModifiedAt
-	return d.Dynamo.PutTableEntry(userEngagement, d.Name)
+	err = d.Dynamo.PutTableEntry(userEngagement, d.Name)
+	} else {
+		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
+	}
+	return
 }
 
 
@@ -180,29 +184,34 @@ func (d DAOImpl) CreateOrUpdate(userEngagement UserEngagement) (err error) {
 	
 	var olds []UserEngagement
 	olds, err = d.ReadOrEmpty(userEngagement.ID)
+	err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userEngagement)
 			err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
-			old := olds[0]
-			userEngagement.ModifiedAt = core.TimestampLayout.Format(time.Now())
+			emptyFields, ok := userEngagement.CollectEmptyFields()
+			if ok {
+				old := olds[0]
+				userEngagement.ModifiedAt = core.TimestampLayout.Format(time.Now())
 
-			key := idParams(old.ID)
-			expr, exprAttributes, names := updateExpression(userEngagement, old)
-			input := dynamodb.UpdateItemInput{
-				ExpressionAttributeValues: exprAttributes,
-				TableName:                 aws.String(d.Name),
-				Key:                       key,
-				ReturnValues:              aws.String("UPDATED_NEW"),
-				UpdateExpression:          aws.String(expr),
+				key := idParams(old.ID)
+				expr, exprAttributes, names := updateExpression(userEngagement, old)
+				input := dynamodb.UpdateItemInput{
+					ExpressionAttributeValues: exprAttributes,
+					TableName:                 aws.String(d.Name),
+					Key:                       key,
+					ReturnValues:              aws.String("UPDATED_NEW"),
+					UpdateExpression:          aws.String(expr),
+				}
+				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+				if err == nil {
+					err = d.Dynamo.UpdateItemInternal(input)
+				}
+				err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+			} else {
+				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
-			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-			if err == nil {
-				err = d.Dynamo.UpdateItemInternal(input)
-			}
-			err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
-			return
 		}
 	}
 	return 

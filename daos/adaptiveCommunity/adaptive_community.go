@@ -80,10 +80,14 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 // Create saves the AdaptiveCommunity.
 func (d DAOImpl) Create(adaptiveCommunity AdaptiveCommunity) error {
 	emptyFields, ok := adaptiveCommunity.CollectEmptyFields()
-	if !ok {return fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)}
-	adaptiveCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
+	if ok {
+		adaptiveCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
 	adaptiveCommunity.CreatedAt = adaptiveCommunity.ModifiedAt
-	return d.Dynamo.PutTableEntry(adaptiveCommunity, d.Name)
+	err = d.Dynamo.PutTableEntry(adaptiveCommunity, d.Name)
+	} else {
+		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
+	}
+	return
 }
 
 
@@ -143,29 +147,34 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunity AdaptiveCommunity) (err error)
 	
 	var olds []AdaptiveCommunity
 	olds, err = d.ReadOrEmpty(adaptiveCommunity.ID)
+	err = errors.Wrapf(err, "AdaptiveCommunity DAO.CreateOrUpdate(id = %v) couldn't ReadOrEmpty", key)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(adaptiveCommunity)
 			err = errors.Wrapf(err, "AdaptiveCommunity DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
-			old := olds[0]
-			adaptiveCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
+			emptyFields, ok := adaptiveCommunity.CollectEmptyFields()
+			if ok {
+				old := olds[0]
+				adaptiveCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
 
-			key := idParams(old.ID)
-			expr, exprAttributes, names := updateExpression(adaptiveCommunity, old)
-			input := dynamodb.UpdateItemInput{
-				ExpressionAttributeValues: exprAttributes,
-				TableName:                 aws.String(d.Name),
-				Key:                       key,
-				ReturnValues:              aws.String("UPDATED_NEW"),
-				UpdateExpression:          aws.String(expr),
+				key := idParams(old.ID)
+				expr, exprAttributes, names := updateExpression(adaptiveCommunity, old)
+				input := dynamodb.UpdateItemInput{
+					ExpressionAttributeValues: exprAttributes,
+					TableName:                 aws.String(d.Name),
+					Key:                       key,
+					ReturnValues:              aws.String("UPDATED_NEW"),
+					UpdateExpression:          aws.String(expr),
+				}
+				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+				if err == nil {
+					err = d.Dynamo.UpdateItemInternal(input)
+				}
+				err = errors.Wrapf(err, "AdaptiveCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+			} else {
+				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
-			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-			if err == nil {
-				err = d.Dynamo.UpdateItemInternal(input)
-			}
-			err = errors.Wrapf(err, "AdaptiveCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
-			return
 		}
 	}
 	return 
