@@ -129,7 +129,7 @@ func (d DAOImpl) ReadOrEmpty(id string, createdOn string) (out []UserObjectivePr
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id && outOrEmpty.CreatedOn == createdOn {
 		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
 		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "UserObjectiveProgress DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)

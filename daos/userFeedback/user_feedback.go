@@ -128,7 +128,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserFeedback, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
 		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "UserFeedback DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
