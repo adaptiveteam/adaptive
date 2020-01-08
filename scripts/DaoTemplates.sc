@@ -214,7 +214,7 @@ func (d DAOImpl) ReadOrEmpty($idArgs) (out []$structName, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if ${entity.primaryKeyFields.map(fld => "outOrEmpty." + goPublicName(fld.name) + " == " + goPrivateName(fld.name)).mkString(" && ")} {
 		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
 		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "$structName DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
