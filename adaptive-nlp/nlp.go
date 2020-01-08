@@ -3,7 +3,7 @@ package nlp
 import (
 	"fmt"
 	"github.com/adaptiveteam/adaptive/core-utils-go"
-	fetch_dialog "github.com/adaptiveteam/dialog-fetcher"
+	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
 )
 
 // ImprovementID is a enum type

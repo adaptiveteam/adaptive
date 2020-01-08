@@ -3,7 +3,7 @@ package userEngagement
 // The changes will be overridden by the next automatic generation.
 import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/adaptiveteam/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"time"
 	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"

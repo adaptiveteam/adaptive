@@ -1,0 +1,24 @@
+{
+  "type": "dialog_submission",
+  "token": "UMzSzl0WYA77I0rBiKGUmUe6",
+  "action_ts": "1551681183.072938",
+  "team": {
+    "id": "TCUFJTB45",
+    "domain": "adaptive--team"
+  },
+  "user": {
+    "id": "UE48A5TC0",
+    "name": "bharath.kumar"
+  },
+  "channel": {
+    "id": "DEG5UN8KT",
+    "name": "directmessage"
+  },
+  "submission": {
+    "confidence_factor": "8",
+    "response": "vfvgrbeb"
+  },
+  "callback_id": "coaching:UE48A5TC0:user_feedback:ask_productivity:UE48A5TC0:March:2019",
+  "response_url": "https://hooks.slack.com/app/TCUFJTB45/566416497749/9OXJAfS8KlcsJ5fJsBSYqDiI",
+  "state": "{\"id\":\"coaching:UE48A5TC0:user_feedback:ask_productivity:UE48A5TC0:March:2019\",\"timestamp\":\"1551681096.001400\"}"
+}

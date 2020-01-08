@@ -1,0 +1,57 @@
+{
+  "type": "interactive_message",
+  "actions": [
+    {
+      "name": "coaching:UE48A5TC0:user_feedback:ask_productivity:UE48A5TC0:March:2019",
+      "type": "button",
+      "value": "coaching:UE48A5TC0:user_feedback:ask_productivity:UE48A5TC0:March:2019"
+    }
+  ],
+  "callback_id": "coaching:UE48A5TC0:user_feedback:ask_productivity:UE48A5TC0:March:2019",
+  "team": {
+    "id": "TCUFJTB45",
+    "domain": "adaptive--team"
+  },
+  "channel": {
+    "id": "DEG5UN8KT",
+    "name": "directmessage"
+  },
+  "user": {
+    "id": "UE48A5TC0",
+    "name": "bharath.kumar"
+  },
+  "action_ts": "1551681174.012230",
+  "message_ts": "1551681096.001400",
+  "attachment_id": "1",
+  "token": "UMzSzl0WYA77I0rBiKGUmUe6",
+  "is_app_unfurl": false,
+  "original_message": {
+    "bot_id": "BEHR3AE2K",
+    "type": "message",
+    "text": "",
+    "user": "UEGPLFT5G",
+    "ts": "1551681096.001400",
+    "attachments": [
+      {
+        "callback_id": "coaching:UE48A5TC0:user_feedback:ask_productivity:UE48A5TC0:March:2019",
+        "fallback": "productivity",
+        "text": "How satisfied were you with this person's productivity over the last quarter?\n1 is not at all and 10 is completely\n:small_blue_diamond:Did they produce something concrete, driving productive conversations resulting in healthy forward momentum?\n:small_blue_diamond:Did they help you evolve your thinking, enabling you to deliver concrete results?\n:small_blue_diamond:Are they able to bring a team together to produce demonstrable value?",
+        "title": "What do you think about Bharath's productivity?",
+        "id": 1,
+        "color": "3AA3E3",
+        "actions": [
+          {
+            "id": "1",
+            "name": "coaching:UE48A5TC0:user_feedback:ask_productivity:UE48A5TC0:March:2019",
+            "text": "Update",
+            "type": "button",
+            "value": "coaching:UE48A5TC0:user_feedback:ask_productivity:UE48A5TC0:March:2019",
+            "style": ""
+          }
+        ]
+      }
+    ]
+  },
+  "response_url": "https://hooks.slack.com/actions/TCUFJTB45/566416446133/mdbsWXpNtLZV9IEuFTMggWad",
+  "trigger_id": "566416446197.436528929141.5b0e9da68ffafefc6ad3956f313e42b0"
+}

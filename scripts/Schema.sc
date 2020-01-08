@@ -10,7 +10,7 @@ import GoTypes._
 import $file.Templates
 import Templates._
 
-lazy val modelsImport = ImportClause(None, "github.com/adaptiveteam/adaptive-utils-go/models")
+lazy val modelsImport = ImportClause(None, "github.com/adaptiveteam/adaptive/adaptive-utils-go/models")
 
 //val platformId = simpleType("PlatformId", "models.PlatformID", "S")
 lazy val platformId = modelsImport.simpleType("PlatformId", "PlatformID".camel, "\"\"", "S")
