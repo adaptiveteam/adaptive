@@ -31,8 +31,8 @@ script:
   - export AWS_REGION=us-east-1
   # - $GOPATH/bin/goveralls -service=travis-pro
   # - pip install localstack
-  - docker-compose up
-  - make
+  - docker-compose up -d
+  - make test
   - docker-compose down
   # - pushd aws-utils-go; go test -v; popd
   # - pushd dialog-fetcher; go test -v; popd
