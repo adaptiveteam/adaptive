@@ -1,6 +1,7 @@
 package aws_utils_go
 
 import (
+	"time"
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -64,9 +65,10 @@ var _ = BeforeSuite(func() {
 	)
 	testErrorHandler(err, "Could not start docker container")
 
+	s := NewS3(os.Getenv("AWS_REGION"), fmt.Sprintf("http://%s:4572", hostname), "test")
+
 	// Ensuring container is ready to accept requests
 	if err = resourcePool.Retry(func() error {
-		s := NewS3(os.Getenv("AWS_REGION"), fmt.Sprintf("http://%s:4572", hostname), "test")
 		_, err = s.ListBuckets()
 		return err
 	}); err != nil {
@@ -79,7 +81,14 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	fmt.Println("Stopping localstack container ... ")
 	// Once tests are done, kill and remove the container
-	err := resourcePool.Purge(resource)
-	testErrorHandler(err, "There was in error with stopping the container")
+	if resource != nil {
+		err1 := resource.Expire(5)
+		testErrorHandler(err1, "There was an error with expiring localstack resource")
+		err2 := resource.Close()
+		testErrorHandler(err2, "There was in error with closing localstack resource")
+		// err3 := resourcePool.Purge(resource)
+		// testErrorHandler(err3, "There was in error with stopping the container")
+	}
+	time.Sleep(30*time.Second)// to free up ports
 	fmt.Println("Stopped localstack container")
 })

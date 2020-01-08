@@ -55,7 +55,7 @@ var _ = BeforeSuite(func() {
 	resource, err = resourcePool.RunWithOptions(
 		&dockertest.RunOptions{
 			Repository: "localstack/localstack",
-			Tag:        "latest",
+			Tag:        "0.10.5",
 			PortBindings: map[docker.Port][]docker.PortBinding{
 				// S3
 				"4572/tcp": {{HostIP: hostname, HostPort: "4572"}},
@@ -102,8 +102,11 @@ var _ = AfterSuite(func() {
 		panic("No resource pool")
 	}
 	if resource != nil {
-		err := resourcePool.Purge(resource)
-		testErrorHandler(err, "There was in error with stopping the container")
+		err2 := resource.Close()
+		testErrorHandler(err2, "There was an error with closing localstack resource")
+
+		err3 := resourcePool.Purge(resource)
+		testErrorHandler(err3, "There was an error with stopping the container")
 	}
 	fmt.Println("Stopped localstack container")
 })
