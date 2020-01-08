@@ -74,6 +74,7 @@ var _ = BeforeSuite(func() {
 	}); err != nil {
 		testErrorHandler(err, "Could not connect to docker")
 	}
+	time.Sleep(10*time.Second)
 	fmt.Println("Started localstack container ... ")
 })
 

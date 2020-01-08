@@ -3,6 +3,7 @@ package fetch_dialog
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	. "github.com/onsi/ginkgo"
@@ -86,6 +87,8 @@ var _ = BeforeSuite(func() {
 	}); err != nil {
 		testErrorHandler(err, "Could not connect to docker")
 	}
+	time.Sleep(10*time.Second)
+
 	fmt.Println("Started localstack container")
 	addDialogSchema()
 	err = addMockData(localStackDao())
@@ -105,8 +108,8 @@ var _ = AfterSuite(func() {
 		err2 := resource.Close()
 		testErrorHandler(err2, "There was an error with closing localstack resource")
 
-		err3 := resourcePool.Purge(resource)
-		testErrorHandler(err3, "There was an error with stopping the container")
+		// err3 := resourcePool.Purge(resource)
+		// testErrorHandler(err3, "There was an error with stopping the container")
 	}
 	fmt.Println("Stopped localstack container")
 })
