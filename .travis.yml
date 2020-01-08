@@ -27,12 +27,14 @@ script:
   - export AWS_LOCAL_HOST='localstack'
   - export FORCE_NONINTERACTIVE=true
   - export AWS_DEFAULT_REGION=eu-west-1
-  - $GOPATH/bin/goveralls -service=travis-pro
-  - make
-  - pushd aws-utils-go; go test -v; popd
-  - export AWS_DEFAULT_REGION=us-east-1
-  - export AWS_REGION=us-east-1
-  - pushd dialog-fetcher; go test -v; popd
+  # - export AWS_DEFAULT_REGION=us-east-1 we don't want accidently break something in our region
+  - export AWS_REGION=eu-west-1
+  # - $GOPATH/bin/goveralls -service=travis-pro
+  - docker-compose up -d
+  - make test
+  - docker-compose down
+  # - pushd aws-utils-go; go test -v; popd
+  # - pushd dialog-fetcher; go test -v; popd
     
 notifications:
   slack:
