@@ -72,7 +72,11 @@ var _ = BeforeSuite(func() {
 			Privileged: true,
 		},
 	)
-	testErrorHandler(err, "Could not start docker container")
+	if err != nil {
+		fmt.Printf("Ignoring error when creating docker pool: %+v", err)
+		resource = nil
+	}
+	// testErrorHandler(err, "Could not start docker container")
 
 	// Ensuring container is ready to accept requests
 	if err = resourcePool.Retry(func() error {
@@ -97,8 +101,10 @@ var _ = AfterSuite(func() {
 	if resourcePool == nil {
 		panic("No resource pool")
 	}
-	err := resourcePool.Purge(resource)
-	testErrorHandler(err, "There was in error with stopping the container")
+	if resource != nil {
+		err := resourcePool.Purge(resource)
+		testErrorHandler(err, "There was in error with stopping the container")
+	}
 	fmt.Println("Stopped localstack container")
 })
 
