@@ -94,10 +94,14 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the DialogEntry.
-func (d DAOImpl) Create(dialogEntry DialogEntry) error {
+func (d DAOImpl) Create(dialogEntry DialogEntry) (err error) {
 	emptyFields, ok := dialogEntry.CollectEmptyFields()
-	if !ok {return fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)}
-	return d.Dynamo.PutTableEntry(dialogEntry, d.Name)
+	if ok {
+		err = d.Dynamo.PutTableEntry(dialogEntry, d.Name)
+	} else {
+		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
+	}
+	return
 }
 
 
@@ -134,7 +138,7 @@ func (d DAOImpl) ReadOrEmpty(dialogID string) (out []DialogEntry, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.DialogID == dialogID {
 		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
 		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "DialogEntry DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -155,28 +159,33 @@ func (d DAOImpl) CreateOrUpdate(dialogEntry DialogEntry) (err error) {
 	
 	var olds []DialogEntry
 	olds, err = d.ReadOrEmpty(dialogEntry.DialogID)
+	err = errors.Wrapf(err, "DialogEntry DAO.CreateOrUpdate(id = dialogID==%s) couldn't ReadOrEmpty", dialogEntry.DialogID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(dialogEntry)
 			err = errors.Wrapf(err, "DialogEntry DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
-			old := olds[0]
-			
-			key := idParams(old.DialogID)
-			expr, exprAttributes, names := updateExpression(dialogEntry, old)
-			input := dynamodb.UpdateItemInput{
-				ExpressionAttributeValues: exprAttributes,
-				TableName:                 aws.String(d.Name),
-				Key:                       key,
-				ReturnValues:              aws.String("UPDATED_NEW"),
-				UpdateExpression:          aws.String(expr),
+			emptyFields, ok := dialogEntry.CollectEmptyFields()
+			if ok {
+				old := olds[0]
+				
+				key := idParams(old.DialogID)
+				expr, exprAttributes, names := updateExpression(dialogEntry, old)
+				input := dynamodb.UpdateItemInput{
+					ExpressionAttributeValues: exprAttributes,
+					TableName:                 aws.String(d.Name),
+					Key:                       key,
+					ReturnValues:              aws.String("UPDATED_NEW"),
+					UpdateExpression:          aws.String(expr),
+				}
+				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+				if err == nil {
+					err = d.Dynamo.UpdateItemInternal(input)
+				}
+				err = errors.Wrapf(err, "DialogEntry DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+			} else {
+				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
-			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-			if err == nil {
-				err = d.Dynamo.UpdateItemInternal(input)
-			}
-			err = errors.Wrapf(err, "DialogEntry DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
-			return
 		}
 	}
 	return 

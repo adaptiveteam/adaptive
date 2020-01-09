@@ -68,10 +68,14 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the ContextAliasEntry.
-func (d DAOImpl) Create(contextAliasEntry ContextAliasEntry) error {
+func (d DAOImpl) Create(contextAliasEntry ContextAliasEntry) (err error) {
 	emptyFields, ok := contextAliasEntry.CollectEmptyFields()
-	if !ok {return fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)}
-	return d.Dynamo.PutTableEntry(contextAliasEntry, d.Name)
+	if ok {
+		err = d.Dynamo.PutTableEntry(contextAliasEntry, d.Name)
+	} else {
+		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
+	}
+	return
 }
 
 
@@ -108,7 +112,7 @@ func (d DAOImpl) ReadOrEmpty(applicationAlias string) (out []ContextAliasEntry, 
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ApplicationAlias == applicationAlias {
 		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
 		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "ContextAliasEntry DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -129,28 +133,33 @@ func (d DAOImpl) CreateOrUpdate(contextAliasEntry ContextAliasEntry) (err error)
 	
 	var olds []ContextAliasEntry
 	olds, err = d.ReadOrEmpty(contextAliasEntry.ApplicationAlias)
+	err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate(id = applicationAlias==%s) couldn't ReadOrEmpty", contextAliasEntry.ApplicationAlias)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(contextAliasEntry)
 			err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
-			old := olds[0]
-			
-			key := idParams(old.ApplicationAlias)
-			expr, exprAttributes, names := updateExpression(contextAliasEntry, old)
-			input := dynamodb.UpdateItemInput{
-				ExpressionAttributeValues: exprAttributes,
-				TableName:                 aws.String(d.Name),
-				Key:                       key,
-				ReturnValues:              aws.String("UPDATED_NEW"),
-				UpdateExpression:          aws.String(expr),
+			emptyFields, ok := contextAliasEntry.CollectEmptyFields()
+			if ok {
+				old := olds[0]
+				
+				key := idParams(old.ApplicationAlias)
+				expr, exprAttributes, names := updateExpression(contextAliasEntry, old)
+				input := dynamodb.UpdateItemInput{
+					ExpressionAttributeValues: exprAttributes,
+					TableName:                 aws.String(d.Name),
+					Key:                       key,
+					ReturnValues:              aws.String("UPDATED_NEW"),
+					UpdateExpression:          aws.String(expr),
+				}
+				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+				if err == nil {
+					err = d.Dynamo.UpdateItemInternal(input)
+				}
+				err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+			} else {
+				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
-			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-			if err == nil {
-				err = d.Dynamo.UpdateItemInternal(input)
-			}
-			err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
-			return
 		}
 	}
 	return 

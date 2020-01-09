@@ -89,12 +89,16 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the StrategyCommunity.
-func (d DAOImpl) Create(strategyCommunity StrategyCommunity) error {
+func (d DAOImpl) Create(strategyCommunity StrategyCommunity) (err error) {
 	emptyFields, ok := strategyCommunity.CollectEmptyFields()
-	if !ok {return fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)}
-	strategyCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
+	if ok {
+		strategyCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
 	strategyCommunity.CreatedAt = strategyCommunity.ModifiedAt
-	return d.Dynamo.PutTableEntry(strategyCommunity, d.Name)
+	err = d.Dynamo.PutTableEntry(strategyCommunity, d.Name)
+	} else {
+		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
+	}
+	return
 }
 
 
@@ -131,7 +135,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyCommunity, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
 		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "StrategyCommunity DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -154,29 +158,34 @@ func (d DAOImpl) CreateOrUpdate(strategyCommunity StrategyCommunity) (err error)
 	
 	var olds []StrategyCommunity
 	olds, err = d.ReadOrEmpty(strategyCommunity.ID)
+	err = errors.Wrapf(err, "StrategyCommunity DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", strategyCommunity.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(strategyCommunity)
 			err = errors.Wrapf(err, "StrategyCommunity DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
-			old := olds[0]
-			strategyCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
+			emptyFields, ok := strategyCommunity.CollectEmptyFields()
+			if ok {
+				old := olds[0]
+				strategyCommunity.ModifiedAt = core.TimestampLayout.Format(time.Now())
 
-			key := idParams(old.ID)
-			expr, exprAttributes, names := updateExpression(strategyCommunity, old)
-			input := dynamodb.UpdateItemInput{
-				ExpressionAttributeValues: exprAttributes,
-				TableName:                 aws.String(d.Name),
-				Key:                       key,
-				ReturnValues:              aws.String("UPDATED_NEW"),
-				UpdateExpression:          aws.String(expr),
+				key := idParams(old.ID)
+				expr, exprAttributes, names := updateExpression(strategyCommunity, old)
+				input := dynamodb.UpdateItemInput{
+					ExpressionAttributeValues: exprAttributes,
+					TableName:                 aws.String(d.Name),
+					Key:                       key,
+					ReturnValues:              aws.String("UPDATED_NEW"),
+					UpdateExpression:          aws.String(expr),
+				}
+				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+				if err == nil {
+					err = d.Dynamo.UpdateItemInternal(input)
+				}
+				err = errors.Wrapf(err, "StrategyCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+			} else {
+				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
-			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-			if err == nil {
-				err = d.Dynamo.UpdateItemInternal(input)
-			}
-			err = errors.Wrapf(err, "StrategyCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
-			return
 		}
 	}
 	return 

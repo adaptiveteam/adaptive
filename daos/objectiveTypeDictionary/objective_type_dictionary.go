@@ -88,12 +88,16 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 
 // Create saves the ObjectiveTypeDictionary.
-func (d DAOImpl) Create(objectiveTypeDictionary ObjectiveTypeDictionary) error {
+func (d DAOImpl) Create(objectiveTypeDictionary ObjectiveTypeDictionary) (err error) {
 	emptyFields, ok := objectiveTypeDictionary.CollectEmptyFields()
-	if !ok {return fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)}
-	objectiveTypeDictionary.ModifiedAt = core.TimestampLayout.Format(time.Now())
+	if ok {
+		objectiveTypeDictionary.ModifiedAt = core.TimestampLayout.Format(time.Now())
 	objectiveTypeDictionary.CreatedAt = objectiveTypeDictionary.ModifiedAt
-	return d.Dynamo.PutTableEntry(objectiveTypeDictionary, d.Name)
+	err = d.Dynamo.PutTableEntry(objectiveTypeDictionary, d.Name)
+	} else {
+		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
+	}
+	return
 }
 
 
@@ -130,7 +134,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []ObjectiveTypeDictionary, err erro
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if outOrEmpty.ID == id {
 		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
 		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -153,29 +157,34 @@ func (d DAOImpl) CreateOrUpdate(objectiveTypeDictionary ObjectiveTypeDictionary)
 	
 	var olds []ObjectiveTypeDictionary
 	olds, err = d.ReadOrEmpty(objectiveTypeDictionary.ID)
+	err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", objectiveTypeDictionary.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(objectiveTypeDictionary)
 			err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
-			old := olds[0]
-			objectiveTypeDictionary.ModifiedAt = core.TimestampLayout.Format(time.Now())
+			emptyFields, ok := objectiveTypeDictionary.CollectEmptyFields()
+			if ok {
+				old := olds[0]
+				objectiveTypeDictionary.ModifiedAt = core.TimestampLayout.Format(time.Now())
 
-			key := idParams(old.ID)
-			expr, exprAttributes, names := updateExpression(objectiveTypeDictionary, old)
-			input := dynamodb.UpdateItemInput{
-				ExpressionAttributeValues: exprAttributes,
-				TableName:                 aws.String(d.Name),
-				Key:                       key,
-				ReturnValues:              aws.String("UPDATED_NEW"),
-				UpdateExpression:          aws.String(expr),
+				key := idParams(old.ID)
+				expr, exprAttributes, names := updateExpression(objectiveTypeDictionary, old)
+				input := dynamodb.UpdateItemInput{
+					ExpressionAttributeValues: exprAttributes,
+					TableName:                 aws.String(d.Name),
+					Key:                       key,
+					ReturnValues:              aws.String("UPDATED_NEW"),
+					UpdateExpression:          aws.String(expr),
+				}
+				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+				if err == nil {
+					err = d.Dynamo.UpdateItemInternal(input)
+				}
+				err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+			} else {
+				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
-			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-			if err == nil {
-				err = d.Dynamo.UpdateItemInternal(input)
-			}
-			err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
-			return
 		}
 	}
 	return 

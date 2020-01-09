@@ -170,7 +170,7 @@ func (d *DynamoRequest) GetItemFromTable(table string, idParams map[string]*dyna
 		if found {
 			err = dynamodbattribute.UnmarshalMap(result.Item, out)
 		} else {
-			err = fmt.Errorf("in table %s value not found, %v", table, idParams)
+			err = fmt.Errorf("[NOT FOUND] in table %s value not found, %v", table, idParams)
 		}	
 	}
 	if err != nil {

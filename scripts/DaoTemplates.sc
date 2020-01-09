@@ -158,16 +158,20 @@ case class OperationImplementationTemplates(table: Table){
 	def DaoOperationCreateTemplate: String =
 s"""
 // Create saves the $structName.
-func (d DAOImpl) Create($structVarName $structName) error {
+func (d DAOImpl) Create($structVarName $structName) (err error) {
 	emptyFields, ok := ${structVarName}.CollectEmptyFields()
-	if !ok {return fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)}
-	${
-		if(entity.supports(CreatedModifiedTimesTrait)) {
-			s"""$structVarName.ModifiedAt = core.TimestampLayout.Format(time.Now())
-		   |	$structVarName.CreatedAt = $structVarName.ModifiedAt
-		   |	""".stripMargin
-		} else ""
-	}return d.Dynamo.PutTableEntry($structVarName, d.Name)
+	if ok {
+		${
+			if(entity.supports(CreatedModifiedTimesTrait)) {
+				s"""$structVarName.ModifiedAt = core.TimestampLayout.Format(time.Now())
+			|	$structVarName.CreatedAt = $structVarName.ModifiedAt
+			|	""".stripMargin
+			} else ""
+		}err = d.Dynamo.PutTableEntry($structVarName, d.Name)
+	} else {
+		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
+	}
+	return
 }
 """
 
@@ -210,7 +214,7 @@ func (d DAOImpl) ReadOrEmpty($idArgs) (out []$structName, err error) {
 	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
 	if ${entity.primaryKeyFields.map(fld => "outOrEmpty." + goPublicName(fld.name) + " == " + goPrivateName(fld.name)).mkString(" && ")} {
 		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "In table ") {
+	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
 		err = nil // expected not-found error	
 	}
 	err = errors.Wrapf(err, "$structName DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -240,32 +244,37 @@ func (d DAOImpl) CreateOrUpdate($structVarName $structName) (err error) {
 	}
 	var olds []$structName
 	olds, err = d.ReadOrEmpty(${idFieldNames.map(structVarName + "." + _).mkString(", ")})
+	err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate(id = $formatIds) couldn't ReadOrEmpty", ${idFieldNames.map(structVarName + "." + _).mkString(", ")})
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create($structVarName)
 			err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
 		} else {
-			old := olds[0]
-			${
-				if(entity.supports(CreatedModifiedTimesTrait)) {
-					s"$structVarName.ModifiedAt = core.TimestampLayout.Format(time.Now())" + "\n"
-				} else ""
+			emptyFields, ok := ${structVarName}.CollectEmptyFields()
+			if ok {
+				old := olds[0]
+				${
+					if(entity.supports(CreatedModifiedTimesTrait)) {
+						s"$structVarName.ModifiedAt = core.TimestampLayout.Format(time.Now())" + "\n"
+					} else ""
+				}
+				key := idParams(${idFieldNames.map("old." + _).mkString(", ")})
+				expr, exprAttributes, names := updateExpression($structVarName, old)
+				input := dynamodb.UpdateItemInput{
+					ExpressionAttributeValues: exprAttributes,
+					TableName:                 aws.String(d.Name),
+					Key:                       key,
+					ReturnValues:              aws.String("UPDATED_NEW"),
+					UpdateExpression:          aws.String(expr),
+				}
+				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
+				if err == nil {
+					err = d.Dynamo.UpdateItemInternal(input)
+				}
+				err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+			} else {
+				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
-			key := idParams(${idFieldNames.map("old." + _).mkString(", ")})
-			expr, exprAttributes, names := updateExpression($structVarName, old)
-			input := dynamodb.UpdateItemInput{
-				ExpressionAttributeValues: exprAttributes,
-				TableName:                 aws.String(d.Name),
-				Key:                       key,
-				ReturnValues:              aws.String("UPDATED_NEW"),
-				UpdateExpression:          aws.String(expr),
-			}
-			if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-			if err == nil {
-				err = d.Dynamo.UpdateItemInternal(input)
-			}
-			err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s", key, d.Name)
-			return
 		}
 	}
 	return 
