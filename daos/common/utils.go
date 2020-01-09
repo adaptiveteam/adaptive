@@ -9,8 +9,15 @@ import (
 func DynString(str string) (attr *dynamodb.AttributeValue) {
 	return DynS(str)
 }
+// DynS wraps a string into dynamo db attribute value
+// if the string is empty, uses `NULL: true`
 func DynS(str string) (attr *dynamodb.AttributeValue) {
-	return &dynamodb.AttributeValue{S: aws.String(str)}
+	if str == "" {
+		attr = &dynamodb.AttributeValue{NULL: aws.Bool(true)} 
+	} else {
+		attr = &dynamodb.AttributeValue{S: aws.String(str)}
+	}
+	return 
 }
 func DynN(i int) (attr *dynamodb.AttributeValue) {
 	return &dynamodb.AttributeValue{N: aws.String(strconv.Itoa(i))}
