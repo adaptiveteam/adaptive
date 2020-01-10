@@ -31,3 +31,7 @@ bin/
 
 example.tf
 terraform.tfplan
+
+#temporary excel files
+~*.xlsx
+./output/
