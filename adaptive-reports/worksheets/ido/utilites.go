@@ -1,7 +1,7 @@
 package ido
 
 import (
-	"github.com/adaptiveteam/adaptive-reports/models"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/models"
 )
 
 func completedString(b bool) (rv string) {

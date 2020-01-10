@@ -3,12 +3,12 @@ package workbooks
 import (
 	"fmt"
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
-	"github.com/adaptiveteam/adaptive-reports/models"
-	"github.com/adaptiveteam/adaptive-reports/queries"
-	"github.com/adaptiveteam/adaptive-reports/utilities"
-	"github.com/adaptiveteam/adaptive-reports/worksheets/strategy"
-	"github.com/adaptiveteam/adaptive-reports/worksheets/styles"
-	utilities2 "github.com/adaptiveteam/adaptive-reports/worksheets/utilities"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/models"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/queries"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/strategy"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/styles"
+	utilities2 "github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/utilities"
 	"github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/pkg/errors"
 )

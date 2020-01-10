@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/adaptiveteam/adaptive-reports/utilities"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
 	"strconv"
 )
 

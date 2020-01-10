@@ -3,7 +3,7 @@ package strategy
 import (
 	"fmt"
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
-	"github.com/adaptiveteam/adaptive-reports/models"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/models"
 	"reflect"
 	"strconv"
 	"strings"
