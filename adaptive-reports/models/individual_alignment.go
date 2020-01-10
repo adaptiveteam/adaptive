@@ -1,6 +1,6 @@
 package models
 
-import "github.com/adaptiveteam/adaptive-reports/utilities"
+import "github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
 
 type Alignment struct {
 	AdvocateStatus string

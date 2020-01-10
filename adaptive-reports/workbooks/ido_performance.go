@@ -2,13 +2,14 @@ package workbooks
 
 import (
 	"fmt"
+
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
-	"github.com/adaptiveteam/adaptive-reports/models"
-	"github.com/adaptiveteam/adaptive-reports/queries"
-	"github.com/adaptiveteam/adaptive-reports/utilities"
-	"github.com/adaptiveteam/adaptive-reports/worksheets/ido"
-	"github.com/adaptiveteam/adaptive-reports/worksheets/styles"
-	utilities2 "github.com/adaptiveteam/adaptive-reports/worksheets/utilities"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/models"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/queries"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/ido"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/styles"
+	utilities2 "github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/utilities"
 	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/pkg/errors"
 )
@@ -38,10 +39,10 @@ func CreateIDOWorkbook(
 				len(queryResults["ido"].GetRows()),
 			)
 			instructions,
-			summaryIDO,
-			detailsIDO,
-			activeIDOs,
-			closedIDOs := ido.CreateIDOWorksheets(
+				summaryIDO,
+				detailsIDO,
+				activeIDOs,
+				closedIDOs := ido.CreateIDOWorksheets(
 				f,
 				"instructions",
 				"IDO Summary",
@@ -80,7 +81,7 @@ func CreateIDOWorkbook(
 				styles.Styles,
 			)
 
-			dialog,err := dialogDAO.FetchByAlias("report-instructions", "instructions", "ido")
+			dialog, err := dialogDAO.FetchByAlias("report-instructions", "instructions", "ido")
 			if err != nil {
 				fmt.Println(errors.Wrap(err, "error querying instructions for IDO performance report"))
 			}

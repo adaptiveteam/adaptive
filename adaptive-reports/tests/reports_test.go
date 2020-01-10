@@ -3,9 +3,9 @@ package tests
 import (
 	"fmt"
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
-	"github.com/adaptiveteam/adaptive-reports/utilities"
-	"github.com/adaptiveteam/adaptive-reports/workbooks"
-	utilities2 "github.com/adaptiveteam/adaptive-reports/worksheets/utilities"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/workbooks"
+	utilities2 "github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/utilities"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
