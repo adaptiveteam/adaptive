@@ -76,7 +76,7 @@ func HandleRequest(ctx context.Context) (err error) {
 	if err == nil {
 		for _, clientConfig := range clientConfigs {
 			// Query users for a client based on platform id
-			platformID := clientConfig.ClientPlatformRequest.Id
+			platformID := clientConfig.PlatformID
 
 			now := time.Now().UTC()
 			// rounded to nearest hour quarter
@@ -92,12 +92,12 @@ func HandleRequest(ctx context.Context) (err error) {
 
 			fmt.Println(fmt.Sprintf("Invoking user schedules for %s UTC", startUTCTime.String()))
 			// Querying for users who explicitly set the time
-			usersToAsk1 := usersWithinScheduledPeriod(config, platformID, timeInHrMin(startUTCTime), timeInHrMin(endUTCTime))
+			usersToAsk1 := usersWithinScheduledPeriod(config, string(platformID), timeInHrMin(startUTCTime), timeInHrMin(endUTCTime))
 			log.Println(fmt.Sprintf("No. of users invoked with scheduled time: %d", len(usersToAsk1)))
 			// Querying for others that have the default time and should be invoked now
 			offsetEnd := absoluteOffsetFromUTC(startUTCTime, time.Time(defaultMeetingTime))
 			offsetStart := absoluteOffsetFromUTC(endUTCTime, time.Time(defaultMeetingTime))
-			usersToAsk2 := usersWithinOffsetRange(config, platformID, offsetStart, offsetEnd)
+			usersToAsk2 := usersWithinOffsetRange(config, string(platformID), offsetStart, offsetEnd)
 			var usersToAsk2Filtered []models.User
 			// Filtering out the users who have explicitly set scheduled time same as default time since these are part of `usersToAsk1`
 			for _, each := range usersToAsk2 {

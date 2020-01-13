@@ -11,7 +11,7 @@ type ClientContact struct {
 }
 
 type ClientPlatform struct {
-	PlatformName  PlatformName `json:"platform_name"` // should be slack or ms-teams
+	PlatformName  clientPlatformToken.PlatformName `json:"platform_name"` // should be slack or ms-teams
 	PlatformToken string       `json:"platform_token"`
 }
 

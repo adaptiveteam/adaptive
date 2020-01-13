@@ -55,8 +55,8 @@ func platformToken(userID string) plat.UserPlatformToken {
 	u := userDao.ReadUnsafe(userID)
 	pt := platformTokenDao.ReadUnsafe(models.PlatformID(u.PlatformId))
 	return plat.UserPlatformToken{
-		PlatformName:  pt.ClientPlatform.PlatformName,
-		PlatformToken: pt.ClientPlatform.PlatformToken}
+		PlatformName:  pt.PlatformName,
+		PlatformToken: pt.PlatformToken}
 }
 
 func HandleRequest(ctx context.Context, e events.SNSEvent) {

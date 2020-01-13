@@ -82,7 +82,7 @@ func HandleRequest(ctx context.Context) (err error) {
 	var clientConfigs []models.ClientPlatformToken
 	err = config.d.ScanTable(config.clientConfigTable, &clientConfigs)
 	for _, clientConfig := range clientConfigs {
-		platformID := models.PlatformID(clientConfig.ClientPlatformRequest.Id)
+		platformID := clientConfig.PlatformID
 		slackAdapter := platformAdapter.ForPlatformID(platformID)
 		// Check vision exists
 		vision := strategy.StrategyVision(platformID, config.visionTable)

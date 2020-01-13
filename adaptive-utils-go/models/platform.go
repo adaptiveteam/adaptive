@@ -1,8 +1,11 @@
 package models
 
-import "github.com/adaptiveteam/adaptive/engagement-builder/model"
+import (
+	"github.com/adaptiveteam/adaptive/engagement-builder/model"
+	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
+)
 
-type PlatformName string
+type PlatformName = clientPlatformToken.PlatformName
 
 // Platform names
 const (
