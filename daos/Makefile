@@ -2,6 +2,10 @@
 SHELL := /bin/bash
 
 
+common/test.log: common/*.go
+	pushd common; go test -v; date > test.log; popd
+
+
 user/test.log: user/*.go
 	pushd user; go test -v; date > test.log; popd
 
@@ -85,4 +89,4 @@ contextAliasEntry/test.log: contextAliasEntry/*.go
 objectiveTypeDictionary/test.log: objectiveTypeDictionary/*.go
 	pushd objectiveTypeDictionary; go test -v; date > test.log; popd
 
-test-all: user/test.log coachingRelationship/test.log userFeedback/test.log userEngagement/test.log adaptiveCommunityUser/test.log adaptiveCommunity/test.log userAttribute/test.log adHocHoliday/test.log userObjective/test.log userObjectiveProgress/test.log adaptiveValue/test.log clientPlatformToken/test.log strategyObjective/test.log strategyInitiative/test.log visionMission/test.log strategyCommunity/test.log capabilityCommunity/test.log strategyInitiativeCommunity/test.log dialogEntry/test.log contextAliasEntry/test.log objectiveTypeDictionary/test.log
+test-all: common/test.log user/test.log coachingRelationship/test.log userFeedback/test.log userEngagement/test.log adaptiveCommunityUser/test.log adaptiveCommunity/test.log userAttribute/test.log adHocHoliday/test.log userObjective/test.log userObjectiveProgress/test.log adaptiveValue/test.log clientPlatformToken/test.log strategyObjective/test.log strategyInitiative/test.log visionMission/test.log strategyCommunity/test.log capabilityCommunity/test.log strategyInitiativeCommunity/test.log dialogEntry/test.log contextAliasEntry/test.log objectiveTypeDictionary/test.log

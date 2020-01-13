@@ -11,6 +11,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-test/deep v1.0.4
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
+	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/mattn/go-colorable v0.1.4
 	github.com/nlopes/slack v0.6.0

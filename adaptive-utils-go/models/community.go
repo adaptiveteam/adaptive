@@ -1,5 +1,9 @@
 package models
 
+// import (
+// 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
+// )
+// type AdaptiveCommunity //= adaptiveCommunity.AdaptiveCommunity
 type AdaptiveCommunity struct {
 	Id          string `json:"id"`
 	PlatformId  string `json:"platform_id"`
