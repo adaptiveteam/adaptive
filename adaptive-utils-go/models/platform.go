@@ -2,15 +2,15 @@ package models
 
 import (
 	"github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
+	"github.com/adaptiveteam/adaptive/daos/common"
 )
 
-type PlatformName = clientPlatformToken.PlatformName
+type PlatformName = common.PlatformName
 
 // Platform names
 const (
-	SlackPlatform                      PlatformName = "slack"
-	MsTeamsPlatform                    PlatformName = "ms-teams"
+	SlackPlatform                      PlatformName = common.SlackPlatform
+	MsTeamsPlatform                    PlatformName = common.MsTeamsPlatform
 	SlackDialogSelectElementLabelLimit              = 48
 	SlackDialogSelectElementNameLimit               = 300
 )
