@@ -13,13 +13,11 @@ import (
 	"strings"
 )
 
-type PlatformName string
-
 type ClientPlatformToken struct  {
 	PlatformID common.PlatformID `json:"platform_id"`
 	Org string `json:"org"`
 	// should be slack or ms-teams
-	PlatformName PlatformName `json:"platform_name"`
+	PlatformName common.PlatformName `json:"platform_name"`
 	PlatformToken string `json:"platform_token"`
 	ContactFirstName string `json:"contact_first_name"`
 	ContactLastName string `json:"contact_last_name"`
@@ -31,6 +29,7 @@ type ClientPlatformToken struct  {
 func (clientPlatformToken ClientPlatformToken)CollectEmptyFields() (emptyFields []string, ok bool) {
 	if clientPlatformToken.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
 	if clientPlatformToken.Org == "" { emptyFields = append(emptyFields, "Org")}
+	if clientPlatformToken.PlatformName == "" { emptyFields = append(emptyFields, "PlatformName")}
 	if clientPlatformToken.PlatformToken == "" { emptyFields = append(emptyFields, "PlatformToken")}
 	if clientPlatformToken.ContactFirstName == "" { emptyFields = append(emptyFields, "ContactFirstName")}
 	if clientPlatformToken.ContactLastName == "" { emptyFields = append(emptyFields, "ContactLastName")}

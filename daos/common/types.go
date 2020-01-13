@@ -20,3 +20,9 @@ const (
 	ObjectiveStatusYellowKey ObjectiveStatusColor = "Yellow"
 	ObjectiveStatusGreenKey ObjectiveStatusColor = "Green"
 )
+
+type PlatformName string
+const (
+	SlackPlatform PlatformName = "slack"
+	MsTeamsPlatform PlatformName = "ms-teams"
+)
