@@ -33,6 +33,11 @@ val ObjectiveStatusColorDef = StringBasedEnum("ObjectiveStatusColor".camel, List
 	"ObjectiveStatusGreenKey".camel ^^ "Green"
 ))
 
+val PlatformNameDef = StringBasedEnum("PlatformName".camel, List(
+	"SlackPlatform".camel ^^ "slack",
+	"MsTeamsPlatform".camel ^^ "ms-teams"
+)) 
+
 // val commonDefs = 
 // lazy val ObjectiveStatusColor = modelsImport.simpleType("ObjectiveStatusColor", "ObjectiveStatusColor".camel, "\"\"", "S")
 val commonPackage = Package("common".camel, List(
@@ -40,7 +45,9 @@ val commonPackage = Package("common".camel, List(
         Filename("types".camel, ".go"),
         List(GoModulePart(
             List(), // imports.importClauses,
-            List(platformIdDef, PriorityValueDef, ObjectiveStatusColorDef)
+            List(platformIdDef, PriorityValueDef, ObjectiveStatusColorDef,
+                PlatformNameDef
+            )
         ))
     )
 ))
@@ -54,6 +61,8 @@ val ObjectiveStatusColor = commonImport.simpleType(goPublicName(ObjectiveStatusC
 //  ObjectiveStatusColorDef.typeAliasTypeInfo
 val priorityValue = commonImport.simpleType(goPublicName(PriorityValueDef.name), PriorityValueDef.name, "\"\"", "S")
 val platformId = commonImport.simpleType(goPublicName(platformIdDef.name), platformIdDef.name, "\"\"", "S")
+val PlatformName = commonImport.simpleType(goPublicName(PlatformNameDef.name), PlatformNameDef.name, "\"\"", "S")
+//val PlatformName = TypeAlias("PlatformName".camel, string)
 
 val imports = Imports(List(
     ImportClause(None, "github.com/aws/aws-sdk-go/aws"),
@@ -489,7 +498,6 @@ val AdaptiveValueTable = Table(AdaptiveValue,
 
 val AdaptiveValuePackage = defaultPackage(AdaptiveValueTable, entitySpecificImports(AdHocHoliday) ::: imports)
 
-val PlatformName = TypeAlias("PlatformName".camel, string)
 val ClientPlatformToken = Entity(
     "ClientPlatformToken".camel, 
     List(
@@ -497,7 +505,7 @@ val ClientPlatformToken = Entity(
     ),
     List(
         "Org".camel :: string,
-        ("PlatformName".camel :: TypeAliasTypeInfo(PlatformName)) \\ "should be slack or ms-teams",
+        ("PlatformName".camel :: PlatformName) \\ "should be slack or ms-teams",
         "PlatformToken".camel :: string,
         "ContactFirstName".camel :: string,
         "ContactLastName".camel :: string,
@@ -509,7 +517,7 @@ val ClientPlatformTokenTable = Table(ClientPlatformToken,
     Index(platformIdField, None), List()
 )
 val ClientPlatformTokenPackage = Package(ClientPlatformToken.name, 
-    List(PlatformName :: 
+    List(//PlatformName :: 
         daoModule(ClientPlatformTokenTable, imports)
     )
 )
