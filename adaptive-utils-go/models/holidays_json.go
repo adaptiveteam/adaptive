@@ -46,15 +46,15 @@ func AdHocHolidayJSONUnmarshal(jsMessage string) (res AdHocHoliday, err error) {
 	return res, err
 }
 
-// ToJSON returns json string
-func (l *AdHocHoliday) ToJSON() (string, error) {
-	var b, err = json.Marshal(&l)
-	return string(b), err
-}
+// // ToJSON returns json string
+// func (l *AdHocHoliday) ToJSON() (string, error) {
+// 	var b, err = json.Marshal(&l)
+// 	return string(b), err
+// }
 
-// ToJSONUnsafe returns json string and panics in case of any errors
-func (l *AdHocHoliday) ToJSONUnsafe(namespace string) string {
-	var str, err = l.ToJSON()
-	core.ErrorHandler(err, namespace, "AdHocHoliday failed to marshal")
-	return str
-}
+// // ToJSONUnsafe returns json string and panics in case of any errors
+// func (l *AdHocHoliday) ToJSONUnsafe(namespace string) string {
+// 	var str, err = l.ToJSON()
+// 	core.ErrorHandler(err, namespace, "AdHocHoliday failed to marshal")
+// 	return str
+// }

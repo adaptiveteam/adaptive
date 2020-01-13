@@ -1,6 +1,8 @@
 package models
 
-// import "time"
+import (
+	"github.com/adaptiveteam/adaptive/daos/adHocHoliday"
+)
 
 // AnnualHoliday represents a single holiday that repeats on the same date annualy. 
 // Holidays are not universal, they should only apply to certain communities.
@@ -15,14 +17,15 @@ type AnnualHoliday struct {
 }
 
 // AdHocHoliday is a holiday on exact date.
-type AdHocHoliday struct {
-	ID               string `json:"id"`
-	PlatformID       string `json:"platform_id"`
-	Date             string `json:"date"` // time.Time
-	Name             string `json:"name"`
-	Description      string `json:"description"`
-	ScopeCommunities string `json:"scope_communities"`
-}
+type AdHocHoliday = adHocHoliday.AdHocHoliday
+//  struct {
+// 	ID               string `json:"id"`
+// 	PlatformID       string `json:"platform_id"`
+// 	Date             string `json:"date"` // time.Time
+// 	Name             string `json:"name"`
+// 	Description      string `json:"description"`
+// 	ScopeCommunities string `json:"scope_communities"`
+// }
 
 const (
 	// AdHocHolidayDateFormat is the format that is used in Date field
