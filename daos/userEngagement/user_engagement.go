@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/pkg/errors"
 	"fmt"
+	"encoding/json"
 	"strings"
 )
 
