@@ -35,6 +35,11 @@ func (userAttribute UserAttribute)CollectEmptyFields() (emptyFields []string, ok
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (userAttribute UserAttribute) ToJSON() (string, error) {
+	b, err := json.Marshal(userAttribute)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(userAttribute UserAttribute) error

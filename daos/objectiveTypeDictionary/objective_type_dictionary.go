@@ -47,6 +47,11 @@ func (objectiveTypeDictionary ObjectiveTypeDictionary)CollectEmptyFields() (empt
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (objectiveTypeDictionary ObjectiveTypeDictionary) ToJSON() (string, error) {
+	b, err := json.Marshal(objectiveTypeDictionary)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(objectiveTypeDictionary ObjectiveTypeDictionary) error

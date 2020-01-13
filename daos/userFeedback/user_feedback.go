@@ -42,6 +42,11 @@ func (userFeedback UserFeedback)CollectEmptyFields() (emptyFields []string, ok b
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (userFeedback UserFeedback) ToJSON() (string, error) {
+	b, err := json.Marshal(userFeedback)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(userFeedback UserFeedback) error

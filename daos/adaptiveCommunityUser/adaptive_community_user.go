@@ -29,6 +29,11 @@ func (adaptiveCommunityUser AdaptiveCommunityUser)CollectEmptyFields() (emptyFie
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (adaptiveCommunityUser AdaptiveCommunityUser) ToJSON() (string, error) {
+	b, err := json.Marshal(adaptiveCommunityUser)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(adaptiveCommunityUser AdaptiveCommunityUser) error

@@ -31,6 +31,11 @@ func (coachingRelationship CoachingRelationship)CollectEmptyFields() (emptyField
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (coachingRelationship CoachingRelationship) ToJSON() (string, error) {
+	b, err := json.Marshal(coachingRelationship)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(coachingRelationship CoachingRelationship) error

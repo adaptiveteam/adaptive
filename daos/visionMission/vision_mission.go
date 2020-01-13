@@ -38,6 +38,11 @@ func (visionMission VisionMission)CollectEmptyFields() (emptyFields []string, ok
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (visionMission VisionMission) ToJSON() (string, error) {
+	b, err := json.Marshal(visionMission)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(visionMission VisionMission) error

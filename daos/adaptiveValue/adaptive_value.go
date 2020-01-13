@@ -44,6 +44,11 @@ func (adaptiveValue AdaptiveValue)CollectEmptyFields() (emptyFields []string, ok
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (adaptiveValue AdaptiveValue) ToJSON() (string, error) {
+	b, err := json.Marshal(adaptiveValue)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(adaptiveValue AdaptiveValue) error

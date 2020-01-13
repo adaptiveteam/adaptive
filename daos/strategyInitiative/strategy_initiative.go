@@ -50,6 +50,11 @@ func (strategyInitiative StrategyInitiative)CollectEmptyFields() (emptyFields []
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (strategyInitiative StrategyInitiative) ToJSON() (string, error) {
+	b, err := json.Marshal(strategyInitiative)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(strategyInitiative StrategyInitiative) error

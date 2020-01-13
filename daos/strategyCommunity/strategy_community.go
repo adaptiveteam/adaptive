@@ -44,6 +44,11 @@ func (strategyCommunity StrategyCommunity)CollectEmptyFields() (emptyFields []st
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (strategyCommunity StrategyCommunity) ToJSON() (string, error) {
+	b, err := json.Marshal(strategyCommunity)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(strategyCommunity StrategyCommunity) error

@@ -46,6 +46,11 @@ func (adHocHoliday AdHocHoliday)CollectEmptyFields() (emptyFields []string, ok b
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (adHocHoliday AdHocHoliday) ToJSON() (string, error) {
+	b, err := json.Marshal(adHocHoliday)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(adHocHoliday AdHocHoliday) error

@@ -38,6 +38,11 @@ func (capabilityCommunity CapabilityCommunity)CollectEmptyFields() (emptyFields 
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (capabilityCommunity CapabilityCommunity) ToJSON() (string, error) {
+	b, err := json.Marshal(capabilityCommunity)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(capabilityCommunity CapabilityCommunity) error

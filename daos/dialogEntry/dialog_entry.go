@@ -54,6 +54,11 @@ func (dialogEntry DialogEntry)CollectEmptyFields() (emptyFields []string, ok boo
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (dialogEntry DialogEntry) ToJSON() (string, error) {
+	b, err := json.Marshal(dialogEntry)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(dialogEntry DialogEntry) error

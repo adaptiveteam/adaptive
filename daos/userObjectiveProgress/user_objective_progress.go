@@ -42,6 +42,11 @@ func (userObjectiveProgress UserObjectiveProgress)CollectEmptyFields() (emptyFie
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (userObjectiveProgress UserObjectiveProgress) ToJSON() (string, error) {
+	b, err := json.Marshal(userObjectiveProgress)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(userObjectiveProgress UserObjectiveProgress) error

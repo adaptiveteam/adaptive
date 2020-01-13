@@ -37,6 +37,11 @@ func (clientPlatformToken ClientPlatformToken)CollectEmptyFields() (emptyFields 
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (clientPlatformToken ClientPlatformToken) ToJSON() (string, error) {
+	b, err := json.Marshal(clientPlatformToken)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(clientPlatformToken ClientPlatformToken) error

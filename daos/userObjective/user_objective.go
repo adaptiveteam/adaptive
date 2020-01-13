@@ -74,6 +74,11 @@ func (userObjective UserObjective)CollectEmptyFields() (emptyFields []string, ok
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (userObjective UserObjective) ToJSON() (string, error) {
+	b, err := json.Marshal(userObjective)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(userObjective UserObjective) error

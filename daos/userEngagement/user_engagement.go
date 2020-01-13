@@ -74,6 +74,11 @@ func (userEngagement UserEngagement)CollectEmptyFields() (emptyFields []string, 
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (userEngagement UserEngagement) ToJSON() (string, error) {
+	b, err := json.Marshal(userEngagement)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(userEngagement UserEngagement) error

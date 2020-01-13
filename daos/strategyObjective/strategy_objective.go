@@ -52,6 +52,11 @@ func (strategyObjective StrategyObjective)CollectEmptyFields() (emptyFields []st
 	ok = len(emptyFields) == 0
 	return
 }
+// ToJSON returns json string
+func (strategyObjective StrategyObjective) ToJSON() (string, error) {
+	b, err := json.Marshal(strategyObjective)
+	return string(b), err
+}
 
 type DAO interface {
 	Create(strategyObjective StrategyObjective) error
