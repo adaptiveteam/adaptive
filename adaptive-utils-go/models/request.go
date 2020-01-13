@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	common "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slackevents"
 	"net/url"
@@ -81,7 +82,7 @@ func UnmarshalNamespacePayload4JSONUnsafe(jsMessage string) NamespacePayload4 {
 }
 
 // PlatformID is an identifier of the platform.
-type PlatformID string
+type PlatformID = common.PlatformID
 
 // SlackRequestType is enum of two possible slack events
 type SlackRequestType string
