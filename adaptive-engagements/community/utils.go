@@ -112,7 +112,7 @@ func PlatformCommunityMemberIDs(platformID models.PlatformID, communitiesTable, 
 	if err == nil {
 		for _, each := range communities {
 			// Get community members by querying community users table based on platform id and community id
-			members := CommunityMembers(communityUsersTable, each.Id, string(platformID), communityUsersCommunityIndex)
+			members := CommunityMembers(communityUsersTable, each.ID, string(platformID), communityUsersCommunityIndex)
 			for _, member := range members {
 				allCommunitiesMemberIDs = append(allCommunitiesMemberIDs, member.UserId)
 			}

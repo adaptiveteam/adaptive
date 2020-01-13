@@ -137,7 +137,7 @@ func HandleRequest(ctx context.Context, event models.ClientPlatformRequest) {
 	if err == nil {
 		for _, each := range communities {
 			// Get community members by querying community users table based on platform id and community id
-			members := community.CommunityMembers(communityUsersTable, each.Id, event.Id, communityUsersCommunityIndex)
+			members := community.CommunityMembers(communityUsersTable, each.ID, event.Id, communityUsersCommunityIndex)
 			for _, member := range members {
 				allCommunitiesMemberIDs = append(allCommunitiesMemberIDs, member.UserId)
 			}

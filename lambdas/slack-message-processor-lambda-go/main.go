@@ -137,7 +137,7 @@ func helloMessage(userID, channelID, platformID string) {
 	} else {
 		// get the admin community
 		adminComm := community.CommunityById(string(community.Admin), platformID, userCommunitiesTable)
-		if adminComm.Id == "" {
+		if adminComm.ID == "" {
 			// if no admin community, post message to the user about that
 			message := "Please ask your Slack administrator to finish setting up Adaptive by creating an Adaptive Admin private channel and then invite Adaptive to that channel."
 			publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: message})
