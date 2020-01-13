@@ -1,6 +1,7 @@
 module github.com/adaptiveteam/adaptive
 
 require (
+	github.com/360EntSecGroup-Skylar/excelize/v2 v2.0.2
 	github.com/ReneKroon/ttlcache v1.6.0
 	github.com/adaptiveteam/adaptive-engagements v0.13.0
 	github.com/adaptiveteam/adaptive-utils-go v0.19.1-0.20191005030021-2886f962bb0e
@@ -10,6 +11,7 @@ require (
 	github.com/aws/aws-dax-go v1.1.2
 	github.com/aws/aws-lambda-go v1.13.2
 	github.com/aws/aws-sdk-go v1.25.16
+	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-test/deep v1.0.4
 	github.com/google/uuid v1.1.1
 	github.com/mattn/go-colorable v0.1.4
@@ -20,6 +22,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	gotest.tools v2.2.0+incompatible
 )
 
