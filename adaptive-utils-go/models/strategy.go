@@ -1,5 +1,9 @@
 package models
 
+import (
+	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
+)
+
 type StrategyObjectiveType string
 
 const (
@@ -63,15 +67,16 @@ type StrategyCommunity struct {
 	CreatedAt                string            `json:"created_at"`
 }
 
-type CapabilityCommunity struct {
-	ID          string `json:"id"`          // hash key
-	PlatformID  string `json:"platform_id"` // range key
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Advocate    string `json:"advocate"`
-	CreatedBy   string `json:"created_by"`
-	CreatedAt   string `json:"created_at"`
-}
+type CapabilityCommunity = capabilityCommunity.CapabilityCommunity
+//  struct {
+// 	ID          string `json:"id"`          // hash key
+// 	PlatformID  string `json:"platform_id"` // range key
+// 	Name        string `json:"name"`
+// 	Description string `json:"description"`
+// 	Advocate    string `json:"advocate"`
+// 	CreatedBy   string `json:"created_by"`
+// 	CreatedAt   string `json:"created_at"`
+// }
 
 type StrategyInitiativeCommunity struct {
 	ID                    string `json:"id"`          // hash key

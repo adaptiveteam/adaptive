@@ -1,6 +1,9 @@
 package strategy
 
-import "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
+import (
+	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
+)
 
 type StrategyCommunity struct {
 	ID                       string                      `json:"id"` // hash key
@@ -15,15 +18,16 @@ type StrategyCommunity struct {
 	CreatedAt                string                      `json:"created_at"`
 }
 
-type CapabilityCommunity struct {
-	ID          string `json:"id"`          // hash key
-	PlatformID  string `json:"platform_id"` // range key
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Advocate    string `json:"advocate"`
-	CreatedBy   string `json:"created_by"`
-	CreatedAt   string `json:"created_at"`
-}
+type CapabilityCommunity = capabilityCommunity.CapabilityCommunity
+// type CapabilityCommunity struct {
+// 	ID          string `json:"id"`          // hash key
+// 	PlatformID  string `json:"platform_id"` // range key
+// 	Name        string `json:"name"`
+// 	Description string `json:"description"`
+// 	Advocate    string `json:"advocate"`
+// 	CreatedBy   string `json:"created_by"`
+// 	CreatedAt   string `json:"created_at"`
+// }
 
 type StrategyInitiativeCommunity struct {
 	ID                    string `json:"id"`          // hash key
