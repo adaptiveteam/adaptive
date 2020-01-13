@@ -63,6 +63,7 @@ val imports = Imports(List(
     ImportClause(None, "github.com/aws/aws-sdk-go/service/dynamodb"),
     ImportClause(None, "github.com/pkg/errors"),
     ImportClause(None, "fmt"),
+    ImportClause(None, "encoding/json"),
     ImportClause(None, "strings")
     // ImportClause(None, "strconv")
 ))
