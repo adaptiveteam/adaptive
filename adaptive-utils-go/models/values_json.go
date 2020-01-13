@@ -18,16 +18,16 @@ func AdaptiveValueJSONUnmarshal(jsMessage string) (res AdaptiveValue, err error)
 	return res, err
 }
 
-// ToJSON returns json string
-func (l *AdaptiveValue) ToJSON() (string, error) {
-	b, err := json.Marshal(&l)
-	return string(b), err
-}
+// // ToJSON returns json string
+// func (l *AdaptiveValue) ToJSON() (string, error) {
+// 	b, err := json.Marshal(&l)
+// 	return string(b), err
+// }
 
-// ToJSONUnsafe returns json string and panics in case of any errors
-func (l *AdaptiveValue) ToJSONUnsafe(namespace string) string {
-	str, err := l.ToJSON()
-	core.ErrorHandler(err, namespace, "AdaptiveValue failed to marshal")
-	return str
-}
+// // ToJSONUnsafe returns json string and panics in case of any errors
+// func (l *AdaptiveValue) ToJSONUnsafe(namespace string) string {
+// 	str, err := l.ToJSON()
+// 	core.ErrorHandler(err, namespace, "AdaptiveValue failed to marshal")
+// 	return str
+// }
 

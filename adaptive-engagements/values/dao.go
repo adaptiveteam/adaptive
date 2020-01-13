@@ -8,6 +8,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
@@ -117,7 +118,7 @@ func (d DAOImpl) UpdateGivenAttributes(adaptiveValue models.AdaptiveValue) error
 			S: aws.String(adaptiveValue.ValueType),
 		},
 		":platform_id": {
-			S: aws.String(adaptiveValue.PlatformID),
+			S: aws.String(string(adaptiveValue.PlatformID)),
 		},
 	}
 	key := map[string]*dynamodb.AttributeValue{
@@ -169,6 +170,6 @@ func (p PlatformDAOImpl) AllUnsafe() []models.AdaptiveValue {
 // Create creates an adaptiveValue making sure that PlatformID is correct
 func (p PlatformDAOImpl) Create(adaptiveValue models.AdaptiveValue) error {
 	adaptiveValue2 := adaptiveValue
-	adaptiveValue2.PlatformID = p.PlatformID
+	adaptiveValue2.PlatformID = daosCommon.PlatformID(p.PlatformID)
 	return p.DNS.Dynamo.PutTableEntry(adaptiveValue2, p.Name)
 }
