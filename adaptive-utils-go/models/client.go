@@ -1,5 +1,9 @@
 package models
 
+import (
+	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
+)
+
 type ClientContact struct {
 	ContactFirstName string `json:"contact_first_name"`
 	ContactLastName  string `json:"contact_last_name"`
@@ -17,11 +21,12 @@ type ClientPlatformRequest struct {
 	Org string `json:"platform_org"`
 }
 
-type ClientPlatformToken struct {
-	ClientPlatformRequest
-	ClientPlatform
-	ClientContact
-}
+type ClientPlatformToken = clientPlatformToken.ClientPlatformToken
+//  struct {
+// 	ClientPlatformRequest
+// 	ClientPlatform
+// 	ClientContact
+// }
 
 // ClientPlatformTokenTableSchema is the schema of _adaptive_client_config table
 type ClientPlatformTokenTableSchema struct {
