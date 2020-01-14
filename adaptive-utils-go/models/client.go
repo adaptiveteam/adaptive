@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
 )
 
@@ -11,7 +12,7 @@ type ClientContact struct {
 }
 
 type ClientPlatform struct {
-	PlatformName  clientPlatformToken.PlatformName `json:"platform_name"` // should be slack or ms-teams
+	PlatformName  common.PlatformName `json:"platform_name"` // should be slack or ms-teams
 	PlatformToken string       `json:"platform_token"`
 }
 
