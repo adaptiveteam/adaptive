@@ -311,7 +311,7 @@ func InCompetenciesCommunity(userID string, _ business_time.Date) (res bool) {
 func HolidaysExist(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("HolidaysExist")
 	platformID := UserIDToPlatformID(userDAO)(userID)
-	vals := adHocHolidaysTableDao.ForPlatformID(string(platformID)).AllUnsafe()
+	vals := adHocHolidaysTableDao.ForPlatformID(platformID).AllUnsafe()
 	return len(vals) > 0
 }
 

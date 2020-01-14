@@ -22,7 +22,7 @@ type DAO interface {
 	Update(holiday models.AdHocHoliday) error
 	Delete(holidayID string) error
 
-	ForPlatformID(platformID string) PlatformDAO
+	ForPlatformID(platformID models.PlatformID) PlatformDAO
 }
 // PlatformDAO is a set of utilities that work for a fixed `platformID`
 type PlatformDAO interface {
@@ -47,7 +47,7 @@ type DAOImpl struct {
 
 // PlatformDAOImpl DAO that will implement PlatformDAO interface
 type PlatformDAOImpl struct {
-	PlatformID string
+	PlatformID models.PlatformID
 	DAOImpl
 }
 const (
@@ -136,7 +136,7 @@ func (d DAOImpl) Update(holiday models.AdHocHoliday) error {
 			S: aws.String(holiday.ScopeCommunities),
 		},
 		":platform_id": {
-			S: aws.String(holiday.PlatformID),
+			S: aws.String(string(holiday.PlatformID)),
 		},
 	}
 	key := map[string]*dynamodb.AttributeValue{
@@ -158,7 +158,7 @@ func (d DAOImpl) Update(holiday models.AdHocHoliday) error {
 }
 
 // ForPlatformID creates PlatformDAO that can be used for queries with PlatformID
-func (d DAOImpl) ForPlatformID(platformID string) PlatformDAO {
+func (d DAOImpl) ForPlatformID(platformID models.PlatformID) PlatformDAO {
 	return PlatformDAOImpl{
 		PlatformID: platformID,
 		DAOImpl: d,

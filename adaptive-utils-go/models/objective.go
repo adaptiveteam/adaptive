@@ -1,6 +1,7 @@
 package models
 
 import (
+	common "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 )
 
@@ -20,12 +21,12 @@ const (
 	ObjectiveNoStrategyAlignment         AlignedStrategyType = "none"
 )
 
-type ObjectiveStatusColor string
+type ObjectiveStatusColor = common.ObjectiveStatusColor
 
 const (
-	ObjectiveStatusRedKey    ObjectiveStatusColor = "Red"
-	ObjectiveStatusYellowKey ObjectiveStatusColor = "Yellow"
-	ObjectiveStatusGreenKey  ObjectiveStatusColor = "Green"
+	ObjectiveStatusRedKey    = common.ObjectiveStatusRedKey
+	ObjectiveStatusYellowKey = common.ObjectiveStatusYellowKey
+	ObjectiveStatusGreenKey  = common.ObjectiveStatusGreenKey
 
 	ObjectiveStatusRedLabel    ui.PlainText = "Off Track" // "Red"
 	ObjectiveStatusYellowLabel ui.PlainText = "At Risk"   // "Yellow"

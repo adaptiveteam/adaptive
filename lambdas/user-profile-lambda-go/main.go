@@ -47,8 +47,8 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 	}
 	uToken = models.UserToken{
 		UserProfile:           profile,
-		ClientPlatform:        platform.ClientPlatform,
-		ClientPlatformRequest: platform.ClientPlatformRequest,
+		ClientPlatform:        models.ClientPlatform{PlatformName: platform.PlatformName, PlatformToken: platform.PlatformToken},
+		ClientPlatformRequest: models.ClientPlatformRequest{Id: string(platform.PlatformID), Org: platform.Org},
 	}
 	uToken.ClientPlatformRequest.Id = string(platformID)
 

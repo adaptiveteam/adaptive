@@ -49,7 +49,7 @@ func (d DAOImpl) Create(community models.AdaptiveCommunity) error {
 func (d DAOImpl) CreateUnsafe(community models.AdaptiveCommunity) {
 	err := d.Create(community)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s",
-		community.Id, d.Name))
+		community.ID, d.Name))
 }
 
 func (d DAOImpl) ReadByID(platformID models.PlatformID, communityID string) (comm models.AdaptiveCommunity, err error) {

@@ -1,16 +1,19 @@
 package models
 
-// import "time"
+import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
+)
 
 // AdaptiveValue is a value for a client (Reliability, Skill, Contribution, and Productivity)
-type AdaptiveValue struct {
-	ID            string `json:"id"`
-	PlatformID    string `json:"platform_id"`
-	Name          string `json:"value_name"`
-	ValueType     string `json:"value_type"`
-	Description   string `json:"description"`
-	DeactivatedOn string `json:"deactivated_on,omitempty"` // if empty, then it's not deleted/deactivated, otherwise contains timestamp when it was deactivated
-}
+type AdaptiveValue = adaptiveValue.AdaptiveValue
+// struct {
+// 	ID            string `json:"id"`
+// 	PlatformID    string `json:"platform_id"`
+// 	Name          string `json:"value_name"`
+// 	ValueType     string `json:"value_type"`
+// 	Description   string `json:"description"`
+// 	DeactivatedOn string `json:"deactivated_on,omitempty"` // if empty, then it's not deleted/deactivated, otherwise contains timestamp when it was deactivated
+// }
 
 var (
 	// DefaultAdaptiveValueLevels default set of possible answers to value level

@@ -10,26 +10,69 @@ import GoTypes._
 import $file.Templates
 import Templates._
 
-lazy val modelsImport = ImportClause(None, "github.com/adaptiveteam/adaptive/adaptive-utils-go/models")
+// lazy val modelsImport = ImportClause(None, "github.com/adaptiveteam/adaptive/adaptive-utils-go/models")
+val platformIdDef = TypeAlias("PlatformID".camel, string)
+// val platformId = simpleType("PlatformId", "models.PlatformID", "S")
+// lazy val platformId = modelsImport.simpleType("PlatformId", "PlatformID".camel, "\"\"", "S")
 
-//val platformId = simpleType("PlatformId", "models.PlatformID", "S")
-lazy val platformId = modelsImport.simpleType("PlatformId", "PlatformID".camel, "\"\"", "S")
+val PriorityValueDef = StringBasedEnum("PriorityValue".camel, List(
+	"UrgentPriority".camel ^^ "Urgent",
+	"HighPriority".camel ^^ "High",
+	"MediumPriority".camel ^^ "Medium",
+	"LowPriority".camel ^^ "Low"
+))
 
-lazy val priorityValue = modelsImport.simpleType("PriorityValue", "PriorityValue".camel, "\"\"", "S")
+// val priorityValueDef = TypeAlias("PriorityValue".camel, string)
+// lazy val priorityValue = TypeAlias("PriorityValue", "PriorityValue".camel, "\"\"", "S")
+// lazy val priorityValue = modelsImport.simpleType("PriorityValue", "PriorityValue".camel, "\"\"", "S")
 
-lazy val ObjectiveStatusColor = modelsImport.simpleType("ObjectiveStatusColor", "ObjectiveStatusColor".camel, "\"\"", "S")
+
+val ObjectiveStatusColorDef = StringBasedEnum("ObjectiveStatusColor".camel, List(
+	"ObjectiveStatusRedKey".camel ^^ "Red",
+	"ObjectiveStatusYellowKey".camel ^^ "Yellow",
+	"ObjectiveStatusGreenKey".camel ^^ "Green"
+))
+
+val PlatformNameDef = StringBasedEnum("PlatformName".camel, List(
+	"SlackPlatform".camel ^^ "slack",
+	"MsTeamsPlatform".camel ^^ "ms-teams"
+)) 
+
+// val commonDefs = 
+// lazy val ObjectiveStatusColor = modelsImport.simpleType("ObjectiveStatusColor", "ObjectiveStatusColor".camel, "\"\"", "S")
+val commonPackage = Package("common".camel, List(
+    Module(
+        Filename("types".camel, ".go"),
+        List(GoModulePart(
+            List(), // imports.importClauses,
+            List(platformIdDef, PriorityValueDef, ObjectiveStatusColorDef,
+                PlatformNameDef
+            )
+        ))
+    )
+))
 
 def goField(decl: String): Field = goFieldParser(goTypes)(decl)
 
 val coreImport = ImportClause(Some("core"), "github.com/adaptiveteam/adaptive/core-utils-go")
+val commonImport = ImportClause(Some("common"), "github.com/adaptiveteam/adaptive/daos/common")
+
+val ObjectiveStatusColor = commonImport.simpleType(goPublicName(ObjectiveStatusColorDef.name), ObjectiveStatusColorDef.name, "\"\"", "S")
+//  ObjectiveStatusColorDef.typeAliasTypeInfo
+val priorityValue = commonImport.simpleType(goPublicName(PriorityValueDef.name), PriorityValueDef.name, "\"\"", "S")
+val platformId = commonImport.simpleType(goPublicName(platformIdDef.name), platformIdDef.name, "\"\"", "S")
+val PlatformName = commonImport.simpleType(goPublicName(PlatformNameDef.name), PlatformNameDef.name, "\"\"", "S")
+//val PlatformName = TypeAlias("PlatformName".camel, string)
+
 val imports = Imports(List(
     ImportClause(None, "github.com/aws/aws-sdk-go/aws"),
     ImportClause(Some("awsutils"), "github.com/adaptiveteam/adaptive/aws-utils-go"),
-    ImportClause(Some("common"), "github.com/adaptiveteam/adaptive/daos/common"),
+    commonImport,
     coreImport,
     ImportClause(None, "github.com/aws/aws-sdk-go/service/dynamodb"),
     ImportClause(None, "github.com/pkg/errors"),
     ImportClause(None, "fmt"),
+    ImportClause(None, "encoding/json"),
     ImportClause(None, "strings")
     // ImportClause(None, "strconv")
 ))
@@ -91,7 +134,7 @@ val userTable = Table(user, userTableDefaultIndex, List(
     Index(platformIdField, Some(adaptiveScheduledTimeInUtcField)),
 ))
 
-val userPackage = defaultPackage(userTable, modelsImport :: imports)
+val userPackage = defaultPackage(userTable, imports)
 
 val coachQuarterYearField = spacedName("coach quarter year") :: string
 val coacheeQuarterYearField = spacedName("coachee quarter year") :: string
@@ -217,7 +260,7 @@ val UserEngagementTable = Table(
             )))
 )
 
-val UserEngagementPackage = defaultPackage(UserEngagementTable, ebmImport :: modelsImport :: allEntitySpecificImports(UserEngagement))
+val UserEngagementPackage = defaultPackage(UserEngagementTable, ebmImport :: allEntitySpecificImports(UserEngagement))
 
 val channelIDField = "ChannelID".camel :: string
 val userIDField = "UserID".camel :: string
@@ -242,7 +285,7 @@ val AdaptiveCommunityUserTable = Table(AdaptiveCommunityUser,
         Index(platformIdField, Some(communityIDField))
     )
 )
-val AdaptiveCommunityUserPackage = defaultPackage(AdaptiveCommunityUserTable, modelsImport :: imports)
+val AdaptiveCommunityUserPackage = defaultPackage(AdaptiveCommunityUserTable, imports)
 
 val channelField = "Channel".camel :: string
 val AdaptiveCommunity = Entity(
@@ -268,7 +311,7 @@ val AdaptiveCommunityTable = Table(AdaptiveCommunity,
     )
 )
 
-val AdaptiveCommunityPackage = defaultPackage(AdaptiveCommunityTable, modelsImport :: allEntitySpecificImports(AdaptiveCommunity))
+val AdaptiveCommunityPackage = defaultPackage(AdaptiveCommunityTable, allEntitySpecificImports(AdaptiveCommunity))
 
 
 
@@ -316,7 +359,7 @@ val AdHocHolidayTable = Table(
     )
 )
 
-val AdHocHolidayPackage = defaultPackage(AdHocHolidayTable, modelsImport :: allEntitySpecificImports(AdHocHoliday))
+val AdHocHolidayPackage = defaultPackage(AdHocHolidayTable, allEntitySpecificImports(AdHocHoliday))
 
 /*
 
@@ -387,7 +430,7 @@ val UserObjectiveTable = Table(
 
 val UserObjectivePackage = Package(UserObjective.name, 
     List(DevelopmentObjectiveType :: AlignedStrategyType :: 
-        daoModule(UserObjectiveTable, modelsImport :: allEntitySpecificImports(UserObjective))
+        daoModule(UserObjectiveTable, allEntitySpecificImports(UserObjective))
     )
 )
 
@@ -430,7 +473,7 @@ val UserObjectiveProgressTable = Table(
 
 val UserObjectiveProgressPackage = Package(UserObjectiveProgress.name, 
     List(//ObjectiveStatusColor :: 
-        daoModule(UserObjectiveProgressTable, modelsImport :: imports)
+        daoModule(UserObjectiveProgressTable, imports)
     )
 )
 
@@ -453,9 +496,8 @@ val AdaptiveValueTable = Table(AdaptiveValue,
     )
 )
 
-val AdaptiveValuePackage = defaultPackage(AdaptiveValueTable, entitySpecificImports(AdHocHoliday) ::: modelsImport :: imports)
+val AdaptiveValuePackage = defaultPackage(AdaptiveValueTable, entitySpecificImports(AdHocHoliday) ::: imports)
 
-val PlatformName = TypeAlias("PlatformName".camel, string)
 val ClientPlatformToken = Entity(
     "ClientPlatformToken".camel, 
     List(
@@ -463,7 +505,7 @@ val ClientPlatformToken = Entity(
     ),
     List(
         "Org".camel :: string,
-        ("PlatformName".camel :: TypeAliasTypeInfo(PlatformName)) \\ "should be slack or ms-teams",
+        ("PlatformName".camel :: PlatformName) \\ "should be slack or ms-teams",
         "PlatformToken".camel :: string,
         "ContactFirstName".camel :: string,
         "ContactLastName".camel :: string,
@@ -475,8 +517,8 @@ val ClientPlatformTokenTable = Table(ClientPlatformToken,
     Index(platformIdField, None), List()
 )
 val ClientPlatformTokenPackage = Package(ClientPlatformToken.name, 
-    List(PlatformName :: 
-        daoModule(ClientPlatformTokenTable, modelsImport :: imports)
+    List(//PlatformName :: 
+        daoModule(ClientPlatformTokenTable, imports)
     )
 )
 
@@ -510,7 +552,7 @@ val StrategyObjectiveTable = Table(StrategyObjective,
 
 val StrategyObjectivePackage = Package(StrategyObjective.name, 
     List(StrategyObjectiveType :: 
-        daoModule(StrategyObjectiveTable, modelsImport :: allEntitySpecificImports(StrategyObjective))
+        daoModule(StrategyObjectiveTable, allEntitySpecificImports(StrategyObjective))
     )
 )
 
@@ -533,7 +575,7 @@ val ObjectiveTypeDictionaryTable = Table(ObjectiveTypeDictionary,
 
 val ObjectiveTypeDictionaryPackage = Package(ObjectiveTypeDictionary.name, 
     List(
-        daoModule(ObjectiveTypeDictionaryTable, modelsImport :: allEntitySpecificImports(ObjectiveTypeDictionary))
+        daoModule(ObjectiveTypeDictionaryTable, allEntitySpecificImports(ObjectiveTypeDictionary))
     )
 )
 
@@ -562,7 +604,7 @@ val TypedObjectiveTable = Table(TypedObjective,
 
 val TypedObjectivePackage = Package(TypedObjective.name, 
     List(
-        daoModule(TypedObjectiveTable, modelsImport :: allEntitySpecificImports(TypedObjective))
+        daoModule(TypedObjectiveTable, allEntitySpecificImports(TypedObjective))
     )
 )
 
@@ -596,7 +638,7 @@ val StrategyInitiativeTable = Table(StrategyInitiative,
     )
 )
 
-val StrategyInitiativePackage = defaultPackage(StrategyInitiativeTable, modelsImport :: allEntitySpecificImports(StrategyInitiative))
+val StrategyInitiativePackage = defaultPackage(StrategyInitiativeTable, allEntitySpecificImports(StrategyInitiative))
 
 val VisionMission = Entity(
     "VisionMission".camel, 
@@ -616,7 +658,7 @@ val VisionMissionTable = Table(VisionMission,
     List()
 )
 
-val VisionMissionPackage = defaultPackage(VisionMissionTable, modelsImport :: allEntitySpecificImports(VisionMission))
+val VisionMissionPackage = defaultPackage(VisionMissionTable, allEntitySpecificImports(VisionMission))
 
 val AdaptiveCommunityID = TypeAlias("AdaptiveCommunityID".camel, string)
 val channelCreatedField = ("ChannelCreated".camel :: int)\\ "0 for false"
@@ -647,7 +689,7 @@ val StrategyCommunityTable = Table(StrategyCommunity,
 
 val StrategyCommunityPackage = Package(StrategyCommunity.name, 
     List(AdaptiveCommunityID :: 
-        daoModule(StrategyCommunityTable, modelsImport :: allEntitySpecificImports(StrategyCommunity))
+        daoModule(StrategyCommunityTable, allEntitySpecificImports(StrategyCommunity))
     )
 )
 
@@ -672,7 +714,7 @@ val CapabilityCommunityTable = Table(CapabilityCommunity,
 
 val CapabilityCommunityPackage = Package(CapabilityCommunity.name, 
     List(
-        daoModule(CapabilityCommunityTable, modelsImport :: allEntitySpecificImports(CapabilityCommunity))
+        daoModule(CapabilityCommunityTable, allEntitySpecificImports(CapabilityCommunity))
     )
 )
 
@@ -696,7 +738,7 @@ val StrategyInitiativeCommunityTable = Table(StrategyInitiativeCommunity,
     )
 )
 
-val StrategyInitiativeCommunityPackage = defaultPackage(StrategyInitiativeCommunityTable, modelsImport :: allEntitySpecificImports(StrategyInitiativeCommunity))
+val StrategyInitiativeCommunityPackage = defaultPackage(StrategyInitiativeCommunityTable, allEntitySpecificImports(StrategyInitiativeCommunity))
 
 val dialogIDField = ("DialogID".camel :: string) \\ "This is an immutable UUID that developers can use"
 val contextField = ("Context".camel :: string) \\ "This is the context path for the piece of dialog"
@@ -747,6 +789,8 @@ val ContextAliasEntryTable = Table(ContextAliasEntry, Index(applicationAliasFiel
 val ContextAliasEntryPackage = defaultPackage(ContextAliasEntryTable, imports)
 
 val packages = List(
+    commonPackage,
+
     userPackage,
     coachingRelationshipPackage,
     UserFeedbackPackage,

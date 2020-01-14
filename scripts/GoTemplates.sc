@@ -64,7 +64,8 @@ def structTemplate(entity: Entity): List[String] = entity match {
             (entity.fields ::: entity.virtualFields).flatMap(structField)
         ) ::: 
         deactivationFilter(entity) :::
-        isValidTemplate(entity)
+        isValidTemplate(entity) :::
+        toJsonTemplate(entity)
 }
 
 def importClauseTemplate(i: ImportClause): String = i match {
@@ -133,3 +134,10 @@ def isValidTemplate(entity: Entity): List[String] =
         "ok = len(emptyFields) == 0" :: 
         "return" :: Nil
     )
+
+def toJsonTemplate(entity: Entity): List[String] =
+    "// ToJSON returns json string" ::
+    s"func (${goPrivateName(entity.name)} ${goPublicName(entity.name)}) ToJSON() (string, error) {" ::
+    s"	b, err := json.Marshal(${goPrivateName(entity.name)})" ::
+    "	return string(b), err" ::
+    "}" :: Nil

@@ -32,7 +32,7 @@ func HandleRequest(ctx context.Context) (clientCount int, err error) {
 	for _, each := range scanRes {
 		if each.PlatformName == models.SlackPlatform {
 			// Invoke a lambda that handles slack users
-			clientReq := models.ClientPlatformRequest{Id: each.Id, Org: each.Org}
+			clientReq := models.ClientPlatformRequest{Id: string(each.PlatformID), Org: each.Org}
 			reqBytes, err := json.Marshal(clientReq)
 			core.ErrorHandler(err, namespace, "Could not marshal to ClientPlatformRequest")
 			_, err = l.InvokeFunction(slackLambdaName, reqBytes, true)
