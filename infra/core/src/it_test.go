@@ -22,19 +22,13 @@ var _ = Describe("IT tests", func() {
 		It("should write the client config to table in", func() {
 			// Config for a client
 			config := models.ClientPlatformToken{
-				ClientPlatformRequest: models.ClientPlatformRequest{
-					Id:  "adaptive-test",
-					Org: "adaptive",
-				},
-				ClientPlatform: models.ClientPlatform{
-					PlatformName:  models.SlackPlatform,
-					PlatformToken: adaptiveSlackToken,
-				},
-				ClientContact: models.ClientContact{
-					ContactFirstName: "John",
-					ContactLastName:  "Doe",
-					ContactMail:      "john.doe@test.com",
-				},
+				PlatformID:  "adaptive-test",
+				Org: "adaptive",
+				PlatformName:  models.SlackPlatform,
+				PlatformToken: adaptiveSlackToken,
+				ContactFirstName: "John",
+				ContactLastName:  "Doe",
+				ContactMail:      "john.doe@test.com",
 			}
 			// Writing client config to the table
 			err := d.PutTableEntry(config, clientConfigTable)
