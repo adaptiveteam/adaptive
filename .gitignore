@@ -29,6 +29,9 @@ bin/
 *.tfstate
 *.tfstate.*
 
+# .tfvars files
+*.tfvars
+
 example.tf
 terraform.tfplan
 
