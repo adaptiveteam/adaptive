@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
+	"github.com/adaptiveteam/adaptive/daos/userAttribute"
 )
 
 // UserEngagement encapsulates an engagement we want to provide to a user
@@ -60,17 +61,18 @@ type UserEngageWithCheckValues struct {
 }
 
 // UserAttribute encapsulates key-value setting for a user
-type UserAttribute struct {
-	// Id of the user
-	UserId string `json:"user_id"`
-	// Key of the setting
-	AttrKey string `json:"attr_key"`
-	// Value of the settings
-	AttrValue string `json:"attr_value"`
-	// A flag that tells whether setting is default or is explicitly set
-	// Every user will have default settings
-	Default bool `json:"default"`
-}
+type UserAttribute = userAttribute.UserAttribute
+// type UserAttribute struct {
+// 	// Id of the user
+// 	UserId string `json:"user_id"`
+// 	// Key of the setting
+// 	AttrKey string `json:"attr_key"`
+// 	// Value of the settings
+// 	AttrValue string `json:"attr_value"`
+// 	// A flag that tells whether setting is default or is explicitly set
+// 	// Every user will have default settings
+// 	Default bool `json:"default"`
+// }
 
 // UserEngage encapsulates the struct that will be used to trigger engaging with the user
 type UserEngage struct {

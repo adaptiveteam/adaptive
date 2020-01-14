@@ -2,21 +2,23 @@ package models
 
 import (
 	"github.com/nlopes/slack"
+	"github.com/adaptiveteam/adaptive/daos/user"
 )
 
-type User struct {
-	UserProfile
-	// Platform of the user
-	PlatformId    string `json:"platform_id"`
-	PlatformOrg   string `json:"platform_org"`
-	IsAdmin       bool   `json:"is_admin"`
-	IsAdaptiveBot bool   `json:"is_adaptive_bot,omitempty"`
-	Deleted       bool   `json:"deleted"`
-	CreatedAt     string `json:"created_at"`
-	ModifiedAt    string `json:"modified_at,omitempty"`
-	// This indicates if the user is shared among a group. This is typically for channels, groups, conversations etc.
-	IsShared bool `json:"is_shared"`
-}
+type User = user.User
+// type User struct {
+// 	UserProfile
+// 	// Platform of the user
+// 	PlatformId    string `json:"platform_id"`
+// 	PlatformOrg   string `json:"platform_org"`
+// 	IsAdmin       bool   `json:"is_admin"`
+// 	IsAdaptiveBot bool   `json:"is_adaptive_bot,omitempty"`
+// 	Deleted       bool   `json:"deleted"`
+// 	CreatedAt     string `json:"created_at"`
+// 	ModifiedAt    string `json:"modified_at,omitempty"`
+// 	// This indicates if the user is shared among a group. This is typically for channels, groups, conversations etc.
+// 	IsShared bool `json:"is_shared"`
+// }
 
 type UserProfile struct {
 	// Id of the user, this is the platform specific id
