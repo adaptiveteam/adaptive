@@ -20,6 +20,6 @@ var (
 // globally available variables.
 func UserIDToPlatformID(userDAO utilsUser.DAO) func(string) models.PlatformID {
 	return func(userID string) (platformID models.PlatformID) {
-		return models.PlatformID(userDAO.ReadUnsafe(userID).PlatformId)
+		return models.PlatformID(userDAO.ReadUnsafe(userID).PlatformID)
 	}
 }

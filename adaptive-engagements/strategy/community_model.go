@@ -4,7 +4,7 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
 	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
+	// "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 )
 
 type StrategyCommunity = strategyCommunity.StrategyCommunity

@@ -7,14 +7,14 @@ import (
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 )
 
-type DevelopmentObjectiveType string
+type DevelopmentObjectiveType = userObjective.DevelopmentObjectiveType
 
 const (
 	IndividualDevelopmentObjective DevelopmentObjectiveType = "individual"
 	StrategyDevelopmentObjective   DevelopmentObjectiveType = "strategy"
 )
 
-type AlignedStrategyType string
+type AlignedStrategyType = userObjective.AlignedStrategyType
 
 const (
 	ObjectiveStrategyObjectiveAlignment  AlignedStrategyType = "strategy_objective"

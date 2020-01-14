@@ -115,8 +115,8 @@ func helloMessage(userID, channelID, platformID string) {
 	core.ErrorHandler(err, namespace, "Couldn't find user "+userID)
 	// If the user doesn't exist in our tables, add the user first and then proceed to evaluate ADM
 	if err == nil {
-		if aUser.Id == "" {
-			log.Println("User not existing, adding...")
+		if aUser.ID == "" {
+			log.Println("User does not exist, adding...")
 			// refresh user cache
 			engageUser, _ := json.Marshal(models.UserEngage{UserId: userID, PlatformID: models.PlatformID(platformID)})
 			_, err = l.InvokeFunction(profileLambdaName, engageUser, false)
@@ -339,8 +339,8 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 					callbackID := getCallbackID(eventsAPIEvent)
 					fmt.Printf("userID=%v,callbackID=%v\n", userID, callbackID)
 					u := userDAO.ReadUnsafe(userID)
-					apiAppID := u.PlatformId
-					platformID := models.PlatformID(u.PlatformId)
+					apiAppID := string(u.PlatformID)
+					platformID := u.PlatformID
 					forwardToNamespace := forwardToNamespaceWithAppID(apiAppID, requestPayload)
 					invokeLambdaWithNamespace := invokeLambdaWithAppID(apiAppID, requestPayload)
 

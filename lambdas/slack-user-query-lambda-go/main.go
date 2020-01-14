@@ -13,15 +13,16 @@ import (
 
 func addSlackUser(user slack.User, event models.ClientPlatformRequest, platformID models.PlatformID) (err error) {
 	item := models.User{
-		UserProfile: models.UserProfile{
-			Id:             user.ID,
-			DisplayName:    user.RealName,
-			FirstName:      user.Profile.FirstName,
-			LastName:       user.Profile.LastName,
-			Timezone:       user.TZ,
-			TimezoneOffset: user.TZOffset,
-		},
-		PlatformId: event.Id, PlatformOrg: event.Org, IsAdmin: user.IsAdmin, Deleted: user.Deleted,
+		// UserProfile: models.UserProfile{
+		ID:             user.ID,
+		DisplayName:    user.RealName,
+		FirstName:      user.Profile.FirstName,
+		LastName:       user.Profile.LastName,
+		Timezone:       user.TZ,
+		TimezoneOffset: user.TZOffset,
+		// },
+		PlatformID: models.PlatformID(event.Id), 
+		PlatformOrg: event.Org, IsAdmin: user.IsAdmin, Deleted: user.Deleted,
 		CreatedAt: core.CurrentRFCTimestamp(), IsShared: false}
 	item.IsAdaptiveBot = user.IsBot && user.Profile.ApiAppID == string(platformID)
 
@@ -29,7 +30,7 @@ func addSlackUser(user slack.User, event models.ClientPlatformRequest, platformI
 	existingUser, err := userDao.Read(user.ID)
 	if err == nil {
 		// Id not-empty meaning user exists
-		if existingUser.Id == "" {
+		if existingUser.ID == "" {
 			err = userDao.Create(item)
 		} else {
 			// Preserving the scheduled time
@@ -111,7 +112,7 @@ func removeNonCommunityUsers(communityUserIDs []string, platformID models.Platfo
 
 	for _, each := range allUsers {
 		wg.Add(1)
-		go removeUserAsync(communityUserIDs, each.UserProfile.Id, wg, ec)
+		go removeUserAsync(communityUserIDs, each.ID, wg, ec)
 	}
 	wg.Wait()
 	close(ec)

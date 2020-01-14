@@ -105,7 +105,7 @@ func (d UserDAOImpl)AllUnsafe()[]models.UserAttribute {
 // SetUnsafe sets attribute value
 func (d UserDAOImpl)SetUnsafe(attribute string, value string, isDefault bool) {
 	userAttr := models.UserAttribute{
-		UserId:    d.UserID,
+		UserID:    d.UserID,
 		AttrKey:   attribute,
 		AttrValue: value,
 		Default:   isDefault,

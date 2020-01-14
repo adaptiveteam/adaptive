@@ -72,7 +72,7 @@ func (d DAOImpl) Create(userFeedback models.UserFeedback) error {
 // CreateUnsafe saves the User.
 func (d DAOImpl) CreateUnsafe(user models.UserFeedback) {
 	err := d.Create(user)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.Id, d.Name))
+	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.ID, d.Name))
 }
 
 func dynString(str string) (attr *dynamodb.AttributeValue) {

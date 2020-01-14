@@ -1,16 +1,20 @@
 package community
 
-type AdaptiveCommunity string
+import (
+	"github.com/adaptiveteam/adaptive/daos/common"
+)
+
+type AdaptiveCommunity = common.AdaptiveCommunityID
 
 const (
-	Admin      AdaptiveCommunity = "admin"
-	HR         AdaptiveCommunity = "hr"
-	Coaching   AdaptiveCommunity = "coaching"
-	User       AdaptiveCommunity = "user"
-	Strategy   AdaptiveCommunity = "strategy"
-	Capability AdaptiveCommunity = "capability"
-	Initiative AdaptiveCommunity = "initiative"
-	Competency AdaptiveCommunity = "competency"
+	Admin      = common.Admin
+	HR         = common.HR
+	Coaching   = common.Coaching
+	User       = common.User
+	Strategy   = common.Strategy
+	Capability = common.Capability
+	Initiative = common.Initiative
+	Competency = common.Competency
 )
 
 var (
