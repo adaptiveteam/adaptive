@@ -29,12 +29,6 @@ script:
   - export AWS_DEFAULT_REGION=eu-west-1
   # - export AWS_DEFAULT_REGION=us-east-1 we don't want accidently break something in our region
   - export AWS_REGION=eu-west-1
-  # - $GOPATH/bin/goveralls -service=travis-pro
-  - docker-compose up -d
-  - make test
-  - docker-compose down
-  # - pushd aws-utils-go; go test -v; popd
-  # - pushd dialog-fetcher; go test -v; popd
 
   # Upgrade terraform
   - sudo apt-get install unzip
@@ -44,7 +38,15 @@ script:
   - terraform --version
   
   - pushd terraform; pwd; ./backends/init.sh; popd
-  - make core-build
+  
+  # - $GOPATH/bin/goveralls -service=travis-pro
+  - docker-compose up -d
+  - make test
+  - docker-compose down
+  # - pushd aws-utils-go; go test -v; popd
+  # - pushd dialog-fetcher; go test -v; popd
+
+  # - make core-build
       
 notifications:
   slack:
