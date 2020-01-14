@@ -38,3 +38,20 @@ terraform.tfplan
 #temporary excel files
 ~*.xlsx
 ./output/
+
+infra/core/terraform/lambdas/
+infra/core/terraform/archives/
+.terraform
+infra/core/src/core-infra-terraform
+infra/core/src/adaptive-platform-notification-lambda-go/adaptive-platform-notification-lambda-go
+infra/core/src/user-engagement-lambda-go/user-engagement-lambda-go
+infra/core/src/user-engagement-scheduling-lambda-go/user-engagement-scheduling-lambda-go
+infra/core/src/user-engagement-scripting-lambda-go/user-engagement-scripting-lambda-go
+infra/core/src/user-profile-lambda-go/user-profile-lambda-go
+infra/core/src/user-query-lambda-go/user-query-lambda-go
+infra/core/src/user-settings-lambda-go/user-settings-lambda-go
+infra/core/src/user-setup-lambda-go/user-setup-lambda-go
+infra/core/src/slack-message-processor-lambda-go/slack-message-processor-lambda-go
+infra/core/src/slack-user-query-lambda-go/slack-user-query-lambda-go
+infra/core/bin/
+infra/core/dump/
