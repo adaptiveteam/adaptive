@@ -82,18 +82,18 @@ func CheckDialogEntryEquality(t *testing.T){
 	)
 
 	nde2 := DialogEntry{
-		"testing/context",
-		"test_subject",
-		"2019-12-12",
-		[]string{"test1", "test2", "test3"},
-		[]string{"comment1", "comment2", "comment3"},
-		"test_dialog_id",
-		"test_learn_more_link",
-		"test_learn_more_content",
-		"test_build_branch",
-		"test_cultivation_branch",
-		"test_master_branch",
-		"test_build_id",
+		Context: "testing/context",
+		Subject: "test_subject",
+		Updated: "2019-12-12",
+		Dialog: []string{"test1", "test2", "test3"},
+		Comments: []string{"comment1", "comment2", "comment3"},
+		DialogID: "test_dialog_id",
+		LearnMoreLink: "test_learn_more_link",
+		LearnMoreContent: "test_learn_more_content",
+		BuildBranch: "test_build_branch",
+		CultivationBranch: "test_cultivation_branch",
+		MasterBranch: "test_master_branch",
+		BuildID: "test_build_id",
 	}
 
 	if !reflect.DeepEqual(

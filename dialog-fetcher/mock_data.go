@@ -29,7 +29,7 @@ var (
 	}
 	expectedAlias = ContextAliasEntry{
 		Context: knownDialogContext,
-		Alias: mockPackageName + "#" + mockAlias,
+		ApplicationAlias: mockPackageName + "#" + mockAlias,
 		BuildID: knownDialogID,
 	}
 )

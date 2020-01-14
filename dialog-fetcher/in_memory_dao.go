@@ -48,7 +48,7 @@ func (d InMemoryDAO)FetchByAlias(
 	applicationAlias := packageName+"#"+contextAlias
 	
 	for _, alias := range d.ContextAliasEntries {
-		if alias.Alias == applicationAlias {
+		if alias.ApplicationAlias == applicationAlias {
 			for _, de := range d.DialogEntries {
 				if de.Context == alias.Context && de.Subject == subject {
 					return de,nil
