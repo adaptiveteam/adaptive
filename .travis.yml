@@ -38,7 +38,8 @@ script:
   - terraform --version
   
   - pushd terraform; pwd; ./backends/init.sh; popd
-  
+
+  - make core-build
   # - $GOPATH/bin/goveralls -service=travis-pro
   - docker-compose up -d
   - make test
@@ -46,7 +47,6 @@ script:
   # - pushd aws-utils-go; go test -v; popd
   # - pushd dialog-fetcher; go test -v; popd
 
-  # - make core-build
       
 notifications:
   slack:
