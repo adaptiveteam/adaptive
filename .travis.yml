@@ -37,7 +37,7 @@ script:
   - yes | sudo mv temp_for_zip_extract/terraform /usr/local/bin/
   - terraform --version
   
-  - pushd terraform; pwd; ./backends/init.sh; popd
+  - pushd infra/core/terraform; pwd; ./backends/init.sh; popd
 
   - make core-build
   # - $GOPATH/bin/goveralls -service=travis-pro
