@@ -1,0 +1,4 @@
+bucket="staging-adaptive-infra-remote-state"
+key="core.tfstate"
+region="us-east-1"
+dynamodb_table="staging-adaptive-infra-remote-state"
