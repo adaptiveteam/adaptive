@@ -58,13 +58,13 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 func readUserProfile(userID string) (profile models.UserProfile, platformID models.PlatformID, err error) {
 	user, err := userDao.Read(userID)
 	profile = convertUserToProfile(user)
-	platformID = models.PlatformID(user.PlatformId)
+	platformID = user.PlatformID
 	return
 }
 
 func convertUserToProfile(user models.User) (profile models.UserProfile) {
 	profile = models.UserProfile{
-		Id:          user.Id,
+		Id:          user.ID,
 		DisplayName: user.DisplayName,
 		FirstName:   user.FirstName,
 		LastName:    user.LastName,
@@ -75,15 +75,15 @@ func convertUserToProfile(user models.User) (profile models.UserProfile) {
 
 func convertSlackUserToUser(user slack.User, platformID models.PlatformID) (mUser models.User) {
 	return models.User{
-		UserProfile: models.UserProfile{
-			Id:             user.ID,
-			DisplayName:    user.RealName,
-			FirstName:      user.Profile.FirstName,
-			LastName:       user.Profile.LastName,
-			Timezone:       user.TZ,
-			TimezoneOffset: user.TZOffset,
-		},
-		PlatformId: string(platformID),
+		// UserProfile: models.UserProfile{
+		ID:             user.ID,
+		DisplayName:    user.RealName,
+		FirstName:      user.Profile.FirstName,
+		LastName:       user.Profile.LastName,
+		Timezone:       user.TZ,
+		TimezoneOffset: user.TZOffset,
+		// },
+		PlatformID: platformID,
 		IsAdmin:    user.IsAdmin,
 		Deleted:    user.Deleted,
 		CreatedAt:  core_utils_go.CurrentRFCTimestamp(),
@@ -108,7 +108,14 @@ func refreshUserCache(userID string, platformID models.PlatformID) (profile mode
 		err = err2
 		mUser := convertSlackUserToUser(*user, platformID)
 		err = userDao.Create(mUser)
-		profile = mUser.UserProfile
+		profile = models.UserProfile{ //mUser.UserProfile
+			Id:             mUser.ID,
+			DisplayName:    mUser.DisplayName,
+			FirstName:      mUser.FirstName,
+			LastName:       mUser.LastName,
+			Timezone:       mUser.Timezone,
+			TimezoneOffset: mUser.TimezoneOffset,
+		}
 	}
 	return
 }

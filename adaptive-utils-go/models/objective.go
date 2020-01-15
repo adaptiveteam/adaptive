@@ -2,17 +2,19 @@ package models
 
 import (
 	common "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/userObjective"
+	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 )
 
-type DevelopmentObjectiveType string
+type DevelopmentObjectiveType = userObjective.DevelopmentObjectiveType
 
 const (
 	IndividualDevelopmentObjective DevelopmentObjectiveType = "individual"
 	StrategyDevelopmentObjective   DevelopmentObjectiveType = "strategy"
 )
 
-type AlignedStrategyType string
+type AlignedStrategyType = userObjective.AlignedStrategyType
 
 const (
 	ObjectiveStrategyObjectiveAlignment  AlignedStrategyType = "strategy_objective"
@@ -52,44 +54,45 @@ var (
 		ObjectiveStatusGreenKey:  ObjectiveStatusGreenLabel,
 	}
 )
+type UserObjective = userObjective.UserObjective
+// type UserObjective struct {
+// 	UserID                        string                   `json:"user_id"`
+// 	Name                          string                   `json:"name"`
+// 	ID                            string                   `json:"id"`
+// 	Description                   string                   `json:"description"`
+// 	AccountabilityPartner         string                   `json:"accountability_partner"`
+// 	Accepted                      int                      `json:"accepted"` // 1 for true, 0 for false
+// 	Type                          DevelopmentObjectiveType `json:"type"`
+// 	StrategyAlignmentEntityID     string                   `json:"strategy_alignment_entity_id"`
+// 	StrategyAlignmentEntityType   AlignedStrategyType      `json:"strategy_alignment_entity_type"`
+// 	Quarter                       int                      `json:"quarter"`
+// 	Year                          int                      `json:"year"`
+// 	CreatedDate                   string                   `json:"created_date"`
+// 	ExpectedEndDate               string                   `json:"expected_end_date"`
+// 	Completed                     int                      `json:"completed"` // 1 for true, 0 for false
+// 	PartnerVerifiedCompletion     bool                     `json:"partner_verified_completion"`
+// 	CompletedDate                 string                   `json:"completed_date,omitempty"`
+// 	PartnerVerifiedCompletionDate string                   `json:"partner_verified_completion_date,omitempty"`
+// 	Comments                      string                   `json:"comments"`
+// 	Cancelled                     int                      `json:"cancelled"` // 1 for true, 0 for false
+// 	PlatformID                    PlatformID               `json:"platform_id"`
+// }
 
-type UserObjective struct {
-	UserID                        string                   `json:"user_id"`
-	Name                          string                   `json:"name"`
-	ID                            string                   `json:"id"`
-	Description                   string                   `json:"description"`
-	AccountabilityPartner         string                   `json:"accountability_partner"`
-	Accepted                      int                      `json:"accepted"` // 1 for true, 0 for false
-	Type                          DevelopmentObjectiveType `json:"type"`
-	StrategyAlignmentEntityID     string                   `json:"strategy_alignment_entity_id"`
-	StrategyAlignmentEntityType   AlignedStrategyType      `json:"strategy_alignment_entity_type"`
-	Quarter                       int                      `json:"quarter"`
-	Year                          int                      `json:"year"`
-	CreatedDate                   string                   `json:"created_date"`
-	ExpectedEndDate               string                   `json:"expected_end_date"`
-	Completed                     int                      `json:"completed"` // 1 for true, 0 for false
-	PartnerVerifiedCompletion     bool                     `json:"partner_verified_completion"`
-	CompletedDate                 string                   `json:"completed_date,omitempty"`
-	PartnerVerifiedCompletionDate string                   `json:"partner_verified_completion_date,omitempty"`
-	Comments                      string                   `json:"comments"`
-	Cancelled                     int                      `json:"cancelled"` // 1 for true, 0 for false
-	PlatformID                    PlatformID               `json:"platform_id"`
-}
-
-type UserObjectiveProgress struct {
-	ID                      string               `json:"id"`
-	CreatedOn               string               `json:"created_on"`
-	UserID                  string               `json:"user_id"`
-	Comments                string               `json:"comments"`
-	Closeout                int                  `json:"closeout"` // 1 for true, 0 for false
-	PercentTimeLapsed       string               `json:"percent_time_lapsed"`
-	StatusColor             ObjectiveStatusColor `json:"status_color"`
-	PartnerID               string               `json:"partner_id"`
-	ReviewedByPartner       bool                 `json:"reviewed_by_partner"`
-	PartnerComments         string               `json:"partner_comments"`
-	PartnerReportedProgress string               `json:"partner_reported_progress"`
-	PlatformID              PlatformID           `json:"platform_id"`
-}
+type UserObjectiveProgress = userObjectiveProgress.UserObjectiveProgress
+// type UserObjectiveProgress struct {
+// 	ID                      string               `json:"id"`
+// 	CreatedOn               string               `json:"created_on"`
+// 	UserID                  string               `json:"user_id"`
+// 	Comments                string               `json:"comments"`
+// 	Closeout                int                  `json:"closeout"` // 1 for true, 0 for false
+// 	PercentTimeLapsed       string               `json:"percent_time_lapsed"`
+// 	StatusColor             ObjectiveStatusColor `json:"status_color"`
+// 	PartnerID               string               `json:"partner_id"`
+// 	ReviewedByPartner       bool                 `json:"reviewed_by_partner"`
+// 	PartnerComments         string               `json:"partner_comments"`
+// 	PartnerReportedProgress string               `json:"partner_reported_progress"`
+// 	PlatformID              PlatformID           `json:"platform_id"`
+// }
 
 type UserObjectiveWithProgress struct {
 	Objective UserObjective           `json:"objective"`

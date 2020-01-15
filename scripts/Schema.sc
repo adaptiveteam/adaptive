@@ -38,6 +38,17 @@ val PlatformNameDef = StringBasedEnum("PlatformName".camel, List(
 	"MsTeamsPlatform".camel ^^ "ms-teams"
 )) 
 
+val AdaptiveCommunityIDDef = StringBasedEnum("AdaptiveCommunityID".camel, List(
+	"Admin".camel ^^ "admin",
+	spacedName("HR") ^^ "hr",
+	"Coaching".camel ^^ "coaching",
+	"User".camel ^^ "user",
+	"Strategy".camel ^^ "strategy",
+	"Capability".camel ^^ "capability",
+	"Initiative".camel ^^ "initiative",
+	"Competency".camel ^^ "competency"
+))
+
 // val commonDefs = 
 // lazy val ObjectiveStatusColor = modelsImport.simpleType("ObjectiveStatusColor", "ObjectiveStatusColor".camel, "\"\"", "S")
 val commonPackage = Package("common".camel, List(
@@ -45,8 +56,11 @@ val commonPackage = Package("common".camel, List(
         Filename("types".camel, ".go"),
         List(GoModulePart(
             List(), // imports.importClauses,
-            List(platformIdDef, PriorityValueDef, ObjectiveStatusColorDef,
-                PlatformNameDef
+            List(
+                platformIdDef, 
+                PriorityValueDef, ObjectiveStatusColorDef,
+                PlatformNameDef,
+                AdaptiveCommunityIDDef
             )
         ))
     )
@@ -63,6 +77,9 @@ val priorityValue = commonImport.simpleType(goPublicName(PriorityValueDef.name),
 val platformId = commonImport.simpleType(goPublicName(platformIdDef.name), platformIdDef.name, "\"\"", "S")
 val PlatformName = commonImport.simpleType(goPublicName(PlatformNameDef.name), PlatformNameDef.name, "\"\"", "S")
 //val PlatformName = TypeAlias("PlatformName".camel, string)
+
+// val AdaptiveCommunityID = TypeAlias("AdaptiveCommunityID".camel, string)
+val AdaptiveCommunityID = commonImport.simpleType(goPublicName(AdaptiveCommunityIDDef.name), AdaptiveCommunityIDDef.name, "\"\"", "S")
 
 val imports = Imports(List(
     ImportClause(None, "github.com/aws/aws-sdk-go/aws"),
@@ -115,6 +132,7 @@ val user = Entity(
             underscoredName("first_name") :: optionString,
             underscoredName("last_name") :: optionString,
             underscoredName("timezone") :: string,
+            "IsAdaptiveBot".camel :: optionBoolean,
             timezoneOffsetField,
             (underscoredName("adaptive_scheduled_time") :: optionTimestamp) \\ "in 24 hr format, localtime",
             adaptiveScheduledTimeInUtcField,
@@ -241,12 +259,16 @@ val UserEngagement = Entity(
         ignoredField,
         "EffectiveStartDate".camel :: optionTimestamp,
         "EffectiveEndDate".camel :: optionTimestamp,
+        "PostedAt".camel :: optionTimestamp,
         // ("CreatedAt".camel :: timestamp) \\ "When a same engagement is written to dynamo, dynamo doesn't update it and it not treated as a new event" \\
         //     "This timestamp will help to identify newer same engagement",
         ("RescheduledFrom".camel :: string) \\ "Re-scheduled timestamp for the engagement, if any"
     ), 
     Nil, List(CreatedModifiedTimesTrait)
 ) \\ "UserEngagement encapsulates an engagement we want to provide to a user"
+// 	// RFC3339 timestamp at which the engagement was posted to the user
+// 	 string `json:"posted_at,omitempty"`
+// }
 
 // TODO:   stream_enabled   = true
 //  stream_view_type = var.dynamo_stream_view_type
@@ -660,7 +682,6 @@ val VisionMissionTable = Table(VisionMission,
 
 val VisionMissionPackage = defaultPackage(VisionMissionTable, allEntitySpecificImports(VisionMission))
 
-val AdaptiveCommunityID = TypeAlias("AdaptiveCommunityID".camel, string)
 val channelCreatedField = ("ChannelCreated".camel :: int)\\ "0 for false"
 val channelIdField = "ChannelID".camel :: string
 val StrategyCommunity = Entity(
@@ -670,11 +691,11 @@ val StrategyCommunity = Entity(
         platformIdField,
         advocateField,
         //createdAtField,
-        "Community".camel :: TypeAliasTypeInfo(AdaptiveCommunityID),
+        "Community".camel :: AdaptiveCommunityID,
         channelIdField,
         channelCreatedField,
         "AccountabilityPartner".camel :: string,
-        "ParentCommunity".camel :: TypeAliasTypeInfo(AdaptiveCommunityID),
+        "ParentCommunity".camel :: AdaptiveCommunityID,
         "ParentCommunityChannelID".camel :: string
     ), Nil, List(CreatedModifiedTimesTrait))
 
@@ -688,7 +709,7 @@ val StrategyCommunityTable = Table(StrategyCommunity,
 )
 
 val StrategyCommunityPackage = Package(StrategyCommunity.name, 
-    List(AdaptiveCommunityID :: 
+    List(//AdaptiveCommunityID :: 
         daoModule(StrategyCommunityTable, allEntitySpecificImports(StrategyCommunity))
     )
 )

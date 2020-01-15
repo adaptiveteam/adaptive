@@ -111,13 +111,13 @@ func HandleRequest(ctx context.Context) (err error) {
 
 			for _, user := range append(usersToAsk1, usersToAsk2Filtered...) {
 				// Engage with the user only if the user is a part of an Adaptive community (exludes Admin Community)
-				userCommunities := strategy.QueryCommunityUserIndex(user.Id, config.communityUsersTable, config.communityUsersUserIndex)
+				userCommunities := strategy.QueryCommunityUserIndex(user.ID, config.communityUsersTable, config.communityUsersUserIndex)
 				if len(userCommunities) == 1 && userCommunities[0].CommunityId == string(community.Admin) {
-					logger.Infof("%s user belongs only to Admin Community, not invoking schedules for this user", user.Id)
+					logger.Infof("%s user belongs only to Admin Community, not invoking schedules for this user", user.ID)
 				} else if len(userCommunities) > 0 {
 					// TODO: Invoke through goroutines
 					payloadJsonBytes, _ := json.Marshal(models.UserEngage{
-						UserId:     user.Id,
+						UserId:     user.ID,
 						PlatformID: models.PlatformID(platformID),
 					})
 					_, _ = config.l.InvokeFunction(config.engScriptingLambdaArn, payloadJsonBytes, true)

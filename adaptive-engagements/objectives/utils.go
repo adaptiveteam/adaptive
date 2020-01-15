@@ -44,7 +44,7 @@ func AllUserObjectives(userID string, userObjectivesTable, userObjectivesUserIdI
 	core.ErrorHandler(err, dns.Namespace, fmt.Sprintf("Could not query %s index", userObjectivesUserIdIndex))
 	for _, each := range ops {
 		// Filtering to show only the objectives that match the `typ` provided
-		if each.Type == typ {
+		if each.ObjectiveType == typ {
 			filteredOps = append(filteredOps, each)
 		}
 	}

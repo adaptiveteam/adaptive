@@ -176,7 +176,7 @@ func ReminderToProvideCoachingFeedback(date bt.Date, target string) {
 
 func UserSelectEngagement(mc models.MessageCallback, users, filter []string, userID string,
 	text ui.RichText, context string) {
-	platformID := UserDAO.ReadUnsafe(userID).PlatformId
+	platformID := UserDAO.ReadUnsafe(userID).PlatformID
 	user.UserSelectEng(userID, EngagementTable, models.PlatformID(platformID), UserDAO, mc,
 		users, filter, string(text), context, models.UserEngagementCheckWithValue{})
 }

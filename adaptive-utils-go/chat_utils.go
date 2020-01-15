@@ -128,5 +128,7 @@ func MakeUserEngagement(mc models.MessageCallback,
 	core.ErrorHandler(err, namespace, "Could not convert engagement to JSON")
 	return models.UserEngagement{UserID: userID, TargetID: mc.Target, ID: callbackID,
 		Script: string(bytes), Priority: urgency(urgent), CreatedAt: core.CurrentRFCTimestamp(),
-		UserEngagementCheckWithValue: check, PlatformID: platformID}
+		CheckIdentifier: check.CheckIdentifier,
+		CheckValue: check.CheckValue,
+		PlatformID: platformID}
 }
