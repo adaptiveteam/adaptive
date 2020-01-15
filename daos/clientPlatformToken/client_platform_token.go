@@ -67,7 +67,7 @@ type DAOImpl struct {
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic("Cannot create DAO without clientID") }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: clientID + "_client_platform_token",
+		Name: TableName(clientID),
 	}
 }
 
@@ -77,6 +77,9 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		Name: tableName,
 	}
+}
+func TableName(clientID string) string {
+	return clientID + "_client_platform_token"
 }
 
 // Create saves the ClientPlatformToken.
