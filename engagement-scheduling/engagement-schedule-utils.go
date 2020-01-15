@@ -66,11 +66,11 @@ func runDay(
 	defer wg.Done()
 	defer func(){
 		if err2 := recover(); err2 != nil {
-			log.Printf("GenerateScheduleOfEngagements/runDay for date=%v: %+v\n", date, err2)
+			log.Printf("GenerateScheduleOfEngagements/runDay recovered for date=%v: %+v\n", date, err2)
 
 		}
 	}()
-	log.Printf("GenerateScheduleOfEngagements/runDay for date=%v\n", date)
+	// log.Printf("GenerateScheduleOfEngagements/runDay for date=%v\n", date)
 	day, ok := constructDay(
 		checkFunctionMap,
 		date,
@@ -80,7 +80,7 @@ func runDay(
 		location,
 		target,
 	)
-	log.Printf("GenerateScheduleOfEngagements/runDay for date=%v ok=%v\n", date, ok)
+	// log.Printf("GenerateScheduleOfEngagements/runDay for date=%v ok=%v\n", date, ok)
 	
 	if ok {
 		channel <- day
@@ -96,19 +96,19 @@ func constructDay(
 	location *time.Location,
 	target string,
 ) (rv models.ScheduledEngagement, ok bool){
-	log.Printf("GenerateScheduleOfEngagements/constructDay 1 for date=%v \n", date)
+	// log.Printf("GenerateScheduleOfEngagements/constructDay 1 for date=%v \n", date)
 	checkResultMap := checkFunctionMap.Evaluate(target, date) // this function never returns
-	log.Printf("GenerateScheduleOfEngagements/constructDay 2 for date=%v \n", date)
+	// log.Printf("GenerateScheduleOfEngagements/constructDay 2 for date=%v \n", date)
 	engagementsOnDay := GetEngagementsOnDay(checkResultMap, date, scheduledEngagements)
 	ok = false
 	if len(engagementsOnDay) > 0 {
-		log.Printf("GenerateScheduleOfEngagements/constructDay 3 for date=%v \n", date)
+		// log.Printf("GenerateScheduleOfEngagements/constructDay 3 for date=%v \n", date)
 		rescheduledDate := date.GetBusinessDay(
 			holidays,
 			location,
 			true,
 		)
-		log.Printf("GenerateScheduleOfEngagements/constructDay 3 for date=%v \n", date)
+		// log.Printf("GenerateScheduleOfEngagements/constructDay 3 for date=%v \n", date)
 		dateBefore := rescheduledDate.DateBefore(endDate, true)
 		if dateBefore {
 			if rescheduledDate != date {
@@ -128,11 +128,11 @@ func constructDay(
 					}
 				ok = true
 			}
-			log.Printf("GenerateScheduleOfEngagements/constructDay 4 for date=%v \n", date)
+			// log.Printf("GenerateScheduleOfEngagements/constructDay 4 for date=%v \n", date)
 
 		}
 	}
-	log.Printf("GenerateScheduleOfEngagements/constructDay 5 for date=%v \n", date)
+	// log.Printf("GenerateScheduleOfEngagements/constructDay 5 for date=%v \n", date)
 
 	return rv, ok
 }
