@@ -16,7 +16,9 @@ sudo: false
 install: true
 
 env:
-  - GO111MODULE=on COVERALLS_TOKEN=wHdTnciK7C03xnxA2YzIBEau8m8QBf32g AWS_REGION=us-east-1 DIALOG_TABLE=ctcreel_adaptive_dialog TERRAFORM_VERSION=0.12.19 RDS_HOST=localhost RDS_USER=no RDS_PASSWORD=no RDS_PORT=no RDS_DB_NAME=no
+  - GO111MODULE=on COVERALLS_TOKEN=wHdTnciK7C03xnxA2YzIBEau8m8QBf32g \
+    DIALOG_TABLE=ctcreel_adaptive_dialog TERRAFORM_VERSION=0.12.19 \
+    RDS_HOST=localhost RDS_USER=no RDS_PASSWORD=no RDS_PORT=no RDS_DB_NAME=no
 notifications:
   slack: geigsen2:TBhXpLjpz2ggwaNWOTcO7TSo
 
@@ -26,9 +28,9 @@ script:
   - make -version
   - export AWS_LOCAL_HOST='localstack'
   - export FORCE_NONINTERACTIVE=true
-  - export AWS_DEFAULT_REGION=eu-west-1
+  - export AWS_DEFAULT_REGION=eu-west-2
   # - export AWS_DEFAULT_REGION=us-east-1 we don't want accidently break something in our region
-  - export AWS_REGION=eu-west-1
+  - export AWS_REGION=eu-west-2
 
   # Upgrade terraform
   - sudo apt-get install unzip
@@ -37,7 +39,7 @@ script:
   - yes | sudo mv temp_for_zip_extract/terraform /usr/local/bin/
   - terraform --version
   
-  - pushd infra/core/terraform; pwd; ./backends/init.sh; popd
+  # - pushd infra/core/terraform; pwd; ./backends/init.sh; popd
 
   - make core-build
   # - $GOPATH/bin/goveralls -service=travis-pro
