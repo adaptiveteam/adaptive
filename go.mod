@@ -1,5 +1,7 @@
 module github.com/adaptiveteam/adaptive
 
+go 1.13
+
 require (
 	github.com/360EntSecGroup-Skylar/excelize/v2 v2.0.2
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
