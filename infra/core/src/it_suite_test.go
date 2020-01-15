@@ -2,11 +2,13 @@ package src_test
 
 import (
 	"fmt"
+	"log"
+	"testing"
+
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 // Test Suite
@@ -36,6 +38,7 @@ func tearDown() {
 	// At the end of the test, run `terraform destroy` to clean up any resources that were created
 	_, err := terraform.DestroyE(testingT, terraformOptions)
 	if err != nil {
+		log.Printf("Error tearing down terraform: %+v\n", err)
 		terraform.Destroy(testingT, terraformOptions)
 	}
 }
@@ -65,15 +68,16 @@ var _ = BeforeSuite(func() {
 		},
 		// Environment variables to set when running Terraform
 		EnvVars: map[string]string{
-			"AWS_DEFAULT_REGION": awsRegion,
-			"TF_VAR_RDS_HOST": "localhost",
-			"TF_VAR_RDS_USER": "no",
+			"AWS_DEFAULT_REGION":  awsRegion,
+			"TF_VAR_RDS_HOST":     "localhost",
+			"TF_VAR_RDS_USER":     "no",
 			"TF_VAR_RDS_PASSWORD": "no",
-			"TF_VAR_RDS_PORT": "no",
-			"TF_VAR_RDS_DB_NAME": "no",
+			"TF_VAR_RDS_PORT":     "no",
+			"TF_VAR_RDS_DB_NAME":  "no",
 		},
 	}
 
+	//tearDown()
 	// This will run `terraform init` and `terraform apply` and fail the test if there are any errors
 	msg, err := terraform.InitAndApplyE(testingT, terraformOptions)
 	if err != nil {
