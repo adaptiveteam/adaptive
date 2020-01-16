@@ -37,6 +37,28 @@ import (
 )
 
 type DynamoDBConnection = common.DynamoDBConnection
+var (
+dialogContentTableName                      = func(clientID string) string { return clientID + "_dialog_content" }
+strategyObjectiveTableName                 = func(clientID string) string { return clientID + "_strategy_objectives" }
+strategyInitiativeTableName                = func(clientID string) string { return clientID + "_strategy_initiatives" }
+strategyInitiativeInitiativeCommunityIndex = "StrategyInitiativesInitiativeCommunityIndex"
+userObjectiveTableName                     = func(clientID string) string { return clientID + "_user_objective" }
+userObjectiveIDIndex                       = "IDIndex"
+userObjectiveUserIDIndex                   = "UserIDCompletedIndex"
+userObjectiveTypeIndex                     = "UserIDTypeIndex"
+userObjectiveProgressTableName             = func(clientID string) string { return clientID + "_user_objectives_progress" }
+adaptiveCommunityUserTableName                     = func(clientID string) string { return clientID + "_community_users" }
+communityTableName                        = func(clientID string) string { return clientID + "_communities" }
+competencyTableName                       = func(clientID string) string { return clientID + "_adaptive_value" }
+strategyInitiativeCommunityTableName      = func(clientID string) string { return clientID + "_initiative_communities" }
+strategyInitiativeCommunityPlatformIndex  = "InitiativeCommunitiesPlatformIndex"
+strategyCommunityTableName                  = func(clientID string) string { return clientID + "_strategy_communities" }
+visionMissionTableName                             = func(clientID string) string { return clientID + "_vision" }
+capabilityCommunityTableName              = func(clientID string) string { return clientID + "_capability_communities" }
+capabilityCommunityPlatformIndex          = "CapabilityCommunitiesPlatformIndex"
+adaptiveUserTableName                      = func(clientID string) string { return clientID + "_adaptive_users" }
+engagementTableName                         = func(clientID string) string { return clientID + "_adaptive_users_engagements" }
+)
 
 const communityUsersUserCommunityIndex            = "CommunityUsersUserCommunityIndex"
 const strategyObjectivesPlatformIndex             = "StrategyObjectivesPlatformIndex"
@@ -65,7 +87,7 @@ func UserObjectiveDAO() func (conn common.DynamoDBConnection) userObjective.DAO 
 
 func UserObjectiveProgressDAO() func (conn common.DynamoDBConnection) userObjectiveProgress.DAO {
 	return func (conn common.DynamoDBConnection) userObjectiveProgress.DAO {
-		return userObjectiveProgress.NewDAOByTableName(conn.Dynamo, "userObjectiveProgressDAO", userObjectiveProgress.TableName(conn.ClientID))
+		return userObjectiveProgress.NewDAOByTableName(conn.Dynamo, "userObjectiveProgressDAO", userObjectiveProgressTableName(conn.ClientID))
 	}
 }
 
@@ -103,7 +125,7 @@ func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) 
 
 		var allObjs []models.StrategyObjective
 		err = conn.Dynamo.QueryTableWithIndex(
-			strategyObjective.TableName(conn.ClientID),
+			strategyObjectiveTableName(conn.ClientID),
 			platformIndexExpr(strategyObjectivesPlatformIndex, conn.PlatformID),
 			map[string]string{}, true, -1, &allObjs)
 		log.Printf("AllStrategyObjectives: len(allObjs)=%d\n", len(allObjs))
@@ -182,7 +204,7 @@ func UserObjectiveFromStrategyObjective(so models.StrategyObjective) func (conn 
 			commID = ""
 			log.Printf("UserObjectiveFromStrategyObjective: CapabilityCommunityIDs is empty")
 		}
-		vision := strategy.StrategyVision(conn.PlatformID, visionMission.TableName(conn.ClientID))
+		vision := strategy.StrategyVision(conn.PlatformID, visionMissionTableName(conn.ClientID))
 		// We are using _ here because `:` will create issues with callback
 		id := so.ID // core.IfThenElse(commID != core.EmptyString, fmt.Sprintf("%s_%s", so.ID, commID), so.ID).(string)
 		// log.Printf("UserObjectiveFromStrategyObjective: id=%s; so.ID=%s, commID=%s, so=%v\n",  id, so.ID, commID, so)
@@ -216,7 +238,7 @@ func UserObjectiveFromStrategyObjective(so models.StrategyObjective) func (conn 
 func IsMemberInCommunity(userID string, comm community.AdaptiveCommunity) func (conn DynamoDBConnection) bool {
 	return func (conn DynamoDBConnection) bool {
 		defer core.RecoverAsLogError("issues_dao.go: IsMemberInCommunity")
-		return community.IsUserInCommunity(userID, adaptiveCommunityUser.TableName(conn.ClientID), communityUsersUserCommunityIndex, comm)
+		return community.IsUserInCommunity(userID, adaptiveCommunityUserTableName(conn.ClientID), communityUsersUserCommunityIndex, comm)
 	}
 }
 func selectFromIssuesWhereTypeAndUserIDInitiative(userID string, completed int) func (conn DynamoDBConnection) (res []Issue, err error) {
@@ -267,9 +289,9 @@ func IssuesFromAllStrategyInitiatives() func (conn DynamoDBConnection) (res []Is
 	return func (conn DynamoDBConnection) (res []Issue, err error) {
 		defer core.RecoverToErrorVar("AllStrategyInitiatives", &err)
 		inits := strategy.AllOpenStrategyInitiatives(conn.PlatformID,
-			strategyInitiative.TableName(conn.ClientID),
+			strategyInitiativeTableName(conn.ClientID),
 			strategyInitiativesPlatformIndex,
-			userObjective.TableName(conn.ClientID))
+			userObjectiveTableName(conn.ClientID))
 		res, err = IssuesFromGivenStrategyInitiatives(inits)(conn)
 		err = errors.Wrapf(err, "AllStrategyInitiatives(conn.PlatformID=%s)", conn.PlatformID)
 		return
@@ -295,10 +317,10 @@ func IssuesFromCapabilityCommunityInitiatives(userID string) func (conn DynamoDB
 		defer core.RecoverToErrorVar("CapabilityCommunityInitiatives", &err)
 		strategyInitiativesInitiativeCommunityIndex := "StrategyInitiativesInitiativeCommunityIndex"
 		inits := strategy.UserCapabilityCommunityInitiatives(userID, 
-			strategyObjective.TableName(conn.ClientID), strategyObjectivesPlatformIndex,
-			strategyInitiative.TableName(conn.ClientID), strategyInitiativesInitiativeCommunityIndex,
-			userObjective.TableName(conn.ClientID),
-			adaptiveCommunityUser.TableName(conn.ClientID), communityUsersUserCommunityIndex,
+			strategyObjectiveTableName(conn.ClientID), strategyObjectivesPlatformIndex,
+			strategyInitiativeTableName(conn.ClientID), strategyInitiativesInitiativeCommunityIndex,
+			userObjectiveTableName(conn.ClientID),
+			adaptiveCommunityUserTableName(conn.ClientID), communityUsersUserCommunityIndex,
 			communityUsersUserIndex)
 		res, err = IssuesFromGivenStrategyInitiatives(inits)(conn)
 		err = errors.Wrapf(err, "CapabilityCommunityInitiatives(userID=%s)", userID)
@@ -311,8 +333,8 @@ func IssuesFromInitiativeCommunityInitiatives(userID string) func (conn DynamoDB
 		defer core.RecoverToErrorVar("IssuesFromInitiativeCommunityInitiatives", &err)
 		var inits []models.StrategyInitiative
 		inits = strategy.AllOpenStrategyInitiatives(conn.PlatformID, 
-			strategyInitiative.TableName(conn.ClientID), strategyInitiativesPlatformIndex,
-			userObjective.TableName(conn.ClientID))
+			strategyInitiativeTableName(conn.ClientID), strategyInitiativesPlatformIndex,
+			userObjectiveTableName(conn.ClientID))
 		res, err = IssuesFromGivenStrategyInitiatives(inits)(conn)
 		err = errors.Wrapf(err, "IssuesFromInitiativeCommunityInitiatives(userID=%s)", userID)
 		return
@@ -325,7 +347,7 @@ func IssueFromStrategyInitiative(si models.StrategyInitiative) func (conn common
 		advocate := ""
 		if si.CapabilityObjective != "" {
 			capObj := strategy.StrategyObjectiveByID(conn.PlatformID, si.CapabilityObjective, 
-				strategyObjective.TableName(conn.ClientID))
+				strategyObjectiveTableName(conn.ClientID))
 			advocate = capObj.Advocate
 		}
 		createdDate := core.NormalizeDate(si.CreatedAt)
@@ -409,7 +431,7 @@ func Save(issue Issue) func (conn DynamoDBConnection) (err error) {
 						} else {
 							var bytes []byte
 							bytes, err = json.Marshal(issue.StrategyObjective)
-							log.Printf("DynamoDBConnection) NOT Saved SObjective(so.ID=%s) without any error. Table name: '%s'. Value:\n%v\n", issue.StrategyObjective.ID, strategyObjective.TableName(conn.ClientID),
+							log.Printf("DynamoDBConnection) NOT Saved SObjective(so.ID=%s) without any error. Table name: '%s'. Value:\n%v\n", issue.StrategyObjective.ID, strategyObjectiveTableName(conn.ClientID),
 								string(bytes))
 						}
 					}
