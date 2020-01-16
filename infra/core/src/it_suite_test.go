@@ -66,6 +66,8 @@ var _ = BeforeSuite(func() {
 			"region":         awsRegion,
 			"dynamodb_table": "test-adaptive-core-infra-remote-state",
 		},
+		Lock: true,
+		LockTimeout: "10s", 
 		// Environment variables to set when running Terraform
 		EnvVars: map[string]string{
 			"AWS_DEFAULT_REGION":  awsRegion,
