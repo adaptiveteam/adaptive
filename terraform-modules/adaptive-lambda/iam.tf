@@ -33,7 +33,7 @@ resource "aws_iam_role" "lambda" {
 
 # Logs policy
 resource aws_cloudwatch_log_group "log_group" {
-  name              = "/aws/lambda/${element(concat(aws_lambda_function.lambda.*.function_name, aws_lambda_function.lambda_with_dl.*.function_name, aws_lambda_function.lambda_with_vpc.*.function_name, aws_lambda_function.lambda_with_dl_vpc.*.function_name), 0)}"
+  name              = "/aws/lambda/${aws_lambda_function.lambda.0.function_name}"
   retention_in_days = 14
 }
 

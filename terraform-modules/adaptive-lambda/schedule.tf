@@ -8,10 +8,10 @@ resource "aws_cloudwatch_event_rule" "rule" {
 
 resource "aws_cloudwatch_event_target" "target" {
   count      = var.schedule ? 1 : 0
-  arn        = concat(aws_lambda_function.lambda.*.arn, aws_lambda_function.lambda_with_dl.*.arn, aws_lambda_function.lambda_with_vpc.*.arn, aws_lambda_function.lambda_with_dl_vpc.*.arn)[0]
+  arn        = aws_lambda_function.lambda.0.arn
   rule       = aws_cloudwatch_event_rule.rule[0].name
   input      = var.schedule_invoke_json
-  target_id  = concat(aws_lambda_function.lambda.*.function_name, aws_lambda_function.lambda_with_dl.*.function_name, aws_lambda_function.lambda_with_vpc.*.function_name, aws_lambda_function.lambda_with_dl_vpc.*.function_name)[0]
+  target_id  = aws_lambda_function.lambda.0.function_name
   depends_on = [aws_lambda_function.lambda]
 }
 
@@ -19,7 +19,7 @@ resource "aws_lambda_permission" "cloudwatch_invoke_lambda" {
   count         = var.schedule ? 1 : 0
   statement_id  = "AllowExecutionFromCloudWatch"
   action        = "lambda:InvokeFunction"
-  function_name = concat(aws_lambda_function.lambda.*.arn, aws_lambda_function.lambda_with_dl.*.arn, aws_lambda_function.lambda_with_vpc.*.arn, aws_lambda_function.lambda_with_dl_vpc.*.arn)[0]
+  function_name = aws_lambda_function.lambda.0.arn
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.rule[0].arn
 }
