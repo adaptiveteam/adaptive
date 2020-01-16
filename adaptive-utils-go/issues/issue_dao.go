@@ -8,14 +8,14 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	// "github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
-	"github.com/adaptiveteam/adaptive/daos/visionMission"
+	// "github.com/adaptiveteam/adaptive/daos/visionMission"
 	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
