@@ -31,21 +31,23 @@ script:
   - export AWS_DEFAULT_REGION=eu-west-2
   # - export AWS_DEFAULT_REGION=us-east-1 we don't want accidently break something in our region
   - export AWS_REGION=eu-west-2
+  - export TEST_OPS=-short
 
-  # Upgrade terraform
-  - sudo apt-get install unzip
-  - wget https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-  - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d temp_for_zip_extract
-  - yes | sudo mv temp_for_zip_extract/terraform /usr/local/bin/
-  - terraform --version
+  # # Upgrade terraform (we don't need when test is short)
+  
+  # - sudo apt-get install unzip
+  # - wget https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+  # - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d temp_for_zip_extract
+  # - yes | sudo mv temp_for_zip_extract/terraform /usr/local/bin/
+  # - terraform --version
   
   # - pushd infra/core/terraform; pwd; ./backends/init.sh; popd
 
   - make core-build
   # - $GOPATH/bin/goveralls -service=travis-pro
-  - docker-compose up -d
-  - make test
-  - docker-compose down
+  # - docker-compose up -d
+  - make test-with-localstack
+  # - docker-compose down
   # - pushd aws-utils-go; go test -v; popd
   # - pushd dialog-fetcher; go test -v; popd
 
