@@ -35,13 +35,13 @@ script:
   - if [ t$BRANCH==tdevelop ] ; then TEST_OPS="" ; else TEST_OPS="-short"; fi
   - export TEST_OPS
 
-  # # Upgrade terraform (we don't need when test is short)
+  # Upgrade terraform (we don't need when test is short)
   
-  # - sudo apt-get install unzip
-  # - wget https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-  # - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d temp_for_zip_extract
-  # - yes | sudo mv temp_for_zip_extract/terraform /usr/local/bin/
-  # - terraform --version
+  - [ t$BRANCH = tdevelop ] && sudo apt-get install unzip
+  - [ t$BRANCH = tdevelop ] && wget https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+  - [ t$BRANCH = tdevelop ] && unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d temp_for_zip_extract
+  - [ t$BRANCH = tdevelop ] && yes | sudo mv temp_for_zip_extract/terraform /usr/local/bin/
+  - [ t$BRANCH = tdevelop ] && terraform --version
   
   # - pushd infra/core/terraform; pwd; ./backends/init.sh; popd
 
