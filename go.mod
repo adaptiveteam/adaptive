@@ -34,3 +34,5 @@ require (
 replace github.com/nlopes/slack => github.com/adaptiveteam/slack v0.13.0
 
 replace gopkg.in/urfave/cli.v1 => gopkg.in/urfave/cli.v1 v1.20.0
+
+replace github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.25.16
