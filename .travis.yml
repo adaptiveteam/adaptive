@@ -31,7 +31,9 @@ script:
   - export AWS_DEFAULT_REGION=eu-west-2
   # - export AWS_DEFAULT_REGION=us-east-1 we don't want accidently break something in our region
   - export AWS_REGION=eu-west-2
-  - export TEST_OPS=-short
+  - BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  - if [ t$BRANCH==tdevelop ] ; then TEST_OPS="" ; else TEST_OPS="-short"; fi
+  - export TEST_OPS
 
   # # Upgrade terraform (we don't need when test is short)
   
