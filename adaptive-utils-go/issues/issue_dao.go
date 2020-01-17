@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	// "strings"
+	"strings"
 
 	"github.com/pkg/errors"
 
 	// "github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/common"
-	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
-	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
+	// "github.com/adaptiveteam/adaptive/daos/strategyInitiative"
+	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
@@ -371,6 +371,62 @@ func IssueFromStrategyInitiative(si models.StrategyInitiative) func (conn common
 	}
 }
 
+
+func StrategyInitiativeRead(id string) func (conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
+	return func (conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
+		defer core.RecoverToErrorVar("StrategyInitiativeRead", &err)
+		res = strategy.StrategyInitiativeByID(conn.PlatformID, id, strategyInitiativeTableName(conn.ClientID))
+		if res.ID != id {
+			err = fmt.Errorf("couldn't find StrategyInitiativeByID(id=%s). Instead got ID=%s", id, res.ID)
+		}
+		return
+	}
+}
+func StrategyInitiativeCreateOrUpdate(si models.StrategyInitiative) func (conn DynamoDBConnection) (err error) {
+	return func (conn DynamoDBConnection) (err error) {
+		err = conn.Dynamo.PutTableEntry(si, strategyInitiativeTableName(conn.ClientID))
+		err = errors.Wrapf(err, "StrategyObjectiveDynamoDBConnection) CreateOrUpdate(si.ID=%s)", si.ID)
+		return
+	}
+}
+
+func StrategyObjectiveRead(id string) func (conn DynamoDBConnection) (res models.StrategyObjective, err error) {
+	return func (conn DynamoDBConnection) (res models.StrategyObjective, err error) {
+		defer core.RecoverToErrorVar("StrategyObjectiveDynamoDBConnection.Read", &err)
+		id2 := id
+		i := strings.Index(id2, "_")
+		if i >= 0 {
+			log.Printf("WARN: StrategyObjectiveDynamoDBConnection) Read: ID has '_': %s\n", id)
+			id2 = id[0:i]
+		}
+
+		log.Printf("StrategyObjectiveDynamoDBConnection) Read: reading id2=%s\n", id2)
+		res = strategy.StrategyObjectiveByID(conn.PlatformID, id2, strategyObjectiveTableName(conn.ClientID))
+		if res.ID != id2 {
+			err = fmt.Errorf("couldn't find StrategyObjectiveByID(id2=%s, id=%s). Instead got ID=%s", id2, id, res.ID)
+		}
+		return
+	}
+}
+
+func StrategyObjectiveCreateOrUpdate(so models.StrategyObjective) func (conn DynamoDBConnection) (err error) {
+	return func (conn DynamoDBConnection) (err error) {
+		if so.ID == "" {
+			err = errors.New("ID is empty")
+		} else if so.PlatformID == "" {
+			err = fmt.Errorf("PlatformID is empty for ID=%s", so.ID)
+		} else if so.CapabilityCommunityIDs == nil {
+			err = fmt.Errorf("CapabilityCommunityIDs is empty for ID=%s", so.ID)
+		}
+		if err == nil {
+			err = conn.Dynamo.PutTableEntry(so, strategyObjectiveTableName(conn.ClientID))
+		}
+		err = errors.Wrapf(err, "StrategyObjectiveDynamoDBConnection) CreateOrUpdate(so.ID=%s)", so.ID)
+
+		return
+	}
+}
+
 func Read(issueType IssueType, issueID string) func (conn DynamoDBConnection) (issue Issue, err error) {
 	return func (conn DynamoDBConnection) (issue Issue, err error) {
 		defer core.RecoverToErrorVar("DynamoDBConnection) Read", &err)
@@ -389,14 +445,14 @@ func Read(issueType IssueType, issueID string) func (conn DynamoDBConnection) (i
 				err = errors.New("UserObjective " + issueID + " not found")
 			}
 		case SObjective:
-			dao := strategyObjective.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
-			issue.StrategyObjective, err = dao.Read(issueID)
+			// dao := strategyObjective.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
+			issue.StrategyObjective, err = StrategyObjectiveRead(issueID)(conn)
 			if err == nil {
 				issue.UserObjective, err = UserObjectiveFromStrategyObjective(issue.StrategyObjective)(conn)
 			}
 		case Initiative:
-			dao := strategyInitiative.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
-			issue.StrategyInitiative, err = dao.Read(issueID)
+			// dao := strategyInitiative.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
+			issue.StrategyInitiative, err = StrategyInitiativeRead(issueID)(conn)
 			if err == nil {
 				issue, err = IssueFromStrategyInitiative(issue.StrategyInitiative)(conn)
 			}
@@ -419,12 +475,12 @@ func Save(issue Issue) func (conn DynamoDBConnection) (err error) {
 				// already saved above
 			case SObjective:
 				log.Printf("DynamoDBConnection) Save SObjective(so.ID=%s)\n", issue.StrategyObjective.ID)
-				sdao := strategyObjective.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
+				// sdao := strategyObjective.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
 
-				err = sdao.CreateOrUpdate(issue.StrategyObjective)
+				err = StrategyObjectiveCreateOrUpdate(issue.StrategyObjective)(conn)
 				if err == nil {
 					var so models.StrategyObjective
-					so, err = sdao.Read(issue.StrategyObjective.ID)
+					so, err = StrategyObjectiveRead(issue.StrategyObjective.ID)(conn)
 					if err == nil {
 						if so.ID == issue.StrategyObjective.ID {
 							log.Printf("DynamoDBConnection) Saved successfully SObjective(so.ID=%s)%+v\n", issue.StrategyObjective.ID, err)
@@ -438,8 +494,8 @@ func Save(issue Issue) func (conn DynamoDBConnection) (err error) {
 				}
 
 			case Initiative:
-				idao := strategyInitiative.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
-				err = idao.CreateOrUpdate(issue.StrategyInitiative)
+				// idao := strategyInitiative.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
+				err = StrategyInitiativeCreateOrUpdate(issue.StrategyInitiative)(conn)
 			}
 		}
 		err = errors.Wrapf(err, "DynamoDBConnection) Save(issue.UserObjective.ID=%s)", issue.UserObjective.ID)
