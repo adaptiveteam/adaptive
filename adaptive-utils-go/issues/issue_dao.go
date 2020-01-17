@@ -157,9 +157,9 @@ func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) 
 					UserObjective:     objs[0],
 				}
 			} else {
-				err = errors.New("UserObjective " + each.ID + " or " + id + " not found")
-				log.Printf("Not found user objective for %s: %+v\n", each.ID, err)
-				err = nil
+				// err = errors.New("UserObjective " + each.ID + " or " + id + " not found")
+				log.Printf("selectFromIssuesWhereTypeAndUserIDSObjective: Not found user objective for %s or %s\n", each.ID, id)// err)
+				// err = nil
 				var uo userObjective.UserObjective
 				uo, err = UserObjectiveFromStrategyObjective(each)(conn)
 				if err != nil {
