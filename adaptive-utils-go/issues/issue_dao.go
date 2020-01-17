@@ -360,7 +360,7 @@ func IssueFromStrategyInitiative(si models.StrategyInitiative) func (conn common
 			AccountabilityPartner:       advocate,
 			Accepted:                    1,
 			ObjectiveType:               userObjective.StrategyDevelopmentObjective,
-			StrategyAlignmentEntityID:   si.InitiativeCommunityID,
+			StrategyAlignmentEntityID:   "", //si.InitiativeCommunityID,
 			StrategyAlignmentEntityType: userObjective.ObjectiveStrategyInitiativeAlignment,
 			PlatformID:                  conn.PlatformID,
 			CreatedDate:                 createdDate,
