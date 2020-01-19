@@ -69,7 +69,7 @@ func (w Template) Validate() (err error) {
 // GetRequestHandler returns RequestHandler that will handle
 // the incoming request.
 func (w Template) GetRequestHandler(env Environment) RequestHandler {
-	return func(actionPath models.ActionPath, np models.NamespacePayload4) (err error) {
+	return func(actionPath models.RelActionPath, np models.NamespacePayload4) (furtherActions []TriggerImmediateEventForAnotherUser, err error) {
 		defer w.recoverToErrorVar(env.LogInfof, &err)
 		err = w.Validate()
 		if err == nil {
@@ -77,7 +77,7 @@ func (w Template) GetRequestHandler(env Environment) RequestHandler {
 			var ctx EventHandlingContext
 			ctx, err = w.getEventHandlingContext(np)
 			if err == nil {
-				err = w.handleContext(env, ctx, MaxImmediateSteps)
+				furtherActions, err = w.handleContext(env, ctx, MaxImmediateSteps)
 			}
 			env.LogInfof("HandleRequest completed: %+v", err)
 		}
@@ -88,7 +88,7 @@ func (w Template) GetRequestHandler(env Environment) RequestHandler {
 // handleContext handles context event
 // NB! may be called recursively when receive ImmediateEvent from handler.
 func (w Template) handleContext(env Environment,
-	ctx EventHandlingContext, i int) (err error) { // Support for the immediate execution. NB! Danger
+	ctx EventHandlingContext, i int) (furtherActions []TriggerImmediateEventForAnotherUser, err error) { // Support for the immediate execution. NB! Danger
 	key := struct {
 		State
 		Event
@@ -110,6 +110,7 @@ func (w Template) handleContext(env Environment,
 			}
 			data = overrideData(data, out.DataOverride)
 			var lastMessageID platform.TargetMessageID
+			furtherActions = out.Interaction.ImmediateEvents
 			lastMessageID, err = interact(ctx, env, out.NextState, out.Interaction, oldData, data)
 			if err == nil && out.ImmediateEvent != "" {
 				newContext := EventHandlingContext{
@@ -198,6 +199,12 @@ func interact(ctx EventHandlingContext,
 					State:                  "", // Not using at the moment
 				}
 				err = platformAPI.ShowDialog(dialog)
+			}
+			if err == nil {
+				// interaction.ImmediateEvents { // these events will be returned
+				for _, evt := range interaction.PostponedEvents {
+					err = postponeEvent(ctx, env, evt)
+				}
 			}
 		}
 	} else {
@@ -588,5 +595,11 @@ func copyMap(d Data) (res Data) {
 	for k, v := range d {
 		res[k] = v
 	}
+	return
+}
+
+func postponeEvent(ctx EventHandlingContext,
+	env Environment, evt PostponeEventForAnotherUser) (err error) {
+	//
 	return
 }

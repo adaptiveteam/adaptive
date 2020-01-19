@@ -130,19 +130,19 @@ var _ = Describe("Workflow", func() {
 		handler := template.GetRequestHandler(env)
 		It("should handle an initial message", func(){
 			np := CreateInput("")
-			err := handler(wf.ActionPathFromCallbackID(np), np)
+			_, err := handler(wf.ActionPathFromCallbackID(np).ToRelActionPath(), np)
 			Ω(err).Should(BeNil())
 			Ω(mock.response.Type).Should(Equal(platform.PostToConversationType))
 		})
 		It("should handle next/first message", func(){
 			np := CreateInput("/test/first-workflow?Event=first&State=next")
-			err := handler(wf.ActionPathFromCallbackID(np), np)
+			_, err := handler(wf.ActionPathFromCallbackID(np).ToRelActionPath(), np)
 			Ω(err).Should(BeNil())
 			Ω(mock.response.Type).Should(Equal(platform.PostToConversationType))
 		})
 		It("should show dialog on second message", func(){
 			np := CreateInput("/test/first-workflow?Event=second&State=next")
-			err := handler(wf.ActionPathFromCallbackID(np), np)
+			_, err := handler(wf.ActionPathFromCallbackID(np).ToRelActionPath(), np)
 			Ω(err).Should(BeNil())
 			Ω(mock.dialog.Title).Should(Equal("My dialog"))
 		})
