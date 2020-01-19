@@ -239,6 +239,12 @@ val ignoredField = ("Ignored".camel :: int) \\ "Flag indicating if an engagement
 
 val ebmImport = ImportClause(Some("ebm"), "github.com/adaptiveteam/adaptive/engagement-builder/model")
 
+// it is used for:
+// feedback requests, coaching requests, schedules to ask for create objective,
+// request for a partner to respond about progress updates,
+// request for a partner about comments,
+// closeout request,
+// 
 val UserEngagement = Entity(
     "UserEngagement".camel,
     List(idField \\ "A unique id to identify the engagement"),
@@ -283,6 +289,25 @@ val UserEngagementTable = Table(
 )
 
 val UserEngagementPackage = defaultPackage(UserEngagementTable, ebmImport :: allEntitySpecificImports(UserEngagement))
+
+val CoachingRequest = Entity("CoachingRequest".camel,
+    List(idField),
+    List(
+        userIdField,
+        platformIdField,
+        "UserObjectiveID".camel :: string
+    ),
+    Nil, List(CreatedModifiedTimesTrait)
+)
+
+val CoachingRequestTable = Table(CoachingRequest,
+    Index(idField),
+    List(
+        Index(userIdField, None)
+    )
+)
+
+val CoachingRequestPackage = defaultPackage(CoachingRequestTable, ebmImport :: allEntitySpecificImports(UserEngagement))
 
 val channelIDField = "ChannelID".camel :: string
 val userIDField = "UserID".camel :: string

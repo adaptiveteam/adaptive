@@ -24,6 +24,11 @@ type LogInfof = func(format string, args ...interface{})
 // PlatformAPIForPlatformID is a function to obtain API by PlatformID
 type PlatformAPIForPlatformID = func(platformID models.PlatformID) mapper.PlatformAPI
 
+// PostponeEvent saves an event to a database for further processing.
+// The database will be eventually evaluated for a particular user and
+// the event will be triggered.
+type PostponeEvent = func(platformID models.PlatformID, postponedEvent PostponeEventForAnotherUser) error
+
 // Environment contains mechanisms to deal with external world
 type Environment struct {
 	// this is provided from outside as a context. When we want to
@@ -31,6 +36,7 @@ type Environment struct {
 	Prefix         models.Path
 	GetPlatformAPI PlatformAPIForPlatformID
 	LogInfof       LogInfof
+	PostponeEvent
 }
 
 // MaxImmediateSteps is used to limit possible damage in case of errors
@@ -203,7 +209,7 @@ func interact(ctx EventHandlingContext,
 			if err == nil {
 				// interaction.ImmediateEvents { // these events will be returned
 				for _, evt := range interaction.PostponedEvents {
-					err = postponeEvent(ctx, env, evt)
+					err = env.PostponeEvent(ctx.PlatformID, evt)
 				}
 			}
 		}
@@ -595,11 +601,5 @@ func copyMap(d Data) (res Data) {
 	for k, v := range d {
 		res[k] = v
 	}
-	return
-}
-
-func postponeEvent(ctx EventHandlingContext,
-	env Environment, evt PostponeEventForAnotherUser) (err error) {
-	//
 	return
 }
