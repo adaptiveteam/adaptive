@@ -290,24 +290,26 @@ val UserEngagementTable = Table(
 
 val UserEngagementPackage = defaultPackage(UserEngagementTable, ebmImport :: allEntitySpecificImports(UserEngagement))
 
-val CoachingRequest = Entity("CoachingRequest".camel,
+val PostponedEvent = Entity("PostponedEvent".camel,
     List(idField),
     List(
         userIdField,
         platformIdField,
-        "UserObjectiveID".camel :: string
+        ("ActionPath".camel :: string) \\ "ActionPath is callback for triggering workflows", 
+        ("ValidThrough".camel :: timestamp) \\ "ValidThrough is the last time moment when this event might still be valid"
     ),
     Nil, List(CreatedModifiedTimesTrait)
 )
 
-val CoachingRequestTable = Table(CoachingRequest,
-    Index(idField),
+val PostponedEventTable = Table(PostponedEvent,
+    Index(idField, None),
     List(
+        Index(platformIdField, Some(userIdField)),
         Index(userIdField, None)
     )
 )
 
-val CoachingRequestPackage = defaultPackage(CoachingRequestTable, ebmImport :: allEntitySpecificImports(UserEngagement))
+val PostponedEventPackage = defaultPackage(PostponedEventTable, allEntitySpecificImports(PostponedEvent))
 
 val channelIDField = "ChannelID".camel :: string
 val userIDField = "UserID".camel :: string
@@ -857,8 +859,8 @@ val packages = List(
     StrategyInitiativeCommunityPackage,
     DialogEntryPackage,
     ContextAliasEntryPackage,
-    ObjectiveTypeDictionaryPackage
-    // TypedObjectivePackage
+    ObjectiveTypeDictionaryPackage,
+    PostponedEventPackage
     )
 val daosProject = GoProjectFolder("daos", packages)
 
@@ -882,8 +884,8 @@ val coreTerraformProject = TerraformProjectFolder("daos/terraform", List(
     StrategyInitiativeCommunityTable,
     DialogEntryTable,
     ContextAliasEntryTable,
-    ObjectiveTypeDictionaryTable
-    // TypedObjectiveTable
+    ObjectiveTypeDictionaryTable,
+    PostponedEventTable
     ))
 
 val workspace: Workspace = List(daosProject, coreTerraformProject)
