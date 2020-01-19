@@ -1,20 +1,20 @@
 package workflow
 
-
 import (
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"encoding/json"
-	"github.com/nlopes/slack"
+
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
-	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
+	"github.com/nlopes/slack"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // APIShowDialog wraps Slack API and returns a function that could be used as showDialog in HandleRequest
-func APIShowDialog(api *slack.Client) func (slack.InteractionCallback, ebm.AttachmentActionSurvey, Instance, string) (err error) {
-	return func (request slack.InteractionCallback, survey ebm.AttachmentActionSurvey, instance Instance, callbackID string) (err error) {
+func APIShowDialog(api *slack.Client) func(slack.InteractionCallback, ebm.AttachmentActionSurvey, Instance, string) (err error) {
+	return func(request slack.InteractionCallback, survey ebm.AttachmentActionSurvey, instance Instance, callbackID string) (err error) {
 		survBytes, err := json.Marshal(survey)
 		if err == nil {
 			logrus.Infof("APIShowDialog callbackID=%s: %v", callbackID, string(survBytes))
@@ -40,9 +40,10 @@ func SelectedValue(request slack.InteractionCallback) (value string, err error) 
 	return
 }
 
-func ConstructEnvironmentWithoutPrefix(adapter mapper.PlatformAdapter2, log alog.AdaptiveLogger) Environment {
+func ConstructEnvironmentWithoutPrefix(adapter mapper.PlatformAdapter2, postpone PostponeEvent, log alog.AdaptiveLogger) Environment {
 	return Environment{
 		GetPlatformAPI: adapter.ForPlatformID,
-		LogInfof: log.Infof,
+		LogInfof:       log.Infof,
+		PostponeEvent:  postpone,
 	}
 }
