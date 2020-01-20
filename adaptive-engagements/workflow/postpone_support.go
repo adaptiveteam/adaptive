@@ -14,7 +14,7 @@ import (
 func PostponeEventHandler(conn common.DynamoDBConnection) func (platformID models.PlatformID, postponeEvent PostponeEventForAnotherUser) (err error) {
 	dao := postponedEvent.NewDAO(conn.Dynamo, "PostponeEventHandler", conn.ClientID)
 	return func (platformID models.PlatformID, postponeEvent PostponeEventForAnotherUser) (err error) {
-		evt := postponeEvent.PostponedEvent{
+		evt := postponedEvent.PostponedEvent{
 			ID: core.Uuid(),
 			PlatformID: platformID,
 			UserID: postponeEvent.UserID,
@@ -38,7 +38,7 @@ func GetActionPathsForUserID(userID string) func(conn common.DynamoDBConnection)
 				if err != nil {
 					return
 				}
-				if validThrough >= now {
+				if validThrough.After(now) {
 					actionPaths = append(actionPaths, models.ParseActionPath(e.ActionPath))
 				} else {
 					log.Printf("Eliminating elapsed action for user %s, path=%s", userID, e.ActionPath)
@@ -54,7 +54,7 @@ func GetActionPathsForUserID(userID string) func(conn common.DynamoDBConnection)
 }
 
 // ForeachActionPathForUserID runs the given function for all valid action paths of the current user.
-func ForeachActionPathForUserID(userID string, f func(ActionPath)error) func(conn common.DynamoDBConnection) (err error) {
+func ForeachActionPathForUserID(userID string, f func(models.ActionPath)error) func(conn common.DynamoDBConnection) (err error) {
 	return func(conn common.DynamoDBConnection) (err error) {
 		dao := postponedEvent.NewDAO(conn.Dynamo, "ForeachActionPathForUserID", conn.ClientID)
 		var events []postponedEvent.PostponedEvent
@@ -67,7 +67,7 @@ func ForeachActionPathForUserID(userID string, f func(ActionPath)error) func(con
 				if err != nil {
 					return
 				}
-				if validThrough >= now {
+				if validThrough.After(now) {
 					ap := models.ParseActionPath(e.ActionPath)
 					err = f(ap)
 					if err != nil {
