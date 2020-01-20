@@ -38,12 +38,12 @@ script:
 
   # Upgrade terraform (we don't need when test is short)
   
-  - [ t$BRANCH = tdevelop ] &amp;&amp; echo $BRANCH
-  - [ t$BRANCH = tdevelop ] &amp;&amp; sudo apt-get install unzip
-  - [ t$BRANCH = tdevelop ] &amp;&amp; wget https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-  - [ t$BRANCH = tdevelop ] &amp;&amp; unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d temp_for_zip_extract
-  - [ t$BRANCH = tdevelop ] &amp;&amp; yes | sudo mv temp_for_zip_extract/terraform /usr/local/bin/
-  - [ t$BRANCH = tdevelop ] &amp;&amp; terraform --version
+  - "[ t$BRANCH = tdevelop ] &amp;&amp; echo $BRANCH"
+  - "[ t$BRANCH = tdevelop ] &amp;&amp; sudo apt-get install unzip"
+  - "[ t$BRANCH = tdevelop ] &amp;&amp; wget https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+  - "[ t$BRANCH = tdevelop ] &amp;&amp; unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d temp_for_zip_extract"
+  - "[ t$BRANCH = tdevelop ] &amp;&amp; yes | sudo mv temp_for_zip_extract/terraform /usr/local/bin/"
+  - "[ t$BRANCH = tdevelop ] &amp;&amp; terraform --version"
   
   # - pushd infra/core/terraform; pwd; ./backends/init.sh; popd
 
