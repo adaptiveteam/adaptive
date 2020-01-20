@@ -38,7 +38,7 @@ func UserStrategyObjectives(userID string,
 									   userID,    strategyObjectivesTable,    strategyObjectivesPlatformIndex,    userObjectivesTable,    communityUsersTable,    communityUsersUserCommunityIndex)
 	if community.IsUserInCommunity(userID, communityUsersTable, communityUsersUserCommunityIndex, community.Strategy) {
 		log.Println(fmt.Sprintf("### User %s is in strategy community, showing all the objectives", userID))
-		platformID := UserIDToPlatformID(userDAO)(userID)
+		platformID := UserIDToPlatformID(userDAO())(userID)
 		return AllOpenStrategyObjectives(platformID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
 			userObjectivesTable)
 	} else {
@@ -134,8 +134,8 @@ func StrategyCommunityByID(id, strategyCommunitiesTable string) StrategyCommunit
 		},
 	}
 	var comm StrategyCommunity
-	err := d.QueryTable(strategyCommunitiesTable, params, &comm)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table", strategyCommunitiesTable))
+	err := d().QueryTable(strategyCommunitiesTable, params, &comm)
+	core.ErrorHandler(err, namespace(), fmt.Sprintf("Could not query %s table", strategyCommunitiesTable))
 	return comm
 }
 

@@ -46,7 +46,7 @@ func initiativeCommunityAttachmentFields(mc models.MessageCallback, oldSi, newSi
 	capabilityCommunitiesTable string) ([]models.KvPair, ui.RichText) {
 	var kvs []models.KvPair
 	dn := common.TaggedUser(newSi.Advocate)
-	platformID := UserIDToPlatformID(userDAO)(mc.Source)
+	platformID := UserIDToPlatformID(userDAO())(mc.Source)
 	if oldSi != nil {
 		oldDn := common.TaggedUser(oldSi.Advocate)
 
@@ -78,7 +78,7 @@ func InitiativeCommunityViewAttachmentReadOnly(mc models.MessageCallback, newSi,
 
 func initiativeCommunityEditActions(siID string, mc models.MessageCallback, strategyInitiativesTable, strategyInitiativesPlatformIndex string) []ebm.AttachmentAction {
 	var actions []ebm.AttachmentAction
-	platformID := UserIDToPlatformID(userDAO)(mc.Source)
+	platformID := UserIDToPlatformID(userDAO())(mc.Source)
 	allInits := AllStrategyInitiatives(platformID, strategyInitiativesTable, strategyInitiativesPlatformIndex)
 	mc = *mc.WithTarget(siID)
 	if len(allInits) > 0 {
