@@ -8,12 +8,12 @@ import (
 )
 
 var (
-	namespace = utils.NonEmptyEnv("LOG_NAMESPACE")
-	region    = utils.NonEmptyEnv("AWS_REGION")
-	d         = awsutils.NewDynamo(region, "", namespace)
-	clientID  = utils.NonEmptyEnv("CLIENT_ID")
-	schema    = models.SchemaForClientID(clientID)
-	userDAO   = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	namespace = func ()string { return utils.NonEmptyEnv("LOG_NAMESPACE")}
+	region    = func ()string { return utils.NonEmptyEnv("AWS_REGION") }
+	d         = func ()*awsutils.DynamoRequest { return awsutils.NewDynamo(region(), "", namespace()) }
+	clientID  = func ()string { return utils.NonEmptyEnv("CLIENT_ID") }
+	schema    = func ()models.Schema { return models.SchemaForClientID(clientID()) }
+	userDAO   = func ()utilsUser.DAO { return utilsUser.NewDAOFromSchema(d(), namespace(), schema()) }
 )
 
 // UserIDToPlatformID converts userID to platformID using

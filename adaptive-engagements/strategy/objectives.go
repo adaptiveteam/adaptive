@@ -135,7 +135,7 @@ func UserCommunityObjectives(userID string, strategyObjectivesTable, strategyObj
 	userObjectivesTable string,
 	communityUsersTable, communityUsersUserIndex string) []models.StrategyObjective {
 	var op []models.StrategyObjective
-	platformID := UserIDToPlatformID(userDAO)(userID)
+	platformID := UserIDToPlatformID(userDAO())(userID)
 
 	// Get all capability communities for a user
 	capObjs := AllOpenStrategyObjectives(platformID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
