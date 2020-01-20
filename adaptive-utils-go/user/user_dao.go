@@ -68,7 +68,7 @@ func (d DAOImpl) Create(user models.User) error {
 // CreateUnsafe saves the User.
 func (d DAOImpl) CreateUnsafe(user models.User) {
 	err := d.Create(user)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.Id, d.Name))
+	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.ID, d.Name))
 }
 
 func dynString(str string) (attr *dynamodb.AttributeValue) {
@@ -132,7 +132,7 @@ func (d DAOImpl) Update(user models.User) error {
 // UpdateUnsafe saves the changed User.
 func (d DAOImpl) UpdateUnsafe(user models.User) {
 	err := d.Update(user)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.Id, d.Name))
+	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.ID, d.Name))
 }
 
 // ConvertUsersToUserProfilesAndRemoveAdaptiveBot converts users to user profiles.
@@ -140,7 +140,7 @@ func ConvertUsersToUserProfilesAndRemoveAdaptiveBot(users []models.User) (userPr
 	for _, each := range users {
 		if !each.IsShared && !each.IsAdaptiveBot && !each.Deleted {
 			userProfiles = append(userProfiles,
-				models.UserProfile{Id: each.Id,
+				models.UserProfile{Id: each.ID,
 					DisplayName: each.DisplayName,
 					FirstName:   each.FirstName,
 					LastName:    each.LastName,

@@ -1,5 +1,9 @@
 package models
 
+import (
+	"github.com/adaptiveteam/adaptive/daos/userFeedback"
+)
+
 type ScriptRequest struct {
 	Username string `json:"username"`
 }
@@ -30,21 +34,22 @@ type UserNotification struct {
 	Text   string `json:"text"`
 }
 
-type UserFeedback struct {
-	Id               string `json:"id"`
-	Source           string `json:"source"`
-	Target           string `json:"target"`
-	ValueID          string `json:"value_id"`
-	ConfidenceFactor string `json:"confidence_factor"`
-	Feedback         string `json:"feedback"`
-	QuarterYear      string `json:"quarter_year"`
-	PlatformID       string `json:"platform_id"`
-	// Channel, if any, to engage user in response to the feedback
-	// This is useful to reply to an event with no knowledge of the previous context
-	Channel string `json:"channel"`
-	// A reference to the original timestamp that can be used to reply via threading
-	MsgTimestamp string `json:"msg_timestamp"`
-}
+type UserFeedback = userFeedback.UserFeedback
+// type UserFeedback struct {
+// 	Id               string `json:"id"`
+// 	Source           string `json:"source"`
+// 	Target           string `json:"target"`
+// 	ValueID          string `json:"value_id"`
+// 	ConfidenceFactor string `json:"confidence_factor"`
+// 	Feedback         string `json:"feedback"`
+// 	QuarterYear      string `json:"quarter_year"`
+// 	PlatformID       string `json:"platform_id"`
+// 	// Channel, if any, to engage user in response to the feedback
+// 	// This is useful to reply to an event with no knowledge of the previous context
+// 	Channel string `json:"channel"`
+// 	// A reference to the original timestamp that can be used to reply via threading
+// 	MsgTimestamp string `json:"msg_timestamp"`
+// }
 
 // UserFeedbackTableSchema is schema of Dynamo table with user info.
 type UserFeedbackTableSchema struct {

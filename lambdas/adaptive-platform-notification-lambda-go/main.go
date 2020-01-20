@@ -53,7 +53,7 @@ func cleanEarlierHiMessage(api *slack.Client, postTo string) {
 }
 func platformToken(userID string) plat.UserPlatformToken {
 	u := userDao.ReadUnsafe(userID)
-	pt := platformTokenDao.ReadUnsafe(models.PlatformID(u.PlatformId))
+	pt := platformTokenDao.ReadUnsafe(u.PlatformID)
 	return plat.UserPlatformToken{
 		PlatformName:  pt.PlatformName,
 		PlatformToken: pt.PlatformToken}

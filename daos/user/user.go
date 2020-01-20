@@ -19,6 +19,7 @@ type User struct  {
 	FirstName string `json:"first_name,omitempty"`
 	LastName string `json:"last_name,omitempty"`
 	Timezone string `json:"timezone"`
+	IsAdaptiveBot bool `json:"is_adaptive_bot,omitempty"`
 	TimezoneOffset int `json:"timezone_offset"`
 	// in 24 hr format, localtime
 	AdaptiveScheduledTime string `json:"adaptive_scheduled_time,omitempty"`
@@ -80,7 +81,7 @@ type DAOImpl struct {
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic("Cannot create DAO without clientID") }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: clientID + "_user",
+		Name: TableName(clientID),
 	}
 }
 
@@ -90,6 +91,9 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		Name: tableName,
 	}
+}
+func TableName(clientID string) string {
+	return clientID + "_user"
 }
 
 // Create saves the User.
@@ -288,16 +292,17 @@ func allParams(user User, old User) (params map[string]*dynamodb.AttributeValue)
 	if user.FirstName != old.FirstName { params[":a2"] = common.DynS(user.FirstName) }
 	if user.LastName != old.LastName { params[":a3"] = common.DynS(user.LastName) }
 	if user.Timezone != old.Timezone { params[":a4"] = common.DynS(user.Timezone) }
-	if user.TimezoneOffset != old.TimezoneOffset { params[":a5"] = common.DynN(user.TimezoneOffset) }
-	if user.AdaptiveScheduledTime != old.AdaptiveScheduledTime { params[":a6"] = common.DynS(user.AdaptiveScheduledTime) }
-	if user.AdaptiveScheduledTimeInUTC != old.AdaptiveScheduledTimeInUTC { params[":a7"] = common.DynS(user.AdaptiveScheduledTimeInUTC) }
-	if user.PlatformID != old.PlatformID { params[":a8"] = common.DynS(string(user.PlatformID)) }
-	if user.PlatformOrg != old.PlatformOrg { params[":a9"] = common.DynS(user.PlatformOrg) }
-	if user.IsAdmin != old.IsAdmin { params[":a10"] = common.DynBOOL(user.IsAdmin) }
-	if user.Deleted != old.Deleted { params[":a11"] = common.DynBOOL(user.Deleted) }
-	if user.CreatedAt != old.CreatedAt { params[":a12"] = common.DynS(user.CreatedAt) }
-	if user.ModifiedAt != old.ModifiedAt { params[":a13"] = common.DynS(user.ModifiedAt) }
-	if user.IsShared != old.IsShared { params[":a14"] = common.DynBOOL(user.IsShared) }
+	if user.IsAdaptiveBot != old.IsAdaptiveBot { params[":a5"] = common.DynBOOL(user.IsAdaptiveBot) }
+	if user.TimezoneOffset != old.TimezoneOffset { params[":a6"] = common.DynN(user.TimezoneOffset) }
+	if user.AdaptiveScheduledTime != old.AdaptiveScheduledTime { params[":a7"] = common.DynS(user.AdaptiveScheduledTime) }
+	if user.AdaptiveScheduledTimeInUTC != old.AdaptiveScheduledTimeInUTC { params[":a8"] = common.DynS(user.AdaptiveScheduledTimeInUTC) }
+	if user.PlatformID != old.PlatformID { params[":a9"] = common.DynS(string(user.PlatformID)) }
+	if user.PlatformOrg != old.PlatformOrg { params[":a10"] = common.DynS(user.PlatformOrg) }
+	if user.IsAdmin != old.IsAdmin { params[":a11"] = common.DynBOOL(user.IsAdmin) }
+	if user.Deleted != old.Deleted { params[":a12"] = common.DynBOOL(user.Deleted) }
+	if user.CreatedAt != old.CreatedAt { params[":a13"] = common.DynS(user.CreatedAt) }
+	if user.ModifiedAt != old.ModifiedAt { params[":a14"] = common.DynS(user.ModifiedAt) }
+	if user.IsShared != old.IsShared { params[":a15"] = common.DynBOOL(user.IsShared) }
 	return
 }
 func updateExpression(user User, old User) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -309,16 +314,17 @@ func updateExpression(user User, old User) (expr string, params map[string]*dyna
 	if user.FirstName != old.FirstName { updateParts = append(updateParts, "first_name = :a2"); params[":a2"] = common.DynS(user.FirstName);  }
 	if user.LastName != old.LastName { updateParts = append(updateParts, "last_name = :a3"); params[":a3"] = common.DynS(user.LastName);  }
 	if user.Timezone != old.Timezone { updateParts = append(updateParts, "#timezone = :a4"); params[":a4"] = common.DynS(user.Timezone); fldName := "timezone"; names["#timezone"] = &fldName }
-	if user.TimezoneOffset != old.TimezoneOffset { updateParts = append(updateParts, "timezone_offset = :a5"); params[":a5"] = common.DynN(user.TimezoneOffset);  }
-	if user.AdaptiveScheduledTime != old.AdaptiveScheduledTime { updateParts = append(updateParts, "adaptive_scheduled_time = :a6"); params[":a6"] = common.DynS(user.AdaptiveScheduledTime);  }
-	if user.AdaptiveScheduledTimeInUTC != old.AdaptiveScheduledTimeInUTC { updateParts = append(updateParts, "adaptive_scheduled_time_in_utc = :a7"); params[":a7"] = common.DynS(user.AdaptiveScheduledTimeInUTC);  }
-	if user.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a8"); params[":a8"] = common.DynS(string(user.PlatformID));  }
-	if user.PlatformOrg != old.PlatformOrg { updateParts = append(updateParts, "platform_org = :a9"); params[":a9"] = common.DynS(user.PlatformOrg);  }
-	if user.IsAdmin != old.IsAdmin { updateParts = append(updateParts, "is_admin = :a10"); params[":a10"] = common.DynBOOL(user.IsAdmin);  }
-	if user.Deleted != old.Deleted { updateParts = append(updateParts, "deleted = :a11"); params[":a11"] = common.DynBOOL(user.Deleted);  }
-	if user.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a12"); params[":a12"] = common.DynS(user.CreatedAt);  }
-	if user.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a13"); params[":a13"] = common.DynS(user.ModifiedAt);  }
-	if user.IsShared != old.IsShared { updateParts = append(updateParts, "is_shared = :a14"); params[":a14"] = common.DynBOOL(user.IsShared);  }
+	if user.IsAdaptiveBot != old.IsAdaptiveBot { updateParts = append(updateParts, "is_adaptive_bot = :a5"); params[":a5"] = common.DynBOOL(user.IsAdaptiveBot);  }
+	if user.TimezoneOffset != old.TimezoneOffset { updateParts = append(updateParts, "timezone_offset = :a6"); params[":a6"] = common.DynN(user.TimezoneOffset);  }
+	if user.AdaptiveScheduledTime != old.AdaptiveScheduledTime { updateParts = append(updateParts, "adaptive_scheduled_time = :a7"); params[":a7"] = common.DynS(user.AdaptiveScheduledTime);  }
+	if user.AdaptiveScheduledTimeInUTC != old.AdaptiveScheduledTimeInUTC { updateParts = append(updateParts, "adaptive_scheduled_time_in_utc = :a8"); params[":a8"] = common.DynS(user.AdaptiveScheduledTimeInUTC);  }
+	if user.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a9"); params[":a9"] = common.DynS(string(user.PlatformID));  }
+	if user.PlatformOrg != old.PlatformOrg { updateParts = append(updateParts, "platform_org = :a10"); params[":a10"] = common.DynS(user.PlatformOrg);  }
+	if user.IsAdmin != old.IsAdmin { updateParts = append(updateParts, "is_admin = :a11"); params[":a11"] = common.DynBOOL(user.IsAdmin);  }
+	if user.Deleted != old.Deleted { updateParts = append(updateParts, "deleted = :a12"); params[":a12"] = common.DynBOOL(user.Deleted);  }
+	if user.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a13"); params[":a13"] = common.DynS(user.CreatedAt);  }
+	if user.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a14"); params[":a14"] = common.DynS(user.ModifiedAt);  }
+	if user.IsShared != old.IsShared { updateParts = append(updateParts, "is_shared = :a15"); params[":a15"] = common.DynBOOL(user.IsShared);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return

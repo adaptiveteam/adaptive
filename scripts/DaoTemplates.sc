@@ -91,7 +91,7 @@ type DAOImpl struct {
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic("Cannot create DAO without clientID") }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: clientID + "_${dynamoName(dao.table.entity.name)}",
+		Name: TableName(clientID),
 	}
 }
 
@@ -104,6 +104,7 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 }
 """) ::: {
 		val templates = OperationImplementationTemplates(dao.table)
+		tableNameFuncTemplate(dao.table) :::
 		dao.operations.flatMap(templates.apply) ::: 
 			templates.utilitiesTemplate ::: 
 			templates.allParamsTemplate :::
@@ -457,3 +458,12 @@ func (d DAOImpl)ReadBy${indexShortName}Unsafe($args) (out []$structName) {
 	}
 
 }
+
+def tableNameFuncTemplate(table: Table): List[String] =
+	blockNamed(
+		s"func TableName(clientID string) string",
+		lines(
+			s"""return clientID + "_${dynamoName(table.entity.name)}""""
+		)
+	)
+ 

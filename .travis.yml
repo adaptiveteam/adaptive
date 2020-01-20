@@ -1,7 +1,7 @@
 language: go
 
 go:
-  - 1.12.x
+  # - 1.12.x
   - 1.13.x
 
 os:
@@ -16,27 +16,44 @@ sudo: false
 install: true
 
 env:
-  - GO111MODULE=on COVERALLS_TOKEN=wHdTnciK7C03xnxA2YzIBEau8m8QBf32g AWS_REGION=us-east-1 DIALOG_TABLE=ctcreel_adaptive_dialog
-
+  - GO111MODULE=on COVERALLS_TOKEN=wHdTnciK7C03xnxA2YzIBEau8m8QBf32g \
+    DIALOG_TABLE=ctcreel_adaptive_dialog TERRAFORM_VERSION=0.12.19 \
+    RDS_HOST=localhost RDS_USER=no RDS_PASSWORD=no RDS_PORT=no RDS_DB_NAME=no
 notifications:
   slack: geigsen2:TBhXpLjpz2ggwaNWOTcO7TSo
 
 before_install:
     - go get github.com/mattn/goveralls
 script:
+  - make -version
   - export AWS_LOCAL_HOST='localstack'
   - export FORCE_NONINTERACTIVE=true
-  - export AWS_DEFAULT_REGION=eu-west-1
+  - export AWS_DEFAULT_REGION=eu-west-2
   # - export AWS_DEFAULT_REGION=us-east-1 we don't want accidently break something in our region
-  - export AWS_REGION=eu-west-1
+  - export AWS_REGION=eu-west-2
+  - export TEST_OPS=-short
+
+  # # Upgrade terraform (we don't need when test is short)
+  
+  # - sudo apt-get install unzip
+  # - wget https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+  # - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d temp_for_zip_extract
+  # - yes | sudo mv temp_for_zip_extract/terraform /usr/local/bin/
+  # - terraform --version
+  
+  # - pushd infra/core/terraform; pwd; ./backends/init.sh; popd
+
+  - make core-build
   # - $GOPATH/bin/goveralls -service=travis-pro
-  - docker-compose up -d
-  - make test
-  - docker-compose down
+  # - docker-compose up -d
+  - make test-with-localstack
+  # - docker-compose down
   # - pushd aws-utils-go; go test -v; popd
   # - pushd dialog-fetcher; go test -v; popd
-    
+
+      
 notifications:
   slack:
     rooms:
       secure: t09oDzKRnOCphzBF3pLMxJ4/NUzyy3ecoJfRDW3APP0D1Nc9yDmaHvWGItp1UIxfGOd0UjazphnbxSMGLxQoD/taycKYUB9xpEOiQcUchr7eAIxzoKtkUvndFxzDelsPXT2gXIr10FPBZ0utwZW/N7O5qKATAUHn2mzBNXtkhrMmRJJdjoZ5tXK6/7/HPXIwzCwgsx7z7BbsiIQ8zbQWAGxmI5wmO9BoAV3uhpQ9DNMWRHv3HItB3jnadcsUeGHeTiNxeccieB6T0Nz1O4bCD1L0xp81rbYL0JD6m0sCbKntN/1STh7/Wqla739kb1W802slgycMFFDZIOXLXhqaCKK+zUCN6NVG9ivMls1UiWHYBa8iOXcH44la3EuUGgBfR4fqARM1FyPkm4oOY6QZnfZ87PlsfhsCVWGzxm+JKWuHK+qajTO/ol3cSrkbjChHbPdbGhKA8MkPIEGcUy4LvENnx/G57jaZOzngvFwFUd/cdpZ14Uew+cHz0fJ+mGnmV1he80dvTUTvgK8zEdoKIbM3H0TlLO/K6vXcKH20l9JrRS5E1N7KqT3MXVjURmAwQHYjtZRVIpu9H/7FnG74qE6FoDIdcoQ+eX6WRAxhsGPbNAlRhpQTvTaI7Fk9T66mePL9JZlV0SW9uZXvC1ShE2TT4v02uQ8iWD677ZU6g6w=
+

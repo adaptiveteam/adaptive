@@ -1,0 +1,116 @@
+{
+  "resource": "/{proxy+}",
+  "path": "/%7Bproxy+%7D",
+  "httpMethod": "POST",
+  "headers": {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip,deflate",
+    "CloudFront-Forwarded-Proto": "https",
+    "CloudFront-Is-Desktop-Viewer": "true",
+    "CloudFront-Is-Mobile-Viewer": "false",
+    "CloudFront-Is-SmartTV-Viewer": "false",
+    "CloudFront-Is-Tablet-Viewer": "false",
+    "CloudFront-Viewer-Country": "US",
+    "Content-Type": "application/json",
+    "Host": "xd69jay3eb.execute-api.us-east-1.amazonaws.com",
+    "User-Agent": "Slackbot 1.0 (+https://api.slack.com/robots)",
+    "Via": "1.1 xxxxxxx.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Id": "axzcfid",
+    "X-Amzn-Trace-Id": "Root=xxxxxxxx",
+    "X-Forwarded-For": "x.x.x.x, x.x.x.x",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https",
+    "X-Slack-Request-Timestamp": "1552031471",
+    "X-Slack-Signature": "v0=xxxxxxx"
+  },
+  "multiValueHeaders": {
+    "Accept": [
+      "*/*"
+    ],
+    "Accept-Encoding": [
+      "gzip,deflate"
+    ],
+    "CloudFront-Forwarded-Proto": [
+      "https"
+    ],
+    "CloudFront-Is-Desktop-Viewer": [
+      "true"
+    ],
+    "CloudFront-Is-Mobile-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-SmartTV-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-Tablet-Viewer": [
+      "false"
+    ],
+    "CloudFront-Viewer-Country": [
+      "US"
+    ],
+    "Content-Type": [
+      "application/json"
+    ],
+    "Host": [
+      "xxxxx.execute-api.us-east-1.amazonaws.com"
+    ],
+    "User-Agent": [
+      "Slackbot 1.0 (+https://api.slack.com/robots)"
+    ],
+    "Via": [
+      "1.1 xxxxxxxx.cloudfront.net (CloudFront)"
+    ],
+    "X-Amz-Cf-Id": [
+      "xxxxxxxx=="
+    ],
+    "X-Amzn-Trace-Id": [
+      "Root=1-5c821eef-xxxxxxx"
+    ],
+    "X-Forwarded-For": [
+      "x.x.x.x, x.x.x.x"
+    ],
+    "X-Forwarded-Port": [
+      "443"
+    ],
+    "X-Forwarded-Proto": [
+      "https"
+    ],
+    "X-Slack-Request-Timestamp": [
+      "1552031471"
+    ],
+    "X-Slack-Signature": [
+      "v0=xxxxxxxx"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": {
+    "proxy": "%7Bproxy+%7D"
+  },
+  "stageVariables": null,
+  "requestContext": {
+    "accountId": "xxxxxxx",
+    "resourceId": "xxxx",
+    "stage": "dev",
+    "requestId": "xxxxxxx",
+    "identity": {
+      "cognitoIdentityPoolId": "",
+      "accountId": "",
+      "cognitoIdentityId": "",
+      "caller": "",
+      "apiKey": "",
+      "accessKey": "",
+      "sourceIp": "x.x.x.x",
+      "cognitoAuthenticationType": "",
+      "cognitoAuthenticationProvider": "",
+      "userArn": "",
+      "userAgent": "Slackbot 1.0 (+https://api.slack.com/robots)",
+      "user": ""
+    },
+    "resourcePath": "/{proxy+}",
+    "authorizer": null,
+    "httpMethod": "POST",
+    "apiId": "xxxxx"
+  },
+  "body": "{\"token\":\"xxxxxx\",\"team_id\":\"xxxxx\",\"api_app_id\":\"xxxxx\",\"event\":{\"client_msg_id\":\"bff7416b-beaa-4335-a036-19fa5238f7d7\",\"type\":\"message\",\"text\":\"warmup\",\"user\":\"xxxxx\",\"ts\":\"1552031470.004600\",\"channel\":\"xxxxx\",\"event_ts\":\"1552031470.004600\",\"channel_type\":\"im\"},\"type\":\"event_callback\",\"event_id\":\"xxxxx\",\"event_time\":1552031470,\"authed_users\":[\"xxxxx\"]}"
+}

@@ -26,3 +26,15 @@ const (
 	SlackPlatform PlatformName = "slack"
 	MsTeamsPlatform PlatformName = "ms-teams"
 )
+
+type AdaptiveCommunityID string
+const (
+	Admin AdaptiveCommunityID = "admin"
+	HR AdaptiveCommunityID = "hr"
+	Coaching AdaptiveCommunityID = "coaching"
+	User AdaptiveCommunityID = "user"
+	Strategy AdaptiveCommunityID = "strategy"
+	Capability AdaptiveCommunityID = "capability"
+	Initiative AdaptiveCommunityID = "initiative"
+	Competency AdaptiveCommunityID = "competency"
+)

@@ -1,12 +1,10 @@
 
 SHELL := /bin/bash
 
-ADAPTIVE_REPOS ?= $(shell cd ../ ; pwd)
-
-COACHING_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-coaching-lambdas
-CORE_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-core-lambdas
-STRATEGY_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-strategy-lambdas
-USER_COMMUNITY_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-user-community-lambdas
+#COACHING_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-coaching-lambdas
+#CORE_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-core-lambdas
+#STRATEGY_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-strategy-lambdas
+#USER_COMMUNITY_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-user-community-lambdas
 
 .DEFAULT_GOAL := all
 
@@ -15,39 +13,21 @@ USER_COMMUNITY_LAMBDA = $(ADAPTIVE_REPOS)/adaptive-user-community-lambdas
 .ONESHELL:
 
 .PHONY: help test core-apply core-lambdas install
-ADAPTIVE_REPOS := $(shell cd ..; pwd)
+LAMBDAS_SRC_DIR := $(shell cd ..; pwd)
 PWD := $(shell pwd)
 AMM_BIN := ${PWD}/bin/amm
 AMM_VERSION := 1.8.2
 AMM := ${AMM_BIN}-${AMM_VERSION}
-CORE_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-core-lambdas
-COACHING_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-coaching-lambdas
-STRATEGY_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-strategy-lambdas
-USER_COMMUNITY_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-user-community-lambdas
 
-# include ../adaptive-core-lambdas/common.Makefile
-# include ../adaptive-core-lambdas/core.Makefile
-# include ../core-infra-terraform/core.tf.Makefile
-# include ../adaptive-coaching-lambdas/coaching.Makefile
-# include ../adaptive-coaching-infra-terraform/coaching.tf.Makefile
-# include ../adaptive-strategy-lambdas/strategy.Makefile
-# include ../adaptive-strategy-infra-terraform/strategy.tf.Makefile
-# include ../adaptive-user-community-lambdas/user-community.Makefile
-# include ../adaptive-user-community-infra-terraform/user-community.tf.Makefile
+#CORE_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-core-lambdas
+#COACHING_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-coaching-lambdas
+#STRATEGY_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-strategy-lambdas
+#USER_COMMUNITY_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-user-community-lambdas
 
-# Check preconditions
-
-ifndef ADAPTIVE_REPOS
-echo "ADAPTIVE_REPOS=${ADAPTIVE_REPOS}"
-$(error ADAPTIVE_REPOS is not defined)
-endif
-
-# go-sources(goSourcesPath) - Function that returns all *.go files and go.mod and go.sum 
-#                             from the given directory.
-go-sources = $(wildcard $(1)/*.go) $(1)/go.mod $(1)/go.sum
-
-# install is the top level goal for installing all lambdas
-# install: install-core install-coaching install-user-community install-strategy
+include common.Makefile
+include build.Makefile
+include deploy.Makefile
+#include core.main.Makefile
 
 # compile: compile-core compile-coaching compile-user-community compile-strategy
 
@@ -67,45 +47,46 @@ generate: ${AMM}
 generate-dry-run: ${AMM}
 	${AMM_BIN} scripts/Gen.sc --dry-run 
 
-all-git-pull:
-	pushd $(ADAPTIVE_REPOS) ;\
-	for d in ./*/ ; do (pushd "$$d" && pwd && git pull && popd); done ;\
-	popd
+# all-git-pull:
+# 	pushd $(ADAPTIVE_REPOS) ;\
+# 	for d in ./*/ ; do (pushd "$$d" && pwd && git pull && popd); done ;\
+# 	popd
 
-all-git-branch:
-	pushd $(ADAPTIVE_REPOS) ;\
-	for d in ./*/ ; do (pushd "$$d">>/dev/null && echo "branch:$$(git rev-parse --abbrev-ref HEAD) in $$d" && popd >> null); done ;\
-	popd
+# all-git-branch:
+# 	pushd $(ADAPTIVE_REPOS) ;\
+# 	for d in ./*/ ; do (pushd "$$d">>/dev/null && echo "branch:$$(git rev-parse --abbrev-ref HEAD) in $$d" && popd >> null); done ;\
+# 	popd
 
-all-git-status:
-	pushd $(ADAPTIVE_REPOS) ;\
-	for d in ./*/ ; do (pushd "$$d">>/dev/null && echo "$$d status:$$(git s)" && popd >> /dev/null); done ;\
-	popd
+# all-git-status:
+# 	pushd $(ADAPTIVE_REPOS) ;\
+# 	for d in ./*/ ; do (pushd "$$d">>/dev/null && echo "$$d status:$$(git s)" && popd >> /dev/null); done ;\
+# 	popd
 
-all-echo-all:
-	pushd $(ADAPTIVE_REPOS) ;\
-	for d in ./*/ ; do (echo "dir:$$d"); done ;\
-	popd
+# all-echo-all:
+# 	pushd $(ADAPTIVE_REPOS) ;\
+# 	for d in ./*/ ; do (echo "dir:$$d"); done ;\
+# 	popd
 
-backup-all:
-	pushd $(ADAPTIVE_REPOS)/core-infra-terraform ;\
-	make backup-all ;\
-	popd
+# backup-all:
+# 	pushd $(ADAPTIVE_REPOS)/core-infra-terraform ;\
+# 	make backup-all ;\
+# 	popd
 
 restore-all:
 	pushd $(ADAPTIVE_REPOS)/core-infra-terraform ;\
 	make restore-all ;\
 	popd
 
-all: test
+all:
+	echo "all"
 
 test-with-localstack:
 	docker-compose up -d ;\
-	go test -v ./...  -coverprofile=cover.out ;\
+	go test ${TEST_OPS} -v ./...  -coverprofile=cover.out ;\
 	docker-compose down
 
 test:
-	go test -v ./...  -coverprofile=cover.out
+	go test -v ${TEST_OPS} ./...  -coverprofile=cover.out
 clean:
 	go clean
 deps:

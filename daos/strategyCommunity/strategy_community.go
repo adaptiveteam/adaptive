@@ -14,18 +14,16 @@ import (
 	"strings"
 )
 
-type AdaptiveCommunityID string
-
 type StrategyCommunity struct  {
 	ID string `json:"id"`
 	PlatformID common.PlatformID `json:"platform_id"`
 	Advocate string `json:"advocate"`
-	Community AdaptiveCommunityID `json:"community"`
+	Community common.AdaptiveCommunityID `json:"community"`
 	ChannelID string `json:"channel_id"`
 	// 0 for false
 	ChannelCreated int `json:"channel_created"`
 	AccountabilityPartner string `json:"accountability_partner"`
-	ParentCommunity AdaptiveCommunityID `json:"parent_community"`
+	ParentCommunity common.AdaptiveCommunityID `json:"parent_community"`
 	ParentCommunityChannelID string `json:"parent_community_channel_id"`
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
@@ -39,8 +37,10 @@ func (strategyCommunity StrategyCommunity)CollectEmptyFields() (emptyFields []st
 	if strategyCommunity.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if strategyCommunity.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
 	if strategyCommunity.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
+	if strategyCommunity.Community == "" { emptyFields = append(emptyFields, "Community")}
 	if strategyCommunity.ChannelID == "" { emptyFields = append(emptyFields, "ChannelID")}
 	if strategyCommunity.AccountabilityPartner == "" { emptyFields = append(emptyFields, "AccountabilityPartner")}
+	if strategyCommunity.ParentCommunity == "" { emptyFields = append(emptyFields, "ParentCommunity")}
 	if strategyCommunity.ParentCommunityChannelID == "" { emptyFields = append(emptyFields, "ParentCommunityChannelID")}
 	ok = len(emptyFields) == 0
 	return
@@ -81,7 +81,7 @@ type DAOImpl struct {
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic("Cannot create DAO without clientID") }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: clientID + "_strategy_community",
+		Name: TableName(clientID),
 	}
 }
 
@@ -91,6 +91,9 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		Name: tableName,
 	}
+}
+func TableName(clientID string) string {
+	return clientID + "_strategy_community"
 }
 
 // Create saves the StrategyCommunity.

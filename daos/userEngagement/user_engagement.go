@@ -53,6 +53,7 @@ type UserEngagement struct  {
 	Ignored int `json:"ignored"`
 	EffectiveStartDate string `json:"effective_start_date,omitempty"`
 	EffectiveEndDate string `json:"effective_end_date,omitempty"`
+	PostedAt string `json:"posted_at,omitempty"`
 	// Re-scheduled timestamp for the engagement, if any
 	RescheduledFrom string `json:"rescheduled_from"`
 	// Automatically maintained field
@@ -107,7 +108,7 @@ type DAOImpl struct {
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic("Cannot create DAO without clientID") }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: clientID + "_user_engagement",
+		Name: TableName(clientID),
 	}
 }
 
@@ -117,6 +118,9 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		Name: tableName,
 	}
+}
+func TableName(clientID string) string {
+	return clientID + "_user_engagement"
 }
 
 // Create saves the UserEngagement.
@@ -293,9 +297,10 @@ func updateExpression(userEngagement UserEngagement, old UserEngagement) (expr s
 	if userEngagement.Ignored != old.Ignored { updateParts = append(updateParts, "ignored = :a12"); params[":a12"] = common.DynN(userEngagement.Ignored);  }
 	if userEngagement.EffectiveStartDate != old.EffectiveStartDate { updateParts = append(updateParts, "effective_start_date = :a13"); params[":a13"] = common.DynS(userEngagement.EffectiveStartDate);  }
 	if userEngagement.EffectiveEndDate != old.EffectiveEndDate { updateParts = append(updateParts, "effective_end_date = :a14"); params[":a14"] = common.DynS(userEngagement.EffectiveEndDate);  }
-	if userEngagement.RescheduledFrom != old.RescheduledFrom { updateParts = append(updateParts, "rescheduled_from = :a15"); params[":a15"] = common.DynS(userEngagement.RescheduledFrom);  }
-	if userEngagement.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a16"); params[":a16"] = common.DynS(userEngagement.CreatedAt);  }
-	if userEngagement.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a17"); params[":a17"] = common.DynS(userEngagement.ModifiedAt);  }
+	if userEngagement.PostedAt != old.PostedAt { updateParts = append(updateParts, "posted_at = :a15"); params[":a15"] = common.DynS(userEngagement.PostedAt);  }
+	if userEngagement.RescheduledFrom != old.RescheduledFrom { updateParts = append(updateParts, "rescheduled_from = :a16"); params[":a16"] = common.DynS(userEngagement.RescheduledFrom);  }
+	if userEngagement.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a17"); params[":a17"] = common.DynS(userEngagement.CreatedAt);  }
+	if userEngagement.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a18"); params[":a18"] = common.DynS(userEngagement.ModifiedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return
