@@ -119,8 +119,12 @@ func HandleRequest(ctx context.Context) (err error) {
 						PlatformID: platformID,
 					}
 					invokeScriptingLambda(engage, platformID, config)
-					if platformID == EmbursePlatformID {
-						emulateDatesForEmburse(time.Now(), user.ID, platformID, config)
+					switch platformID {
+					case EmbursePlatformID:
+						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, platformID, config)
+					case IvanPlatformID, StagingPlatformID:
+						emulateDates(TestDateShiftConfig, time.Now(), user.ID, platformID, config)
+					default:
 					}
 				}
 			}
