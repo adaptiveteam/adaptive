@@ -87,6 +87,8 @@ test-with-localstack:
 
 test:
 	go test -v ${TEST_OPS} ./...  -coverprofile=cover.out
+test-short:
+	go test -short -v ${TEST_OPS} ./...  -coverprofile=cover.out
 clean:
 	go clean
 deps:

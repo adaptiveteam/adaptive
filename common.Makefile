@@ -4,7 +4,7 @@
 
 # go-sources(goSourcesPath) - Function that returns all *.go files and go.mod and go.sum 
 #                             from the given directory.
-go-sources = $(1)/*.go
+go-sources = $(wildcard $(1)/*.go) $(wildcard $(1)/**/*.go)
 # $(1)/go.mod $(1)/go.sum
 
 tf-sources = $(1)/*.tf $(1)/*.tfvars $(1)/backends/*.tfbackend
