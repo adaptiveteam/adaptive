@@ -1,7 +1,9 @@
 package lambda
 
 import (
+	"encoding/json"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 )
 
@@ -36,5 +38,14 @@ func readConfigFromEnvironment() Config {
 		cw:                      awsutils.NewCloudWatch(region, "", namespace),
 		l:                       awsutils.NewLambda(region, "", namespace),
 		d:                       awsutils.NewDynamo(region, "", namespace),
+	}
+}
+
+func invokeScriptingLambda(engage models.UserEngage, platformID models.PlatformID, config Config) {
+	engage.PlatformID = platformID
+	payloadJSONBytes, _ := json.Marshal(engage)
+	_, err := config.l.InvokeFunction(config.engScriptingLambdaArn, payloadJSONBytes, true)
+	if err != nil {
+		logger.WithError(err).Errorf("Could not invoke scripting lambda for %s user in %v platform", engage.UserId, platformID)
 	}
 }
