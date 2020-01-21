@@ -260,3 +260,13 @@ func NewSimpleOptionGroupsSelect(name string, label ui.PlainText, placeholderTex
 		OptionGroups:     optionGroups,
 	}
 }
+
+// OmitEmpty removes fields with empty values
+func OmitEmpty(fields []AttachmentField) (res []AttachmentField) {
+	for _, f := range fields {
+		if f.Value != "" {
+			res = append(res, f)
+		}
+	}
+	return
+}
