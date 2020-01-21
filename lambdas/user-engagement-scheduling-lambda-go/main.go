@@ -2,7 +2,6 @@ package lambda
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
@@ -115,12 +114,18 @@ func HandleRequest(ctx context.Context) (err error) {
 				if len(userCommunities) == 1 && userCommunities[0].CommunityId == string(community.Admin) {
 					logger.Infof("%s user belongs only to Admin Community, not invoking schedules for this user", user.ID)
 				} else if len(userCommunities) > 0 {
-					// TODO: Invoke through goroutines
-					payloadJsonBytes, _ := json.Marshal(models.UserEngage{
+					engage := models.UserEngage{
 						UserId:     user.ID,
-						PlatformID: models.PlatformID(platformID),
-					})
-					_, _ = config.l.InvokeFunction(config.engScriptingLambdaArn, payloadJsonBytes, true)
+						PlatformID: platformID,
+					}
+					invokeScriptingLambda(engage, platformID, config)
+					switch platformID {
+					case EmbursePlatformID:
+						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, platformID, config)
+					case IvanPlatformID, StagingPlatformID:
+						emulateDates(TestDateShiftConfig, time.Now(), user.ID, platformID, config)
+					default:
+					}
 				}
 			}
 		}
