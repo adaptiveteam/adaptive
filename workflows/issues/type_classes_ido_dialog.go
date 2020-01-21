@@ -5,6 +5,7 @@ import (
 	"time"
 
 	objectives "github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
+	engIssues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -158,35 +159,13 @@ func (IDOImpl) ExtractFromContext(ctx wf.EventHandlingContext, id string, update
 func (i IDOImpl) View(w workflowImpl, isShowingDetails, isShowingProgress bool,
 	newAndOldIssues NewAndOldIssues,
 ) (fields []ebm.AttachmentField) {
-	fields = i.ObjectiveToFields(w, newAndOldIssues)
+	view := engIssues.GetView(IDO)
+	fields = view.GetMainFields(newAndOldIssues)
 	if isShowingDetails {
-		fields = append(fields, i.ObjectiveToFieldsDetails(newAndOldIssues)...)
+		fields = append(fields, view.GetDetailsFields(newAndOldIssues)...)
 	}
 	if isShowingProgress {
-		fields = append(fields, userObjectiveProgressField(newAndOldIssues.NewIssue.PrefetchedData.Progress))
-	}
-	return
-}
-
-func (i IDOImpl) ObjectiveToFields(w workflowImpl, newAndOldIssues NewAndOldIssues) (fields []ebm.AttachmentField) {
-	fields = []ebm.AttachmentField{
-		attachmentFieldNewOld(NameLabel, getName, newAndOldIssues),
-		attachmentFieldNewOld(DescriptionLabel, getDescription, newAndOldIssues),
-	}
-	return
-}
-
-func (i IDOImpl) ObjectiveToFieldsDetails(newAndOldIssues NewAndOldIssues) (fields []ebm.AttachmentField) {
-	
-	// For ViewMore action, we only need the latest comment
-	fields = []ebm.AttachmentField{
-		attachmentFieldNewOld(StrategyAssociationFieldLabel, getAlignment(i), newAndOldIssues),
-		attachmentFieldNewOld(TimelineLabel, renderObjectiveViewDate, newAndOldIssues),
-		attachmentFieldNewOld(AccountabilityPartnerLabel, getAccountabilityPartner, newAndOldIssues),
-		// {Title: string("Type"), Value: "Individual"},
-		
-		attachmentFieldNewOld(StatusLabel, getStatus, newAndOldIssues),
-		attachmentField(LastReportedProgressLabel, getLatestComments(newAndOldIssues.NewIssue.PrefetchedData.Progress)),
+		fields = append(fields, view.GetProgressFields(newAndOldIssues)...)
 	}
 	return
 }

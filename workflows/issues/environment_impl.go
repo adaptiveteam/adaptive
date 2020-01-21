@@ -9,6 +9,7 @@ import (
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
+	engIssues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
@@ -511,6 +512,7 @@ func OnCloseoutImpl(issue Issue) func (conn DynamoDBConnection) (err error) {
 			Topic:  "init",
 		}
 		typLabel := string(itype)
+		view := engIssues.GetView(itype)
 		// send a notification to the partner
 		objectives.ObjectiveCloseoutEng(
 			engagementTableName(conn.ClientID),
@@ -519,9 +521,7 @@ func OnCloseoutImpl(issue Issue) func (conn DynamoDBConnection) (err error) {
 			fmt.Sprintf("<@%s> wants to close the following %s. Are you ok with that?",
 				issue.UserObjective.UserID,
 				typLabel),
-			fmt.Sprintf("*%s*: %s \n *%s*: %s",
-				NameLabel, issue.UserObjective.Name,
-				DescriptionLabel, issue.UserObjective.Description),
+			string(view.GetTextView(issue)),
 			string(closeoutLabel(issue.UserObjective.ID)),
 			objectiveCloseoutPath,
 			false,

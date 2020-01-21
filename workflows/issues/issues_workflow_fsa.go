@@ -2,7 +2,6 @@ package issues
 
 import (
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
-	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 
 	// "encoding/json"
@@ -13,7 +12,6 @@ import (
 	// "github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	// "github.com/thoas/go-funk"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
-	"github.com/adaptiveteam/adaptive/daos/common"
 	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	// core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -141,17 +139,10 @@ type workflowImpl struct {
 // }
 
 func IssueWorkflow(
-	Dynamo *awsutils.DynamoRequest,
-	ClientID string,
-	platformID common.PlatformID,
+	conn DynamoDBConnection,
 	logger alog.AdaptiveLogger,
 ) Workflow {
 	logger.Infoln("IssueWorkflow")
-	conn := DynamoDBConnection{
-		Dynamo:   Dynamo,
-		ClientID: ClientID,
-		PlatformID: platformID,
-	}
 	return CreateWorkflowImpl(logger)(conn)
 }
 
