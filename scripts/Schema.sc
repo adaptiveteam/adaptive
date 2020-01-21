@@ -239,6 +239,12 @@ val ignoredField = ("Ignored".camel :: int) \\ "Flag indicating if an engagement
 
 val ebmImport = ImportClause(Some("ebm"), "github.com/adaptiveteam/adaptive/engagement-builder/model")
 
+// it is used for:
+// feedback requests, coaching requests, schedules to ask for create objective,
+// request for a partner to respond about progress updates,
+// request for a partner about comments,
+// closeout request,
+// 
 val UserEngagement = Entity(
     "UserEngagement".camel,
     List(idField \\ "A unique id to identify the engagement"),
@@ -283,6 +289,27 @@ val UserEngagementTable = Table(
 )
 
 val UserEngagementPackage = defaultPackage(UserEngagementTable, ebmImport :: allEntitySpecificImports(UserEngagement))
+
+val PostponedEvent = Entity("PostponedEvent".camel,
+    List(idField),
+    List(
+        userIdField,
+        platformIdField,
+        ("ActionPath".camel :: string) \\ "ActionPath is callback for triggering workflows", 
+        ("ValidThrough".camel :: timestamp) \\ "ValidThrough is the last time moment when this event might still be valid"
+    ),
+    Nil, List(CreatedModifiedTimesTrait)
+)
+
+val PostponedEventTable = Table(PostponedEvent,
+    Index(idField, None),
+    List(
+        Index(platformIdField, Some(userIdField)),
+        Index(userIdField, None)
+    )
+)
+
+val PostponedEventPackage = defaultPackage(PostponedEventTable, allEntitySpecificImports(PostponedEvent))
 
 val channelIDField = "ChannelID".camel :: string
 val userIDField = "UserID".camel :: string
@@ -832,8 +859,8 @@ val packages = List(
     StrategyInitiativeCommunityPackage,
     DialogEntryPackage,
     ContextAliasEntryPackage,
-    ObjectiveTypeDictionaryPackage
-    // TypedObjectivePackage
+    ObjectiveTypeDictionaryPackage,
+    PostponedEventPackage
     )
 val daosProject = GoProjectFolder("daos", packages)
 
@@ -857,8 +884,8 @@ val coreTerraformProject = TerraformProjectFolder("daos/terraform", List(
     StrategyInitiativeCommunityTable,
     DialogEntryTable,
     ContextAliasEntryTable,
-    ObjectiveTypeDictionaryTable
-    // TypedObjectiveTable
+    ObjectiveTypeDictionaryTable,
+    PostponedEventTable
     ))
 
 val workspace: Workspace = List(daosProject, coreTerraformProject)

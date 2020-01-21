@@ -1,9 +1,11 @@
 package workflow
 
 import (
+	"time"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 )
 
 // This file contains some interactions that workflow can use to
@@ -115,6 +117,18 @@ type InteractiveMessage struct {
 	DataOverride Data
 }
 
+// TriggerImmediateEventForAnotherUser creates an event for that user
+type TriggerImmediateEventForAnotherUser struct {
+	UserID string
+	ActionPath models.ActionPath // workflow that will start for that user.
+}
+// PostponeEventForAnotherUser is a mechanism to pass some information to another user
+// when it is convenient to that user.
+type PostponeEventForAnotherUser struct {
+	UserID string
+	ActionPath models.ActionPath // workflow that will start for that user.
+	ValidThrough time.Time // Last moment when this event is still valid.
+}
 // Interaction represents possible interactions that a workflow step
 // can use.
 type Interaction struct {
@@ -127,6 +141,11 @@ type Interaction struct {
 	OptionalSurvey []Survey
 	// Messages - a few interactive messages.
 	Messages []InteractiveMessage
+	// A collection of immediate events that could be sent to another users
+	ImmediateEvents []TriggerImmediateEventForAnotherUser
+	// A collection of postponed events that will be triggered later when
+	// it is convenient to that user.
+	PostponedEvents []PostponeEventForAnotherUser
 	// effectively - do not delete original. Default is false that means - delete original.
 	KeepOriginal bool
 }

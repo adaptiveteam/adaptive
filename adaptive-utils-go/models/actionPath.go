@@ -21,6 +21,12 @@ type ActionPath struct {
 	Values url.Values
 }
 
+// RelActionPath is a relative path around some global prefix.
+type RelActionPath struct {
+	Path Path
+	Values url.Values
+}
+
 // NewPath constructs path from sequence of strings
 func NewPath(p ...string) Path {
 	return Path(p)
@@ -125,15 +131,19 @@ func (p Path)Prepend(part string) Path {
 }
 
 // Tail returns action path with stripped out head
-func (a ActionPath) Tail() ActionPath {
-	return ActionPath{Path: a.Path.Tail(), Values: a.Values}
+func (a ActionPath) Tail() RelActionPath {
+	return RelActionPath{Path: a.Path.Tail(), Values: a.Values}
 }
 
 // HeadTail divides action path into head (for routing) and rest of action path
-func (a ActionPath) HeadTail() (string, ActionPath) {
+func (a ActionPath) HeadTail() (string, RelActionPath) {
 	return a.Path.Head(), a.Tail()
 }
 
+// ToRelActionPath converts to RelActionPath
+func (a ActionPath) ToRelActionPath() RelActionPath {
+	return RelActionPath{Path: a.Path, Values: a.Values}
+}
 // Param gets parameter value from Values
 func (a ActionPath) Param(key string) string {
 	return a.Values.Get(key)
@@ -156,4 +166,53 @@ func CurrentQuarterHash() string {
 // CurrentQuarterHashPair constructs `quarter_hash=2019-06`
 func CurrentQuarterHashPair() Pair {
 	return P("quarter_hash", CurrentQuarterHash())
+}
+
+// Prepend prepends a single step to this relative action path.
+func (r RelActionPath)Prepend(part string) RelActionPath {
+	return RelActionPath{
+		Path: r.Path.Prepend(part),
+		Values: r.Values,
+	}
+}
+
+// ToActionPath converts to a global ActionPath
+func (r RelActionPath)ToActionPath(prefix Path) ActionPath {
+	return ActionPath{
+		Path: prefix.Append(r.Path...),
+		Values: r.Values,
+	}
+}
+
+// Tail returns action path with stripped out head
+func (r RelActionPath) Tail() RelActionPath {
+	return RelActionPath{Path: r.Path.Tail(), Values: r.Values}
+}
+
+// HeadTail divides action path into head (for routing) and rest of action path
+func (r RelActionPath) HeadTail() (string, RelActionPath) {
+	return r.Path.Head(), r.Tail()
+}
+
+// Param gets parameter value from Values
+func (r RelActionPath) Param(key string) string {
+	return r.Values.Get(key)
+}
+
+// SetParam overrides one of the existing Values
+func (r RelActionPath) SetParam(key string, value string) (res RelActionPath) {
+	res = r
+	res.Values.Set(key, value)
+	return 
+}
+
+// Encode converts RelActionPath to string
+func (r RelActionPath) Encode() (res string) {
+	p := strings.Join(r.Path, PathSeparator)
+	if ValuesIsEmpty(r.Values) {
+		res = p
+	} else {
+		res = p + PathQuerySeparator + r.Values.Encode()
+	}
+	return
 }

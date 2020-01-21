@@ -24,6 +24,11 @@ type LogInfof = func(format string, args ...interface{})
 // PlatformAPIForPlatformID is a function to obtain API by PlatformID
 type PlatformAPIForPlatformID = func(platformID models.PlatformID) mapper.PlatformAPI
 
+// PostponeEvent saves an event to a database for further processing.
+// The database will be eventually evaluated for a particular user and
+// the event will be triggered.
+type PostponeEvent = func(platformID models.PlatformID, postponedEvent PostponeEventForAnotherUser) error
+
 // Environment contains mechanisms to deal with external world
 type Environment struct {
 	// this is provided from outside as a context. When we want to
@@ -31,6 +36,7 @@ type Environment struct {
 	Prefix         models.Path
 	GetPlatformAPI PlatformAPIForPlatformID
 	LogInfof       LogInfof
+	PostponeEvent
 }
 
 // MaxImmediateSteps is used to limit possible damage in case of errors
@@ -69,7 +75,7 @@ func (w Template) Validate() (err error) {
 // GetRequestHandler returns RequestHandler that will handle
 // the incoming request.
 func (w Template) GetRequestHandler(env Environment) RequestHandler {
-	return func(actionPath models.ActionPath, np models.NamespacePayload4) (err error) {
+	return func(actionPath models.RelActionPath, np models.NamespacePayload4) (furtherActions []TriggerImmediateEventForAnotherUser, err error) {
 		defer w.recoverToErrorVar(env.LogInfof, &err)
 		err = w.Validate()
 		if err == nil {
@@ -77,7 +83,7 @@ func (w Template) GetRequestHandler(env Environment) RequestHandler {
 			var ctx EventHandlingContext
 			ctx, err = w.getEventHandlingContext(np)
 			if err == nil {
-				err = w.handleContext(env, ctx, MaxImmediateSteps)
+				furtherActions, err = w.handleContext(env, ctx, MaxImmediateSteps)
 			}
 			env.LogInfof("HandleRequest completed: %+v", err)
 		}
@@ -88,7 +94,7 @@ func (w Template) GetRequestHandler(env Environment) RequestHandler {
 // handleContext handles context event
 // NB! may be called recursively when receive ImmediateEvent from handler.
 func (w Template) handleContext(env Environment,
-	ctx EventHandlingContext, i int) (err error) { // Support for the immediate execution. NB! Danger
+	ctx EventHandlingContext, i int) (furtherActions []TriggerImmediateEventForAnotherUser, err error) { // Support for the immediate execution. NB! Danger
 	key := struct {
 		State
 		Event
@@ -110,6 +116,7 @@ func (w Template) handleContext(env Environment,
 			}
 			data = overrideData(data, out.DataOverride)
 			var lastMessageID platform.TargetMessageID
+			furtherActions = out.Interaction.ImmediateEvents
 			lastMessageID, err = interact(ctx, env, out.NextState, out.Interaction, oldData, data)
 			if err == nil && out.ImmediateEvent != "" {
 				newContext := EventHandlingContext{
@@ -198,6 +205,12 @@ func interact(ctx EventHandlingContext,
 					State:                  "", // Not using at the moment
 				}
 				err = platformAPI.ShowDialog(dialog)
+			}
+			if err == nil {
+				// interaction.ImmediateEvents { // these events will be returned
+				for _, evt := range interaction.PostponedEvents {
+					err = env.PostponeEvent(ctx.PlatformID, evt)
+				}
 			}
 		}
 	} else {

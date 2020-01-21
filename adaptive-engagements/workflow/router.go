@@ -7,7 +7,7 @@ import (
 )
 
 // RequestHandler represents a function that will handle incoming request
-type RequestHandler func (models.ActionPath, models.NamespacePayload4) error
+type RequestHandler func (models.RelActionPath, models.NamespacePayload4) (furtherActions []TriggerImmediateEventForAnotherUser, err error)
 
 // Routes is a mapping by head of action path to request handlers
 type Routes map[string]RequestHandler
@@ -22,11 +22,17 @@ type NamedTemplate struct {
 
 // Handler creates a RequestHandler from this set of routes.
 func (routes Routes)Handler()RequestHandler {
-	return func (actionPath models.ActionPath, np models.NamespacePayload4) (err error) {
+	return func (actionPath models.RelActionPath, np models.NamespacePayload4) (furtherActions []TriggerImmediateEventForAnotherUser, err error) {
 		head, tail := actionPath.HeadTail()
 		r, ok := routes[head]
 		if ok {
-			err = r(tail, np)
+			// var furtherActions2 []TriggerImmediateEventForAnotherUser
+			furtherActions, err = r(tail, np)
+			// for _, fa := range furtherActions2 {
+			// 	furtherActions = append(furtherActions, TriggerImmediateEventForAnotherUser{
+			// 		UserID: fa.UserID, 
+			// 	})
+			// }
 		} else {
 			err = errors.New("No route found for " + actionPath.Encode() + ". Known keys: " + routes.KnownKeys())
 		}

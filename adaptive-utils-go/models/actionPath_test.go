@@ -9,15 +9,16 @@ import (
 var _ = Describe("ActionPath", func() {
 	Context("Parsing", func(){
 		It("should parse query", func(){
-			urlb := "/b?key=value"
+			urlbRel := "b?key=value"
+			urlb := "/" + urlbRel
 			url1 := "/a" + urlb
 			a := models.ParseActionPath(url1)
 			Ω(a.Path.Encode()).Should(Equal("/a/b"))
 			h, t := a.HeadTail()
 			Ω(h).Should(Equal("a"))
 			p := models.ParseActionPath(urlb)
-			Ω(t).Should(Equal(p))
-			Ω(t.Encode()).Should(Equal(urlb))
+			Ω(t).Should(Equal(p.ToRelActionPath()))
+			Ω(t.Encode()).Should(Equal(urlbRel))
 		})
 		It("should correctly parse path without values", func(){
 			url := "/a/b"
