@@ -28,3 +28,11 @@ resource "aws_dynamodb_table" "ad_hoc_holiday_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 }
+output "ad_hoc_holiday_table_arn" {
+	description = "ARN of the ad_hoc_holiday table"
+	value = aws_dynamodb_table.ad_hoc_holiday_dynamodb_table.arn
+}
+output "ad_hoc_holiday_table_name" {
+	description = "Name of the ad_hoc_holiday table"
+	value = aws_dynamodb_table.ad_hoc_holiday_dynamodb_table.name
+}

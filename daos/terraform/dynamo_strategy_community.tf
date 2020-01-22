@@ -48,3 +48,11 @@ resource "aws_dynamodb_table" "strategy_community_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 }
+output "strategy_community_table_arn" {
+	description = "ARN of the strategy_community table"
+	value = aws_dynamodb_table.strategy_community_dynamodb_table.arn
+}
+output "strategy_community_table_name" {
+	description = "Name of the strategy_community table"
+	value = aws_dynamodb_table.strategy_community_dynamodb_table.name
+}

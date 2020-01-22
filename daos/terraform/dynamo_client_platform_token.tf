@@ -12,3 +12,11 @@ resource "aws_dynamodb_table" "client_platform_token_dynamodb_table"  {
 	    type = "S"
 	}
 }
+output "client_platform_token_table_arn" {
+	description = "ARN of the client_platform_token table"
+	value = aws_dynamodb_table.client_platform_token_dynamodb_table.arn
+}
+output "client_platform_token_table_name" {
+	description = "Name of the client_platform_token table"
+	value = aws_dynamodb_table.client_platform_token_dynamodb_table.name
+}

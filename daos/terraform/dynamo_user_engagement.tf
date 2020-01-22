@@ -32,3 +32,11 @@ resource "aws_dynamodb_table" "user_engagement_dynamodb_table"  {
 		]
 	}
 }
+output "user_engagement_table_arn" {
+	description = "ARN of the user_engagement table"
+	value = aws_dynamodb_table.user_engagement_dynamodb_table.arn
+}
+output "user_engagement_table_name" {
+	description = "Name of the user_engagement table"
+	value = aws_dynamodb_table.user_engagement_dynamodb_table.name
+}

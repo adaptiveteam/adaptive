@@ -40,3 +40,11 @@ resource "aws_dynamodb_table" "user_feedback_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 }
+output "user_feedback_table_arn" {
+	description = "ARN of the user_feedback table"
+	value = aws_dynamodb_table.user_feedback_dynamodb_table.arn
+}
+output "user_feedback_table_name" {
+	description = "Name of the user_feedback table"
+	value = aws_dynamodb_table.user_feedback_dynamodb_table.name
+}

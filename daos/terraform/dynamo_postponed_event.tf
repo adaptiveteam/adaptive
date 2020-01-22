@@ -36,3 +36,11 @@ resource "aws_dynamodb_table" "postponed_event_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 }
+output "postponed_event_table_arn" {
+	description = "ARN of the postponed_event table"
+	value = aws_dynamodb_table.postponed_event_dynamodb_table.arn
+}
+output "postponed_event_table_name" {
+	description = "Name of the postponed_event table"
+	value = aws_dynamodb_table.postponed_event_dynamodb_table.name
+}

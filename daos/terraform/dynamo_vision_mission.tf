@@ -12,3 +12,11 @@ resource "aws_dynamodb_table" "vision_mission_dynamodb_table"  {
 	    type = "S"
 	}
 }
+output "vision_mission_table_arn" {
+	description = "ARN of the vision_mission table"
+	value = aws_dynamodb_table.vision_mission_dynamodb_table.arn
+}
+output "vision_mission_table_name" {
+	description = "Name of the vision_mission table"
+	value = aws_dynamodb_table.vision_mission_dynamodb_table.name
+}

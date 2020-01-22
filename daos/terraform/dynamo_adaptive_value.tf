@@ -24,3 +24,11 @@ resource "aws_dynamodb_table" "adaptive_value_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 }
+output "adaptive_value_table_arn" {
+	description = "ARN of the adaptive_value table"
+	value = aws_dynamodb_table.adaptive_value_dynamodb_table.arn
+}
+output "adaptive_value_table_name" {
+	description = "Name of the adaptive_value table"
+	value = aws_dynamodb_table.adaptive_value_dynamodb_table.name
+}

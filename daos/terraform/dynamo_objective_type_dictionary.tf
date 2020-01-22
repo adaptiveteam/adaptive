@@ -25,3 +25,11 @@ resource "aws_dynamodb_table" "objective_type_dictionary_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 }
+output "objective_type_dictionary_table_arn" {
+	description = "ARN of the objective_type_dictionary table"
+	value = aws_dynamodb_table.objective_type_dictionary_dynamodb_table.arn
+}
+output "objective_type_dictionary_table_name" {
+	description = "Name of the objective_type_dictionary table"
+	value = aws_dynamodb_table.objective_type_dictionary_dynamodb_table.name
+}
