@@ -483,3 +483,13 @@ output "adaptive_objective_communities_stream_arn" {
 output "partnership_rejections_stream_arn" {
   value = aws_dynamodb_table.accountability_partnership_rejections_table.stream_arn
 }
+
+output "postponed_event_table_arn" {
+	description = "ARN of the postponed_event table"
+	value = aws_dynamodb_table.postponed_event_dynamodb_table.arn
+}
+
+output "postponed_event_table_name" {
+	description = "Name of the postponed_event table"
+	value = aws_dynamodb_table.postponed_event_dynamodb_table.name
+}
