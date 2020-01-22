@@ -9,12 +9,13 @@ import (
 )
 
 // TriggerAllPostponedEvents reads all postponed events and run them sequentially
+// Needs connection
+// conn := common.DynamoDBConnection{
+// 	Dynamo: d,
+// 	ClientID: clientID,
+// 	PlatformID: platformID,
+// }
 func TriggerAllPostponedEvents(platformID models.PlatformID, userID string)func (conn common.DynamoDBConnection)(err error) {
-	// conn := common.DynamoDBConnection{
-	// 	Dynamo: d,
-	// 	ClientID: clientID,
-	// 	PlatformID: platformID,
-	// }
 	return wf.ForeachActionPathForUserID(userID, func (ap models.ActionPath) (err error) {
 		np := models.NamespacePayload4{
 			Namespace: "triggerAllPostponedEvents",

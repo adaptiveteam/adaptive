@@ -53,7 +53,7 @@ func HandleRequest(ctx context.Context, event EngSchedule) (err error) {
 		t, err = core.ISODateLayout.Parse(event.Date)
 		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse %s as date", event.Date))
 	} else {
-		fmt.Printf("Date not present tin EngSchedule, using current date")
+		fmt.Printf("Date not present in EngSchedule, using current date")
 		t = time.Now()
 	}
 	var y, m, d = t.Date()
@@ -66,7 +66,6 @@ func HandleRequest(ctx context.Context, event EngSchedule) (err error) {
 	allCrosswalks := func() []esmodels.CrossWalk {
 		return concatAppend([][]esmodels.CrossWalk{crosswalks.UserCrosswalk()})
 	}
-
 	day := business_time.NewDate(y, int(m), d)
 	es.ActivateEngagementsOnDay(
 		aesc.ProductionProfile,
