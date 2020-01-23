@@ -52,6 +52,7 @@ func invokeScriptingLambda(engage models.UserEngage, config Config) (err error) 
 }
 
 func triggerPostponedEvents(engage models.UserEngage, config Config) (err error) {
+	logger.WithField("userID", engage.UserId).Infof("triggerPostponedEvents")
 	conn := common.DynamoDBConnection{
 		Dynamo: config.d,
 		ClientID: config.clientID,

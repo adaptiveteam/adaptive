@@ -68,7 +68,10 @@ func InvokeWorkflow(np models.NamespacePayload4, conn common.DynamoDBConnection)
 func invokeWorkflowInner(np models.NamespacePayload4, conn common.DynamoDBConnection, action wf.TriggerImmediateEventForAnotherUser) (err error) {
 	np.SlackRequest.InteractionCallback.User.ID = action.UserID
 	var furtherActions []wf.TriggerImmediateEventForAnotherUser
-
+	logger.
+		WithField("userID", action.UserID).
+		WithField("action.ActionPath", action.ActionPath.Encode()).
+		Info("invokeWorkflowInner")
 	furtherActions, err = communityRoutes(np, conn).Handler()(action.ActionPath.ToRelActionPath(), np)
 	for _, a := range furtherActions {
 		err = invokeWorkflowInner(np, conn, a)
