@@ -8,7 +8,7 @@ import (
 // ErrorHandler is a universal handler that logs error and then panics unless err is nil
 func ErrorHandler(err error, namespace, msg string) {
 	if err != nil {
-		log.Panicf("ERROR in %s : %s [%s]\n", namespace, msg, err.Error())
+		panic(errors.Wrapf(err, "ERROR in %s : %s\n", namespace, msg))
 	}
 }
 
