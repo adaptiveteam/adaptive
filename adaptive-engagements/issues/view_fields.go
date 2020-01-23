@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"log"
 	// "fmt"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
@@ -38,18 +39,6 @@ func objectiveToFieldsNameDescriptionType(newAndOldIssues NewAndOldIssues) (fiel
 	return
 }
 
-const (
-	NameLabel                            = "Name"
-	DescriptionLabel                     = "Description"
-	TimelineLabel                        = "Timeline"
-	ProgressCommentsLabel   ui.PlainText = "Comments on Progress"
-	ProgressStatusLabel     ui.PlainText = "Current Status"
-	PerceptionOfStatusLabel ui.PlainText = "Your perception of status"
-	PerceptionOfStatusName               = "perception_of_status"
-
-	StrategyAssociationFieldLabel ui.PlainText = "Strategic Alignment"
-)
-
 func ObjectiveProgressLabelTemplate(itype IssueType) ui.PlainText {
 	return itype.Template() + " Progress"
 }
@@ -73,12 +62,9 @@ var (
 	
 )
 
-func getAlignment(tc IssueTypeClass) func(Issue) ui.PlainText {
-	return  func(issue Issue) ui.PlainText { return ui.PlainText(tc.GetAlignment(issue)) }
-}
 
 func renderObjectiveViewDate(issue Issue) ui.PlainText {
-	defer RecoverToLog("renderObjectiveViewDate")
+	defer core.RecoverAsLogError("renderObjectiveViewDate")
 	if issue.UserObjective.CreatedDate == "" || issue.UserObjective.ExpectedEndDate == "" {
 		return ui.PlainText("[" + issue.UserObjective.CreatedDate + "," + issue.UserObjective.ExpectedEndDate + "]")
 	}
@@ -145,17 +131,16 @@ func mapObjectiveProgressToRichText(ops []userObjectiveProgress.UserObjectivePro
 	return
 }
 
-func formatDate(w workflowImpl, date string, ipLayout, opLayout core.AdaptiveDateLayout) (res string) {
-	defer RecoverToLog("formatDate")
-	w.AdaptiveLogger.
-		Infof("formatDate(%s, ipLayout=%s, opLayout=%s)", date, ipLayout, opLayout)
+func formatDate(date string, ipLayout, opLayout core.AdaptiveDateLayout) (res string) {
+	defer core.RecoverAsLogError("formatDate")
+	log.Printf("formatDate(%s, ipLayout=%s, opLayout=%s)", date, ipLayout, opLayout)
 	if date == "" {
 		res = "\"\""
 	} else {
 		var err error
 		res, err = common.FormatDateWithIndefiniteOption(date, ipLayout, opLayout, "issue workflow formatDate")
 		if err != nil {
-			w.AdaptiveLogger.WithError(err).Errorf("Could not parse string to date: %s", date)
+			log.Printf("Could not parse string '%s' to date: %+v", date, err)
 			res = date
 		}
 		
@@ -163,4 +148,7 @@ func formatDate(w workflowImpl, date string, ipLayout, opLayout core.AdaptiveDat
 	return
 }
 
+func renderStrategyAssociations(prefix string, fieldValue string) ui.PlainText {
+	return ui.PlainText(ui.Sprintf("*%s* \n%s %s \n", prefix, BlueDiamondEmoji, fieldValue))
+}
 

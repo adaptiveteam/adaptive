@@ -1,12 +1,17 @@
 package issues
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
+	"time"
+
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	strategy "github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	userObjectiveProgress "github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 )
+
+// DefaultCoachRequestValidityDuration -
+const DefaultCoachRequestValidityDuration = 14 * 24 * time.Hour
 
 // UserHasWriteAccessToIssues is an access policy.
 // It might eventually evolve to interface
@@ -17,18 +22,18 @@ type UserHasWriteAccessToIssues = func(userID string, itype IssueType) bool
 // SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated -
 // type SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated = func(models.PlatformID) (out []strategy.StrategyInitiativeCommunity, err error)
 
-type CommunityById = func( issueID string) (models.AdaptiveCommunity, error)
+type CommunityById = func(issueID string) (models.AdaptiveCommunity, error)
 type PropertyName = string
 
 // IssueDAO is an interface to read/write issue to/from database
 // It should read/write all needed tables at once.
 type IssueDAO interface {
 	// reads all issues of the given type accessible by userID
-	SelectFromIssuesWhereTypeAndUserID( userID string, issueType IssueType, completed int) ([]Issue, error)
-	Read( issueType IssueType, issueID string) (Issue, error)
-	Save( issue Issue) (err error)
-	SetCancelled( issueID string) (err error)
-	SetCompleted( issueID string) (err error)
+	SelectFromIssuesWhereTypeAndUserID(userID string, issueType IssueType, completed int) ([]Issue, error)
+	Read(issueType IssueType, issueID string) (Issue, error)
+	Save(issue Issue) (err error)
+	SetCancelled(issueID string) (err error)
+	SetCompleted(issueID string) (err error)
 	// SetPropertyValue updates a single field in the entity
 	// SetPropertyValue( issueID string, propertyName PropertyName, value interface{}) (err error)
 }
@@ -36,14 +41,14 @@ type IssueDAO interface {
 type IssueProgressDAO interface {
 	// ReadAll reads at most `limit` progress elements in descending order.
 	// Set limit to -1 to retrieve all the updates
-	ReadAll( issueID string, limit int) ([]userObjectiveProgress.UserObjectiveProgress, error)
+	ReadAll(issueID string, limit int) ([]userObjectiveProgress.UserObjectiveProgress, error)
 
-	Read( issueProgressID IssueProgressID) (userObjectiveProgress.UserObjectiveProgress, error)
-	Save( issueProgress userObjectiveProgress.UserObjectiveProgress) (err error)
+	Read(issueProgressID IssueProgressID) (userObjectiveProgress.UserObjectiveProgress, error)
+	Save(issueProgress userObjectiveProgress.UserObjectiveProgress) (err error)
 }
 
 type AdaptiveCommunityDAO interface {
-	Read( communityID community.AdaptiveCommunity) (comm models.AdaptiveCommunity, err error)
+	Read(communityID community.AdaptiveCommunity) (comm models.AdaptiveCommunity, err error)
 	SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(models.PlatformID) (out []strategy.CapabilityCommunity, err error)
 	SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(models.PlatformID, string) (out []strategy.StrategyInitiativeCommunity, err error)
 	// ReadMembers( communityID community.AdaptiveCommunity) (users []models.AdaptiveCommunityUser3, err error)
@@ -51,41 +56,41 @@ type AdaptiveCommunityDAO interface {
 
 // UserDAO retrieves information about users.
 type UserDAO interface {
-	Read( userID string) (ut models.User, err error)
+	Read(userID string) (ut models.User, err error)
 	// IDOCoaches returns Key-Value pairs with user id and user display name
 	// The set of users and the format are suitable for IDO dialog coach field.
-	IDOCoaches( userID string) (res []models.KvPair, err error)
+	IDOCoaches(userID string) (res []models.KvPair, err error)
 }
 
 type CompetencyDAO interface {
-	Read( id string) (adaptiveValue.AdaptiveValue, error)
+	Read(id string) (adaptiveValue.AdaptiveValue, error)
 	ReadAll(platformID models.PlatformID) ([]adaptiveValue.AdaptiveValue, error)
 }
 
 // See strategy.StrategyObjectiveByID(platformID, each, strategyObjectivesTableName)
 type StrategyObjectiveDAO interface {
-	Read( id string) (models.StrategyObjective, error)
-	CreateOrUpdate( so models.StrategyObjective) error
+	Read(id string) (models.StrategyObjective, error)
+	CreateOrUpdate(so models.StrategyObjective) error
 }
 
 type StrategyCommunityDAO interface {
-	Read( id string) (strategy.StrategyCommunity, error)
+	Read(id string) (strategy.StrategyCommunity, error)
 }
 
 type CapabilityCommunityDAO interface {
-	Read( id string) (models.CapabilityCommunity, error)
+	Read(id string) (models.CapabilityCommunity, error)
 }
 type StrategyInitiativeDAO interface {
-	Read( id string) (models.StrategyInitiative, error)
-	CreateOrUpdate( so models.StrategyInitiative) error
+	Read(id string) (models.StrategyInitiative, error)
+	CreateOrUpdate(so models.StrategyInitiative) error
 }
 type StrategyInitiativeCommunityDAO interface {
-	Read( id string) (models.StrategyInitiativeCommunity, error)
+	Read(id string) (models.StrategyInitiativeCommunity, error)
 }
 
 // SelectFromIssuesWhereTypeAndUserIDStrategyObjectives reads by the list of identifiers
-func SelectFromIssuesWhereTypeAndUserIDStrategyObjectives(ids []string) func (conn DynamoDBConnection) (objectives []models.StrategyObjective, err error) {
-	return func (conn DynamoDBConnection) (objectives []models.StrategyObjective, err error) {
+func SelectFromIssuesWhereTypeAndUserIDStrategyObjectives(ids []string) func(conn DynamoDBConnection) (objectives []models.StrategyObjective, err error) {
+	return func(conn DynamoDBConnection) (objectives []models.StrategyObjective, err error) {
 		for _, each := range ids {
 			var obj models.StrategyObjective
 			obj, err = StrategyObjectiveRead(each)(conn)
@@ -104,7 +109,7 @@ type Queries interface {
 	// reads all initiatives that are associated with
 	// the initiative communities that the user is part of.
 	SelectFromInitiativesJoinUserCommunityWhereUserID(
-		 userID string) ([]models.StrategyInitiative, error)
+		userID string) ([]models.StrategyInitiative, error)
 	// SelectFromStrategyObjectivesWhenUserIsInStrategyUnionSelectFromStrategyObjectivesJoinCapabilityCommunitiesWhereUserID
 	// returns all open objectives associated with a user.
 	// If user is in strategy community, we return all objectives.
@@ -112,8 +117,8 @@ type Queries interface {
 	// that the user is part of.
 	// See strategy.UserStrategyObjectives (utils.go)
 	SelectFromStrategyObjectivesWhenUserIsInStrategyUnionSelectFromStrategyObjectivesJoinCapabilityCommunitiesWhereUserID(
-		 userID string) ([]models.StrategyObjective, error)
-		// SelectFromObjectivesWhereUserID( userID string) ([]models.StrategyObjective, error)
+		userID string) ([]models.StrategyObjective, error)
+	// SelectFromObjectivesWhereUserID( userID string) ([]models.StrategyObjective, error)
 	/*
 		func communityMembersIncludingStrategyMembers(commID string, platformID models.PlatformID) []models.KvPair {
 			// Strategy Community members
@@ -144,5 +149,5 @@ type Queries interface {
 		}
 
 	*/
-	SelectKvPairsFromCommunityJoinUsers( communityID community.AdaptiveCommunity) (members []models.KvPair, err error)
+	SelectKvPairsFromCommunityJoinUsers(communityID community.AdaptiveCommunity) (members []models.KvPair, err error)
 }

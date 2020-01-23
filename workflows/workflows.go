@@ -11,6 +11,7 @@ import (
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	issues "github.com/adaptiveteam/adaptive/workflows/issues"
+	request_coach "github.com/adaptiveteam/adaptive/workflows/request_coach"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -23,6 +24,8 @@ type WorkflowInfo struct {
 
 // IssuesWorkflow is a description of an issues workflow
 var IssuesWorkflow = WorkflowInfo{Name: issues.IssuesNamespace, Init: issues.InitState}
+// RequestCoachWorkflow -
+var RequestCoachWorkflow = WorkflowInfo{Name: request_coach.Namespace, Init: request_coach.InitState}
 
 // var IssuesWorkflowImpl = issues.IssueWorkflow(d, clientID, logger)
 // var IssuesWorkflow = IssuesWorkflowImpl.GetNamedTemplate()
@@ -65,7 +68,10 @@ func InvokeWorkflow(np models.NamespacePayload4, conn common.DynamoDBConnection)
 func invokeWorkflowInner(np models.NamespacePayload4, conn common.DynamoDBConnection, action wf.TriggerImmediateEventForAnotherUser) (err error) {
 	np.SlackRequest.InteractionCallback.User.ID = action.UserID
 	var furtherActions []wf.TriggerImmediateEventForAnotherUser
-
+	logger.
+		WithField("userID", action.UserID).
+		WithField("action.ActionPath", action.ActionPath.Encode()).
+		Info("invokeWorkflowInner")
 	furtherActions, err = communityRoutes(np, conn).Handler()(action.ActionPath.ToRelActionPath(), np)
 	for _, a := range furtherActions {
 		err = invokeWorkflowInner(np, conn, a)
@@ -78,11 +84,13 @@ func invokeWorkflowInner(np models.NamespacePayload4, conn common.DynamoDBConnec
 // NB: It'll fail if there are issues in templates constructors.
 // Though, it is unprobable
 func workflows(conn common.DynamoDBConnection) []wf.NamedTemplate {
-	IssuesWorkflowImpl := issues.IssueWorkflow(
-		conn.Dynamo, conn.ClientID, conn.PlatformID, logger)
+	
+	IssuesWorkflowImpl := issues.IssueWorkflow(conn, logger)
+	RequestCoachWorkflowImpl := request_coach.RequestCoachWorkflow(conn, logger)
 	return []wf.NamedTemplate{
 		// CreateIDOWorkflow,
 		IssuesWorkflowImpl.GetNamedTemplate(),
+		RequestCoachWorkflowImpl.GetNamedTemplate(),
 	}
 }
 
@@ -99,7 +107,8 @@ func prepareEnvironmentWithoutPrefix(conn common.DynamoDBConnection) (env wf.Env
 
 
 func communityRoutes(np models.NamespacePayload4, conn common.DynamoDBConnection) (routes wf.Routes) {
-	workflowRoutes := wf.ToRoutingTable(CommunityPath, prepareEnvironmentWithoutPrefix(conn),
+	workflowRoutes := wf.ToRoutingTable(CommunityPath, 
+		prepareEnvironmentWithoutPrefix(conn),
 		workflows(conn))
 	routes = map[string]wf.RequestHandler{
 		communityNamespace: workflowRoutes.Handler(),
@@ -110,7 +119,7 @@ func communityRoutes(np models.NamespacePayload4, conn common.DynamoDBConnection
 // func constructActionPath(prefix models.Path, state wf.State, event wf.Event) models.ActionPath {
 // 	return wf.ExternalActionPath(prefix, state, event)
 // }
-
+ 
 // // SelectedIDOWorkflow allows to switch to a different workflow implementation
 // var SelectedIDOWorkflow = IssuesWorkflow
 // // var SelectedIDOWorkflow = CreateIDOWorkflow

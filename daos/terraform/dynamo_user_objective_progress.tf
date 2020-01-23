@@ -33,3 +33,11 @@ resource "aws_dynamodb_table" "user_objective_progress_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 }
+output "user_objective_progress_table_arn" {
+	description = "ARN of the user_objective_progress table"
+	value = aws_dynamodb_table.user_objective_progress_dynamodb_table.arn
+}
+output "user_objective_progress_table_name" {
+	description = "Name of the user_objective_progress table"
+	value = aws_dynamodb_table.user_objective_progress_dynamodb_table.name
+}

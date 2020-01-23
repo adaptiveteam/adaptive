@@ -104,9 +104,29 @@ def adaptive_backup(table: Table): List[String] = lines(
      |}
      |""".stripMargin)
 
+def output_name(table: Table): List[String] = 
+  blockNamed(
+    s"""output "${tfName(table.entity.name)}_table_name"""",
+    List(
+      s"""description = "Name of the ${tfName(table.entity.name)} table"""",
+      s"""value = aws_dynamodb_table.${tfName(table.entity.name)}_dynamodb_table.name"""
+    )
+  )
+
+def output_arn(table: Table): List[String] = 
+  blockNamed(
+    s"""output "${tfName(table.entity.name)}_table_arn"""",
+    List(
+      s"""description = "ARN of the ${tfName(table.entity.name)} table"""",
+      s"""value = aws_dynamodb_table.${tfName(table.entity.name)}_dynamodb_table.arn"""
+    )
+  )
+
 def terraformTemplate(table: Table): List[String] = {
     val tbl = aws_dynamodb_table(table) 
     // val scaling = adaptive_table_scaling(table)
     // val backup = adaptive_backup(table)
-    tbl// ::: scaling ::: backup
+    val arn = output_arn(table)
+    val outName = output_name(table)
+    tbl ::: arn ::: outName // ::: scaling ::: backup
 }

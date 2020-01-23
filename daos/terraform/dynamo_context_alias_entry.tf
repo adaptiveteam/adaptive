@@ -12,3 +12,11 @@ resource "aws_dynamodb_table" "context_alias_entry_dynamodb_table"  {
 	    type = "S"
 	}
 }
+output "context_alias_entry_table_arn" {
+	description = "ARN of the context_alias_entry table"
+	value = aws_dynamodb_table.context_alias_entry_dynamodb_table.arn
+}
+output "context_alias_entry_table_name" {
+	description = "Name of the context_alias_entry table"
+	value = aws_dynamodb_table.context_alias_entry_dynamodb_table.name
+}

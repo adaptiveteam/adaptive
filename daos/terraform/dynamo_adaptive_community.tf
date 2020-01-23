@@ -37,3 +37,11 @@ resource "aws_dynamodb_table" "adaptive_community_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 }
+output "adaptive_community_table_arn" {
+	description = "ARN of the adaptive_community table"
+	value = aws_dynamodb_table.adaptive_community_dynamodb_table.arn
+}
+output "adaptive_community_table_name" {
+	description = "Name of the adaptive_community table"
+	value = aws_dynamodb_table.adaptive_community_dynamodb_table.name
+}

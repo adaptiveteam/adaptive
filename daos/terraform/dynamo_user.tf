@@ -48,3 +48,11 @@ resource "aws_dynamodb_table" "user_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 }
+output "user_table_arn" {
+	description = "ARN of the user table"
+	value = aws_dynamodb_table.user_dynamodb_table.arn
+}
+output "user_table_name" {
+	description = "Name of the user table"
+	value = aws_dynamodb_table.user_dynamodb_table.name
+}

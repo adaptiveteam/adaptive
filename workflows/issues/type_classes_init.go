@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	engIssues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	objectives "github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -20,12 +21,13 @@ import (
 func (i InitiativeImpl) View(w workflowImpl, isShowingDetails, isShowingProgress bool,
 	newAndOldIssues NewAndOldIssues,
 ) (fields []ebm.AttachmentField) {
-	fields = i.ObjectiveToFields(w, newAndOldIssues)
+	view := engIssues.GetView(Initiative)
+	fields = view.GetMainFields(newAndOldIssues)
 	if isShowingDetails {
-		fields = append(fields, i.ObjectiveToFieldsDetails(newAndOldIssues)...)
+		fields = append(fields, view.GetDetailsFields(newAndOldIssues)...)
 	}
 	if isShowingProgress {
-		fields = append(fields, userObjectiveProgressField(newAndOldIssues.NewIssue.PrefetchedData.Progress))
+		fields = append(fields, view.GetProgressFields(newAndOldIssues)...)
 	}
 	return
 }
@@ -53,30 +55,6 @@ const (
 	InitiateEndDateName               = "time_to_work_on_this"
 	InitiativeCapabilityObjectiveName = "initiative_capability_objective"
 )
-
-func (i InitiativeImpl) ObjectiveToFields(w workflowImpl, newAndOldIssues NewAndOldIssues) (fields []ebm.AttachmentField) {
-	fields = []ebm.AttachmentField{
-		attachmentFieldNewOld(NameLabel, getName, newAndOldIssues),
-		attachmentFieldNewOld(DescriptionLabel, getDescription, newAndOldIssues),
-		// {Title: string("Type"), Value: "Initiative"},
-	}
-	return
-}
-
-func (i InitiativeImpl) ObjectiveToFieldsDetails(newAndOldIssues NewAndOldIssues) (fields []ebm.AttachmentField) {
-	// For ViewMore action, we only need the latest comment
-	fields = []ebm.AttachmentField{
-		attachmentFieldNewOld(TimelineLabel, renderObjectiveViewDate, newAndOldIssues),
-		attachmentFieldNewOld(InitiativeCommunityLabel, getInitiativeCommunity, newAndOldIssues),
-		attachmentFieldNewOld(RelatedObjectiveLabel, getRelatedObjective, newAndOldIssues),
-		attachmentFieldNewOld(DefinitionOfVictoryLabel, getDefinitionOfVictory, newAndOldIssues),
-		attachmentFieldNewOld(BudgetLabel, getBudget, newAndOldIssues),
-		attachmentFieldNewOld(AccountabilityPartnerLabel, getAccountabilityPartner, newAndOldIssues),
-		attachmentFieldNewOld(StatusLabel, getStatus, newAndOldIssues),
-		attachmentField(LastReportedProgressLabel, getLatestComments(newAndOldIssues.NewIssue.PrefetchedData.Progress)),
-	}
-	return
-}
 
 // CreateDialog returns a survey for the given initiative issue.
 func (InitiativeImpl) CreateDialog(w workflowImpl, ctx wf.EventHandlingContext, issue Issue) (survey ebm.AttachmentActionSurvey, err error) {

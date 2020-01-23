@@ -1,18 +1,20 @@
 include lambdas.Makefile
 
-.PHONY: core-build
+.PHONY: core-build core-clean
 # List of all lambda binaries.
 CORE_LAMBDA_BINS := $(foreach lambda,$(CORE_LAMBDA_NAMES),${PWD}/bin/$(strip ${lambda}))
 
-${PWD}/bin/%: $(call go-sources,${PWD}/infra/core/src/%)
+${PWD}/bin/%: infra/core/src/%/*.go lambdas/%/*.go
 	pushd ${PWD}/infra/core/src/$*;\
 	GOOS=linux GOARCH=amd64 go build -o ${PWD}/bin/$*;\
 	popd
 
 core-build: $(CORE_LAMBDA_BINS)
 
-
-
+# core-clean is used when we want to rebuild all lambdas. In particular,
+# when some of the root libraries have been changed.
+core-clean:
+	rm -r ${PWD}/bin/
 
 # We do not need zip files, because they are produced by terraform itself
 # .PHONY: core-zips

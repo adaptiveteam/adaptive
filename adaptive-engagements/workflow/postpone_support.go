@@ -54,7 +54,7 @@ func GetActionPathsForUserID(userID string) func(conn common.DynamoDBConnection)
 }
 
 // ForeachActionPathForUserID runs the given function for all valid action paths of the current user.
-func ForeachActionPathForUserID(userID string, f func(models.ActionPath)error) func(conn common.DynamoDBConnection) (err error) {
+func ForeachActionPathForUserID(userID string, f func(models.ActionPath, common.DynamoDBConnection)error) func(conn common.DynamoDBConnection) (err error) {
 	return func(conn common.DynamoDBConnection) (err error) {
 		dao := postponedEvent.NewDAO(conn.Dynamo, "ForeachActionPathForUserID", conn.ClientID)
 		var events []postponedEvent.PostponedEvent
@@ -69,7 +69,7 @@ func ForeachActionPathForUserID(userID string, f func(models.ActionPath)error) f
 				}
 				if validThrough.After(now) {
 					ap := models.ParseActionPath(e.ActionPath)
-					err = f(ap)
+					err = f(ap, conn)
 					if err != nil {
 						return
 					}

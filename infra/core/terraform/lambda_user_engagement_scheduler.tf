@@ -140,7 +140,9 @@ data "aws_iam_policy_document" "user_engagement_scheduler_policy" {
 
       // For schedules
       "${aws_dynamodb_table.user_objective_dynamodb_table.arn}/index/${var.dynamo_user_objectives_id_index}",
-      aws_dynamodb_table.user_objectives_progress.arn
+      aws_dynamodb_table.user_objectives_progress.arn,
+      aws_dynamodb_table.postponed_event_dynamodb_table.arn,
+      "${aws_dynamodb_table.postponed_event_dynamodb_table.arn}/index/*"
     ]
   }
 

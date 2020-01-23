@@ -1,10 +1,12 @@
 package issues
 
 import (
+	"time"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/pkg/errors"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
@@ -33,14 +35,11 @@ func (w workflowImpl) OnEdit(ctx wf.EventHandlingContext) (out wf.EventOutput, e
 	return
 }
 
-func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-	defer w.recoverToErrorVar("workflowImpl.OnDialogSubmitted", &err) // because there are panics downstream
-	// issueID := ctx.Data[issueIDKey]
+func (w workflowImpl) getFromContext(ctx wf.EventHandlingContext) (newAndOldIssues NewAndOldIssues, err error) {
 	itype := IssueType(ctx.Data[issueTypeKey])
 	tc := getTypeClass(itype)
-	var oldIssue Issue
 	issueID, updated := ctx.Data[issueIDKey]
-	w.AdaptiveLogger.WithField("issueID", issueID).Info("OnDialogSubmitted")
+	var oldIssue Issue
 	if updated {
 		oldIssue, err = issuesUtils.Read(itype, issueID)(w.DynamoDBConnection)
 		if err != nil {
@@ -53,38 +52,67 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 	newIssue := tc.ExtractFromContext(ctx, issueID, updated, oldIssue)
 	(&newIssue).NormalizeIssueDateTimes()
 	//issuesUtils.NormalizeIssueDateTimes(&newIssue)
-	w.prefetch(ctx, &newIssue)
-	if updated {
-		w.prefetch(ctx, &oldIssue)
-	} else {
-		oldIssue = newIssue
-	}
+	err = w.prefetch(ctx, &newIssue)
+	if err == nil {
+		if updated {
+			err = w.prefetch(ctx, &oldIssue)
+		} else {
+			oldIssue = newIssue
+		}
 
-	newAndOldIssues := NewAndOldIssues{
-		NewIssue: newIssue,
-		OldIssue: oldIssue,
-		Updated:  updated,
+		newAndOldIssues = NewAndOldIssues{
+			NewIssue: newIssue,
+			OldIssue: oldIssue,
+			Updated:  updated,
+		}
 	}
-	w.AdaptiveLogger.Infof("OnDialogSubmitted: Saving %v\n", newIssue)
-	err = issuesUtils.Save(newIssue)(w.DynamoDBConnection)
+	return
+}
+
+func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+	defer w.recoverToErrorVar("workflowImpl.OnDialogSubmitted", &err) // because there are panics downstream
+	issueID, _ := ctx.Data[issueIDKey]
+	log := w.AdaptiveLogger.WithField("issueID", issueID).WithField("Handler", "OnDialogSubmitted")
+	log.Info("Start")
+
+	var newAndOldIssues NewAndOldIssues
+	newAndOldIssues, err = w.getFromContext(ctx)
+	if err != nil {
+		return
+	}
+	newAP := newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner
+	isCoachRequestNeeded :=
+		!IsSpecialOrEmptyUserID(newAP) &&
+		!newAndOldIssues.Updated || 
+			(newAP != newAndOldIssues.OldIssue.UserObjective.AccountabilityPartner) 
+			
+	var postponedEvents []wf.PostponeEventForAnotherUser
+	if isCoachRequestNeeded {
+		postponedEvents = w.requestCoach(ctx, newAndOldIssues)
+		// newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner = "none"
+	}
+	w.AdaptiveLogger.Infof("OnDialogSubmitted: Saving %v\n", newAndOldIssues.NewIssue)
+	err = issuesUtils.Save(newAndOldIssues.NewIssue)(w.DynamoDBConnection)
 	if err != nil {
 		err = errors.Wrapf(err, "OnDialogSubmitted: Saving")
 		return
 	}
-	ctx.Data[issueIDKey] = newIssue.UserObjective.ID
-	if newIssue.UserObjective.ID == "" && !updated {
-		w.AdaptiveLogger.Warnf("INVALID(2): issueID is empty %v\n", newIssue)
+	ctx.Data[issueIDKey] = newAndOldIssues.NewIssue.UserObjective.ID
+	if newAndOldIssues.NewIssue.UserObjective.ID == "" && !newAndOldIssues.Updated {
+		w.AdaptiveLogger.Warnf("INVALID(2): issueID is empty %v\n", newAndOldIssues.NewIssue)
 	}
+	itype := IssueType(ctx.Data[issueTypeKey])
+	tc := getTypeClass(itype)
 	if err == nil {
 		dialogSituationID := DialogSituationIDWithoutIssueType(ctx.Data[dialogSituationIDKey])
-		eventDescription := ObjectiveCreatedUpdatedStatusTemplate(updated, ctx.Request.User.ID)
+		eventDescription := ObjectiveCreatedUpdatedStatusTemplate(newAndOldIssues.Updated, ctx.Request.User.ID)
 		out, err = w.onNewOrUpdatedItemAvailable(ctx, tc, newAndOldIssues, dialogSituationID, eventDescription, false)
 	} else {
-		w.AdaptiveLogger.WithError(err).Error("OnDialogSubmitted: Couldn't create an "+ui.RichText(itype.Template()))
+		log.WithError(err).Error("OnDialogSubmitted: Couldn't create an "+ui.RichText(itype.Template()))
 		out = ctx.Reply("Couldn't create an " + ui.RichText(itype.Template()))
 		err = nil // we want to show error interaction and we have logged the error
 	}
-
+	out.PostponedEvents = postponedEvents
 	err = errors.Wrap(err, "{OnDialogSubmitted}")
 	return
 }
@@ -136,4 +164,37 @@ func findStrategyCommunityConversation(w workflowImpl, ctx wf.EventHandlingConte
 	comm, err2 := AdaptiveCommunityReadByID(community.Strategy)(w.DynamoDBConnection)
 	err2 = errors.Wrap(err2, "{findStrategyCommunityConversation}")
 	return platform.ConversationID(comm.Channel), err2
+}
+
+func (w workflowImpl) requestCoach(ctx wf.EventHandlingContext, newAndOldIssues NewAndOldIssues) (postponedEvents []wf.PostponeEventForAnotherUser) {
+	newAP := newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner
+	if !IsSpecialOrEmptyUserID(newAP) {
+		postponedEvents = []wf.PostponeEventForAnotherUser{
+			RequestCoach(
+				newAndOldIssues.NewIssue.GetIssueType(),
+				newAndOldIssues.NewIssue.UserObjective.ID,
+				newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner,
+			),
+		}
+	}
+	return
+}
+// RequestCoach constructs a request coach postponed event.
+// TODO: move to request_coach package or to workflow_shared package
+func RequestCoach(issueType IssueType, issueID string, coachID string) wf.PostponeEventForAnotherUser {
+	actionPath := wf.ExternalActionPathWithData(
+		models.ParsePath("/community/request_coach"), 
+		"init", 
+		"",
+		map[string]string{
+			issueIDKey: issueID,
+			issueTypeKey: string(issueType),
+		},
+		false, // IsOriginalPermanent
+	)
+	return wf.PostponeEventForAnotherUser{
+		UserID: coachID,
+		ActionPath: actionPath,
+		ValidThrough: time.Now().Add(DefaultCoachRequestValidityDuration),
+	}
 }

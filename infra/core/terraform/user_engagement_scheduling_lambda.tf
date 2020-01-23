@@ -46,50 +46,28 @@ module "user_engagement_scheduling_lambda" {
 
 data "aws_iam_policy_document" "user_engagement_scheduling_policy" {
   statement {
-    effect    = "Allow"
-    actions   = [
-      "dynamodb:GetItem",
-    ]
-    resources = [
-      aws_dynamodb_table.adaptive_users_dynamodb_table.arn,
-    ]
+    resources = [aws_dynamodb_table.adaptive_users_dynamodb_table.arn, "${aws_dynamodb_table.adaptive_users_dynamodb_table.arn}/index/*"]
+    actions   = ["dynamodb:*"]
   }
   statement {
-    effect    = "Allow"
-    actions   = [
-      "dynamodb:Scan",
-    ]
-    resources = [
-      aws_dynamodb_table.client_config_dynamodb_table.arn,
-    ]
+    resources = [aws_dynamodb_table.user_objective_dynamodb_table.arn]
+    actions   = ["dynamodb:*"]
   }
   statement {
-    effect    = "Allow"
-    actions   = [
-      "dynamodb:Query",
-    ]
-    resources = [
-      "${aws_dynamodb_table.adaptive_users_dynamodb_table.arn}/index/${var.dynamo_users_scheduled_time_index}",
-      "${aws_dynamodb_table.adaptive_users_dynamodb_table.arn}/index/${var.dynamo_users_timezone_offset_index}",
-      "${aws_dynamodb_table.community_users.arn}/index/${var.dynamo_community_users_user_index}",
-    ]
+    resources = [aws_dynamodb_table.client_config_dynamodb_table.arn]
+    actions   = ["dynamodb:Scan", "dynamodb:GetItem"]
   }
   statement {
-    effect    = "Allow"
-    actions   = [
-      "lambda:InvokeFunction",
-    ]
-    # TF-UPGRADE-TODO: In Terraform v0.10 and earlier, it was sometimes necessary to
-    # force an interpolation expression to be interpreted as a list by wrapping it
-    # in an extra set of list brackets. That form was supported for compatibilty in
-    # v0.11, but is no longer supported in Terraform v0.12.
-    #
-    # If the expression in the following list itself returns a list, remove the
-    # brackets to avoid interpretation as a list of lists. If the expression
-    # returns a single list item then leave it as-is and remove this TODO comment.
-    resources = [
-      module.user_engagement_scripting_lambda.function_arn,
-    ]
+    resources = ["${aws_dynamodb_table.community_users.arn}/index/*"]
+    actions   = ["dynamodb:Query"]
+  }
+  statement {
+    resources = [aws_dynamodb_table.postponed_event_dynamodb_table.arn,"${aws_dynamodb_table.postponed_event_dynamodb_table.arn}/index/*"]
+    actions   = ["dynamodb:*"]
+  }
+  statement {
+    resources = [module.user_engagement_scripting_lambda.function_arn]
+    actions   = ["lambda:InvokeFunction"]
   }
 }
 

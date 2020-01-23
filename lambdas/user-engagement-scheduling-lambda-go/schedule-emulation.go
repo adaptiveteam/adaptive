@@ -49,7 +49,7 @@ func emulateDates(dateShiftConfig DateShiftConfig, date time.Time, userID string
 				Date:       emulatedDateStr,
 			}
 			logger.Infof("Emulating %s date for %s user on %s", emulatedDateStr, userID, dateStr)
-			invokeScriptingLambda(engage, models.PlatformID(platformID), config)
+			invokeScriptingLambda(engage, config)
 		}
 	}
 }

@@ -6,8 +6,9 @@ import (
 	"time"
 	"fmt"
 	
+	engIssues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
+	//"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	objectives "github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
@@ -148,70 +149,64 @@ func (SObjectiveImpl) ExtractFromContext(ctx wf.EventHandlingContext, _ string, 
 func (s SObjectiveImpl) View(w workflowImpl, isShowingDetails, isShowingProgress bool,
 	newAndOldIssues NewAndOldIssues,
 	) (fields []ebm.AttachmentField) {
-	fields = s.ObjectiveToFields(w, newAndOldIssues)
+	view := engIssues.GetView(SObjective)
+	fields = view.GetMainFields(newAndOldIssues)
 	if isShowingDetails {
-		fields = append(fields, s.ObjectiveToFieldDetails(w, newAndOldIssues)...)
+		fields = append(fields, view.GetDetailsFields(newAndOldIssues)...)
 	}
 	if isShowingProgress {
-		fields = append(fields, userObjectiveProgressField(newAndOldIssues.NewIssue.PrefetchedData.Progress))
+		fields = append(fields, view.GetProgressFields(newAndOldIssues)...)
 	}
 	return
 }
 
-func (s SObjectiveImpl)ObjectiveToFields(w workflowImpl, newAndOldIssues NewAndOldIssues) (fields []ebm.AttachmentField) {
-	fields = []ebm.AttachmentField{
-		attachmentFieldNewOld(SObjectiveNameLabel, getObjectiveName, newAndOldIssues),
-		attachmentFieldNewOld(SObjectiveDescriptionLabel, getObjectiveDescription, newAndOldIssues),
-	}
-	return
-}
 
-func getAsMeasuredBy(issue Issue) ui.PlainText {
-	return ui.PlainText(issue.AsMeasuredBy)
-}
+// func getAsMeasuredBy(issue Issue) ui.PlainText {
+// 	return ui.PlainText(issue.AsMeasuredBy)
+// }
 
-func getTargets(issue Issue) ui.PlainText {
-	return ui.PlainText(issue.Targets)
-}
+// func getTargets(issue Issue) ui.PlainText {
+// 	return ui.PlainText(issue.Targets)
+// }
 
-func getObjectiveAdvocate(issue Issue) ui.PlainText {
-	return ui.PlainText(common.TaggedUser(issue.StrategyObjective.Advocate))
-}
+// func getObjectiveAdvocate(issue Issue) ui.PlainText {
+// 	return ui.PlainText(common.TaggedUser(issue.StrategyObjective.Advocate))
+// }
 
-func getObjectiveName(issue Issue) ui.PlainText {
-	return ui.PlainText(issue.StrategyObjective.Name)
-}
+// func getObjectiveName(issue Issue) ui.PlainText {
+// 	return ui.PlainText(issue.StrategyObjective.Name)
+// }
 
-func getObjectiveDescription(issue Issue) ui.PlainText {
-	return ui.PlainText(issue.StrategyObjective.Description)
-}
+// func getObjectiveDescription(issue Issue) ui.PlainText {
+// 	return ui.PlainText(issue.StrategyObjective.Description)
+// }
 
-func getObjectiveType(issue Issue) ui.PlainText {
-	return ui.PlainText(issue.StrategyObjective.ObjectiveType)
-}
+// func getObjectiveType(issue Issue) ui.PlainText {
+// 	return ui.PlainText(issue.StrategyObjective.ObjectiveType)
+// }
 
-func (w workflowImpl)getObjectiveExpectedEndDate(issue Issue) ui.PlainText {
-	so := issue.StrategyObjective
-	newExpectedEndDate := formatDate(w, so.ExpectedEndDate, core.ISODateLayout, core.USDateLayout)
-	return ui.PlainText(newExpectedEndDate)
-}
+// func (w workflowImpl)getObjectiveExpectedEndDate(issue Issue) ui.PlainText {
+// 	so := issue.StrategyObjective
+// 	newExpectedEndDate := formatDate(w, so.ExpectedEndDate, core.ISODateLayout, core.USDateLayout)
+// 	return ui.PlainText(newExpectedEndDate)
+// }
 
 
-func (s SObjectiveImpl)ObjectiveToFieldDetails(w workflowImpl, newAndOldIssues NewAndOldIssues) (fields []ebm.AttachmentField) {
-	// For ViewMore action, we only need the latest comment
-	fields = []ebm.AttachmentField{
-		attachmentFieldNewOld(SObjectiveTypeLabel, getObjectiveType, newAndOldIssues),
-		attachmentFieldNewOld(TimelineLabel, renderObjectiveViewDate, newAndOldIssues),
-		attachmentFieldNewOld(SObjectiveEndDateLabel, w.getObjectiveExpectedEndDate, newAndOldIssues),
-		attachmentFieldNewOld(AccountabilityPartnerLabel, getAccountabilityPartner, newAndOldIssues),
-		attachmentFieldNewOld(SObjectiveAdvocateLabel, getObjectiveAdvocate, newAndOldIssues),
-		attachmentFieldNewOld(SObjectiveMeasuresLabel, getAsMeasuredBy, newAndOldIssues),
-		attachmentFieldNewOld(SObjectiveTargetsLabel, getTargets, newAndOldIssues),
-		attachmentFieldNewOld(StatusLabel, getStatus, newAndOldIssues),
-		attachmentField(LastReportedProgressLabel, getLatestComments(newAndOldIssues.NewIssue.PrefetchedData.Progress)),
-	}
-	return
-}
+// func (s SObjectiveImpl)ObjectiveToFieldDetails(w workflowImpl, newAndOldIssues NewAndOldIssues) (fields []ebm.AttachmentField) {
+// 	// For ViewMore action, we only need the latest comment
+// 	fields = []ebm.AttachmentField{
+// 		attachmentFieldNewOld(SObjectiveTypeLabel, getObjectiveType, newAndOldIssues),
+// 		attachmentFieldNewOld(TimelineLabel, renderObjectiveViewDate, newAndOldIssues),
+// 		attachmentFieldNewOld(SObjectiveEndDateLabel, w.getObjectiveExpectedEndDate, newAndOldIssues),
+// 		attachmentFieldNewOld(AccountabilityPartnerLabel, getAccountabilityPartner, newAndOldIssues),
+// 		attachmentFieldNewOld(SObjectiveAdvocateLabel, getObjectiveAdvocate, newAndOldIssues),
+// 		attachmentFieldNewOld(SObjectiveMeasuresLabel, getAsMeasuredBy, newAndOldIssues),
+// 		attachmentFieldNewOld(SObjectiveTargetsLabel, getTargets, newAndOldIssues),
+// 		attachmentFieldNewOld(StatusLabel, getStatus, newAndOldIssues),
+// 		attachmentField(LastReportedProgressLabel, getLatestComments(newAndOldIssues.NewIssue.PrefetchedData.Progress)),
+// 	}
+// 	return
+// }
 
 const (
 	AccountabilityPartnerLabel ui.PlainText = "Accountability Partner"

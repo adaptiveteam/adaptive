@@ -5,6 +5,8 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
+	workflows "github.com/adaptiveteam/adaptive/workflows"
+	"github.com/adaptiveteam/adaptive/daos/common"
 )
 
 type Config struct {
@@ -20,6 +22,7 @@ type Config struct {
 	cw                      *awsutils.CloudWatchRequest
 	l                       *awsutils.LambdaRequest
 	d                       *awsutils.DynamoRequest
+	clientID                string
 }
 
 func readConfigFromEnvironment() Config {
@@ -38,14 +41,23 @@ func readConfigFromEnvironment() Config {
 		cw:                      awsutils.NewCloudWatch(region, "", namespace),
 		l:                       awsutils.NewLambda(region, "", namespace),
 		d:                       awsutils.NewDynamo(region, "", namespace),
+		clientID: 				 utils.NonEmptyEnv("CLIENT_ID"),
 	}
 }
 
-func invokeScriptingLambda(engage models.UserEngage, platformID models.PlatformID, config Config) {
-	engage.PlatformID = platformID
+func invokeScriptingLambda(engage models.UserEngage, config Config) (err error) {
 	payloadJSONBytes, _ := json.Marshal(engage)
-	_, err := config.l.InvokeFunction(config.engScriptingLambdaArn, payloadJSONBytes, true)
-	if err != nil {
-		logger.WithError(err).Errorf("Could not invoke scripting lambda for %s user in %v platform", engage.UserId, platformID)
+	_, err = config.l.InvokeFunction(config.engScriptingLambdaArn, payloadJSONBytes, true)
+	return
+}
+
+func triggerPostponedEvents(engage models.UserEngage, config Config) (err error) {
+	logger.WithField("userID", engage.UserId).Infof("triggerPostponedEvents")
+	conn := common.DynamoDBConnection{
+		Dynamo: config.d,
+		ClientID: config.clientID,
+		PlatformID: engage.PlatformID,
 	}
+	err = workflows.TriggerAllPostponedEvents(engage.PlatformID, engage.UserId)(conn)
+	return
 }

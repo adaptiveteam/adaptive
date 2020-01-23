@@ -26,8 +26,7 @@ type IssueTypeClass interface {
 		newAndOldIssues NewAndOldIssues,
 	) (fields []ebm.AttachmentField)
 	// ObjectiveToFields - TODO rename to ShortViewForStrategy
-	ObjectiveToFields(w workflowImpl, newAndOldIssues NewAndOldIssues) (fields []ebm.AttachmentField)
-	GetAlignment(issue Issue) string
+	// ObjectiveToFields(w workflowImpl, newAndOldIssues NewAndOldIssues) (fields []ebm.AttachmentField)
 	// TODO: check other contexts.
 	CloseoutDisagreementContext() string
 	IssueTypeName() ui.PlainText

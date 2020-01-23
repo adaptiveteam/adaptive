@@ -25,3 +25,11 @@ resource "aws_dynamodb_table" "strategy_objective_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 }
+output "strategy_objective_table_arn" {
+	description = "ARN of the strategy_objective table"
+	value = aws_dynamodb_table.strategy_objective_dynamodb_table.arn
+}
+output "strategy_objective_table_name" {
+	description = "Name of the strategy_objective table"
+	value = aws_dynamodb_table.strategy_objective_dynamodb_table.name
+}

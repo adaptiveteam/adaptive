@@ -5,17 +5,20 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/nlopes/slack"
-
 )
 
 // TriggerAllPostponedEvents reads all postponed events and run them sequentially
+// Needs connection
+// conn := common.DynamoDBConnection{
+// 	Dynamo: d,
+// 	ClientID: clientID,
+// 	PlatformID: platformID,
+// }
 func TriggerAllPostponedEvents(platformID models.PlatformID, userID string)func (conn common.DynamoDBConnection)(err error) {
-	// conn := common.DynamoDBConnection{
-	// 	Dynamo: d,
-	// 	ClientID: clientID,
-	// 	PlatformID: platformID,
-	// }
-	return wf.ForeachActionPathForUserID(userID, func (ap models.ActionPath) (err error) {
+	return wf.ForeachActionPathForUserID(userID, func (ap models.ActionPath, conn common.DynamoDBConnection) (err error) {
+		callbackID := ap.Encode()
+		logger.WithField("userID", userID).WithField("callbackID", callbackID).
+			Infof("invokeWorkflow")
 		np := models.NamespacePayload4{
 			Namespace: "triggerAllPostponedEvents",
 			PlatformRequest: models.PlatformRequest{
@@ -26,16 +29,12 @@ func TriggerAllPostponedEvents(platformID models.PlatformID, userID string)func 
 						User: slack.User{
 							ID: userID,
 						},
-						CallbackID: ap.Encode(),
+						CallbackID: callbackID,
 					},
 				},
 			},
 		}
-		err = invokeWorkflow(np)
+		err = InvokeWorkflow(np, conn)
 		return
 	})
-}
-
-func invokeWorkflow(np models.NamespacePayload4) (err error) {
-	return
 }
