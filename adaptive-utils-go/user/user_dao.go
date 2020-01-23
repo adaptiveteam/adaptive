@@ -1,6 +1,7 @@
 package user
 
 import (
+	"github.com/pkg/errors"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
@@ -48,7 +49,11 @@ func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema m
 
 // Read reads User
 func (d DAOImpl) Read(userID string) (out models.User, err error) {
-	err = d.Dynamo.QueryTable(d.Name, idParams(userID), &out)
+	if userID == "" {
+		err = errors.Errorf("An attempt to read user with an empty user id")
+	} else {
+		err = d.Dynamo.QueryTable(d.Name, idParams(userID), &out)
+	}
 	return
 }
 
