@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"strings"
 )
 
 type DynamoTable struct {
@@ -149,7 +150,7 @@ func (d *DynamoRequest) UpdateItemInternal(input dynamodb.UpdateItemInput) error
 }
 
 // QueryTable reads single item
-// deprecated. Use GetItemFromTable that is more specific
+// deprecated. Use GetItemFromTable or GetItemOrEmptyFromTable
 func (d *DynamoRequest) QueryTable(table string, params map[string]*dynamodb.AttributeValue, out interface{}) (err error) {
 	return d.GetItemFromTable(table, params, out)
 }
@@ -159,6 +160,24 @@ func (d *DynamoRequest) QueryTable(table string, params map[string]*dynamodb.Att
 // If the item was not found, it returns an error - not found.
 // @param out - should be non-nil pointer (https://github.com/aws/aws-sdk-go/blob/5f3810f647bffb7ed2654bf5ff0fe7b3a5ad530d/service/dynamodb/dynamodbattribute/decode.go#L86)
 func (d *DynamoRequest) GetItemFromTable(table string, idParams map[string]*dynamodb.AttributeValue, out interface{}) (err error) {
+	var found bool
+	found, err = d.GetItemOrEmptyFromTable(table, idParams, out)
+	if err == nil {
+		if !found {
+			err = fmt.Errorf("[NOT FOUND] in table %s value not found, idParams=%s", table, showIDParams(idParams))
+		}
+	}
+	return
+}
+
+func showIDParams(idParams map[string]*dynamodb.AttributeValue) string {
+	return strings.ReplaceAll(fmt.Sprintf("%v", idParams), "\n", " ")
+}
+// GetItemOrEmptyFromTable reads single item identified by id
+// @param out - should be non-nil pointer (https://github.com/aws/aws-sdk-go/blob/5f3810f647bffb7ed2654bf5ff0fe7b3a5ad530d/service/dynamodb/dynamodbattribute/decode.go#L86)
+func (d *DynamoRequest) GetItemOrEmptyFromTable(table string, 
+	idParams map[string]*dynamodb.AttributeValue,
+	out interface{}) (found bool, err error) {
 	var result *dynamodb.GetItemOutput
 	result, err = d.svc.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(table),
@@ -166,12 +185,10 @@ func (d *DynamoRequest) GetItemFromTable(table string, idParams map[string]*dyna
 	})
 	// result.ConsumedCapacity.GoString()
 	if err == nil {
-		found := len(result.Item) > 0
+		found = len(result.Item) > 0
 		if found {
 			err = dynamodbattribute.UnmarshalMap(result.Item, out)
-		} else {
-			err = fmt.Errorf("[NOT FOUND] in table %s value not found, %v", table, idParams)
-		}	
+		}
 	}
 	if err != nil {
 		d.errorLog(err)
