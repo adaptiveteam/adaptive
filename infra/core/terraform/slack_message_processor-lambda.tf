@@ -94,7 +94,20 @@ module "slack_message_processor_lambda" {
 		RDS_DB_NAME  = var.RDS_DB_NAME
 
 
-    CLIENT_CONFIG_TABLE_NAME = aws_dynamodb_table.client_config_dynamodb_table.name
+    CLIENT_CONFIG_TABLE_NAME                = aws_dynamodb_table.client_config_dynamodb_table.name
+    USER_COMMUNITY_TABLE_NAME               = aws_dynamodb_table.user_communities.name
+    USER_COMMUNITY_PLATFORM_INDEX           = var.user_community_platform_dynamo_index
+
+    COMMUNITY_USERS_CHANNEL_INDEX           = var.dynamo_community_users_channel_index
+
+    USER_ENGAGEMENT_SCHEDULER_LAMBDA_PREFIX = var.user_engagement_scheduler_lambda_prefix
+
+    USER_TABLE_NAME                         = aws_dynamodb_table.adaptive_users_dynamodb_table.name
+
+    SLACK_LAMBDA_FUNCTION_NAME              = module.slack_user_query_lambda.function_name
+    USER_SETUP_LAMBDA_NAME                  = module.user_setup_lambda.function_name
+
+
   }
 
   // Attach extra policy
