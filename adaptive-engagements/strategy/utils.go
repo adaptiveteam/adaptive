@@ -126,12 +126,24 @@ func AllOpenStrategyInitiatives(platformID models.PlatformID, strategyInitiative
 	return res
 }
 
+// StrategyCommunityOrEmptyByID retrives the strategy community based on the id of the community
+func StrategyCommunityOrEmptyByID(id, strategyCommunitiesTable string) (comm StrategyCommunity, found bool, err error) {
+	params := map[string]*dynamodb.AttributeValue{
+		"id": dynString(id),
+	}
+	found, err = d().GetItemOrEmptyFromTable(strategyCommunitiesTable, params, &comm)
+	return
+}
+
 // StrategyCommunityByID retrives the strategy community based on the id of the community
 func StrategyCommunityByID(id, strategyCommunitiesTable string) StrategyCommunity {
+	return StrategyCommunityByIDUnsafe(id, strategyCommunitiesTable)
+}
+
+// StrategyCommunityByIDUnsafe retrives the strategy community based on the id of the community
+func StrategyCommunityByIDUnsafe(id, strategyCommunitiesTable string) StrategyCommunity {
 	params := map[string]*dynamodb.AttributeValue{
-		"id": {
-			S: aws.String(id),
-		},
+		"id": dynString(id),
 	}
 	var comm StrategyCommunity
 	err := d().QueryTable(strategyCommunitiesTable, params, &comm)
@@ -139,40 +151,55 @@ func StrategyCommunityByID(id, strategyCommunitiesTable string) StrategyCommunit
 	return comm
 }
 
-// Get all the capability communities, that have Adaptive associated, for the platform associated with the given user
+// AllCapabilityCommunities Get all the capability communities, 
+// that have Adaptive associated, for the platform ID
 func AllCapabilityCommunities(platformID models.PlatformID,
 	capabilityCommunitiesTable, capabilityCommunitiesPlatformIndex, strategyCommunitiesTable string) []CapabilityCommunity {
 	var ccs, op []CapabilityCommunity
-	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(capabilityCommunitiesTable,
+	err2 := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(capabilityCommunitiesTable,
 		platformIndexExpr(capabilityCommunitiesPlatformIndex, platformID),
 		map[string]string{}, true, -1, &ccs)
+	core.ErrorHandler(err2, "AllCapabilityCommunities.all capabilityCommunities for platformID", fmt.Sprintf("Could not query %s index on %s table. platformID=%s",
+		capabilityCommunitiesPlatformIndex,
+		capabilityCommunitiesTable,
+		platformID))
+
 	for _, each := range ccs {
-		stratComm := StrategyCommunityByID(each.ID, strategyCommunitiesTable)
-		if stratComm.ChannelCreated == 1 {
-			op = append(op, each)
+		stratComm, found, err3 := StrategyCommunityOrEmptyByID(each.ID, strategyCommunitiesTable)
+		core.ErrorHandler(err3, "AllCapabilityCommunities.StrategyCommunityOrEmptyByID", "Could not StrategyCommunityOrEmptyByID")
+		if found {
+			if stratComm.ChannelCreated == 1 {
+				op = append(op, each)
+			}
+		} else {
+			log.Printf("Couldn't find the respective StrategyCommunity for id=%s", each.ID)
 		}
 	}
-	core.ErrorHandler(err, common.DeprecatedGetGlobalDns().Namespace, fmt.Sprintf("Could not query %s index on %s table",
-		capabilityCommunitiesPlatformIndex,
-		capabilityCommunitiesTable))
 	return op
 }
 
-// // Get all the initiative communities for the platform associated with the given user
+// AllStrategyInitiativeCommunities - Get all the initiative communities 
+// for the platform ID
 func AllStrategyInitiativeCommunities(platformID models.PlatformID, initiativeCommunitiesTable,
 	initiativeCommunitiesPlatformIndex, strategyCommunitiesTable string) []StrategyInitiativeCommunity {
 	var sics, op []StrategyInitiativeCommunity
-	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(initiativeCommunitiesTable,
+	err2 := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(
+		initiativeCommunitiesTable,
 		platformIndexExpr(initiativeCommunitiesPlatformIndex, platformID),
 		map[string]string{}, true, -1, &sics)
+	core.ErrorHandler(err2, "AllStrategyInitiativeCommunities", fmt.Sprintf("Could not query %s index on %s table",
+		initiativeCommunitiesPlatformIndex, initiativeCommunitiesTable))
 	for _, each := range sics {
-		stratComm := StrategyCommunityByID(each.ID, strategyCommunitiesTable)
-		if stratComm.ChannelCreated == 1 {
-			op = append(op, each)
+		stratComm, found, err3 := StrategyCommunityOrEmptyByID(each.ID, strategyCommunitiesTable)
+		core.ErrorHandler(err3, "AllStrategyInitiativeCommunities.StrategyCommunityOrEmptyByID", "Could not StrategyCommunityOrEmptyByID")
+		if found {
+			if stratComm.ChannelCreated == 1 {
+				op = append(op, each)
+			}
+		} else {
+			log.Printf("Couldn't find the respective StrategyCommunity for id=%s", each.ID)
 		}
 	}
-	core.ErrorHandler(err, common.DeprecatedGetGlobalDns().Namespace, fmt.Sprintf("Could not query %s index on %s table",
-		initiativeCommunitiesPlatformIndex, initiativeCommunitiesTable))
 	return op
 }
 
