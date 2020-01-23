@@ -136,16 +136,33 @@ func (w workflowImpl) OnConfirmed() wf.Handler {
 		log.Info("Start")
 		var issue issues.Issue
 		issue, err = issues.Read(issueType, issueID)(w.DynamoDBConnection)
+		issueOwner := issue.UserObjective.UserID
+		view := engIssues.GetView(issue.GetIssueType())
+		objectiveView := view.GetTextView(issue)
 		if err == nil {
-			issue.UserObjective.AccountabilityPartner = ctx.Request.User.ID
-			err = issues.Save(issue)(w.DynamoDBConnection)
-			if err == nil {
-				issueOwner := issue.UserObjective.UserID
-				view := engIssues.GetView(issue.GetIssueType())
-				objectiveView := view.GetTextView(issue)
-			
-				out = ctx.Reply(ui.Sprintf("You have accepted the coaching request from <@%s> about objective:\n%s", 
-					issueOwner, objectiveView))
+			if issue.UserObjective.Accepted == 1 {
+				var who ui.RichText
+				switch issue.UserObjective.AccountabilityPartner {
+				case ctx.Request.User.ID:
+					who = "You"
+				default:
+					who = "Someone else"
+				}
+				out = ctx.Reply(ui.Sprintf("%s have already accepted the coaching request from <@%s> about the following %s:\n%s", 
+					who,
+					issueOwner, 
+					issue.GetIssueType().Template(),
+					objectiveView))
+			} else {
+				issue.UserObjective.AccountabilityPartner = ctx.Request.User.ID
+				issue.UserObjective.Accepted = 1
+				err = issues.Save(issue)(w.DynamoDBConnection)
+				if err == nil {				
+					out = ctx.Reply(ui.Sprintf("You have accepted the request from <@%s> about the following %s:\n%s", 
+						issueOwner, 
+						issue.GetIssueType().Template(),
+						objectiveView))
+				}
 			}
 		}
 		return
@@ -165,12 +182,14 @@ func (w workflowImpl) OnRejected() wf.Handler {
 			view := engIssues.GetView(issue.GetIssueType())
 			objectiveView := view.GetTextView(issue)
 		
-			out = ctx.Reply(ui.Sprintf("I'll notify <@%s> that you rejected the coaching request", issueOwner))
+			out = ctx.Reply(ui.Sprintf("I'll notify <@%s> that you have rejected the coaching request", issueOwner))
 			out.Responses = append(out.Responses,
-				platform.Post(platform.ConversationID(issueOwner), platform.MessageContent{Message: ui.Sprintf(
-					"<@%s> has rejected your coaching request of the below objective:\n%s",
-					ctx.Request.User.ID,
-					objectiveView, 
+				platform.Post(platform.ConversationID(issueOwner),
+					platform.MessageContent{Message: ui.Sprintf(
+						"<@%s> has just rejected your coaching request of the below %s:\n%s",
+						ctx.Request.User.ID,
+						issue.GetIssueType().Template(),
+						objectiveView, 
 					)}),
 			)
 		}
