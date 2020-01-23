@@ -81,15 +81,15 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 		return
 	}
 	newAP := newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner
-	isCoachRequestNeeded := 
-		(newAndOldIssues.Updated && 
-			newAP != newAndOldIssues.OldIssue.UserObjective.AccountabilityPartner) || 
-			(!newAndOldIssues.Updated && 
-				(newAP != "none" && newAP != "request"))
+	isCoachRequestNeeded :=
+		!IsSpecialOrEmptyUserID(newAP) &&
+		!newAndOldIssues.Updated || 
+			(newAP != newAndOldIssues.OldIssue.UserObjective.AccountabilityPartner) 
+			
 	var postponedEvents []wf.PostponeEventForAnotherUser
 	if isCoachRequestNeeded {
 		postponedEvents = w.requestCoach(ctx, newAndOldIssues)
-		newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner = "none"
+		// newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner = "none"
 	}
 	w.AdaptiveLogger.Infof("OnDialogSubmitted: Saving %v\n", newAndOldIssues.NewIssue)
 	err = issuesUtils.Save(newAndOldIssues.NewIssue)(w.DynamoDBConnection)
@@ -168,7 +168,7 @@ func findStrategyCommunityConversation(w workflowImpl, ctx wf.EventHandlingConte
 
 func (w workflowImpl) requestCoach(ctx wf.EventHandlingContext, newAndOldIssues NewAndOldIssues) (postponedEvents []wf.PostponeEventForAnotherUser) {
 	newAP := newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner
-	if newAP != "none" && newAP != "requested" {
+	if !IsSpecialOrEmptyUserID(newAP) {
 		postponedEvents = []wf.PostponeEventForAnotherUser{
 			RequestCoach(
 				newAndOldIssues.NewIssue.GetIssueType(),

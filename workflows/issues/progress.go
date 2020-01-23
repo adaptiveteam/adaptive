@@ -92,8 +92,7 @@ func (w workflowImpl) OnProgressCloseout(ctx wf.EventHandlingContext) (out wf.Ev
 	tc := getTypeClass(itype)
 	typLabel := tc.IssueTypeName()
 	// If there is no partner assigned, send a message to the user that issue can't be closed-out until there is a coach
-	if uo.AccountabilityPartner == "requested" ||
-		uo.AccountabilityPartner == "none" {
+	if IsSpecialOrEmptyUserID(uo.AccountabilityPartner) {
 		out.Interaction.Messages = wf.InteractiveMessages(wf.InteractiveMessage{
 			PassiveMessage: wf.PassiveMessage{
 				Text: ui.Sprintf("You do not have a coach for the %s: `%s`. Please get a coach before attemping to close out.", 

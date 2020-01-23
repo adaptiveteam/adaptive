@@ -233,8 +233,8 @@ func userDAO(conn DynamoDBConnection) utilsUser.DAO {
 
 func UserRead(userID string) func (conn DynamoDBConnection) (ut models.User, err error) {
 	return func (conn DynamoDBConnection) (ut models.User, err error) {
-		if userID == "none" || userID == "requested" {
-			err = errors.Errorf("Cannot read nonexisting userID")
+		if IsSpecialOrEmptyUserID(userID) {
+			err = errors.Errorf("Cannot read nonexisting userID %s", userID)
 		} else {
 			ut, err = userDAO(conn).Read(userID)
 		}
@@ -249,10 +249,19 @@ func mapAdaptiveCommunityUsersToUserID(users []models.AdaptiveCommunityUser2) (u
 	}
 	return
 }
+const UserID_Requested = "requested"
+const UserID_None = "none"
 
-var requested = models.KvPair{Key: string(objectives.RequestACoachOption), Value: "requested"}
-var none = models.KvPair{Key: string(objectives.CoachNotNeededOption), Value: "none"}
+var requested = models.KvPair{Key: string(objectives.RequestACoachOption), Value: UserID_Requested}
+var none = models.KvPair{Key: string(objectives.CoachNotNeededOption), Value: UserID_None}
 
+func IsSpecialUserID(userID string) bool {
+	return userID == UserID_None || userID == UserID_Requested
+}
+
+func IsSpecialOrEmptyUserID(userID string) bool {
+	return IsSpecialUserID(userID) || userID == ""
+}
 // IDOCoaches returns Key-Value pairs with user id and user display name
 // The set of users and the format are suitable for IDO dialog coach field.
 func IDOCoaches(userID string) func (conn DynamoDBConnection) (res []models.KvPair, err error) {
