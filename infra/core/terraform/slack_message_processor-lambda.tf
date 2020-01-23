@@ -1,17 +1,11 @@
-data "archive_file" "slack-message-processor-lambda-zip" {
-  type = "zip"
-  source_file = "../../../bin/slack-message-processor-lambda-go"
-  output_path = "lambdas/slack-message-processor-lambda-go.zip"
-}
-
 module "slack_message_processor_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id = var.client_id
-  filename = data.archive_file.slack-message-processor-lambda-zip.output_path
-  source_hash = data.archive_file.slack-message-processor-lambda-zip.output_base64sha256
+  filename = data.archive_file.adaptive-lambda-zip.output_path
+  source_hash = data.archive_file.adaptive-lambda-zip.output_base64sha256
   function_name = "slack-message-processor-lambda-go"
-  handler = "slack-message-processor-lambda-go"
+  handler = "adaptive"
   runtime = var.lambda_runtime
   timeout = var.lambda_timeout
   memory_size = var.multi_core_memory_size
@@ -27,6 +21,8 @@ module "slack_message_processor_lambda" {
 
   // Add environment variables.
   environment_variables = {
+    LAMBDA_ROLE="slack-message-processor"
+
     ADAPTIVE_HELP_PAGE = "https://adaptiveteam.github.io/docs/general/commands"
     NAMESPACE_PAYLOAD_TOPIC_ARN = aws_sns_topic.namespace_payload.arn
     PLATFORM_NOTIFICATION_TOPIC = aws_sns_topic.platform_notification.arn
@@ -97,6 +93,8 @@ module "slack_message_processor_lambda" {
 		RDS_PORT     = var.RDS_PORT
 		RDS_DB_NAME  = var.RDS_DB_NAME
 
+
+    CLIENT_CONFIG_TABLE_NAME = aws_dynamodb_table.client_config_dynamodb_table.name
   }
 
   // Attach extra policy
