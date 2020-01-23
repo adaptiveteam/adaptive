@@ -5,7 +5,7 @@ CORE_TERRAFORM_SRC := ${PWD}/infra/core/terraform
 # deploy.log is updated during terraform run. If all zips are older, then 
 # terraform is not invoked. Otherwise it is triggered and it has own means to 
 # check for changes.
-${CORE_TERRAFORM_SRC}/deploy.log: core-build \
+${CORE_TERRAFORM_SRC}/deploy.log: core-build adaptive-build \
 	$(call tf-sources-only,${CORE_TERRAFORM_SRC})
 	pushd $(@D);\
 	pwd;\

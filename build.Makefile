@@ -1,8 +1,9 @@
 include lambdas.Makefile
 
-.PHONY: core-build core-clean
+.PHONY: core-build core-clean adaptive-build adaptive-clean
 # List of all lambda binaries.
 CORE_LAMBDA_BINS := $(foreach lambda,$(CORE_LAMBDA_NAMES),${PWD}/bin/$(strip ${lambda}))
+ADAPTIVE_BIN := ${PWD}/bin/adaptive
 
 ${PWD}/bin/%: infra/core/src/%/*.go lambdas/%/*.go
 	pushd ${PWD}/infra/core/src/$*;\
@@ -26,3 +27,11 @@ core-clean:
 # 	$(call build-go,${PWD}/infra/core/src/$*,$*,${PWD}/bin)
 # 
 # core-zips: $(CORE_LAMBDA_ZIPS)
+
+${ADAPTIVE_BIN}: go.mod go.sum **/*.go
+	go build -o ${ADAPTIVE_BIN}
+
+adaptive-build: ${ADAPTIVE_BIN}
+
+adaptive-clean:
+	rm ${ADAPTIVE_BIN}
