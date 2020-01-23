@@ -167,16 +167,20 @@ func findStrategyCommunityConversation(w workflowImpl, ctx wf.EventHandlingConte
 }
 
 func (w workflowImpl) requestCoach(ctx wf.EventHandlingContext, newAndOldIssues NewAndOldIssues) (postponedEvents []wf.PostponeEventForAnotherUser) {
-	postponedEvents = []wf.PostponeEventForAnotherUser{
-		RequestCoach(
-			newAndOldIssues.NewIssue.GetIssueType(),
-			newAndOldIssues.NewIssue.UserObjective.ID,
-			newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner,
-		),
+	newAP := newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner
+	if newAP != "none" && newAP != "requested" {
+		postponedEvents = []wf.PostponeEventForAnotherUser{
+			RequestCoach(
+				newAndOldIssues.NewIssue.GetIssueType(),
+				newAndOldIssues.NewIssue.UserObjective.ID,
+				newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner,
+			),
+		}
 	}
 	return
 }
-
+// RequestCoach constructs a request coach postponed event.
+// TODO: move to request_coach package or to workflow_shared package
 func RequestCoach(issueType IssueType, issueID string, coachID string) wf.PostponeEventForAnotherUser {
 	actionPath := wf.ExternalActionPathWithData(
 		models.ParsePath("/community/request_coach"), 
