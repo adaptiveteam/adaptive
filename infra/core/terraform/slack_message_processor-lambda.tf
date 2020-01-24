@@ -1,17 +1,11 @@
-data "archive_file" "slack-message-processor-lambda-zip" {
-  type = "zip"
-  source_file = "../../../bin/slack-message-processor-lambda-go"
-  output_path = "lambdas/slack-message-processor-lambda-go.zip"
-}
-
 module "slack_message_processor_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id = var.client_id
-  filename = data.archive_file.slack-message-processor-lambda-zip.output_path
-  source_hash = data.archive_file.slack-message-processor-lambda-zip.output_base64sha256
+  filename = data.archive_file.adaptive-lambda-zip.output_path
+  source_hash = data.archive_file.adaptive-lambda-zip.output_base64sha256
   function_name = "slack-message-processor-lambda-go"
-  handler = "slack-message-processor-lambda-go"
+  handler = "adaptive"
   runtime = var.lambda_runtime
   timeout = var.lambda_timeout
   memory_size = var.multi_core_memory_size
@@ -26,78 +20,10 @@ module "slack_message_processor_lambda" {
   schedule_invoke_json = data.local_file.slack_message_processor_lambda_warmer_json.content
 
   // Add environment variables.
-  environment_variables = {
-    ADAPTIVE_HELP_PAGE = "https://adaptiveteam.github.io/docs/general/commands"
-    NAMESPACE_PAYLOAD_TOPIC_ARN = aws_sns_topic.namespace_payload.arn
-    PLATFORM_NOTIFICATION_TOPIC = aws_sns_topic.platform_notification.arn
-    USER_COMMUNITIES_TABLE = aws_dynamodb_table.user_communities.name
-    COMMUNITY_USERS_TABLE_NAME = aws_dynamodb_table.community_users.name
-    COMMUNITY_USERS_USER_COMMUNITY_INDEX = var.dynamo_community_users_user_community_index
-    COMMUNITY_USERS_USER_INDEX = var.dynamo_community_users_user_index
-    USER_OBJECTIVES_TABLE_NAME = aws_dynamodb_table.user_objective_dynamodb_table.name
-    USER_OBJECTIVES_PARTNER_INDEX = var.dynamo_user_objectives_partner_index
-    USER_OBJECTIVES_ID_INDEX = var.dynamo_user_objectives_id_index
-    USER_OBJECTIVES_TYPE_INDEX = var.dynamo_user_objectives_type_index
-    DIALOG_TABLE = aws_dynamodb_table.adaptive_dialog_content.name
-    VISION_TABLE_NAME = aws_dynamodb_table.vision.name
-    CAPABILITY_COMMUNITIES_TABLE_NAME = aws_dynamodb_table.capability_communities.name
-    CAPABILITY_COMMUNITIES_PLATFORM_INDEX = var.dynamo_capability_communities_platform_index
-    INITIATIVE_COMMUNITIES_TABLE_NAME = aws_dynamodb_table.initiative_communities.name
-    INITIATIVE_COMMUNITIES_PLATFORM_INDEX = var.dynamo_strategy_initiative_communities_platform_index
-    STRATEGY_COMMUNITIES_TABLE_NAME = aws_dynamodb_table.strategy_communities.name
-    STRATEGY_COMMUNITIES_PLATFORM_CHANNEL_CREATED_INDEX = var.dynamo_strategy_communities_platform_channel_created_index
+  environment_variables = merge(local.environment_variables, {
+    LAMBDA_ROLE   = "slack-message-processor"
     LOG_NAMESPACE = "slack-message-processor"
-    // ADM
-    USER_OBJECTIVES_TABLE = aws_dynamodb_table.user_objective_dynamodb_table.name
-    USER_OBJECTIVES_USER_ID_INDEX = var.dynamo_user_objectives_user_index
-    USER_OBJECTIVES_PROGRESS_TABLE = aws_dynamodb_table.user_objectives_progress.name
-    USER_OBJECTIVES_PROGRESS_ID_INDEX = var.dynamo_user_objectives_progress_index
-    CLIENT_ID = var.client_id
-    ADAPTIVE_VALUES_TABLE = aws_dynamodb_table.adaptive_value_dynamodb_table.name
-    USER_ENGAGEMENT_SCRIPTING_LAMBDA_NAME = module.user_engagement_scripting_lambda.function_name
-    USER_ENGAGEMENTS_TABLE_NAME = aws_dynamodb_table.adaptive_user_engagements_dynamo_table.name
-    USER_ANSWERED_INDEX = var.user_engagement_answered_dynamo_index
-    STRATEGY_INITIATIVES_TABLE_NAME = aws_dynamodb_table.strategy_initiatives.name
-    STRATEGY_INITIATIVES_PLATFORM_INDEX = var.dynamo_strategy_initiatives_platform_index
-    STRATEGY_OBJECTIVES_TABLE_NAME = aws_dynamodb_table.strategy_objectives.name
-    STRATEGY_OBJECTIVES_PLATFORM_INDEX = var.dynamo_strategy_objectives_platform_index
-    STRATEGY_OBJECTIVES_CAPABILITY_COMMUNITY_INDEX = var.dynamo_strategy_objectives_capability_community_index
-    STRATEGY_INITIATIVES_INITIATIVE_COMMUNITY_ID_INDEX = var.dynamo_strategy_initiatives_initiative_community_index
-
-    USERS_TABLE_NAME = aws_dynamodb_table.adaptive_users_dynamodb_table.name
-    USER_PROFILE_LAMBDA_NAME = module.user_profile_lambda.function_name
-
-    // for adaptive-utils-go
-    USERS_PLATFORM_INDEX = var.dynamo_users_platform_index
-    COMMUNITY_USERS_COMMUNITY_INDEX = var.dynamo_community_users_community_index
-    COMMUNITY_USERS_COMMUNITY_INDEX = var.dynamo_community_users_community_index
-    COACHING_RELATIONSHIPS_TABLE_NAME = aws_dynamodb_table.coaching_relationships.name
-    COACHING_RELATIONSHIPS_COACHEE_QUARTER_YEAR_INDEX = var.dynamo_coaching_relationship_coachee_index
-    COACHING_RELATIONSHIPS_COACH_QUARTER_YEAR_INDEX = var.dynamo_coaching_relationship_coach_index
-    COACHING_RELATIONSHIPS_QUARTER_YEAR_INDEX = var.dynamo_coaching_relationship_quarter_year_index
-    ADAPTIVE_COMMUNITIES_TABLE = aws_dynamodb_table.user_communities.name
-    USER_FEEDBACK_TABLE_NAME = aws_dynamodb_table.adaptive_user_feedback_dynamodb_table.name
-    USER_FEEDBACK_SOURCE_QUARTER_YEAR_INDEX = var.feedback_source_quarter_year_index
-    FEEDBACK_REPORTING_LAMBDA_NAME = local.reporting_lambda_name
-    HOLIDAYS_AD_HOC_TABLE = aws_dynamodb_table.ad_hoc_holidays.name
-    HOLIDAYS_PLATFORM_DATE_INDEX = var.dynamo_holidays_date_index
-    STRATEGY_INITIATIVES_TABLE = aws_dynamodb_table.strategy_initiatives.name
-    STRATEGY_INITIATIVES_PLATFORM_INDEX = var.dynamo_strategy_initiatives_platform_index
-    STRATEGY_OBJECTIVES_TABLE = aws_dynamodb_table.strategy_objectives.name
-    STRATEGY_OBJECTIVES_PLATFORM_INDEX = var.dynamo_strategy_objectives_platform_index
-    VISION_TABLE_NAME = aws_dynamodb_table.vision.name
-    SLACK_MESSAGE_PROCESSOR_SUFFIX = local.slack_message_processor_suffix
-
-    # Reporting
-    REPORTS_BUCKET_NAME = aws_s3_bucket.adaptive-feedback-reports-bucket.bucket
-
-    RDS_HOST     = var.RDS_HOST
-		RDS_USER     = var.RDS_USER
-		RDS_PASSWORD = var.RDS_PASSWORD
-		RDS_PORT     = var.RDS_PORT
-		RDS_DB_NAME  = var.RDS_DB_NAME
-
-  }
+  })
 
   // Attach extra policy
   attach_policy = true
