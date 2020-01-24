@@ -84,7 +84,7 @@ func (w workflowImpl) OnCoachRequested() wf.Handler {
 			return
 		}
 		ap := issue.UserObjective.AccountabilityPartner
-		if ap == "" || ap == "none" {
+		if ap == "" || ap == "none" || issue.UserObjective.Accepted == 0 {
 			out.Interaction = wf.Interaction{
 				Messages: []wf.InteractiveMessage{
 					{
