@@ -170,7 +170,7 @@ const CommentsName = "Comments"
 
 func CloseoutRequestRejectedCommentsDialog() (survey ebm.AttachmentActionSurvey) {
 	survey = ebm.AttachmentActionSurvey{
-		Title: "Closeout request rejected",
+		Title: "Closeout rejected",
 		SubmitLabel: "Submit",
 		Elements: []ebm.AttachmentActionTextElement{
 			{
