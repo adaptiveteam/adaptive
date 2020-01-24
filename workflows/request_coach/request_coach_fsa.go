@@ -90,8 +90,8 @@ func (w workflowImpl) OnCoachRequested() wf.Handler {
 					{
 						PassiveMessage: shortView(issue),
 						InteractiveElements: []wf.InteractiveElement{
-							wf.Button(ConfirmedEvent, "Confirm"),
-							wf.Button(RejectedEvent, "Reject"),
+							wf.Button(ConfirmedEvent, "I agree"),
+							wf.Button(RejectedEvent, "I tend to disagree"),
 						},
 					},
 				},
