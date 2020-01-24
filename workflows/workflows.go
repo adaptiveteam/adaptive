@@ -84,15 +84,19 @@ func invokeWorkflowInner(np models.NamespacePayload4, conn common.DynamoDBConnec
 }
 // NB: It'll fail if there are issues in templates constructors.
 // Though, it is unprobable
-func workflows(conn common.DynamoDBConnection) []wf.NamedTemplate {
+func workflows(conn common.DynamoDBConnection) (templates []wf.NamedTemplate) {
 	IssuesWorkflowImpl := issues.IssueWorkflow(conn, logger)
 	RequestCoachWorkflowImpl := request_coach.RequestCoachWorkflow(conn, logger)
 	RequestCloseoutWorkflowImpl := closeout.RequestCloseoutWorkflow(conn, logger)
-	return []wf.NamedTemplate{
+	templates = []wf.NamedTemplate{
 		IssuesWorkflowImpl.GetNamedTemplate(),
 		RequestCoachWorkflowImpl.GetNamedTemplate(),
 		RequestCloseoutWorkflowImpl.GetNamedTemplate(),
 	}
+	for _, t := range templates {
+		logger.Infof("Workflow template: %s", t.Name)
+	}
+	return
 }
 
 // var allRoutes = communityRoutes()
