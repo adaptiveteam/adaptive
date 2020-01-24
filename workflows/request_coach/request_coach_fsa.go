@@ -11,10 +11,11 @@ import (
 	// common "github.com/adaptiveteam/adaptive/daos/common"
 	issues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
 )
 
 // Namespace -
-const Namespace = "request_coach"
+const Namespace = exchange.RequestCoachNamespace
 
 // InitState - the initial state of this workflow.
 const InitState wf.State = "init"

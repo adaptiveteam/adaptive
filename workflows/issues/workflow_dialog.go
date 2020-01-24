@@ -1,15 +1,14 @@
 package issues
 
 import (
-	"time"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/pkg/errors"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	ex "github.com/adaptiveteam/adaptive/workflows/exchange"
 )
 
 func (w workflowImpl) showDialog(ctx wf.EventHandlingContext, issue Issue, dialogSituationID DialogSituationIDWithoutIssueType) (out wf.EventOutput, err error) {
@@ -170,7 +169,7 @@ func (w workflowImpl) requestCoach(ctx wf.EventHandlingContext, newAndOldIssues 
 	newAP := newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner
 	if !IsSpecialOrEmptyUserID(newAP) {
 		postponedEvents = []wf.PostponeEventForAnotherUser{
-			RequestCoach(
+			ex.RequestCoach(
 				newAndOldIssues.NewIssue.GetIssueType(),
 				newAndOldIssues.NewIssue.UserObjective.ID,
 				newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner,
@@ -178,23 +177,4 @@ func (w workflowImpl) requestCoach(ctx wf.EventHandlingContext, newAndOldIssues 
 		}
 	}
 	return
-}
-// RequestCoach constructs a request coach postponed event.
-// TODO: move to request_coach package or to workflow_shared package
-func RequestCoach(issueType IssueType, issueID string, coachID string) wf.PostponeEventForAnotherUser {
-	actionPath := wf.ExternalActionPathWithData(
-		models.ParsePath("/community/request_coach"), 
-		"init", 
-		"",
-		map[string]string{
-			issueIDKey: issueID,
-			issueTypeKey: string(issueType),
-		},
-		false, // IsOriginalPermanent
-	)
-	return wf.PostponeEventForAnotherUser{
-		UserID: coachID,
-		ActionPath: actionPath,
-		ValidThrough: time.Now().Add(DefaultCoachRequestValidityDuration),
-	}
 }
