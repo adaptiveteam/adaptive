@@ -25,11 +25,6 @@ const (
 	ConfirmedEvent wf.Event = "Confirmed"
 	RejectedEvent wf.Event = "Rejected"
 )
-// IssueIDKey - data key that will contain Issue ID
-const IssueIDKey = "iid"
-
-// IssueTypeKey -
-const IssueTypeKey = "itype"
 
 // Workflow is a public interface of workflow template.
 type Workflow interface {

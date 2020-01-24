@@ -12,6 +12,7 @@ import (
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	issues "github.com/adaptiveteam/adaptive/workflows/issues"
 	request_coach "github.com/adaptiveteam/adaptive/workflows/request_coach"
+	"github.com/adaptiveteam/adaptive/workflows/closeout"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
@@ -27,6 +28,8 @@ type WorkflowInfo struct {
 var IssuesWorkflow = WorkflowInfo{Name: issues.IssuesNamespace, Init: issues.InitState}
 // RequestCoachWorkflow -
 var RequestCoachWorkflow = WorkflowInfo{Name: request_coach.Namespace, Init: request_coach.InitState}
+// RequestCloseoutWorkflow - 
+var RequestCloseoutWorkflow = WorkflowInfo{Name: closeout.Namespace, Init: closeout.InitState}
 
 // var IssuesWorkflowImpl = issues.IssueWorkflow(d, clientID, logger)
 // var IssuesWorkflow = IssuesWorkflowImpl.GetNamedTemplate()
@@ -34,9 +37,6 @@ var RequestCoachWorkflow = WorkflowInfo{Name: request_coach.Namespace, Init: req
 const communityNamespace = exchange.CommunityNamespace
 
 var CommunityPath models.Path = exchange.CommunityPath
-
-// var CreateIDOPath models.Path = CommunityPath.Append(CreateIDOWorkflow.Name)
-var CreateIDOIssuePath models.Path = CommunityPath.Append(issues.IssuesNamespace)
 
 var logger = alog.LambdaLogger(logrus.InfoLevel)
 
@@ -85,13 +85,13 @@ func invokeWorkflowInner(np models.NamespacePayload4, conn common.DynamoDBConnec
 // NB: It'll fail if there are issues in templates constructors.
 // Though, it is unprobable
 func workflows(conn common.DynamoDBConnection) []wf.NamedTemplate {
-	
 	IssuesWorkflowImpl := issues.IssueWorkflow(conn, logger)
 	RequestCoachWorkflowImpl := request_coach.RequestCoachWorkflow(conn, logger)
+	RequestCloseoutWorkflowImpl := closeout.RequestCloseoutWorkflow(conn, logger)
 	return []wf.NamedTemplate{
-		// CreateIDOWorkflow,
 		IssuesWorkflowImpl.GetNamedTemplate(),
 		RequestCoachWorkflowImpl.GetNamedTemplate(),
+		RequestCloseoutWorkflowImpl.GetNamedTemplate(),
 	}
 }
 
@@ -102,7 +102,8 @@ func prepareEnvironmentWithoutPrefix(conn common.DynamoDBConnection) (env wf.Env
 	platformDAO := utilsPlatform.NewDAOFromSchema(conn.Dynamo, "workflows", schema)
 	platformAdapter := mapper.SlackAdapter2(platformDAO)
 
-	env = wf.ConstructEnvironmentWithoutPrefix(platformAdapter, wf.PostponeEventHandler(conn), logger)
+	env = wf.ConstructEnvironmentWithoutPrefix(platformAdapter, 
+		wf.PostponeEventHandler(conn), logger)
 	return
 }
 

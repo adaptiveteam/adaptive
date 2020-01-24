@@ -1,4 +1,4 @@
-package request_coach
+package closeout
 
 import (
 	issues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"

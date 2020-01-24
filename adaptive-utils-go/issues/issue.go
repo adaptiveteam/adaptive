@@ -79,6 +79,11 @@ func (issue Issue) GetIssueType() (itype IssueType) {
 	return
 }
 
+// GetIssueID returns issue.UserObjective.ID
+func (issue Issue) GetIssueID() string {
+	return issue.UserObjective.ID
+}
+
 func (itype IssueType)Template() (text ui.PlainText) {
 	switch itype {
 	case IDO: text = "Individual Development Objective"

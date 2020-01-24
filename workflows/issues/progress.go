@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
 	"log"
 	"strconv"
 	"time"
@@ -100,23 +101,22 @@ func (w workflowImpl) OnProgressCloseout(ctx wf.EventHandlingContext) (out wf.Ev
 			},
 		})
 	} else {
-
-		err = OnCloseoutImpl(newAndOldIssues.NewIssue)(w.DynamoDBConnection)
-		if err != nil {
-			return
+		issue := newAndOldIssues.NewIssue
+		issue.Completed = 1
+		issue.CompletedDate = core.ISODateLayout.Format(time.Now())
+		err = issuesUtils.Save(issue)(w.DynamoDBConnection)
+		if err == nil {				
+			// send a notification to the coachee that partner has been notified
+			out.Interaction.Messages = wf.InteractiveMessages(wf.InteractiveMessage{
+				PassiveMessage: wf.PassiveMessage{
+					Text: ui.Sprintf("Awesome! I’ll schedule time with <@%s> to close out the %s: `%s`",
+						uo.AccountabilityPartner, typLabel, uo.Name),
+				},
+			})
+			out.PostponedEvents = []wf.PostponeEventForAnotherUser{
+				exchange.RequestCloseoutForIssue(newAndOldIssues.NewIssue),
+			}
 		}
-		// TODO: Mark objective as closed. Only when partner acknowledge
-		issuesUtils.SetCompleted(uo.ID)(w.DynamoDBConnection)
-		// TODO: Set closeout date;
-		// TODO
-		// send a notification to the coachee that partner has been notified
-		out.Interaction.Messages = wf.InteractiveMessages(wf.InteractiveMessage{
-			PassiveMessage: wf.PassiveMessage{
-				Text: ui.Sprintf("Awesome! I’ll schedule time with <@%s> to close out the %s: `%s`",
-					uo.AccountabilityPartner, typLabel, uo.Name),
-			},
-		})
-
 	}
 	return
 }
