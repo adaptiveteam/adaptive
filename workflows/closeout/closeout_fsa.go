@@ -158,32 +158,24 @@ func (w workflowImpl) OnCloseoutRejected() wf.Handler {
 		issueType := issues.IssueType(ctx.Data[IssueTypeKey])
 		log := w.AdaptiveLogger.WithField("issueID", issueID).WithField("issueType", issueType).WithField("Handler", "OnCloseoutRejected")
 		log.Info("Start")
-		// var issue issues.Issue
-		// issue, err = issues.Read(issueType, issueID)(w.DynamoDBConnection)
-		// if err == nil {
-			// issueOwner := issue.UserObjective.UserID
-			// view := engIssues.GetView(issue.GetIssueType())
-			// objectiveView := view.GetTextView(issue)
-		
-		survey := CommentsDialog()
-		out.Interaction = wf.OpenSurvey(survey)
+		out.Interaction = wf.OpenSurvey(
+			CloseoutRequestRejectedCommentsDialog(),
+		)
 		out.KeepOriginal = true // we want to keep the original message until dialog is submitted or cancelled
-		// }
 		return
 	}
 }
 
 const CommentsName = "Comments"
-const CommentsLabel = "Comments"
 
-func CommentsDialog() (survey ebm.AttachmentActionSurvey) {
+func CloseoutRequestRejectedCommentsDialog() (survey ebm.AttachmentActionSurvey) {
 	survey = ebm.AttachmentActionSurvey{
 		Title: "Closeout request rejected",
 		SubmitLabel: "Submit",
 		Elements: []ebm.AttachmentActionTextElement{
 			{
 				Name: CommentsName,
-				Label: CommentsLabel,
+				Label: "Why are you disagreeing with closeout?",
 				ElemType: string(ebm.ElemTypeTextArea),
 			},
 		},

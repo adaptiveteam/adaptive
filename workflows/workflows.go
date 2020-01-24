@@ -27,9 +27,9 @@ type WorkflowInfo struct {
 // IssuesWorkflow is a description of an issues workflow
 var IssuesWorkflow = WorkflowInfo{Name: issues.IssuesNamespace, Init: issues.InitState}
 // RequestCoachWorkflow -
-var RequestCoachWorkflow = WorkflowInfo{Name: request_coach.Namespace, Init: request_coach.InitState}
+var RequestCoachWorkflow = WorkflowInfo{Name: exchange.RequestCoachNamespace, Init: request_coach.InitState}
 // RequestCloseoutWorkflow - 
-var RequestCloseoutWorkflow = WorkflowInfo{Name: closeout.Namespace, Init: closeout.InitState}
+var RequestCloseoutWorkflow = WorkflowInfo{Name: exchange.RequestCloseoutNamespace, Init: closeout.InitState}
 
 // var IssuesWorkflowImpl = issues.IssueWorkflow(d, clientID, logger)
 // var IssuesWorkflow = IssuesWorkflowImpl.GetNamedTemplate()
