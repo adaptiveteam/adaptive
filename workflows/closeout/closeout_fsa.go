@@ -97,8 +97,8 @@ func (w workflowImpl) OnCloseoutRequested() wf.Handler {
 				{
 					PassiveMessage: areYouOkToCloseoutView(issue),
 					InteractiveElements: []wf.InteractiveElement{
-						wf.Button(ConfirmedEvent, "Confirm"),
-						wf.Button(RejectedEvent, "Reject"),
+						wf.Button(ConfirmedEvent, "I agree"),
+						wf.Button(RejectedEvent, "I tend to disagree"),
 					},
 				},
 			},
