@@ -62,6 +62,10 @@ data "aws_iam_policy_document" "user_engagement_scheduling_policy" {
     actions   = ["dynamodb:*"]
   }
   statement {
+    resources = [aws_dynamodb_table.vision.arn]
+    actions   = ["dynamodb:*"]
+  }
+  statement {
     resources = [aws_dynamodb_table.client_config_dynamodb_table.arn]
     actions   = ["dynamodb:Scan", "dynamodb:GetItem"]
   }
