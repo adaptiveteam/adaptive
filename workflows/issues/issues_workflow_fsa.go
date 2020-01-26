@@ -30,6 +30,9 @@ const isShowingDetailsKey = "isd"
 const isShowingProgressKey = "isp"
 const dialogSituationIDKey = "sid"
 
+// IssuesWorkflow is a description of an issues workflow
+var IssuesWorkflow = ex.WorkflowInfo{Name: IssuesNamespace, Init: InitState}
+
 const IssuesNamespace = "issues"
 
 const InitState wf.State = "init"
@@ -139,7 +142,7 @@ type workflowImpl struct {
 // 	CommunityById // func(community.AdaptiveCommunity, models.PlatformID) community.AdaptiveCommunity
 // }
 
-func IssueWorkflow(
+func CreateIssueWorkflow(
 	conn DynamoDBConnection,
 	logger alog.AdaptiveLogger,
 ) Workflow {

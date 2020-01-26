@@ -18,18 +18,14 @@ import (
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
 )
 
-// WorkflowInfo identifies a workflow.
-type WorkflowInfo struct {
-	Name string
-	Init wf.State
-}
-
+// WorkflowInfo -
+type WorkflowInfo = exchange.WorkflowInfo
 // IssuesWorkflow is a description of an issues workflow
-var IssuesWorkflow = WorkflowInfo{Name: issues.IssuesNamespace, Init: issues.InitState}
+var IssuesWorkflow = issues.IssuesWorkflow
 // RequestCoachWorkflow -
-var RequestCoachWorkflow = WorkflowInfo{Name: exchange.RequestCoachNamespace, Init: request_coach.InitState}
+var RequestCoachWorkflow = request_coach.RequestCoachWorkflow
 // RequestCloseoutWorkflow - 
-var RequestCloseoutWorkflow = WorkflowInfo{Name: exchange.RequestCloseoutNamespace, Init: closeout.InitState}
+var RequestCloseoutWorkflow = closeout.RequestCloseoutWorkflow
 
 // var IssuesWorkflowImpl = issues.IssueWorkflow(d, clientID, logger)
 // var IssuesWorkflow = IssuesWorkflowImpl.GetNamedTemplate()
@@ -85,9 +81,9 @@ func invokeWorkflowInner(np models.NamespacePayload4, conn common.DynamoDBConnec
 // NB: It'll fail if there are issues in templates constructors.
 // Though, it is unprobable
 func workflows(conn common.DynamoDBConnection) (templates []wf.NamedTemplate) {
-	IssuesWorkflowImpl := issues.IssueWorkflow(conn, logger)
-	RequestCoachWorkflowImpl := request_coach.RequestCoachWorkflow(conn, logger)
-	RequestCloseoutWorkflowImpl := closeout.RequestCloseoutWorkflow(conn, logger)
+	IssuesWorkflowImpl := issues.CreateIssueWorkflow(conn, logger)
+	RequestCoachWorkflowImpl := request_coach.CreateRequestCoachWorkflow(conn, logger)
+	RequestCloseoutWorkflowImpl := closeout.CreateRequestCloseoutWorkflow(conn, logger)
 	templates = []wf.NamedTemplate{
 		IssuesWorkflowImpl.GetNamedTemplate(),
 		RequestCoachWorkflowImpl.GetNamedTemplate(),

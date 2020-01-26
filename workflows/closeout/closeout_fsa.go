@@ -15,6 +15,8 @@ import (
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
+// RequestCloseoutWorkflow - 
+var RequestCloseoutWorkflow = exchange.WorkflowInfo{Name: exchange.RequestCloseoutNamespace, Init: InitState}
 
 // Namespace -
 const Namespace = exchange.RequestCloseoutNamespace
@@ -43,8 +45,8 @@ type workflowImpl struct {
 	alog.AdaptiveLogger
 }
 
-// RequestCloseoutWorkflow - constructor.
-func RequestCloseoutWorkflow(
+// CreateRequestCloseoutWorkflow - constructor.
+func CreateRequestCloseoutWorkflow(
 	conn DynamoDBConnection,
 	logger alog.AdaptiveLogger,
 ) Workflow {
@@ -56,8 +58,8 @@ func RequestCloseoutWorkflow(
 	}
 }
 
-func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
-	nt := wf.NamedTemplate{
+func (w workflowImpl) GetNamedTemplate() (nt wf.NamedTemplate) {
+	nt = wf.NamedTemplate{
 		Name: Namespace,
 		Template: wf.Template{
 			Init: InitState, // initial state is "init". This is used when the user first triggers the workflow
@@ -76,7 +78,7 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 			},
 			Parser: wf.Parser,
 		}}
-	return nt
+	return
 }
 
 // OnCloseoutRequested is triggered by some other workflow.
