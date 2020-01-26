@@ -24,8 +24,8 @@ type workflowImpl struct {
 	alog.AdaptiveLogger
 }
 
-// CoacheesWorkflow - constructor.
-func CoacheesWorkflow(
+// CreateCoacheesWorkflow - constructor.
+func CreateCoacheesWorkflow(
 	conn DynamoDBConnection,
 	logger alog.AdaptiveLogger,
 ) Workflow {
