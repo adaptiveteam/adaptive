@@ -15,7 +15,9 @@ import (
 )
 
 // RequestCoachWorkflow -
-var RequestCoachWorkflow = exchange.WorkflowInfo{Name: exchange.RequestCoachNamespace, Init: InitState}
+var RequestCoachWorkflow = exchange.WorkflowInfo{
+	Prefix: exchange.CommunityPath,
+	Name: exchange.RequestCoachNamespace, Init: InitState}
 
 // Namespace -
 const Namespace = exchange.RequestCoachNamespace

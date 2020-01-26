@@ -16,7 +16,9 @@ import (
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
 // RequestCloseoutWorkflow - 
-var RequestCloseoutWorkflow = exchange.WorkflowInfo{Name: exchange.RequestCloseoutNamespace, Init: InitState}
+var RequestCloseoutWorkflow = exchange.WorkflowInfo{
+	Prefix: exchange.CommunityPath,
+	Name: exchange.RequestCloseoutNamespace, Init: InitState}
 
 // Namespace -
 const Namespace = exchange.RequestCloseoutNamespace

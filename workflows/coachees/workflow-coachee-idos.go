@@ -13,7 +13,9 @@ import (
 )
 
 // ViewCoacheesWorkflow - 
-var ViewCoacheesWorkflow = exchange.WorkflowInfo{Name: exchange.CoacheesNamespace, Init: InitState}
+var ViewCoacheesWorkflow = exchange.WorkflowInfo{
+	Prefix: exchange.CoachingPath,
+	Name: exchange.CoacheesNamespace, Init: InitState}
 
 // Workflow is a public interface of workflow template.
 type Workflow interface {
