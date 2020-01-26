@@ -1,17 +1,12 @@
 package issues
 
 import (
-	"time"
-
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	strategy "github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	userObjectiveProgress "github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 )
-
-// DefaultCoachRequestValidityDuration -
-const DefaultCoachRequestValidityDuration = 14 * 24 * time.Hour
 
 // UserHasWriteAccessToIssues is an access policy.
 // It might eventually evolve to interface

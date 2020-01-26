@@ -19,12 +19,13 @@ import (
 	// "github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	// mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
+	ex "github.com/adaptiveteam/adaptive/workflows/exchange"
 )
 
-const issueIDKey = "iid"
+const issueIDKey = ex.IssueIDKey
 const capCommIDKey = "cid"
 const initCommIDKey = "icid"
-const issueTypeKey = "itype"
+const issueTypeKey = ex.IssueTypeKey
 const isShowingDetailsKey = "isd"
 const isShowingProgressKey = "isp"
 const dialogSituationIDKey = "sid"

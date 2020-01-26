@@ -14,6 +14,7 @@ import (
 	request_coach "github.com/adaptiveteam/adaptive/workflows/request_coach"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
 )
 
 // WorkflowInfo identifies a workflow.
@@ -30,9 +31,9 @@ var RequestCoachWorkflow = WorkflowInfo{Name: request_coach.Namespace, Init: req
 // var IssuesWorkflowImpl = issues.IssueWorkflow(d, clientID, logger)
 // var IssuesWorkflow = IssuesWorkflowImpl.GetNamedTemplate()
 
-const communityNamespace = "community"
+const communityNamespace = exchange.CommunityNamespace
 
-var CommunityPath models.Path = models.ParsePath("/" + communityNamespace)
+var CommunityPath models.Path = exchange.CommunityPath
 
 // var CreateIDOPath models.Path = CommunityPath.Append(CreateIDOWorkflow.Name)
 var CreateIDOIssuePath models.Path = CommunityPath.Append(issues.IssuesNamespace)
