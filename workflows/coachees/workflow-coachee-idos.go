@@ -15,7 +15,7 @@ import (
 // ViewCoacheesWorkflow - 
 var ViewCoacheesWorkflow = exchange.WorkflowInfo{
 	Prefix: exchange.CoachingPath,
-	Name: exchange.CoacheesNamespace, Init: InitState}
+	Name: Namespace, Init: InitState}
 
 // Workflow is a public interface of workflow template.
 type Workflow interface {
@@ -41,7 +41,7 @@ func CreateCoacheesWorkflow(
 		AdaptiveLogger:     logger,
 	}
 }
-const Namespace = "view-coachee-idos"
+const Namespace = exchange.CoacheesNamespace
 const InitState wf.State = "init"
 // // ViewCoacheeIDOs is a workflow to show list of Coachee idos.
 // var ViewCoacheeIDOs = wf.NamedTemplate{
