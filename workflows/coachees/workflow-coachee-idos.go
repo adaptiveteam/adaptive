@@ -9,8 +9,11 @@ import (
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"log"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
 )
 
+// ViewCoacheesWorkflow - 
+var ViewCoacheesWorkflow = exchange.WorkflowInfo{Name: exchange.CoacheesNamespace, Init: InitState}
 
 // Workflow is a public interface of workflow template.
 type Workflow interface {
@@ -37,6 +40,7 @@ func CreateCoacheesWorkflow(
 	}
 }
 const Namespace = "view-coachee-idos"
+const InitState wf.State = "init"
 // // ViewCoacheeIDOs is a workflow to show list of Coachee idos.
 // var ViewCoacheeIDOs = wf.NamedTemplate{
 // 	Name: "view-coachee-idos", Template: ViewCoacheeIDOs_Workflow(),
@@ -67,7 +71,7 @@ func (w workflowImpl) GetNamedTemplate() (nt wf.NamedTemplate) {
 				wf.State
 				wf.Event
 			}]wf.Handler{
-				{State: "init", Event: ""}:                       wf.SimpleHandler(w.ViewCoacheeIDOs_OnInit(), ItemShownState),
+				{State: InitState, Event: ""}:                    wf.SimpleHandler(w.ViewCoacheeIDOs_OnInit(), ItemShownState),
 				{State: ItemShownState, Event: ShowUpdatesEvent}: wf.SimpleHandler(w.ViewCoacheeIDOs_OnShowUpdates, "updates-shown"),
 			},
 			Parser: wf.Parser,

@@ -27,7 +27,8 @@ var IssuesWorkflow = issues.IssuesWorkflow
 var RequestCoachWorkflow = request_coach.RequestCoachWorkflow
 // RequestCloseoutWorkflow - 
 var RequestCloseoutWorkflow = closeout.RequestCloseoutWorkflow
-
+// CoacheesWorkflow -
+var CoacheesWorkflow = coachees.CoacheesWorkflow
 // var IssuesWorkflowImpl = issues.IssueWorkflow(d, clientID, logger)
 // var IssuesWorkflow = IssuesWorkflowImpl.GetNamedTemplate()
 
