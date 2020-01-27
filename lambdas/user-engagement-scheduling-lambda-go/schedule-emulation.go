@@ -10,6 +10,7 @@ import (
 
 const (
 	EmbursePlatformID = "ANT7U58AG"
+	GeigsenPlatformID = "AGEGG1U7J"
 	IvanPlatformID = "AJA9TJ88Y"
 	StagingPlatformID = "ALV1A59GR"
 )

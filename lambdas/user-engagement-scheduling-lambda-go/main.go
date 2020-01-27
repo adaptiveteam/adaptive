@@ -127,7 +127,7 @@ func HandleRequest(ctx context.Context) (err error) {
 						logger.WithError(err).Errorf("Could not TriggerAllPostponedEvents for %s user in %v platform", engage.UserId, platformID)
 					}
 					switch platformID {
-					case EmbursePlatformID:
+					case EmbursePlatformID, GeigsenPlatformID:
 						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, platformID, config)
 					case IvanPlatformID, StagingPlatformID:
 						emulateDates(TestDateShiftConfig, time.Now(), user.ID, platformID, config)

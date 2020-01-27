@@ -16,10 +16,10 @@ import (
 	"time"
 )
 
-type EngSchedule struct {
-	Target string `json:"target"`
-	Date   string `json:"date"`
-}
+// type EngSchedule struct {
+// 	Target string `json:"target"`
+// 	Date   string `json:"date"`
+// }
 
 var (
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
@@ -28,7 +28,7 @@ var (
 )
 
 // HandleRequest -
-func HandleRequest(ctx context.Context, event EngSchedule) (err error) {
+func HandleRequest(ctx context.Context, event models.UserEngage) (err error) {
 	defer core.RecoverToErrorVar("user-engagement-scheduler-lambda-go", &err)
 	var t time.Time
 	if event.Date != "" {
@@ -44,7 +44,7 @@ func HandleRequest(ctx context.Context, event EngSchedule) (err error) {
 	// TODO: Take date from eng
 	location, _ := time.LoadLocation("UTC")
 	holidaysList := schedules.LoadHolidays(time.Date(y, m, d, 0, 0, 0, 0, location),
-		userDao.ReadUnsafe(event.Target).PlatformID,
+		userDao.ReadUnsafe(event.UserId).PlatformID,
 		adHocHolidaysTable, adHocHolidaysPlatformDateIndex)
 	allCrosswalks := func() []esmodels.CrossWalk {
 		return concatAppend([][]esmodels.CrossWalk{crosswalks.UserCrosswalk()})
@@ -56,7 +56,7 @@ func HandleRequest(ctx context.Context, event EngSchedule) (err error) {
 		allCrosswalks,
 		holidaysList,
 		location,
-		event.Target,
+		event.UserId,
 	)
 	return
 }
