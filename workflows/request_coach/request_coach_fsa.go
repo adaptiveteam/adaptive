@@ -25,11 +25,6 @@ const (
 	ConfirmedEvent wf.Event = "Confirmed"
 	RejectedEvent wf.Event = "Rejected"
 )
-// IssueIDKey - data key that will contain Issue ID
-const IssueIDKey = "iid"
-
-// IssueTypeKey -
-const IssueTypeKey = "itype"
 
 // Workflow is a public interface of workflow template.
 type Workflow interface {
@@ -89,14 +84,14 @@ func (w workflowImpl) OnCoachRequested() wf.Handler {
 			return
 		}
 		ap := issue.UserObjective.AccountabilityPartner
-		if ap == "" || ap == "none" {
+		if ap == "" || ap == "none" || issue.UserObjective.Accepted == 0 {
 			out.Interaction = wf.Interaction{
 				Messages: []wf.InteractiveMessage{
 					{
 						PassiveMessage: shortView(issue),
 						InteractiveElements: []wf.InteractiveElement{
-							wf.Button(ConfirmedEvent, "Confirm"),
-							wf.Button(RejectedEvent, "Reject"),
+							wf.Button(ConfirmedEvent, "I agree"),
+							wf.Button(RejectedEvent, "I tend to disagree"),
 						},
 					},
 				},

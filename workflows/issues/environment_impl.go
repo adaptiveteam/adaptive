@@ -508,7 +508,7 @@ func DynamoNamespace(conn DynamoDBConnection, namespace string) common.DynamoNam
 	}
 }
 
-func OnCloseoutImpl(issue Issue) func (conn DynamoDBConnection) (err error) {
+func OnCloseoutImplOld(issue Issue) func (conn DynamoDBConnection) (err error) {
 	return func (conn DynamoDBConnection) (err error) {
 		defer recoverToErrorVar("OnCloseoutImpl", &err)
 		itype := issue.GetIssueType()
