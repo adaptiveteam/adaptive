@@ -10,27 +10,25 @@ import (
 	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	common "github.com/adaptiveteam/adaptive/daos/common"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
-	issues "github.com/adaptiveteam/adaptive/workflows/issues"
-	request_coach "github.com/adaptiveteam/adaptive/workflows/request_coach"
+	"github.com/adaptiveteam/adaptive/workflows/issues"
+	"github.com/adaptiveteam/adaptive/workflows/request_coach"
+	"github.com/adaptiveteam/adaptive/workflows/coachees"
 	"github.com/adaptiveteam/adaptive/workflows/closeout"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
 )
 
-// WorkflowInfo identifies a workflow.
-type WorkflowInfo struct {
-	Name string
-	Init wf.State
-}
-
+// WorkflowInfo -
+type WorkflowInfo = exchange.WorkflowInfo
 // IssuesWorkflow is a description of an issues workflow
-var IssuesWorkflow = WorkflowInfo{Name: issues.IssuesNamespace, Init: issues.InitState}
+var IssuesWorkflow = issues.IssuesWorkflow
 // RequestCoachWorkflow -
-var RequestCoachWorkflow = WorkflowInfo{Name: exchange.RequestCoachNamespace, Init: request_coach.InitState}
+var RequestCoachWorkflow = request_coach.RequestCoachWorkflow
 // RequestCloseoutWorkflow - 
-var RequestCloseoutWorkflow = WorkflowInfo{Name: exchange.RequestCloseoutNamespace, Init: closeout.InitState}
-
+var RequestCloseoutWorkflow = closeout.RequestCloseoutWorkflow
+// ViewCoacheesWorkflow -
+var ViewCoacheesWorkflow = coachees.ViewCoacheesWorkflow
 // var IssuesWorkflowImpl = issues.IssueWorkflow(d, clientID, logger)
 // var IssuesWorkflow = IssuesWorkflowImpl.GetNamedTemplate()
 
@@ -38,13 +36,18 @@ const communityNamespace = exchange.CommunityNamespace
 
 var CommunityPath models.Path = exchange.CommunityPath
 
+const FeedbackNamespace = exchange.FeedbackNamespace
+
+var CoachingPath models.Path = exchange.CoachingPath
+// var ViewCoacheeIDOsPath models.Path = CoachingPath.Append(ViewCoacheeIDOs.Name)
+
 var logger = alog.LambdaLogger(logrus.InfoLevel)
 
 // EnterWorkflow sends the given event to the provided workflow.
 // It modifies NamespacePayload4.CallbackID according to 
 // the workflow namespace and event.
 func EnterWorkflow(workflow WorkflowInfo, np models.NamespacePayload4, conn common.DynamoDBConnection, event wf.Event) error {
-	initEvent := wf.ExternalActionPathWithData(CommunityPath.Append(workflow.Name), workflow.Init, event, map[string]string{}, false)
+	initEvent := wf.ExternalActionPathWithData(workflow.Prefix.Append(workflow.Name), workflow.Init, event, map[string]string{}, false)
 	logger.Infof("Starting workflow %s with path %s", workflow.Name, initEvent.Encode())
 	np.InteractionCallback.CallbackID = initEvent.Encode()
 	return InvokeWorkflow(np, conn)
@@ -84,22 +87,31 @@ func invokeWorkflowInner(np models.NamespacePayload4, conn common.DynamoDBConnec
 }
 // NB: It'll fail if there are issues in templates constructors.
 // Though, it is unprobable
-func workflows(conn common.DynamoDBConnection) (templates []wf.NamedTemplate) {
-	IssuesWorkflowImpl := issues.IssueWorkflow(conn, logger)
-	RequestCoachWorkflowImpl := request_coach.RequestCoachWorkflow(conn, logger)
-	RequestCloseoutWorkflowImpl := closeout.RequestCloseoutWorkflow(conn, logger)
+func communityWorkflows(conn common.DynamoDBConnection) (templates []wf.NamedTemplate) {
+	IssuesWorkflowImpl := issues.CreateIssueWorkflow(conn, logger)
+	RequestCoachWorkflowImpl := request_coach.CreateRequestCoachWorkflow(conn, logger)
+	RequestCloseoutWorkflowImpl := closeout.CreateRequestCloseoutWorkflow(conn, logger)
 	templates = []wf.NamedTemplate{
 		IssuesWorkflowImpl.GetNamedTemplate(),
 		RequestCoachWorkflowImpl.GetNamedTemplate(),
 		RequestCloseoutWorkflowImpl.GetNamedTemplate(),
 	}
 	for _, t := range templates {
-		logger.Infof("Workflow template: %s", t.Name)
+		logger.Infof("Community Workflow template: %s", t.Name)
 	}
 	return
 }
 
-// var allRoutes = communityRoutes()
+func feedbackWorkflows(conn common.DynamoDBConnection) (templates []wf.NamedTemplate) {
+	CoacheesWorkflowImpl := coachees.CreateCoacheesWorkflow(conn, logger)
+	templates = []wf.NamedTemplate{
+		CoacheesWorkflowImpl.GetNamedTemplate(),
+	}
+	for _, t := range templates {
+		logger.Infof("Feedback Workflow template: %s", t.Name)
+	}
+	return
+}
 
 func prepareEnvironmentWithoutPrefix(conn common.DynamoDBConnection) (env wf.Environment) {
 	schema := models.SchemaForClientID(conn.ClientID)
@@ -113,27 +125,15 @@ func prepareEnvironmentWithoutPrefix(conn common.DynamoDBConnection) (env wf.Env
 
 
 func communityRoutes(np models.NamespacePayload4, conn common.DynamoDBConnection) (routes wf.Routes) {
-	workflowRoutes := wf.ToRoutingTable(CommunityPath, 
+	communityRoutes := wf.ToRoutingTable(CommunityPath, 
 		prepareEnvironmentWithoutPrefix(conn),
-		workflows(conn))
+		communityWorkflows(conn))
+	feedbackRoutes := wf.ToRoutingTable(CoachingPath,
+		prepareEnvironmentWithoutPrefix(conn),
+		feedbackWorkflows(conn))
 	routes = map[string]wf.RequestHandler{
-		communityNamespace: workflowRoutes.Handler(),
+		communityNamespace: communityRoutes.Handler(),
+		FeedbackNamespace: feedbackRoutes.Handler(),
 	}
 	return
 }
-
-// func constructActionPath(prefix models.Path, state wf.State, event wf.Event) models.ActionPath {
-// 	return wf.ExternalActionPath(prefix, state, event)
-// }
- 
-// // SelectedIDOWorkflow allows to switch to a different workflow implementation
-// var SelectedIDOWorkflow = IssuesWorkflow
-// // var SelectedIDOWorkflow = CreateIDOWorkflow
-
-// func onCreateIDONow1(np models.NamespacePayload4) error {
-// 	return enterWorkflow(IssuesWorkflow, np, "")
-// }
-
-// func onViewIDOs(np models.NamespacePayload4) error {
-// 	return enterWorkflow(SelectedIDOWorkflow, np, "view-idos")
-// }

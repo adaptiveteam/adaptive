@@ -19,16 +19,21 @@ import (
 	// "github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	// mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
-	ex "github.com/adaptiveteam/adaptive/workflows/exchange"
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
 )
 
-const issueIDKey = ex.IssueIDKey
+const issueIDKey = exchange.IssueIDKey
 const capCommIDKey = "cid"
 const initCommIDKey = "icid"
-const issueTypeKey = ex.IssueTypeKey
+const issueTypeKey = exchange.IssueTypeKey
 const isShowingDetailsKey = "isd"
 const isShowingProgressKey = "isp"
 const dialogSituationIDKey = "sid"
+
+// IssuesWorkflow is a description of an issues workflow
+var IssuesWorkflow = exchange.WorkflowInfo{
+	Prefix: exchange.CommunityPath,
+	Name: IssuesNamespace, Init: InitState}
 
 const IssuesNamespace = "issues"
 
@@ -139,7 +144,7 @@ type workflowImpl struct {
 // 	CommunityById // func(community.AdaptiveCommunity, models.PlatformID) community.AdaptiveCommunity
 // }
 
-func IssueWorkflow(
+func CreateIssueWorkflow(
 	conn DynamoDBConnection,
 	logger alog.AdaptiveLogger,
 ) Workflow {

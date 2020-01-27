@@ -14,6 +14,11 @@ import (
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
 )
 
+// RequestCoachWorkflow -
+var RequestCoachWorkflow = exchange.WorkflowInfo{
+	Prefix: exchange.CommunityPath,
+	Name: exchange.RequestCoachNamespace, Init: InitState}
+
 // Namespace -
 const Namespace = exchange.RequestCoachNamespace
 
@@ -38,8 +43,8 @@ type workflowImpl struct {
 	alog.AdaptiveLogger
 }
 
-// RequestCoachWorkflow - constructor.
-func RequestCoachWorkflow(
+// CreateRequestCoachWorkflow - constructor.
+func CreateRequestCoachWorkflow(
 	conn DynamoDBConnection,
 	logger alog.AdaptiveLogger,
 ) Workflow {
