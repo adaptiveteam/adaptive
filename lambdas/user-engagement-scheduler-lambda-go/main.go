@@ -30,6 +30,9 @@ var (
 // HandleRequest -
 func HandleRequest(ctx context.Context, event EngSchedule) (err error) {
 	defer core.RecoverToErrorVar("user-engagement-scheduler-lambda-go", &err)
+	if event.Target == "" {
+		return runScript(ctx)
+	}
 	var t time.Time
 	if event.Date != "" {
 		fmt.Printf("Date is present in EngSchedule")
@@ -67,4 +70,49 @@ func concatAppend(slices [][]esmodels.CrossWalk) []esmodels.CrossWalk {
 		tmp = append(tmp, s...)
 	}
 	return tmp
+}
+
+
+func runScript(ctx context.Context) (err error) {
+	userIDs := []string{
+		"UR4T3ULGP",
+		"ULVV98V38",
+		"ULVV98X2S",
+		"UMADDK909",
+		"ULTQQDB9N",
+		"UN90UKW3C",
+		"ULTQQF3MW",
+		"UNL5DTE1F",
+		"ULGCU5XL2",
+		"UNMPN3RA4",
+		"ULTB1N7MJ",
+		"ULMETS9R7",
+		"ULV1EPHNU",
+		"ULTB1NB0U",
+		"ULDA7AK4G",
+		"ULVLLHH9D",
+		"ULTRB1E2Z",
+		"UPLBVFJQL",
+		"ULTQQE6AU",
+		"ULMETRDS5",
+		"UQF1A5HCZ",
+		"UR31V81T2",
+		"ULWSQTGMV",
+		"ULTQQFDEU",
+		"ULTRB26UV",
+		"ULVV9AQP8",
+		"UMGD08VA5",
+		"UL3TBJ5GS",
+		"UMK02N9FC",
+		"ULTRB2D7F",
+		"UMK02N44A",
+	}
+	for _, userID := range userIDs {
+		s := EngSchedule{
+			Target: userID,
+			Date: "2020-01-23",
+		}
+		HandleRequest(ctx, s)
+	}
+	return
 }
