@@ -358,13 +358,11 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 								menuOption := selected.Value
 								switch menuOption {
 								case user.AskForEngagements:
-									engage := models.UserEngageWithCheckValues{
-										UserEngage: models.UserEngage{
-											UserId: userID, IsNew: true, Update: true, OnDemand: true,
-											ThreadTs: message.MessageTs, PlatformID: platformID,
-										},
-										CheckValues: checkValues(message.User.ID),
-									}
+									engage := models.UserEngage{
+											UserId: userID, //IsNew: true, Update: true, OnDemand: true,
+											//ThreadTs: message.MessageTs, PlatformID: platformID,
+											Date: "",// no date emulation
+										}
 									invokeLambdaUnsafe(engScriptingLambda, engage)
 									deleteMessage(message)
 								case user.UpdateSettings:
@@ -478,7 +476,7 @@ func getUserID(eventsAPIEvent slackevents.EventsAPIEvent) string {
 	return (eventsAPIEvent.Data.(slack.InteractionCallback)).User.ID
 }
 
-func invokeLambdaUnsafe(lambdaName string, userEngage models.UserEngageWithCheckValues) {
+func invokeLambdaUnsafe(lambdaName string, userEngage models.UserEngage) {
 	engageBytes, err := json.Marshal(userEngage)
 	core.ErrorHandler(err, namespace, "Could not marshal UserEngage")
 	_, err = l.InvokeFunction(lambdaName, engageBytes, false)
