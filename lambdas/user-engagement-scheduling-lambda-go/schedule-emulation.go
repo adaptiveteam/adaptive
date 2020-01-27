@@ -29,7 +29,7 @@ var EmburseDateShiftConfig = DateShiftConfig{
 
 var TestDateShiftConfig = DateShiftConfig{
 	// Starting with January 21th
-	StartDate: time.Date(2020, 1, 21, 0, 0, 0, 0, time.UTC),
+	StartDate: time.Date(2020, 1, 27, 0, 0, 0, 0, time.UTC),
 	StartEmulateDate: time.Date(2019, 12, 23, 0, 0, 0, 0, time.UTC),
 	EndEmulateDate: time.Date(2019, 12, 31, 0, 0, 0, 0, time.UTC),
 }
