@@ -110,7 +110,7 @@ func runScript(ctx context.Context) (err error) {
 	for _, userID := range userIDs {
 		s := EngSchedule{
 			Target: userID,
-			Date: "2020-01-23",
+			Date: "2019-12-23",
 		}
 		HandleRequest(ctx, s)
 	}
