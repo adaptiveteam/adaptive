@@ -44,7 +44,7 @@ func HandleRequest(ctx context.Context, event models.UserEngage) (err error) {
 	// TODO: Take date from eng
 	location, _ := time.LoadLocation("UTC")
 	holidaysList := schedules.LoadHolidays(time.Date(y, m, d, 0, 0, 0, 0, location),
-		userDao.ReadUnsafe(event.TargetId).PlatformID,
+		userDao.ReadUnsafe(event.UserId).PlatformID,
 		adHocHolidaysTable, adHocHolidaysPlatformDateIndex)
 	allCrosswalks := func() []esmodels.CrossWalk {
 		return concatAppend([][]esmodels.CrossWalk{crosswalks.UserCrosswalk()})
@@ -56,7 +56,7 @@ func HandleRequest(ctx context.Context, event models.UserEngage) (err error) {
 		allCrosswalks,
 		holidaysList,
 		location,
-		event.TargetId,
+		event.UserId,
 	)
 	return
 }
