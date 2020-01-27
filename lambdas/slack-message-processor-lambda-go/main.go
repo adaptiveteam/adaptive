@@ -359,8 +359,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 								switch menuOption {
 								case user.AskForEngagements:
 									engage := models.UserEngage{
-											UserId: userID, //IsNew: true, Update: true, OnDemand: true,
-											//ThreadTs: message.MessageTs, PlatformID: platformID,
+											UserId: userID,
 											Date: "",// no date emulation
 										}
 									invokeLambdaUnsafe(engScriptingLambda, engage)
