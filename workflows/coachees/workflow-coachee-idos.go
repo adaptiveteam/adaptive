@@ -117,7 +117,7 @@ func (w workflowImpl) ViewCoacheeIDOs_OnInit() func(ctx wf.EventHandlingContext)
 		coachID := ctx.Request.User.ID
 		userObjectiveDAO := userObjective.NewDAO(w.DynamoDBConnection.Dynamo, "ViewCoacheeIDOs_OnInit", w.ClientID)
 		objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(coachID)
-		coacheeObjectives := filterObjectivesByObjectiveType(objectives, userObjective.IndividualDevelopmentObjective)
+		coacheeObjectives := filterObjectivesByObjectiveTypeNotCompletedAccepted(objectives, userObjective.IndividualDevelopmentObjective)
 		coacheeGroups := ObjectivesGroupByUserID(coacheeObjectives, userIDKey)
 
 		out.Interaction = wf.Interaction{
@@ -166,7 +166,7 @@ func renderGroupsAsInteractiveMessages(coacheeGroups []ObjectiveGroup) (messages
 
 // func onViewCoacheeIDOsOld(coachID string) []platform.Response {
 // 	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(coachID)
-// 	coacheeObjectives := filterObjectivesByObjectiveType(objectives, userObjective.IndividualDevelopmentObjective)
+// 	coacheeObjectives := filterObjectivesByObjectiveTypeNotCompletedAccepted(objectives, userObjective.IndividualDevelopmentObjective)
 // 	coacheeInfos := GroupByUserID(coacheeObjectives, FormatObjectiveItem)
 // 	names := renderGroupsAsIDAndElementsAsSubList(coacheeInfos)
 // 	text := CoacheeListPretext + "\n" + ui.ListItems(names...)
@@ -230,9 +230,11 @@ func (w workflowImpl) ViewCoacheeIDOs_OnShowUpdates(ctx wf.EventHandlingContext)
 	return
 }
 
-func filterObjectivesByObjectiveType(objectives []userObjective.UserObjective, objectiveType userObjective.DevelopmentObjectiveType) (res []userObjective.UserObjective) {
+func filterObjectivesByObjectiveTypeNotCompletedAccepted(objectives []userObjective.UserObjective, objectiveType userObjective.DevelopmentObjectiveType) (res []userObjective.UserObjective) {
 	for _, objective := range objectives {
-		if objective.ObjectiveType == objectiveType {
+		if objective.ObjectiveType == objectiveType &&
+		   objective.Completed == 0 &&
+		   objective.Accepted == 1 {
 			res = append(res, objective)
 		}
 	}
