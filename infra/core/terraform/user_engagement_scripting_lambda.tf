@@ -19,8 +19,8 @@ module "user_engagement_scripting_lambda" {
 
   // Add environment variables.
   environment_variables = merge(local.environment_variables, {
-    LAMBDA_ROLE   = "user-engagement-scipting"
-    LOG_NAMESPACE = "user-engagement-scipting"
+    LAMBDA_ROLE   = "user-engagement-scripting"
+    LOG_NAMESPACE = "user-engagement-scripting"
   })
 
   // Attach extra policy
