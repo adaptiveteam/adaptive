@@ -65,18 +65,13 @@ func greeting() ui.PlainText {
 	return defaultGreeting
 }
 
-type EngSchedule struct {
-	Target string `json:"target"`
-	Date   string `json:"date"`
-}
-
 func HandleRequest(ctx context.Context, engage models.UserEngageWithCheckValues) {
 	logger = logger.WithLambdaContext(ctx)
 
 	// Not invoking scheduler lambda for on-demand asking for engagements
 	if !engage.OnDemand {
 		// Invoke user-engagement-scheduler lambda to do necessary checks for the user
-		schedulerPayload, _ := json.Marshal(EngSchedule{Target: engage.UserId})
+		schedulerPayload, _ := json.Marshal(engage.UserEngage)
 		// Wait until all checks are done and engagements are added to the stream
 		_, err := l.InvokeFunction(userEngagementSchedulerLambda, schedulerPayload, false)
 		if err != nil {
