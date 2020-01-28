@@ -1,3 +1,7 @@
+locals {
+  user_engagement_scheduler_lambda_function_name_suffix = "user-engagement-scheduler-lambda-go"
+  user_engagement_scheduler_lambda_function_name = "${var.client_id}_${local.user_engagement_scheduler_lambda_function_name_suffix}"
+}
 module "user_engagement_scheduler_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
@@ -5,7 +9,7 @@ module "user_engagement_scheduler_lambda" {
   filename = data.archive_file.adaptive-lambda-zip.output_path
   source_hash = data.archive_file.adaptive-lambda-zip.output_base64sha256
   handler = "adaptive"
-  function_name = "user-engagement-scheduler-lambda-go"
+  function_name_suffix = local.user_engagement_scheduler_lambda_function_name_suffix
   runtime = var.lambda_runtime
   timeout = var.lambda_timeout
   memory_size = var.multi_core_memory_size

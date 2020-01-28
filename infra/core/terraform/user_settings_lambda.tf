@@ -1,17 +1,11 @@
-data "archive_file" "user-settings-lambda-zip" {
-  type        = "zip"
-  source_file = "../../../bin/user-settings-lambda-go"
-  output_path = "lambdas/user-settings-lambda-go.zip"
-}
-
 module "user_settings_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id     = var.client_id
-  filename      = data.archive_file.user-settings-lambda-zip.output_path
-  source_hash   = data.archive_file.user-settings-lambda-zip.output_base64sha256
-  function_name = "user-settings-lambda-go"
-  handler       = "user-settings-lambda-go"
+  filename      = data.archive_file.adaptive-lambda-zip.output_path
+  source_hash   = data.archive_file.adaptive-lambda-zip.output_base64sha256
+  handler       = "adaptive"
+  function_name_suffix = "user-settings-lambda-go"
   runtime       = var.lambda_runtime
   timeout       = var.lambda_timeout
 
@@ -28,16 +22,11 @@ module "user_settings_lambda" {
   schedule_expression  = "rate(5 minutes)"
   schedule_invoke_json = data.local_file.adaptive_user_settings_lambda_warmer_json.content
 
-  environment_variables = {
-    USER_ENGAGEMENTS_TABLE_NAME            = aws_dynamodb_table.adaptive_user_engagements_dynamo_table.name
-    USER_SETUP_LAMBDA_NAME                 = module.user_setup_lambda.function_name
-    USER_ENGAGEMENT_SCRIPTING_LAMBDA_NAME  = module.user_engagement_scripting_lambda.function_name
-    USER_ENGAGEMENT_SCHEDULING_LAMBDA_NAME = module.user_engagement_scheduling_lambda.function_name
-    PLATFORM_NOTIFICATION_TOPIC            = aws_sns_topic.platform_notification.arn
-    USERS_TABLE_NAME                       = aws_dynamodb_table.adaptive_users_dynamodb_table.name
-    LOG_NAMESPACE                          = "user-settings"
-    CLIENT_ID                              = var.client_id
-  }
+  // Add environment variables.
+  environment_variables = merge(local.environment_variables, {
+    LAMBDA_ROLE   = "user-settings"
+    LOG_NAMESPACE = "user-settings"
+  })
 
   tags = local.default_tags
 }

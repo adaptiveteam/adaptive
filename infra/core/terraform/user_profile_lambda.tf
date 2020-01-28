@@ -1,30 +1,27 @@
-data "archive_file" "user-profile-lambda-zip" {
-  type        = "zip"
-  source_file = "../../../bin/user-profile-lambda-go"
-  output_path = "lambdas/user-profile-lambda-go.zip"
+locals {
+  user_profile_lambda_function_name_suffix = "user-profile-lambda-go"
+  user_profile_lambda_function_name = "${var.client_id}_${local.user_profile_lambda_function_name_suffix}"
 }
 
 module "user_profile_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id     = var.client_id
-  filename      = data.archive_file.user-profile-lambda-zip.output_path
-  source_hash   = data.archive_file.user-profile-lambda-zip.output_base64sha256
-  function_name = "user-profile-lambda-go"
-  handler       = "user-profile-lambda-go"
+  filename      = data.archive_file.adaptive-lambda-zip.output_path
+  source_hash   = data.archive_file.adaptive-lambda-zip.output_base64sha256
+  handler       = "adaptive"
+  function_name_suffix = local.user_profile_lambda_function_name_suffix
   runtime       = var.lambda_runtime
   timeout       = var.lambda_timeout
   memory_size   = 1536
 
   reserved_concurrent_executions = -1
 
-  environment_variables = {
-    CLIENT_ID                = var.client_id
-    USER_TABLE_NAME          = aws_dynamodb_table.adaptive_users_dynamodb_table.name
-    CLIENT_CONFIG_TABLE_NAME = aws_dynamodb_table.client_config_dynamodb_table.name
-    DAX_ENDPOINT             = var.dax_end_point
-    LOG_NAMESPACE            = "user-profile"
-  }
+  // Add environment variables.
+  environment_variables = merge(local.environment_variables, {
+    LAMBDA_ROLE   = "user-profile"
+    LOG_NAMESPACE = "user-profile"
+  })
 
   // Attach extra policy
   attach_policy = true

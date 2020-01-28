@@ -12,8 +12,12 @@ variable "source_hash" {
   description = "Hash of the source lambda zip"
 }
 
-variable "function_name" {
+variable "function_name_suffix" {
   description = "Function name of the lambda"
+}
+
+locals {
+  function_name = "${var.client_id}_${var.function_name_suffix}"
 }
 
 variable "handler" {

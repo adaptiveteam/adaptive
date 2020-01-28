@@ -1,11 +1,15 @@
+locals {
+  slack_message_processor_lambda_function_name_suffix = "slack-message-processor-lambda-go"
+  slack_message_processor_lambda_function_name = "${var.client_id}_${local.slack_message_processor_lambda_function_name_suffix}"
+}
 module "slack_message_processor_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id = var.client_id
   filename = data.archive_file.adaptive-lambda-zip.output_path
   source_hash = data.archive_file.adaptive-lambda-zip.output_base64sha256
-  function_name = "slack-message-processor-lambda-go"
   handler = "adaptive"
+  function_name_suffix = local.slack_message_processor_lambda_function_name_suffix
   runtime = var.lambda_runtime
   timeout = var.lambda_timeout
   memory_size = var.multi_core_memory_size

@@ -1,17 +1,11 @@
-data "archive_file" "adaptive-platform-notification-lambda-zip" {
-  type        = "zip"
-  source_file = "../../../bin/adaptive-platform-notification-lambda-go"
-  output_path = "lambdas/adaptive-platform-notification-lambda-go.zip"
-}
-
 module "adaptive-platform-notification-lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id     = var.client_id
-  filename      = data.archive_file.adaptive-platform-notification-lambda-zip.output_path
-  source_hash   = data.archive_file.adaptive-platform-notification-lambda-zip.output_base64sha256
-  function_name = "adaptive-platform-notification-lambda-go"
-  handler       = "adaptive-platform-notification-lambda-go"
+  filename = data.archive_file.adaptive-lambda-zip.output_path
+  source_hash = data.archive_file.adaptive-lambda-zip.output_base64sha256
+  handler = "adaptive"
+  function_name_suffix = "adaptive-platform-notification-lambda-go"
   runtime       = var.lambda_runtime
   timeout       = var.lambda_timeout
   memory_size   = var.multi_core_memory_size
@@ -24,11 +18,12 @@ module "adaptive-platform-notification-lambda" {
 
   tags = local.default_tags
 
-  environment_variables = {
-    PLATFORM_NOTIFICATION_TOPIC = local.platform_notification_topic_arn
-    CLIENT_ID                   = var.client_id
-    LOG_NAMESPACE               = "platform-notification"
-  }
+  // Add environment variables.
+  environment_variables = merge(local.environment_variables, {
+    LAMBDA_ROLE   = "platform-notification"
+    LOG_NAMESPACE = "platform-notification"
+  })
+
 }
 
 data "aws_iam_policy_document" "adaptive-platform-notification-policy" {

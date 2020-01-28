@@ -1,17 +1,11 @@
-data "archive_file" "user-engagement-lambda-zip" {
-  type = "zip"
-  source_file = "../../../bin/user-engagement-lambda-go"
-  output_path = "lambdas/user-engagement-lambda-go.zip"
-}
-
 module "user_engagement_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id = var.client_id
-  filename = data.archive_file.user-engagement-lambda-zip.output_path
-  source_hash = data.archive_file.user-engagement-lambda-zip.output_base64sha256
-  function_name = "user-engagement-lambda-go"
-  handler = "user-engagement-lambda-go"
+  filename = data.archive_file.adaptive-lambda-zip.output_path
+  source_hash = data.archive_file.adaptive-lambda-zip.output_base64sha256
+  handler = "adaptive"
+  function_name_suffix = "user-engagement-lambda-go"
   runtime = var.lambda_runtime
   timeout = var.lambda_timeout
 
@@ -23,17 +17,14 @@ module "user_engagement_lambda" {
 
   tags = local.default_tags
 
-  environment_variables = {
-    USER_PROFILE_LAMBDA_NAME = module.user_profile_lambda.function_name
+  // Add environment variables.
+  environment_variables = merge(local.environment_variables, {
+    LAMBDA_ROLE   = "user-engagement"
+    LOG_NAMESPACE = "user-engagement"
     DEBUG = "0"
     DEBUG_USER = "UE48A5TC0"
-    LOG_NAMESPACE = "user-engagement"
-    COMMUNITY_USERS_TABLE_NAME = aws_dynamodb_table.community_users.name
-    COMMUNITY_USERS_USER_INDEX = var.dynamo_community_users_user_index
-    COMMUNITY_USERS_CHANNEL_INDEX = var.dynamo_community_users_channel_index
-    USER_ENGAGEMENTS_TABLE_NAME = aws_dynamodb_table.adaptive_user_engagements_dynamo_table.name
-    CLIENT_ID = var.client_id
-  }
+  })
+
 }
 
 data "aws_iam_policy_document" "user_engagement_policy" {

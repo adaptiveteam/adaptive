@@ -1,17 +1,18 @@
-data "archive_file" "user-engagement-scheduling-lambda-zip" {
-  type        = "zip"
-  source_file = "../../../bin/user-engagement-scheduling-lambda-go"
-  output_path = "lambdas/user-engagement-scheduling-lambda-go.zip"
+locals {
+  user_engagement_scheduling_lambda_function_name_suffix = "user-engagement-scheduling-lambda-go"
+  user_engagement_scheduling_lambda_function_name = "${var.client_id}_${local.user_engagement_scheduling_lambda_function_name_suffix}"
 }
+
+
 
 module "user_engagement_scheduling_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id     = var.client_id
-  filename      = data.archive_file.user-engagement-scheduling-lambda-zip.output_path
-  source_hash   = data.archive_file.user-engagement-scheduling-lambda-zip.output_base64sha256
-  function_name = "user-engagement-scheduling-lambda-go"
-  handler       = "user-engagement-scheduling-lambda-go"
+  filename = data.archive_file.adaptive-lambda-zip.output_path
+  source_hash = data.archive_file.adaptive-lambda-zip.output_base64sha256
+  handler = "adaptive"
+  function_name_suffix = local.user_engagement_scheduling_lambda_function_name_suffix
   runtime       = var.lambda_runtime
   timeout       = var.lambda_timeout
   memory_size   = var.multi_core_memory_size
@@ -31,17 +32,15 @@ module "user_engagement_scheduling_lambda" {
 
   tags = local.default_tags
 
-  environment_variables = {
-    CLIENT_ID                            = var.client_id
-    LOG_NAMESPACE                        = "user-engagement-scheduling"
-    CLIENT_CONFIG_TABLE_NAME             = aws_dynamodb_table.client_config_dynamodb_table.name
-    USERS_TABLE_NAME                     = aws_dynamodb_table.adaptive_users_dynamodb_table.name
-    USERS_SCHEDULED_TIME_INDEX           = var.dynamo_users_scheduled_time_index
+//     USER_ENGAGEMENT_SCRIPTING_LAMBDA_ARN    = local.user_engagement_scripting_lambda_function_arn
+
+  // Add environment variables.
+  environment_variables = merge(local.environment_variables, {
+    LAMBDA_ROLE   = "user-engagement-scheduling"
+    LOG_NAMESPACE = "user-engagement-scheduling"
     USER_ENGAGEMENT_SCRIPTING_LAMBDA_ARN = module.user_engagement_scripting_lambda.function_arn
-    USERS_TIMEZONE_OFFSET_INDEX          = var.dynamo_users_timezone_offset_index
-    COMMUNITY_USERS_TABLE_NAME           = aws_dynamodb_table.community_users.name
-    COMMUNITY_USERS_USER_INDEX           = var.dynamo_community_users_user_index
-  }
+  })
+
 }
 
 data "aws_iam_policy_document" "user_engagement_scheduling_policy" {
