@@ -122,10 +122,10 @@ func HandleRequest(ctx context.Context) (err error) {
 					if err != nil {
 						logger.WithError(err).Errorf("Could not invoke scripting lambda for %s user in %v platform", engage.UserId, platformID)
 					}
-					err = triggerPostponedEvents(engage, config)
-					if err != nil {
-						logger.WithError(err).Errorf("Could not TriggerAllPostponedEvents for %s user in %v platform", engage.UserId, platformID)
-					}
+					// err = triggerPostponedEvents(engage, config)
+					// if err != nil {
+					// 	logger.WithError(err).Errorf("Could not TriggerAllPostponedEvents for %s user in %v platform", engage.UserId, platformID)
+					// }
 					switch platformID {
 					case EmbursePlatformID, GeigsenPlatformID:
 						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, platformID, config)
