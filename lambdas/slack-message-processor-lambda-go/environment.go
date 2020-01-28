@@ -3,16 +3,16 @@ package lambda
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
+	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
-	"github.com/sirupsen/logrus"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -33,7 +33,7 @@ var (
 	userObjectivesTableName          = utils.NonEmptyEnv("USER_OBJECTIVES_TABLE_NAME")
 	userObjectivesPartnerIndex       = utils.NonEmptyEnv("USER_OBJECTIVES_PARTNER_INDEX")
 	userObjectivesUserIndex          = utils.NonEmptyEnv("USER_OBJECTIVES_USER_ID_INDEX")
-	userObjectivesTypeIndex          = utils.NonEmptyEnv("USER_OBJECTIVES_TYPE_INDEX")
+	userObjectivesTypeIndex          = "UserIDTypeIndex"
 	userCommunitiesTable             = utils.NonEmptyEnv("USER_COMMUNITIES_TABLE")
 	communityUsersTable              = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
 	communityUsersUserCommunityIndex = utils.NonEmptyEnv("COMMUNITY_USERS_USER_COMMUNITY_INDEX")
@@ -44,7 +44,7 @@ var (
 	strategyObjectivesTableName                    = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME")
 	strategyObjectivesPlatformIndex                = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_PLATFORM_INDEX")
 	capabilityCommunitiesTable                     = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")     // required
-	capabilityCommunitiesPlatformIndex             = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_PLATFORM_INDEX") // required
+	capabilityCommunitiesPlatformIndex             = "CapabilityCommunitiesPlatformIndex" // required
 	initiativeCommunitiesTable                     = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME")     // required
 	initiativeCommunitiesPlatformIndex             = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX") // required
 	_                                              = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
@@ -66,8 +66,7 @@ var (
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 
 	platformTokenDAO = platform.NewDAOFromSchema(d, namespace, schema)
-	platformAdapter     = mapper.SlackAdapter2(platformTokenDAO)
-
+	platformAdapter  = mapper.SlackAdapter2(platformTokenDAO)
 )
 
 type RDSConfig struct {

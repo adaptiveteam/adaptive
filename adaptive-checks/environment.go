@@ -19,7 +19,7 @@ var (
 	userObjectivesTable         = utils.NonEmptyEnv("USER_OBJECTIVES_TABLE_NAME")
 	userObjectivesUserIndex     = utils.NonEmptyEnv("USER_OBJECTIVES_USER_ID_INDEX")
 	userObjectivesProgressTable = utils.NonEmptyEnv("USER_OBJECTIVES_PROGRESS_TABLE")
-	userObjectivesTypeIndex     = utils.NonEmptyEnv("USER_OBJECTIVES_TYPE_INDEX")
+	userObjectivesTypeIndex     = "UserIDTypeIndex"
 
 	// community
 	communityUsersTable              = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
@@ -28,7 +28,7 @@ var (
 
 	// engagements
 	engagementsTable         = utils.NonEmptyEnv("USER_ENGAGEMENTS_TABLE_NAME")
-	engagementsAnsweredIndex = utils.NonEmptyEnv("USER_ANSWERED_INDEX")
+	engagementsAnsweredIndex = "UserAnsweredEngagementIndex"
 
 	// strategy
 	initiativesTable                   = utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE_NAME")
@@ -36,7 +36,7 @@ var (
 	strategyObjectivesTableName        = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME")
 	strategyObjectivesPlatformIndex    = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_PLATFORM_INDEX")
 	capabilityCommunitiesTable         = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")
-	capabilityCommunitiesPlatformIndex = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_PLATFORM_INDEX")
+	capabilityCommunitiesPlatformIndex = "CapabilityCommunitiesPlatformIndex"
 	initiativeCommunitiesTableName     = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME")
 	initiativeCommunitiesPlatformIndex = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX")
 	strategyCommunitiesTable           = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
