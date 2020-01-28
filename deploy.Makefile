@@ -9,8 +9,9 @@ ${CORE_TERRAFORM_SRC}/deploy.log: core-build adaptive-build \
 	$(call tf-sources-only,${CORE_TERRAFORM_SRC})
 	pushd $(@D);\
 	pwd;\
-	terraform apply;\
+	time terraform apply;\
 	date > deploy.log;\
+	date ;\
 	popd
 
 # deploy-auto.log is updated during terraform run. If all zips are older, then 
