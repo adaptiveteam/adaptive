@@ -80,15 +80,24 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 		return
 	}
 	newAP := newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner
+	oldAP := newAndOldIssues.OldIssue.UserObjective.AccountabilityPartner
 	isCoachRequestNeeded :=
 		!IsSpecialOrEmptyUserID(newAP) &&
 		!newAndOldIssues.Updated || 
-			(newAP != newAndOldIssues.OldIssue.UserObjective.AccountabilityPartner) 
+			(newAP != oldAP) 
 			
 	var postponedEvents []wf.PostponeEventForAnotherUser
 	if isCoachRequestNeeded {
 		postponedEvents = w.requestCoach(ctx, newAndOldIssues)
-		// newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner = "none"
+	}
+	var responses []platform.Response
+	shouldNotifyOldCoach := !IsSpecialOrEmptyUserID(oldAP) && newAndOldIssues.Updated && newAP != oldAP
+	if shouldNotifyOldCoach {
+		responses = []platform.Response{platform.Post(platform.ConversationID(oldAP), 
+			platform.MessageContent{
+				Message: ui.Sprintf("<@%s> has requested a different coach for the %s", 
+					newAndOldIssues.NewIssue.UserObjective.UserID, newAndOldIssues.NewIssue.GetIssueType().Template()),
+			})}
 	}
 	w.AdaptiveLogger.Infof("OnDialogSubmitted: Saving %v\n", newAndOldIssues.NewIssue)
 	err = issuesUtils.Save(newAndOldIssues.NewIssue)(w.DynamoDBConnection)
@@ -112,6 +121,7 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 		err = nil // we want to show error interaction and we have logged the error
 	}
 	out.PostponedEvents = postponedEvents
+	out.Responses = append(out.Responses, responses...)
 	err = errors.Wrap(err, "{OnDialogSubmitted}")
 	return
 }
