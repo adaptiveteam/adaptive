@@ -47,7 +47,7 @@ func emulateDates(dateShiftConfig DateShiftConfig, date time.Time, userID string
 			engage := models.UserEngage{
 				UserId:     userID,
 				PlatformID: platformID,
-				Date:       emulatedDateStr,
+				Date:       "2019-12-23",
 			}
 			logger.Infof("Emulating %s date for %s user on %s", emulatedDateStr, userID, dateStr)
 			invokeSchedulerLambda(engage, config)
