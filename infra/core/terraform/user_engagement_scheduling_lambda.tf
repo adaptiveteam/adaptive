@@ -41,6 +41,7 @@ module "user_engagement_scheduling_lambda" {
     USERS_TIMEZONE_OFFSET_INDEX          = var.dynamo_users_timezone_offset_index
     COMMUNITY_USERS_TABLE_NAME           = aws_dynamodb_table.community_users.name
     COMMUNITY_USERS_USER_INDEX           = var.dynamo_community_users_user_index
+    USER_ENGAGEMENT_SCHEDULER_LAMBDA_NAME= module.user_engagement_scheduler_lambda.function_name
   }
 }
 
