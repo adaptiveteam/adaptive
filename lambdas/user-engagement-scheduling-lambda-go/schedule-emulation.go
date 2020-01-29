@@ -41,13 +41,13 @@ func emulateDates(dateShiftConfig DateShiftConfig, date time.Time, userID string
 		days := int(date.Sub(dateShiftConfig.StartDate).Hours() / 24)
 		dateToEmulate := dateShiftConfig.StartEmulateDate.AddDate(0, 0, days)
 		if !dateToEmulate.After(dateShiftConfig.EndEmulateDate) {
-			emulatedDateStr := core.ISODateLayout.Format(dateToEmulate)
+			emulatedDateStr := "2019-12-23" //core.ISODateLayout.Format(dateToEmulate)
 			dateStr := core.ISODateLayout.Format(date)
 			fmt.Println(fmt.Sprintf("user %s: Emulating date %s --> %s", userID, dateStr, emulatedDateStr))
 			engage := models.UserEngage{
 				UserId:     userID,
 				PlatformID: platformID,
-				Date:       "2019-12-23",
+				Date:       emulatedDateStr,
 			}
 			logger.Infof("Emulating %s date for %s user on %s", emulatedDateStr, userID, dateStr)
 			invokeSchedulerLambda(engage, config)

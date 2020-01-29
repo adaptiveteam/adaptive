@@ -79,7 +79,7 @@ data "aws_iam_policy_document" "user_engagement_scheduling_policy" {
     actions   = ["dynamodb:*"]
   }
   statement {
-    resources = [module.user_engagement_scripting_lambda.function_arn]
+    resources = [module.user_engagement_scripting_lambda.function_arn,module.user_engagement_scheduler_lambda.function_arn]
     actions   = ["lambda:InvokeFunction"]
   }
 }
