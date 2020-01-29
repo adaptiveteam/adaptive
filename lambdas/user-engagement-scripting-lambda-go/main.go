@@ -75,7 +75,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngageWithCheckValues)
 	// Not invoking scheduler lambda for on-demand asking for engagements
 	if !engage.OnDemand {
 		// Invoke user-engagement-scheduler lambda to do necessary checks for the user
-		schedulerPayload, _ := json.Marshal(models.UserEngage{TargetId: engage.UserId})
+		schedulerPayload, _ := json.Marshal(engage.UserEngage)
 		// Wait until all checks are done and engagements are added to the stream
 		_, err := l.InvokeFunction(userEngagementSchedulerLambda, schedulerPayload, false)
 		if err != nil {

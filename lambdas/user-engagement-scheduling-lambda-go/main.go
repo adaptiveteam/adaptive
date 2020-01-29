@@ -116,22 +116,23 @@ func HandleRequest(ctx context.Context) (err error) {
 				} else if len(userCommunities) > 0 {
 					engage := models.UserEngage{
 						UserId:     user.ID,
+						Date:       "", // current date
 						PlatformID: platformID,
 					}
-					err = invokeScriptingLambda(engage, config)
+					err = triggerPostponedEvents(engage, config)
 					if err != nil {
-						logger.WithError(err).Errorf("Could not invoke scripting lambda for %s user in %v platform", engage.UserId, platformID)
+						logger.WithError(err).Errorf("Could not TriggerAllPostponedEvents for %s user in %v platform", engage.UserId, platformID)
 					}
-					// err = triggerPostponedEvents(engage, config)
-					// if err != nil {
-					// 	logger.WithError(err).Errorf("Could not TriggerAllPostponedEvents for %s user in %v platform", engage.UserId, platformID)
-					// }
 					switch platformID {
 					case EmbursePlatformID, GeigsenPlatformID:
 						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, platformID, config)
 					case IvanPlatformID, StagingPlatformID:
 						emulateDates(TestDateShiftConfig, time.Now(), user.ID, platformID, config)
 					default:
+					}
+					err = invokeScriptingLambda(engage, config)
+					if err != nil {
+						logger.WithError(err).Errorf("Could not invoke scripting lambda for %s user in %v platform", engage.UserId, platformID)
 					}
 				}
 			}

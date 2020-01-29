@@ -12,6 +12,7 @@ import (
 type Config struct {
 	namespace               string
 	engScriptingLambdaArn   string
+	engSchedulerLambdaName  string
 	usersTable              string
 	communityUsersTable     string
 	usersScheduledTimeIndex string
@@ -31,6 +32,7 @@ func readConfigFromEnvironment() Config {
 	return Config{
 		namespace:               namespace,
 		engScriptingLambdaArn:   utils.NonEmptyEnv("USER_ENGAGEMENT_SCRIPTING_LAMBDA_ARN"),
+		engSchedulerLambdaName:  utils.NonEmptyEnv("USER_ENGAGEMENT_SCHEDULER_LAMBDA_NAME"),
 		usersTable:              utils.NonEmptyEnv("USERS_TABLE_NAME"),
 		communityUsersTable:     utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME"),
 		usersScheduledTimeIndex: utils.NonEmptyEnv("USERS_SCHEDULED_TIME_INDEX"),
@@ -50,14 +52,3 @@ func invokeScriptingLambda(engage models.UserEngage, config Config) (err error) 
 	_, err = config.l.InvokeFunction(config.engScriptingLambdaArn, payloadJSONBytes, true)
 	return
 }
-
-// func triggerPostponedEvents(engage models.UserEngage, config Config) (err error) {
-// 	logger.WithField("userID", engage.UserId).Infof("triggerPostponedEvents")
-// 	conn := common.DynamoDBConnection{
-// 		Dynamo: config.d,
-// 		ClientID: config.clientID,
-// 		PlatformID: engage.PlatformID,
-// 	}
-// 	err = workflows.TriggerAllPostponedEvents(engage.PlatformID, engage.UserId)(conn)
-// 	return
-// }
