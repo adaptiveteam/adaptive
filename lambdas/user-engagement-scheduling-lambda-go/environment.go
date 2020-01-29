@@ -12,6 +12,7 @@ import (
 type Config struct {
 	namespace               string
 	engScriptingLambdaArn   string
+	engSchedulerLambdaName  string
 	usersTable              string
 	communityUsersTable     string
 	usersScheduledTimeIndex string
@@ -31,6 +32,7 @@ func readConfigFromEnvironment() Config {
 	return Config{
 		namespace:               namespace,
 		engScriptingLambdaArn:   utils.NonEmptyEnv("USER_ENGAGEMENT_SCRIPTING_LAMBDA_ARN"),
+		engSchedulerLambdaName:  utils.NonEmptyEnv("USER_ENGAGEMENT_SCHEDULER_LAMBDA_NAME"),
 		usersTable:              utils.NonEmptyEnv("USERS_TABLE_NAME"),
 		communityUsersTable:     utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME"),
 		usersScheduledTimeIndex: utils.NonEmptyEnv("USERS_SCHEDULED_TIME_INDEX"),
@@ -48,6 +50,12 @@ func readConfigFromEnvironment() Config {
 func invokeScriptingLambda(engage models.UserEngage, config Config) (err error) {
 	payloadJSONBytes, _ := json.Marshal(engage)
 	_, err = config.l.InvokeFunction(config.engScriptingLambdaArn, payloadJSONBytes, true)
+	return
+}
+
+func invokeSchedulerLambda(engage models.UserEngage, config Config) (err error) {
+	payloadJSONBytes, _ := json.Marshal(engage)
+	_, err = config.l.InvokeFunction(config.engSchedulerLambdaName, payloadJSONBytes, true)
 	return
 }
 
