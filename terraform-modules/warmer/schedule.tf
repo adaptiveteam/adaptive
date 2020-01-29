@@ -10,7 +10,6 @@ resource "aws_cloudwatch_event_target" "target" {
   rule       = aws_cloudwatch_event_rule.rule.name
   input      = var.schedule_invoke_json
   target_id  = "${var.client_id}_${var.schedule_name}"
-  depends_on = [aws_lambda_function.lambda]
 }
 
 resource "aws_lambda_permission" "cloudwatch_invoke_lambda" {
