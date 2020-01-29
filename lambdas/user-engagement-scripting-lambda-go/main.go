@@ -15,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"golang.org/x/sync/errgroup"
+	workflows "github.com/adaptiveteam/adaptive/workflows"
+	"github.com/adaptiveteam/adaptive/daos/common"
 )
 
 func postToUser(eng models.UserEngagement, userID string, api mapper.PlatformAPI) (err error) {
@@ -65,7 +67,9 @@ func greeting() ui.PlainText {
 	return defaultGreeting
 }
 
+// HandleRequest -
 func HandleRequest(ctx context.Context, engage models.UserEngageWithCheckValues) {
+	defer core.RecoverAsLogError("user-engagement-scripting-lambda-go.HandleRequest")
 	logger = logger.WithLambdaContext(ctx)
 
 	// Not invoking scheduler lambda for on-demand asking for engagements
@@ -124,6 +128,13 @@ func HandleRequest(ctx context.Context, engage models.UserEngageWithCheckValues)
 	} else if engage.OnDemand {
 		publish(models.PlatformSimpleNotification{UserId: engage.UserId, Message: string(greeting())})
 	}
+	conn := common.DynamoDBConnection{
+		Dynamo: d,
+		ClientID: clientID,
+		PlatformID: engage.PlatformID,
+	}
+	err2 := workflows.TriggerAllPostponedEvents(engage.PlatformID, engage.UserId)(conn)
+	core.ErrorHandler(err2, "TriggerAllPostponedEvents", "TriggerAllPostponedEvents")
 }
 
 func updateEngagementsAsPostedAsync(userID string, engagements []models.UserEngagement) {

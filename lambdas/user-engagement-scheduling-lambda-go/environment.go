@@ -5,8 +5,6 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	workflows "github.com/adaptiveteam/adaptive/workflows"
-	"github.com/adaptiveteam/adaptive/daos/common"
 )
 
 type Config struct {
@@ -56,16 +54,5 @@ func invokeScriptingLambda(engage models.UserEngage, config Config) (err error) 
 func invokeSchedulerLambda(engage models.UserEngage, config Config) (err error) {
 	payloadJSONBytes, _ := json.Marshal(engage)
 	_, err = config.l.InvokeFunction(config.engSchedulerLambdaName, payloadJSONBytes, true)
-	return
-}
-
-func triggerPostponedEvents(engage models.UserEngage, config Config) (err error) {
-	logger.WithField("userID", engage.UserId).Infof("triggerPostponedEvents")
-	conn := common.DynamoDBConnection{
-		Dynamo: config.d,
-		ClientID: config.clientID,
-		PlatformID: engage.PlatformID,
-	}
-	err = workflows.TriggerAllPostponedEvents(engage.PlatformID, engage.UserId)(conn)
 	return
 }
