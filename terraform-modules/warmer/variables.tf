@@ -2,19 +2,18 @@
 variable "schedule_name" {
   description = "Name of the schedule rule"
   type        = string
-  default     = ""
 }
 
 variable "schedule_description" {
   description = "Description of the schedule rule"
   type        = string
-  default     = ""
+  default     = "Warm-up lambda every 5 minutes"
 }
 
 variable "schedule_expression" {
   description = "Schedule expression for scheduled lambda"
   type        = string
-  default     = ""
+  default     = "rate(5 minutes)"
 }
 
 variable "schedule_invoke_json" {
