@@ -145,7 +145,7 @@ module "slack_message_processor_error_alarm" {
   log_group_name = module.slack_message_processor_lambda.log_group_name
   metric_namespace = "${var.client_id}-AWS/Lambda"
   pattern = "ERROR"
-  alarm_name = "slack-message-processor-errors"
+  alarm_name = "${var.client_id}_slack-message-processor-errors"
   alarm_action_arns = [
     aws_sns_topic.errors.arn,
   ]
