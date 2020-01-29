@@ -1,11 +1,11 @@
 // Policy for the main lambda role
 resource "aws_iam_policy" "additional" {
-  name   = "additional_policy_attachment_for_lamba_role"
+  name   = "${var.client_id}_additional_policy_attachment_for_lamba_role"
   policy = data.aws_iam_policy_document.slack_message_processor_dynamo_write_policy.json
 }
 
 resource "aws_iam_policy_attachment" "additional" {
-  name       = "additional_policy_attachment_for_lamba_role"
+  name       = "${var.client_id}_additional_policy_attachment_for_lamba_role"
   roles      = [aws_iam_role.lambda.name]
   policy_arn = aws_iam_policy.additional.arn
 }

@@ -6,8 +6,8 @@ module "api" {
   name                = var.gateway_name
   stage               = var.gateway_stage
   method              = var.gateway_http_method
-  lambda_name         = module.slack_message_processor_lambda.function_name
-  lambda_arn          = module.slack_message_processor_lambda.function_arn
+  lambda_name         = aws_lambda_function.slack_message_processor_lambda.function_name
+  lambda_arn          = aws_lambda_function.slack_message_processor_lambda.arn
   region              = var.aws_region
   cloudwatch_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.gateway_global_cloudwatch_role}"
 }
