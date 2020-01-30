@@ -16,7 +16,7 @@ SHELL := /bin/bash
 LAMBDAS_SRC_DIR := $(shell cd ..; pwd)
 PWD := $(shell pwd)
 AMM_BIN := ${PWD}/bin/amm
-AMM_VERSION := 1.8.2
+AMM_VERSION := 2.0.4
 AMM := ${AMM_BIN}-${AMM_VERSION}
 
 #CORE_LAMBDA_SOURCES_DIR := ${ADAPTIVE_REPOS}/adaptive-core-lambdas
@@ -27,6 +27,7 @@ AMM := ${AMM_BIN}-${AMM_VERSION}
 include common.Makefile
 include build.Makefile
 include deploy.Makefile
+include migrations.Makefile
 #include core.main.Makefile
 
 # compile: compile-core compile-coaching compile-user-community compile-strategy

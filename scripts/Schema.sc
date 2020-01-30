@@ -203,7 +203,8 @@ val UserFeedback = Entity(
         ("Channel".camel :: string) \\ 
             "Channel, if any, to engage user in response to the feedback" \\ 
             "This is useful to reply to an event with no knowledge of the previous context",
-        ("MsgTimestamp".camel :: string) \\ "A reference to the original timestamp that can be used to reply via threading"
+        ("MsgTimestamp".camel :: string) \\ "A reference to the original timestamp that can be used to reply via threading",
+        platformIdField
     )
 )
 

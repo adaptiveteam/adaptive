@@ -153,7 +153,7 @@ func ReminderToProvideCoachingFeedback(date bt.Date, target string) {
 	userGivenFeedback, err := coaching.FeedbackGivenForTheQuarter(target, quarter, year, FeedbackTableName,
 		FeedbackSourceQuarterYearIndex)
 	if err != nil {
-		log.Fatal("Could not query user given feedback")
+		log.Panicf("Could not query user given feedback: %+v", err)
 	}
 	for _, each := range userGivenFeedback {
 		userIDs = append(userIDs, each.Target)
