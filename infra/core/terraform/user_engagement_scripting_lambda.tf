@@ -32,7 +32,38 @@ module "user_engagement_scripting_lambda" {
 
 data "aws_iam_policy_document" "user_engagement_scripting_policy" {
   statement {
-    effect = "Allow"
+    resources = [aws_dynamodb_table.adaptive_users_dynamodb_table.arn, "${aws_dynamodb_table.adaptive_users_dynamodb_table.arn}/index/*"]
+    actions   = ["dynamodb:*"]
+  }
+  statement {
+    resources = [aws_dynamodb_table.user_objective_dynamodb_table.arn]
+    actions   = ["dynamodb:*"]
+  }
+  statement {
+    resources = [aws_dynamodb_table.strategy_objectives.arn]
+    actions   = ["dynamodb:*"]
+  }
+  statement {
+    resources = [aws_dynamodb_table.strategy_initiatives.arn]
+    actions   = ["dynamodb:*"]
+  }
+  statement {
+    resources = [aws_dynamodb_table.vision.arn]
+    actions   = ["dynamodb:*"]
+  }
+  statement {
+    resources = [aws_dynamodb_table.client_config_dynamodb_table.arn]
+    actions   = ["dynamodb:Scan", "dynamodb:GetItem"]
+  }
+  statement {
+    resources = ["${aws_dynamodb_table.community_users.arn}/index/*"]
+    actions   = ["dynamodb:Query"]
+  }
+  statement {
+    resources = [aws_dynamodb_table.postponed_event_dynamodb_table.arn,"${aws_dynamodb_table.postponed_event_dynamodb_table.arn}/index/*"]
+    actions   = ["dynamodb:*"]
+  }
+  statement {
     actions = [
       "dynamodb:DescribeTable",
       "dynamodb:GetItem",
@@ -44,44 +75,19 @@ data "aws_iam_policy_document" "user_engagement_scripting_policy" {
   }
 
   statement {
-    effect = "Allow"
+    resources = [aws_dynamodb_table.adaptive_user_engagements_dynamo_table.arn]
     actions = [
       "dynamodb:Query",
       "dynamodb:UpdateItem",
     ]
-    resources = [
-      aws_dynamodb_table.adaptive_user_engagements_dynamo_table.arn,
-    ]
   }
-
   statement {
-    effect = "Allow"
-    actions = [
-      "lambda:InvokeFunction",
-    ]
-    resources = [
-      "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.client_id}_${var.user_engagement_scheduler_lambda_prefix}",
-    ]
+    resources = [module.user_engagement_scheduler_lambda.function_arn]
+    actions   = ["lambda:InvokeFunction"]
   }
-
   statement {
-    effect = "Allow"
-    actions = [
-      "dynamodb:GetItem",
-    ]
-    resources = [
-      aws_dynamodb_table.client_config_dynamodb_table.arn,
-    ]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
-      "SNS:Publish",
-    ]
-    resources = [
-      aws_sns_topic.platform_notification.arn,
-    ]
+    resources = [aws_sns_topic.platform_notification.arn]
+    actions = ["SNS:Publish"]
   }
 }
 

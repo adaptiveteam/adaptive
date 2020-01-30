@@ -3,8 +3,6 @@ locals {
   user_engagement_scheduling_lambda_function_name = "${var.client_id}_${local.user_engagement_scheduling_lambda_function_name_suffix}"
 }
 
-
-
 module "user_engagement_scheduling_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
@@ -39,6 +37,7 @@ module "user_engagement_scheduling_lambda" {
     LAMBDA_ROLE   = "user-engagement-scheduling"
     LOG_NAMESPACE = "user-engagement-scheduling"
     USER_ENGAGEMENT_SCRIPTING_LAMBDA_ARN = module.user_engagement_scripting_lambda.function_arn
+    USER_ENGAGEMENT_SCHEDULER_LAMBDA_NAME= module.user_engagement_scheduler_lambda.function_name
   })
 
 }
@@ -77,7 +76,7 @@ data "aws_iam_policy_document" "user_engagement_scheduling_policy" {
     actions   = ["dynamodb:*"]
   }
   statement {
-    resources = [module.user_engagement_scripting_lambda.function_arn]
+    resources = [module.user_engagement_scripting_lambda.function_arn,module.user_engagement_scheduler_lambda.function_arn]
     actions   = ["lambda:InvokeFunction"]
   }
 }
