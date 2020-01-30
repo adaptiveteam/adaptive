@@ -122,21 +122,20 @@ func (d *DynamoRequest) PutTableEntryWithCondition(item interface{}, table strin
 }
 
 func (d *DynamoRequest) UpdateTableEntry(exprAttributes, key map[string]*dynamodb.AttributeValue, updateExpression, table string) error {
-	return d.UpdateItemInTable(table, exprAttributes, key, updateExpression)
+	return d.UpdateItemInTable(table, key, updateExpression, exprAttributes)
 }
 
-func (d *DynamoRequest) UpdateItemInTable(tableName string, exprAttributes, key map[string]*dynamodb.AttributeValue, updateExpression string) (err error) {
-	input := &dynamodb.UpdateItemInput{
+func (d *DynamoRequest) UpdateItemInTable(tableName string, 
+	key map[string]*dynamodb.AttributeValue, updateExpression string, exprAttributes map[string]*dynamodb.AttributeValue, 
+) (err error) {
+	input := dynamodb.UpdateItemInput{
 		ExpressionAttributeValues: exprAttributes,
 		TableName:                 aws.String(tableName),
 		Key:                       key,
 		ReturnValues:              aws.String("UPDATED_NEW"),
 		UpdateExpression:          aws.String(updateExpression),
 	}
-	_, err = d.svc.UpdateItem(input)
-	if err != nil {
-		d.errorLog(err)
-	}
+	err = d.UpdateItemInternal(input)
 	return
 }
 
