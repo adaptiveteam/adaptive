@@ -3,7 +3,7 @@ resource "aws_lambda_function" "lambda" {
 
   filename                       = var.filename
   description                    = var.description
-  function_name                  = "${var.client_id}_${var.function_name}"
+  function_name                  = local.function_name
   role                           = aws_iam_role.lambda.arn
   memory_size                    = var.memory_size
   handler                        = var.handler
@@ -46,7 +46,7 @@ resource "aws_lambda_function" "lambda_with_dl" {
 
   filename                       = var.filename
   description                    = var.description
-  function_name                  = "${var.client_id}_${var.function_name}"
+  function_name                  = "${var.client_id}_${var.function_name_suffix}"
   role                           = aws_iam_role.lambda.arn
   memory_size                    = var.memory_size
   handler                        = var.handler
@@ -77,7 +77,7 @@ resource "aws_lambda_function" "lambda_with_vpc" {
 
   filename                       = var.filename
   description                    = var.description
-  function_name                  = "${var.client_id}_${var.function_name}"
+  function_name                  = "${var.client_id}_${var.function_name_suffix}"
   role                           = aws_iam_role.lambda.arn
   memory_size                    = var.memory_size
   handler                        = var.handler
@@ -112,7 +112,7 @@ resource "aws_lambda_function" "lambda_with_dl_vpc" {
 
   filename                       = var.filename
   description                    = var.description
-  function_name                  = "${var.client_id}_${var.function_name}"
+  function_name                  = "${var.client_id}_${var.function_name_suffix}"
   role                           = aws_iam_role.lambda.arn
   memory_size                    = var.memory_size
   handler                        = var.handler

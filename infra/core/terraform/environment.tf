@@ -11,11 +11,9 @@ locals {
     USER_OBJECTIVES_TABLE_NAME = aws_dynamodb_table.user_objective_dynamodb_table.name
     USER_OBJECTIVES_PARTNER_INDEX = var.dynamo_user_objectives_partner_index
     USER_OBJECTIVES_ID_INDEX = var.dynamo_user_objectives_id_index
-    USER_OBJECTIVES_TYPE_INDEX = var.dynamo_user_objectives_type_index
     DIALOG_TABLE = aws_dynamodb_table.adaptive_dialog_content.name
     VISION_TABLE_NAME = aws_dynamodb_table.vision.name
     CAPABILITY_COMMUNITIES_TABLE_NAME = aws_dynamodb_table.capability_communities.name
-    CAPABILITY_COMMUNITIES_PLATFORM_INDEX = var.dynamo_capability_communities_platform_index
     INITIATIVE_COMMUNITIES_TABLE_NAME = aws_dynamodb_table.initiative_communities.name
     INITIATIVE_COMMUNITIES_PLATFORM_INDEX = var.dynamo_strategy_initiative_communities_platform_index
     STRATEGY_COMMUNITIES_TABLE_NAME = aws_dynamodb_table.strategy_communities.name
@@ -27,9 +25,7 @@ locals {
     USER_OBJECTIVES_PROGRESS_ID_INDEX = var.dynamo_user_objectives_progress_index
     CLIENT_ID = var.client_id
     ADAPTIVE_VALUES_TABLE = aws_dynamodb_table.adaptive_value_dynamodb_table.name
-    USER_ENGAGEMENT_SCRIPTING_LAMBDA_NAME = module.user_engagement_scripting_lambda.function_name
     USER_ENGAGEMENTS_TABLE_NAME = aws_dynamodb_table.adaptive_user_engagements_dynamo_table.name
-    USER_ANSWERED_INDEX = var.user_engagement_answered_dynamo_index
     STRATEGY_INITIATIVES_TABLE_NAME = aws_dynamodb_table.strategy_initiatives.name
     STRATEGY_INITIATIVES_PLATFORM_INDEX = var.dynamo_strategy_initiatives_platform_index
     STRATEGY_OBJECTIVES_TABLE_NAME = aws_dynamodb_table.strategy_objectives.name
@@ -38,7 +34,6 @@ locals {
     STRATEGY_INITIATIVES_INITIATIVE_COMMUNITY_ID_INDEX = var.dynamo_strategy_initiatives_initiative_community_index
 
     USERS_TABLE_NAME = aws_dynamodb_table.adaptive_users_dynamodb_table.name
-    USER_PROFILE_LAMBDA_NAME = module.user_profile_lambda.function_name
 
     // for adaptive-utils-go
     USERS_PLATFORM_INDEX = var.dynamo_users_platform_index
@@ -81,8 +76,13 @@ locals {
 
     USER_TABLE_NAME                         = aws_dynamodb_table.adaptive_users_dynamodb_table.name
 
-    SLACK_LAMBDA_FUNCTION_NAME              = module.slack_user_query_lambda.function_name
-    USER_SETUP_LAMBDA_NAME                  = module.user_setup_lambda.function_name
+
+    SLACK_LAMBDA_FUNCTION_NAME              = local.slack_user_query_lambda_function_name
+    USER_SETUP_LAMBDA_NAME                  = local.user_setup_lambda_function_name
+    USER_ENGAGEMENT_SCHEDULING_LAMBDA_NAME  = local.user_engagement_scheduling_lambda_function_name
+    USER_ENGAGEMENT_SCRIPTING_LAMBDA_NAME   = local.user_engagement_scripting_lambda_function_name
+    USER_PROFILE_LAMBDA_NAME                = local.user_profile_lambda_function_name
+
 
 
   }

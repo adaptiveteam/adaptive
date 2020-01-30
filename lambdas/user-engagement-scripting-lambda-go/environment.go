@@ -16,7 +16,7 @@ var (
 	region                              = utils.NonEmptyEnv("AWS_REGION")
 	clientID                            = utils.NonEmptyEnv("CLIENT_ID")
 	userEngagementSchedulerLambdaPrefix = utils.NonEmptyEnv("USER_ENGAGEMENT_SCHEDULER_LAMBDA_PREFIX")
-	engagementAnsweredIndex             = utils.NonEmptyEnv("USER_ANSWERED_INDEX")
+	engagementAnsweredIndex             = "UserAnsweredEngagementIndex"
 	userEngagementSchedulerLambda       = fmt.Sprintf("%s_%s", clientID, userEngagementSchedulerLambdaPrefix)
 	d                                   = awsutils.NewDynamo(region, "", namespace)
 	l                                   = awsutils.NewLambda(region, "", namespace)

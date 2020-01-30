@@ -1,28 +1,22 @@
-data "archive_file" "user-query-lambda-zip" {
-  type        = "zip"
-  source_file = "../../../bin/user-query-lambda-go"
-  output_path = "lambdas/user-query-lambda-go.zip"
-}
-
 module "user_query_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id     = var.client_id
-  filename      = data.archive_file.user-query-lambda-zip.output_path
-  source_hash   = data.archive_file.user-query-lambda-zip.output_base64sha256
-  function_name = "user-query-lambda-go"
-  handler       = "user-query-lambda-go"
+  filename      = data.archive_file.adaptive-lambda-zip.output_path
+  source_hash   = data.archive_file.adaptive-lambda-zip.output_base64sha256
+  handler       = "adaptive"
+  function_name_suffix = "user-query-lambda-go"
   runtime       = var.lambda_runtime
   timeout       = var.lambda_timeout
   memory_size   = var.multi_core_memory_size
 
   reserved_concurrent_executions = -1
 
-  environment_variables = {
-    SLACK_LAMBDA_FUNCTION_NAME = module.slack_user_query_lambda.function_name
-    CLIENT_CONFIG_TABLE_NAME   = aws_dynamodb_table.client_config_dynamodb_table.name
-    LOG_NAMESPACE              = "user-query"
-  }
+  // Add environment variables.
+  environment_variables = merge(local.environment_variables, {
+    LAMBDA_ROLE   = "user-query"
+    LOG_NAMESPACE = "user-query"
+  })
 
   // Attach extra policy
   attach_policy = true

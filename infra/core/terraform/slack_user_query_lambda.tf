@@ -1,34 +1,28 @@
-data "archive_file" "slack-user-query-lambda-zip" {
-  type = "zip"
-  source_file = "../../../bin/slack-user-query-lambda-go"
-  output_path = "lambdas/slack-user-query-lambda-go.zip"
+
+locals {
+  slack_user_query_lambda_function_name_suffix = "slack-user-query-lambda-go"
+  slack_user_query_lambda_function_name = "${var.client_id}_${local.slack_user_query_lambda_function_name_suffix}"
 }
 
 module "slack_user_query_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id = var.client_id
-  filename = data.archive_file.slack-user-query-lambda-zip.output_path
-  source_hash = data.archive_file.slack-user-query-lambda-zip.output_base64sha256
-  function_name = "slack-user-query-lambda-go"
-  handler = "slack-user-query-lambda-go"
+  filename = data.archive_file.adaptive-lambda-zip.output_path
+  source_hash = data.archive_file.adaptive-lambda-zip.output_base64sha256
+  handler = "adaptive"
+  function_name_suffix = local.slack_user_query_lambda_function_name_suffix
   runtime = var.lambda_runtime
   timeout = 900
   memory_size = var.multi_core_memory_size
 
   reserved_concurrent_executions = -1
 
-  environment_variables = {
-    USER_SETUP_LAMBDA_NAME = module.user_setup_lambda.function_name
-    USER_TABLE_NAME = aws_dynamodb_table.adaptive_users_dynamodb_table.name
-    CLIENT_CONFIG_TABLE_NAME = aws_dynamodb_table.client_config_dynamodb_table.name
-    CLIENT_ID = var.client_id
+  // Add environment variables.
+  environment_variables = merge(local.environment_variables, {
+    LAMBDA_ROLE   = "slack-user-query"
     LOG_NAMESPACE = "slack-user-query"
-    USER_COMMUNITY_TABLE_NAME = aws_dynamodb_table.user_communities.name
-    USER_COMMUNITY_PLATFORM_INDEX = var.user_community_platform_dynamo_index
-    COMMUNITY_USERS_TABLE_NAME = aws_dynamodb_table.community_users.name
-    COMMUNITY_USERS_COMMUNITY_INDEX = var.dynamo_community_users_community_index
-  }
+  })
 
   // Attach extra policy
   attach_policy = true

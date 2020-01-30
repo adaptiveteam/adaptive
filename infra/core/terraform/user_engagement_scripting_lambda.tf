@@ -1,31 +1,27 @@
-data "archive_file" "user-engagement-scripting-lambda-zip" {
-  type = "zip"
-  source_file = "../../../bin/user-engagement-scripting-lambda-go"
-  output_path = "lambdas/user-engagement-scripting-lambda-go.zip"
+locals {
+  user_engagement_scripting_lambda_function_name_suffix = "user-engagement-scripting-lambda-go"
+  user_engagement_scripting_lambda_function_name = "${var.client_id}_${local.user_engagement_scripting_lambda_function_name_suffix}"
 }
 
 module "user_engagement_scripting_lambda" {
   source = "../../../terraform-modules/adaptive-lambda"
 
   client_id = var.client_id
-  filename = data.archive_file.user-engagement-scripting-lambda-zip.output_path
-  source_hash = data.archive_file.user-engagement-scripting-lambda-zip.output_base64sha256
-  function_name = "user-engagement-scripting-lambda-go"
-  handler = "user-engagement-scripting-lambda-go"
+  filename      = data.archive_file.adaptive-lambda-zip.output_path
+  source_hash   = data.archive_file.adaptive-lambda-zip.output_base64sha256
+  handler       = "adaptive"
+  function_name_suffix = local.user_engagement_scripting_lambda_function_name_suffix
   runtime = var.lambda_runtime
   timeout = var.lambda_timeout
   memory_size = var.multi_core_memory_size
 
   reserved_concurrent_executions = -1
 
-  environment_variables = {
-    USER_ENGAGEMENTS_TABLE_NAME = aws_dynamodb_table.adaptive_user_engagements_dynamo_table.name
-    USER_ANSWERED_INDEX = var.user_engagement_answered_dynamo_index
-    PLATFORM_NOTIFICATION_TOPIC = aws_sns_topic.platform_notification.arn
-    USER_ENGAGEMENT_SCHEDULER_LAMBDA_PREFIX = var.user_engagement_scheduler_lambda_prefix
-    CLIENT_ID = var.client_id
-    LOG_NAMESPACE = "user-engagement-scipting"
-  }
+  // Add environment variables.
+  environment_variables = merge(local.environment_variables, {
+    LAMBDA_ROLE   = "user-engagement-scripting"
+    LOG_NAMESPACE = "user-engagement-scripting"
+  })
 
   // Attach extra policy
   attach_policy = true
