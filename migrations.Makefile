@@ -9,5 +9,5 @@ backdate-build: ${PWD}/bin/backdate
 
 backdate-feedback: ${PWD}/bin/backdate
 	export LOG_NAMESPACE="backdate" ;\
-	export PLATFORM_ID="NO-PLATFORM" ;\
+#	export PLATFORM_ID="NO-PLATFORM" ;\
 	${PWD}/bin/backdate
