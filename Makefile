@@ -27,6 +27,7 @@ AMM := ${AMM_BIN}-${AMM_VERSION}
 include common.Makefile
 include build.Makefile
 include deploy.Makefile
+include migrations.Makefile
 #include core.main.Makefile
 
 # compile: compile-core compile-coaching compile-user-community compile-strategy

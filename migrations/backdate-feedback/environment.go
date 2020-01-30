@@ -21,7 +21,7 @@ func readConfigFromEnvVars() (config Config) {
 	return Config{
 		namespace : namespace,
 		region    : region,
-		clientID  : utils.NonEmptyEnv("CLIENT_ID"),
+		clientID  : utils.NonEmptyEnv("ADAPTIVE_CLIENT_ID"),
 		platformID: models.PlatformID(utils.NonEmptyEnv("PLATFORM_ID")),
 		d         : awsutils.NewDynamo(region, "", namespace),
 	}
