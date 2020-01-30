@@ -26,6 +26,7 @@ type UserFeedback struct  {
 	Channel string `json:"channel"`
 	// A reference to the original timestamp that can be used to reply via threading
 	MsgTimestamp string `json:"msg_timestamp"`
+	PlatformID common.PlatformID `json:"platform_id"`
 }
 
 // CollectEmptyFields returns entity field names that are empty.
@@ -40,6 +41,7 @@ func (userFeedback UserFeedback)CollectEmptyFields() (emptyFields []string, ok b
 	if userFeedback.QuarterYear == "" { emptyFields = append(emptyFields, "QuarterYear")}
 	if userFeedback.Channel == "" { emptyFields = append(emptyFields, "Channel")}
 	if userFeedback.MsgTimestamp == "" { emptyFields = append(emptyFields, "MsgTimestamp")}
+	if userFeedback.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
 	ok = len(emptyFields) == 0
 	return
 }
@@ -271,6 +273,7 @@ func allParams(userFeedback UserFeedback, old UserFeedback) (params map[string]*
 	if userFeedback.QuarterYear != old.QuarterYear { params[":a6"] = common.DynS(userFeedback.QuarterYear) }
 	if userFeedback.Channel != old.Channel { params[":a7"] = common.DynS(userFeedback.Channel) }
 	if userFeedback.MsgTimestamp != old.MsgTimestamp { params[":a8"] = common.DynS(userFeedback.MsgTimestamp) }
+	if userFeedback.PlatformID != old.PlatformID { params[":a9"] = common.DynS(string(userFeedback.PlatformID)) }
 	return
 }
 func updateExpression(userFeedback UserFeedback, old UserFeedback) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -286,6 +289,7 @@ func updateExpression(userFeedback UserFeedback, old UserFeedback) (expr string,
 	if userFeedback.QuarterYear != old.QuarterYear { updateParts = append(updateParts, "quarter_year = :a6"); params[":a6"] = common.DynS(userFeedback.QuarterYear);  }
 	if userFeedback.Channel != old.Channel { updateParts = append(updateParts, "channel = :a7"); params[":a7"] = common.DynS(userFeedback.Channel);  }
 	if userFeedback.MsgTimestamp != old.MsgTimestamp { updateParts = append(updateParts, "msg_timestamp = :a8"); params[":a8"] = common.DynS(userFeedback.MsgTimestamp);  }
+	if userFeedback.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a9"); params[":a9"] = common.DynS(string(userFeedback.PlatformID));  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return
