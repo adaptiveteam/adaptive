@@ -67,15 +67,26 @@ func (w workflowImpl) OnViewListOfIssues(issueType IssueType, issueFilterFactory
 	tc := getTypeClass(issueType)
 	return w.OnViewListOfQueryIssues(issueType, qf, tc.IssueTypeName()+"s")
 }
-// OnViewListOfQueryIssues shows the list of elements returned by query
-// queryItemTitle - the user-facing singular name of the list element.
+
+// OnViewListOfQueryIssues shows the list of elements returned by the query.
+// 
+// queryItemPluralTitle - the user-facing name of the list element in plural form.
 // It's used in the title of the list.
 func (w workflowImpl) OnViewListOfQueryIssues(issueType IssueType, 
 	issueQueryFactory IssueQueryFactory, 
-	queryItemPluralTitle ui.PlainText) wf.Handler {
+	queryItemPluralTitle ui.PlainText,
+) wf.Handler {
 	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 		ctx.Data[issueTypeKey] = string(issueType)
+		return w.OnViewListOfQueryIssuesWithTypeInContext(issueQueryFactory, 
+			func(_ IssueType) ui.PlainText {return queryItemPluralTitle})(ctx)
+	}
+}
 
+func (w workflowImpl) OnViewListOfQueryIssuesWithTypeInContext(issueQueryFactory IssueQueryFactory, 
+	queryItemPluralTitle func (IssueType) ui.PlainText) wf.Handler {
+	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+		issueType := getIssueTypeFromContext(ctx)
 		var issues []Issue
 		issues, err = issueQueryFactory(ctx)(w.DynamoDBConnection)
 		if err != nil {
@@ -99,9 +110,9 @@ func (w workflowImpl) OnViewListOfQueryIssues(issueType IssueType,
 		}
 		var msg ui.RichText
 		if len(threadMessages) == 0 {
-			msg = ui.Sprintf("There are no %s yet.", queryItemPluralTitle)
+			msg = ui.Sprintf("There are no %s yet.", queryItemPluralTitle(issueType))
 		} else {
-			msg = ui.Sprintf("You can find the list of %s in the below thread. :point_down:", queryItemPluralTitle)
+			msg = ui.Sprintf("You can find the list of %s in the below thread. :point_down:", queryItemPluralTitle(issueType))
 		}
 		out.Interaction.Messages = wf.InteractiveMessages(wf.InteractiveMessage{
 			PassiveMessage: wf.PassiveMessage{
@@ -115,3 +126,23 @@ func (w workflowImpl) OnViewListOfQueryIssues(issueType IssueType,
 		return
 	}
 }
+
+// OnPromptStaleIssues shows a prompt if there are stale issues
+func (w workflowImpl) OnPromptStaleIssues(issueType IssueType) wf.Handler {
+	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+		log := w.AdaptiveLogger.
+			WithField("issueType", issueType).
+			WithField("Handler", "OnPromptStaleIssues")
+
+		log.Infof("start")
+		// TODO: check in database if we indeed have stale issues
+		out = ctx.Prompt(
+			ui.Sprintf("You have %s(s) that haven't been updated in last 7 days. Would you like to update them?", issueType.Template()),
+			wf.Button(ConfirmEvent, "Yes"),
+			wf.Button(DismissEvent, "Skip this, please"),
+		)
+		log.Infof("out=%v", out)
+		return
+	}
+}
+

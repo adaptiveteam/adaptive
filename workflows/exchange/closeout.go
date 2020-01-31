@@ -2,11 +2,11 @@ package exchange
 
 import (
 	"time"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 )
 // RequestCloseoutNamespace -
 const RequestCloseoutNamespace = "request_closeout"
+var RequestCloseoutPath = CommunityPath.Append(RequestCloseoutNamespace)
 
 // RequestCloseoutForIssue constructs a postponed event to request closeout
 func RequestCloseoutForIssue(issue Issue) wf.PostponeEventForAnotherUser {
@@ -17,7 +17,7 @@ func RequestCloseoutForIssue(issue Issue) wf.PostponeEventForAnotherUser {
 // A postponed event is used to communicate the request.
 func RequestCloseout(issueType IssueType, issueID string, coachID string) wf.PostponeEventForAnotherUser {
 	actionPath := wf.ExternalActionPathWithData(
-		models.ParsePath("/community/" + RequestCloseoutNamespace), 
+		RequestCloseoutPath,
 		"init", 
 		"",
 		map[string]string{
