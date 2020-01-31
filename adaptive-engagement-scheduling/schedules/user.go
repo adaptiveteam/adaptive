@@ -7,6 +7,11 @@ import (
 	utils "github.com/adaptiveteam/adaptive/engagement-scheduling"
 )
 
+// DebugReminder is meant to always trigger the debug engagements
+func DebugReminder(fc checks.CheckResultMap, date bt.Date) (rv string) {
+	return "Debug reminder"
+}
+
 /*
 ------------------------------------------------------------------------------------
 IDO Creation reminders

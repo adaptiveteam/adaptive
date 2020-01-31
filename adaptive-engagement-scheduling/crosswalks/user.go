@@ -11,6 +11,8 @@ func UserCrosswalk() (rv []models.CrossWalk) {
 }
 
 var userCrosswalk = []models.CrossWalk{
+	/* DEBUG reminder*/
+	// models.NewCrossWalk(schedules.DebugReminder, engagements.IDOUpdateReminder),               // ac.StaleIDOsExist
 	/*
 		------------------------------------------------------------------------------------
 		IDO Creation reminders
