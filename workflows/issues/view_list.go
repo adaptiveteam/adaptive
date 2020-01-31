@@ -141,7 +141,7 @@ func (w workflowImpl) OnPromptStaleIssues(issueType IssueType) wf.Handler {
 			wf.Button(ConfirmEvent, "Yes"),
 			wf.Button(DismissEvent, "Skip this, please"),
 		)
-		out.DataOverride[issueTypeKey] = string(issueType)
+		out.DataOverride = map[string]string{issueTypeKey: string(issueType)}
 		log.Infof("out=%v", out)
 		return
 	}
