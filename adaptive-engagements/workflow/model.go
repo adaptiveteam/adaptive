@@ -168,6 +168,20 @@ func SimpleHandler(handler Handler, nextState State) Handler {
 	}
 }
 
+// Nop does nothing
+var Nop Handler = func(ctx EventHandlingContext) (out EventOutput, err error) {
+	return
+}
+
+// NoOpHandler just moves to the provided state
+func NoOpHandler(nextState State) Handler {
+	return func(ctx EventHandlingContext) (out EventOutput, err error) {
+		out.NextState = nextState
+		return
+	}
+}
+
+// ShowData renders Data as a compact string. For logging purposes.
 func ShowData(d Data) (res string) {
 	res = "{"
 	for key, value := range d {
@@ -182,5 +196,18 @@ func (ctx EventHandlingContext)Reply(text ui.RichText) (out EventOutput) {
 	out.NextState = ""
 	out.Interaction = SimpleResponses(platform.Post(platform.ConversationID(ctx.Request.User.ID),
 		platform.MessageContent{Message: text}))
+	return 
+}
+
+// Prompt sends simple text + a few buttons to the requesting user
+func (ctx EventHandlingContext)Prompt(text ui.RichText, interactiveElements ... InteractiveElement) (out EventOutput) {
+	out.Interaction.Messages = InteractiveMessages(
+		InteractiveMessage{
+			PassiveMessage: PassiveMessage{
+				AttachmentText: text,
+			},
+			InteractiveElements: interactiveElements,
+		},
+	)
 	return 
 }
