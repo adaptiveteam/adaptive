@@ -48,6 +48,7 @@ var (
 		acfn.AdvocatesExist:                   ac.AdvocatesExist,
 		acfn.CollaborationReportExists:        ac.ReportExists,
 		acfn.UndeliveredEngagementsExistForMe: ac.UndeliveredEngagementsExistForMe,
+		acfn.UndeliveredEngagementsOrPostponedEventsExistForMe: ac.UndeliveredEngagementsOrPostponedEventsExistForMe,
 		acfn.CanBeNudgedForIDO:                ac.CanBeNudgedForIDOCreation,
 
 		// Strategy component existence independent of the user

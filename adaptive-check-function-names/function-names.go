@@ -36,6 +36,7 @@ const (
 	HolidaysExist                    = "HolidaysExist"
 	CollaborationReportExists        = "CollaborationReportExists"
 	UndeliveredEngagementsExistForMe = "UndeliveredEngagementsExistForMe"
+	UndeliveredEngagementsOrPostponedEventsExistForMe = "UndeliveredEngagementsOrPostponedEventsExistForMe"
 	CanBeNudgedForIDO                = "CanBeNudgedForIDO"
 
 	// Strategy component existence tests independent of the user
