@@ -12,7 +12,7 @@ import (
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	es "github.com/adaptiveteam/adaptive/engagement-scheduling"
-	esmodels "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
+	// esmodels "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
 	"time"
 )
 
@@ -41,14 +41,14 @@ func HandleRequest(ctx context.Context, event models.UserEngage) (err error) {
 	holidaysList := schedules.LoadHolidays(time.Date(y, m, d, 0, 0, 0, 0, location),
 		userDao.ReadUnsafe(event.UserId).PlatformID,
 		adHocHolidaysTable, adHocHolidaysPlatformDateIndex)
-	allCrosswalks := func() []esmodels.CrossWalk {
-		return concatAppend([][]esmodels.CrossWalk{crosswalks.UserCrosswalk()})
-	}
+	// allCrosswalks := func() []esmodels.CrossWalk {
+	// 	return concatAppend([][]esmodels.CrossWalk{crosswalks.UserCrosswalk()})
+	// }
 	day := business_time.NewDate(y, int(m), d)
 	es.ActivateEngagementsOnDay(
 		aesc.ProductionProfile,
 		day,
-		allCrosswalks,
+		crosswalks.UserCrosswalk,
 		holidaysList,
 		location,
 		event.UserId,
@@ -56,10 +56,10 @@ func HandleRequest(ctx context.Context, event models.UserEngage) (err error) {
 	return
 }
 
-func concatAppend(slices [][]esmodels.CrossWalk) []esmodels.CrossWalk {
-	var tmp []esmodels.CrossWalk
-	for _, s := range slices {
-		tmp = append(tmp, s...)
-	}
-	return tmp
-}
+// func concatAppend(slices [][]esmodels.CrossWalk) []esmodels.CrossWalk {
+// 	var tmp []esmodels.CrossWalk
+// 	for _, s := range slices {
+// 		tmp = append(tmp, s...)
+// 	}
+// 	return tmp
+// }
