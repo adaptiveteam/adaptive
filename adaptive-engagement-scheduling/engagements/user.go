@@ -70,16 +70,26 @@ func IDOUpdateReminder(_ bt.Date, targetUserID string) {
 
 // ObjectiveUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale objectives
-func ObjectiveUpdateReminder(date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.CapabilityObjectiveUpdateDueWithinMonth,
-		"You have Capability Objective(s) that haven't been updated in last 30 days. Would you like to update them?")
+func ObjectiveUpdateReminder(date bt.Date, targetUserID string) {
+	conn := slowlyCreateConnection(targetUserID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(targetUserID, issuesUtils.SObjective, 30))(conn)
+	if err2 != nil {
+		log.Printf("ERROR ObjectiveUpdateReminder: %+v", err2)
+	}
+	// ObjectiveProgressUpdateAsk(target, user.CapabilityObjectiveUpdateDueWithinMonth,
+	// 	"You have Capability Objective(s) that haven't been updated in last 30 days. Would you like to update them?")
 }
 
 // InitiativeUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale initiatives
-func InitiativeUpdateReminder(date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.InitiativeUpdateDueWithinWeek,
-		"You have Initiative(s) that haven't been updated in last 7 days. Would you like to update them?")
+func InitiativeUpdateReminder(date bt.Date, targetUserID string) {
+	conn := slowlyCreateConnection(targetUserID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(targetUserID, issuesUtils.Initiative, 7))(conn)
+	if err2 != nil {
+		log.Printf("ERROR InitiativeUpdateReminder: %+v", err2)
+	}
+	// ObjectiveProgressUpdateAsk(target, user.InitiativeUpdateDueWithinWeek,
+	// 	"You have Initiative(s) that haven't been updated in last 7 days. Would you like to update them?")
 }
 
 /*
