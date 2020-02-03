@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/pkg/errors"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
 	"log"
 	"strconv"
@@ -21,10 +22,20 @@ import (
 
 func (w workflowImpl) OnProgressCancel(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	issueID := ctx.Data[issueIDKey]
-	w.AdaptiveLogger.WithField("issueID", issueID).Info("OnProgressCancel")
+	log := w.AdaptiveLogger.WithField("issueID", issueID)
+	log.Info("OnProgressCancel")
 	var newAndOldIssues NewAndOldIssues
 	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
-	issuesUtils.SetCancelled(issueID)(w.DynamoDBConnection)
+	err = errors.Wrapf(err, "OnProgressCancel getNewAndOldIssues")
+	if err != nil {
+		return
+	}
+	log.Infof("Found issue id=%s, cancelled=%v", newAndOldIssues.NewIssue.UserObjective.ID, newAndOldIssues.NewIssue.UserObjective.Cancelled)
+	err = issuesUtils.SetCancelled(issueID)(w.DynamoDBConnection)
+	err = errors.Wrapf(err, "OnProgressCancel SetCancelled")
+	if err != nil {
+		return
+	}
 	if err == nil {
 		out, err = w.standardView(ctx)
 	}
