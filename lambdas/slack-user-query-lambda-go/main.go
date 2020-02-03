@@ -21,7 +21,7 @@ func addSlackUser(user slack.User, event models.ClientPlatformRequest, platformI
 		Timezone:       user.TZ,
 		TimezoneOffset: user.TZOffset,
 		// },
-		PlatformID: models.PlatformID(event.Id), 
+		PlatformID: event.PlatformID, 
 		PlatformOrg: event.Org, IsAdmin: user.IsAdmin, Deleted: user.Deleted,
 		CreatedAt: core.CurrentRFCTimestamp(), IsShared: false}
 	item.IsAdaptiveBot = user.IsBot && user.Profile.ApiAppID == string(platformID)
@@ -133,19 +133,19 @@ func platformCommunities(platformID models.PlatformID) (comms []models.AdaptiveC
 func HandleRequest(ctx context.Context, event models.ClientPlatformRequest) {
 	var allCommunitiesMemberIDs []string
 	// Get all the user communities for the platform
-	platformID := models.PlatformID(event.Id)
+	platformID := event.PlatformID
 	communities, err := platformCommunities(platformID)
 	if err == nil {
 		for _, each := range communities {
 			// Get community members by querying community users table based on platform id and community id
-			members := community.CommunityMembers(communityUsersTable, each.ID, event.Id, communityUsersCommunityIndex)
+			members := community.CommunityMembers(communityUsersTable, each.ID, event.PlatformID, communityUsersCommunityIndex)
 			for _, member := range members {
 				allCommunitiesMemberIDs = append(allCommunitiesMemberIDs, member.UserId)
 			}
 		}
 
-		cliPlatformToken := platformTokenDao.GetPlatformTokenUnsafe(models.PlatformID(event.Id))
-		logger.Infof("Retrieved token for org: %s", event.Id)
+		cliPlatformToken := platformTokenDao.GetPlatformTokenUnsafe(event.PlatformID)
+		logger.Infof("Retrieved token for org: %s", event.PlatformID)
 
 		api := slack.New(cliPlatformToken)
 		logger.Infof("Retrieved users from Slack for %s", event.Org)
@@ -156,7 +156,7 @@ func HandleRequest(ctx context.Context, event models.ClientPlatformRequest) {
 		errors1 := syncCommunityUserProfiles(distinctMemberIDs, api, event, platformID)
 		logger.Infof("Removing non-community members from users")
 
-		errors2 := removeNonCommunityUsers(distinctMemberIDs, models.PlatformID(event.Id))
+		errors2 := removeNonCommunityUsers(distinctMemberIDs, event.PlatformID)
 		allErrors := append(errors1, errors2...)
 
 		// if there is an error in the error channel, just return the first one

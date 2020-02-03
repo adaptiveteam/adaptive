@@ -113,7 +113,7 @@ type AdaptiveCommunityDynamoDBConnection = DynamoDBConnection
 
 func AdaptiveCommunityReadByID(communityID daosCommon.AdaptiveCommunityID) func (conn DynamoDBConnection) (comm models.AdaptiveCommunity, err error) {
 	return func (conn DynamoDBConnection) (comm models.AdaptiveCommunity, err error) {
-		comm = community.CommunityById(string(communityID), string(conn.PlatformID), communitiesTableName(conn.ClientID))
+		comm = community.CommunityById(string(communityID), conn.PlatformID, communitiesTableName(conn.ClientID))
 		// dao := adaptiveCommunity.NewDAO(conn.Dynamo, "AdaptiveCommunityDynamoDBConnection", conn.ClientID)
 		// comm, err = dao.Read(communityID)
 		if comm.ID != string(communityID) {
@@ -269,7 +269,7 @@ func IDOCoaches(userID string) func (conn DynamoDBConnection) (res []models.KvPa
 		defer recoverToErrorVar("IDOCoaches", &err)
 		userDao := utilsUser.NewDAO(conn.Dynamo, "UserDynamoDBConnection", adaptiveUsersTableName(conn.ClientID))
 
-		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(community.Coaching), string(conn.PlatformID), communityUsersCommunityIndex)
+		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(community.Coaching), conn.PlatformID, communityUsersCommunityIndex)
 		userIDs := mapAdaptiveCommunityUsersToUserID(commMembers)
 		res = []models.KvPair{none}
 		if len(commMembers) > 0 { // Does this include adaptive bot name?
@@ -489,7 +489,7 @@ func SelectKvPairsFromCommunityJoinUsers(communityID community.AdaptiveCommunity
 		defer recoverToErrorVar("QueriesDynamoDBConnection) SelectKvPairsFromCommunityJoinUsers", &err)
 		userDAO1 := userDAO(conn)
 
-		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(communityID), string(conn.PlatformID), communityUsersCommunityIndex)
+		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(communityID), conn.PlatformID, communityUsersCommunityIndex)
 		for _, each := range commMembers {
 			// Self user checking
 			u := userDAO1.ReadUnsafe(each.UserId)

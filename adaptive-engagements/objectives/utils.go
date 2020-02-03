@@ -294,7 +294,7 @@ func mapAdaptiveCommunityUsersToUserID(users []models.AdaptiveCommunityUser2) (u
 // IDOCoaches retrieves available coaches for a user
 // It shows 'none' option indicating no coach is required
 // It shows 'requested' option when a user wants to request uber-coach
-func IDOCoaches(userID, platformID string,
+func IDOCoaches(userID string, platformID models.PlatformID,
 	communityUsersTable, communityUsersCommunityIndex string,
 	fetchUsers common.UserIDsToDisplayNames) []models.KvPair {
 	// Get coaching community members

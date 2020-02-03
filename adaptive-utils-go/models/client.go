@@ -18,7 +18,7 @@ type ClientPlatform struct {
 
 type ClientPlatformRequest struct {
 	// Id is the AppID (api_app_id) from Slack
-	Id  string `json:"platform_id"`
+	PlatformID common.PlatformID `json:"platform_id"`
 	Org string `json:"platform_org"`
 }
 

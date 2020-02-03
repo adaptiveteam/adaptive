@@ -111,7 +111,7 @@ func communityChannel(userID string, community community.AdaptiveCommunity) stri
 			S: aws.String(string(community)),
 		},
 		"platform_id": {
-			S: aws.String(ut.ClientPlatformRequest.Id),
+			S: aws.String(string(ut.ClientPlatformRequest.PlatformID)),
 		},
 	}
 	var comm aug.AdaptiveCommunity
