@@ -47,12 +47,12 @@ data "aws_iam_policy_document" "user_engagement_scheduler_policy" {
   }
 
   statement {
-    effect = "Allow"
     actions = [
       "dynamodb:GetItem",]
     resources = [
       aws_dynamodb_table.vision.arn,
       aws_dynamodb_table.user_communities.arn,
+      aws_dynamodb_table.client_config_dynamodb_table.arn,
       aws_dynamodb_table.adaptive_users_dynamodb_table.arn,
       aws_dynamodb_table.strategy_communities.arn,
       aws_dynamodb_table.user_objective_dynamodb_table.arn,
@@ -60,7 +60,6 @@ data "aws_iam_policy_document" "user_engagement_scheduler_policy" {
   }
 
   statement {
-    effect = "Allow"
     actions = [
       "dynamodb:Query",]
     resources = [

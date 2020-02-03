@@ -1,8 +1,16 @@
 package engagements
 
 import (
+	"github.com/adaptiveteam/adaptive/workflows"
+	// wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"encoding/json"
 	"fmt"
+	"log"
+	"strconv"
+	"time"
+
 	. "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
@@ -15,9 +23,7 @@ import (
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
-	"log"
-	"strconv"
-	"time"
+	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 )
 
 /*
@@ -42,25 +48,48 @@ Update Reminders
 ------------------------------------------------------------------------------------
 */
 
+// slowlyCreateConnection - internally requests DB, reads user and retrieves PlatformID
+func slowlyCreateConnection(userID string) daosCommon.DynamoDBConnection {
+	return daosCommon.DynamoDBConnection {
+		Dynamo: common.DeprecatedGetGlobalDns().Dynamo,
+		ClientID: utils.NonEmptyEnv("CLIENT_ID"),
+		PlatformID: strategy.UserIDToPlatformID(UserDAO)(userID),
+	}
+}
 // IDOUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale individual improvement
-func IDOUpdateReminder(date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.IDOUpdateDueWithinWeek,
-		"You have Individual Development Objective(s) that haven't been updated in last 7 days. Would you like to update them?")
+func IDOUpdateReminder(_ bt.Date, targetUserID string) {
+	conn := slowlyCreateConnection(targetUserID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(targetUserID, issuesUtils.IDO, 7))(conn)
+	if err2 != nil {
+		log.Printf("ERROR IDOUpdateReminder: %+v", err2)
+	}
+	// ObjectiveProgressUpdateAsk(targetUserID, user.IDOUpdateDueWithinWeek,
+		// "You have Individual Development Objective(s) that haven't been updated in last 7 days. Would you like to update them?")
 }
 
 // ObjectiveUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale objectives
-func ObjectiveUpdateReminder(date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.CapabilityObjectiveUpdateDueWithinMonth,
-		"You have Capability Objective(s) that haven't been updated in last 30 days. Would you like to update them?")
+func ObjectiveUpdateReminder(date bt.Date, targetUserID string) {
+	conn := slowlyCreateConnection(targetUserID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(targetUserID, issuesUtils.SObjective, 30))(conn)
+	if err2 != nil {
+		log.Printf("ERROR ObjectiveUpdateReminder: %+v", err2)
+	}
+	// ObjectiveProgressUpdateAsk(target, user.CapabilityObjectiveUpdateDueWithinMonth,
+	// 	"You have Capability Objective(s) that haven't been updated in last 30 days. Would you like to update them?")
 }
 
 // InitiativeUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale initiatives
-func InitiativeUpdateReminder(date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.InitiativeUpdateDueWithinWeek,
-		"You have Initiative(s) that haven't been updated in last 7 days. Would you like to update them?")
+func InitiativeUpdateReminder(date bt.Date, targetUserID string) {
+	conn := slowlyCreateConnection(targetUserID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(targetUserID, issuesUtils.Initiative, 7))(conn)
+	if err2 != nil {
+		log.Printf("ERROR InitiativeUpdateReminder: %+v", err2)
+	}
+	// ObjectiveProgressUpdateAsk(target, user.InitiativeUpdateDueWithinWeek,
+	// 	"You have Initiative(s) that haven't been updated in last 7 days. Would you like to update them?")
 }
 
 /*
@@ -227,15 +256,19 @@ func ObjectiveProgressUpdateAsk(userID, action, message string) { // ViewObjecti
 
 func UserConfirmEng(table string, platformID models.PlatformID, mc models.MessageCallback, title, fallback string,
 	urgent bool, dns common.DynamoNamespace) {
-	utils.AddChatEngagement(mc, title, core.EmptyString, fallback, mc.Source, userConfirmAttachmentActions(mc),
-		[]ebm.AttachmentField{}, platformID, urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(),
-		models.UserEngagementCheckWithValue{})
+	eng := utils.MakeUserEngagement(mc, title, "", fallback, mc.Source,
+		userConfirmAttachmentActions(mc),
+		[]ebm.AttachmentField{}, urgent, dns.Namespace,
+		time.Now().Unix(), models.UserEngagementCheckWithValue{},
+		platformID)
+	utils.AddEng(eng, table, dns.Dynamo, dns.Namespace)
 }
 
 func userConfirmAttachmentActions(mc models.MessageCallback) []ebm.AttachmentAction {
 	return []ebm.AttachmentAction{
-		*models.NowAttachAction(mc, NowActionLabel, models.EmptyActionConfirm()),
-		*models.IgnoreAttachAction(mc, SkipActionLabel, models.EmptyActionConfirm())}
+		*models.SimpleAttachAction(mc, models.Now, models.YesLabel),
+		*models.SimpleAttachAction(mc, models.Ignore, models.DefaultSkipThisTemplate),
+	}
 }
 
 // EngageProduceIndividualReports

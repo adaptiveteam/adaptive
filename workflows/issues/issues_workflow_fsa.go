@@ -16,7 +16,7 @@ import (
 	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	// core "github.com/adaptiveteam/adaptive/core-utils-go"
 	// ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	// "github.com/adaptiveteam/adaptive/engagement-builder/ui"
+	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	// mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
@@ -30,14 +30,14 @@ const isShowingDetailsKey = "isd"
 const isShowingProgressKey = "isp"
 const dialogSituationIDKey = "sid"
 
+const Namespace = exchange.IssuesNamespace
 // IssuesWorkflow is a description of an issues workflow
 var IssuesWorkflow = exchange.WorkflowInfo{
 	Prefix: exchange.CommunityPath,
-	Name: IssuesNamespace, Init: InitState}
+	Name: Namespace, Init: InitState,
+}
 
-const IssuesNamespace = "issues"
-
-const InitState wf.State = "init"
+const InitState wf.State = exchange.InitState
 const (
 	DefaultEvent            wf.Event = ""
 	// ViewListOfIssuesEvent   wf.Event = "ViewListOfIssuesEvent"
@@ -49,7 +49,7 @@ func CreateIssueByTypeEvent(itype IssueType) wf.Event {
 }
 
 func eventByType(name string, itype IssueType) wf.Event {
-	return wf.Event(name + "(" + string(itype) + ")")
+	return exchange.EventByType(name, itype)
 }
 func ViewListOfIssuesByTypeEvent(itype IssueType) wf.Event {
 	return eventByType("VLOfIssuesByType", itype)
@@ -87,6 +87,11 @@ const (
 )
 const ObjectiveShownState wf.State = "ObjectiveShownState"
 const ProgressFormShownState wf.State = "ProgressFormShownState"
+const PromptShownState wf.State = "PromptShownState"
+const (
+	ConfirmEvent wf.Event = "confirm"
+	DismissEvent wf.Event = "dismiss"
+)
 const DoneState wf.State = "DoneState"
 
 // Workflow is a public interface of workflow template.
@@ -154,7 +159,7 @@ func CreateIssueWorkflow(
 
 func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 	nt := wf.NamedTemplate{
-		Name: IssuesNamespace,
+		Name: Namespace,
 		Template: wf.Template{
 			Init: InitState, // initial state is "init". This is used when the user first triggers the workflow
 			FSA: map[struct {
@@ -162,11 +167,17 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 				wf.Event
 			}]wf.Handler{
 				{State: InitState, Event: CreateIssueByTypeEvent(IDO)}:          w.OnCreateItem(true, IDO),
-				{State: InitState, Event: ""}:                                   w.OnCreateItem(true, IDO),// TODO: remove after integration period
+				{State: InitState, Event: ""}:                                   w.OnCreateItem(true, IDO),
 				{State: InitState, Event: CreateIssueByTypeEvent(SObjective)}:   w.OnCreateItem(true, SObjective),
 				{State: InitState, Event: CreateIssueByTypeEvent(Initiative)}:   w.OnCreateItem(true, Initiative),
+
+				{State: InitState, Event: exchange.PromptStaleIssuesEvent(IDO)}:        wf.SimpleHandler(w.OnPromptStaleIssues(IDO), PromptShownState),
+				{State: InitState, Event: exchange.PromptStaleIssuesEvent(SObjective)}: wf.SimpleHandler(w.OnPromptStaleIssues(SObjective), PromptShownState),
+				{State: InitState, Event: exchange.PromptStaleIssuesEvent(Initiative)}: wf.SimpleHandler(w.OnPromptStaleIssues(Initiative), PromptShownState),
+				
 				{State: CommunitySelectingState, Event: CommunitySelectedEvent}: wf.SimpleHandler(w.OnCommunitySelected, FormShownState),
-				{State: FormShownState, Event: wf.SurveySubmitted}:              wf.SimpleHandler(w.OnDialogSubmitted, MessagePostedState),
+
+				{State: FormShownState,      Event: wf.SurveySubmitted}:              wf.SimpleHandler(w.OnDialogSubmitted, MessagePostedState),
 				
 				{State: MessagePostedState, Event: MessageIDAvailableEventInContext(DescriptionContext)}:              wf.SimpleHandler(w.OnFieldsShown(ExtractDescription, DescriptionContext), MessagePostedState), // returning to the same state for other events to trigger
 				{State: MessagePostedState, Event: MessageIDAvailableEventInContext(CloseoutAgreementContext)}:        wf.SimpleHandler(w.OnFieldsShown(ExtractDescription, CloseoutAgreementContext), MessagePostedState), // returning to the same state for other events to trigger
@@ -188,13 +199,14 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 				{State: ProgressFormShownState, Event: wf.SurveySubmitted}:     wf.SimpleHandler(w.OnProgressFormSubmitted, MessagePostedState),
 				{State: ProgressFormShownState, Event: wf.SurveyCancelled}:     wf.SimpleHandler(w.OnDialogCancelled, DoneState), // NB! we handle on cancel using the same method
 				{State: FormShownState, Event: wf.SurveyCancelled}:             wf.SimpleHandler(w.OnDialogCancelled, DoneState),
-				{State: InitState, Event: ViewListOfIssuesByTypeEvent(IDO)}:    wf.SimpleHandler(w.OnViewListOfIssues(IDO, unfiltered), ObjectiveShownState),
-				// {State: InitState, Event: "view-idos"                     }:    wf.SimpleHandler(w.OnViewListOfIssues(IDO, unfiltered), ObjectiveShownState),// TODO: remove after integration period
-				{State: InitState, Event: ViewMyListOfIssuesByTypeEvent(IDO)}:  wf.SimpleHandler(w.OnViewListOfIssues(IDO, filterUserAdvocate), ObjectiveShownState),
-				{State: InitState, Event: ViewListOfIssuesByTypeEvent(SObjective)}:    wf.SimpleHandler(w.OnViewListOfIssues(SObjective, unfiltered), ObjectiveShownState),
-				{State: InitState, Event: ViewMyListOfIssuesByTypeEvent(SObjective)}:  wf.SimpleHandler(w.OnViewListOfIssues(SObjective, filterUserAdvocate), ObjectiveShownState),
-				{State: InitState, Event: ViewListOfIssuesByTypeEvent(Initiative)}:    wf.SimpleHandler(w.OnViewListOfIssues(Initiative, unfiltered), ObjectiveShownState),
-				{State: InitState, Event: ViewMyListOfIssuesByTypeEvent(Initiative)}:  wf.SimpleHandler(w.OnViewListOfIssues(Initiative, filterUserAdvocate), ObjectiveShownState),
+
+				{State: InitState, Event: ViewListOfIssuesByTypeEvent(IDO)}:                  wf.SimpleHandler(w.OnViewListOfIssues(IDO, unfiltered), ObjectiveShownState),
+				// {State: InitState, Event: "view-idos"                     }:                  wf.SimpleHandler(w.OnViewListOfIssues(IDO, unfiltered), ObjectiveShownState),// TODO: remove after integration period
+				{State: InitState, Event: ViewMyListOfIssuesByTypeEvent(IDO)}:                wf.SimpleHandler(w.OnViewListOfIssues(IDO, filterUserAdvocate), ObjectiveShownState),
+				{State: InitState, Event: ViewListOfIssuesByTypeEvent(SObjective)}:           wf.SimpleHandler(w.OnViewListOfIssues(SObjective, unfiltered), ObjectiveShownState),
+				{State: InitState, Event: ViewMyListOfIssuesByTypeEvent(SObjective)}:         wf.SimpleHandler(w.OnViewListOfIssues(SObjective, filterUserAdvocate), ObjectiveShownState),
+				{State: InitState, Event: ViewListOfIssuesByTypeEvent(Initiative)}:           wf.SimpleHandler(w.OnViewListOfIssues(Initiative, unfiltered), ObjectiveShownState),
+				{State: InitState, Event: ViewMyListOfIssuesByTypeEvent(Initiative)}:         wf.SimpleHandler(w.OnViewListOfIssues(Initiative, filterUserAdvocate), ObjectiveShownState),
 				{State: InitState, Event: ViewListOfStaleIssuesByTypeEvent(IDO)}:             wf.SimpleHandler(w.OnViewListOfQueryIssues(IDO,        StaleObjectivesQuery, "Stale Individual Development Objectives"), ObjectiveShownState),
 				{State: InitState, Event: ViewListOfStaleIssuesByTypeEvent(SObjective)}:      wf.SimpleHandler(w.OnViewListOfQueryIssues(SObjective, StaleObjectivesQuery, "Stale Objectives"), ObjectiveShownState),
 				{State: InitState, Event: ViewListOfStaleIssuesByTypeEvent(Initiative)}:      wf.SimpleHandler(w.OnViewListOfQueryIssues(Initiative, StaleObjectivesQuery, "Stale Initiatives"), ObjectiveShownState),
@@ -210,8 +222,25 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 				{State: ObjectiveShownState, Event: ProgressIntermediateEvent}: wf.SimpleHandler(w.OnProgressIntermediate, ProgressFormShownState),
 				{State: ObjectiveShownState, Event: ProgressCloseoutEvent}:     wf.SimpleHandler(w.OnProgressCloseout, MessagePostedState),
 				// {State: ObjectiveShownState, Event: AddAnotherEvent}:            w.OnCreateItem(false),
+
+				{State: PromptShownState, Event: ConfirmEvent}:                 wf.SimpleHandler(w.OnViewListOfQueryIssuesWithTypeInContext(StaleObjectivesQuery, StaleIssueTypeTemplate), ObjectiveShownState),
+				{State: PromptShownState, Event: DismissEvent}:                 wf.NoOpHandler(DoneState),				
 			},
 			Parser: wf.Parser,
 		}}
 	return nt
+}
+
+// StaleIssueTypeTemplate -
+func StaleIssueTypeTemplate(issueType IssueType) (t ui.PlainText) {
+	t = ui.PlainText(ui.Sprintf("Stale %ss", issueType.Template()))
+	// switch issueType {
+	// case IDO:
+	// 	t = "Stale Individual Development Objectives"
+	// case SObjective:
+	// 	t = "Stale Objectives"
+	// case Initiative:
+	// 	t = "Stale Initiatives"
+	// }
+	return
 }

@@ -57,11 +57,11 @@ func EnterWorkflow(workflow WorkflowInfo, np models.NamespacePayload4, conn comm
 // passes connection to workflow implementation.
 func InvokeWorkflow(np models.NamespacePayload4, conn common.DynamoDBConnection) (err error) {
 	if strings.HasPrefix(np.InteractionCallback.CallbackID, "/") {
-		err = invokeWorkflowInner(np, conn,
+		err = invokeWorkflowInner(np,
 			wf.TriggerImmediateEventForAnotherUser{
 				UserID:     np.SlackRequest.InteractionCallback.User.ID,
 				ActionPath: wf.ActionPathFromCallbackID(np),
-			})
+			})(conn)
 	} else {
 		logger.Warnf("Unknown CallbackID %s", np.InteractionCallback.CallbackID)
 		err = errors.New(fmt.Sprintf("Unknown CallbackID %s", np.InteractionCallback.CallbackID))
@@ -69,21 +69,25 @@ func InvokeWorkflow(np models.NamespacePayload4, conn common.DynamoDBConnection)
 	return
 }
 
-func invokeWorkflowInner(np models.NamespacePayload4, conn common.DynamoDBConnection, action wf.TriggerImmediateEventForAnotherUser) (err error) {
-	np.SlackRequest.InteractionCallback.User.ID = action.UserID
-	var furtherActions []wf.TriggerImmediateEventForAnotherUser
-	logger.
-		WithField("userID", action.UserID).
-		WithField("action.ActionPath", action.ActionPath.Encode()).
-		Info("invokeWorkflowInner")
-	furtherActions, err = communityRoutes(np, conn).Handler()(action.ActionPath.ToRelActionPath(), np)
-	for _, a := range furtherActions {
-		err = invokeWorkflowInner(np, conn, a)
-		if err != nil {
-			return
+func invokeWorkflowInner(np models.NamespacePayload4, action wf.TriggerImmediateEventForAnotherUser) func (conn common.DynamoDBConnection) (err error) {
+	return func (conn common.DynamoDBConnection) (err error) {
+		np.SlackRequest.InteractionCallback.User.ID = action.UserID
+		np.PlatformID = conn.PlatformID
+		np.InteractionCallback.CallbackID = action.ActionPath.Encode()
+		var furtherActions []wf.TriggerImmediateEventForAnotherUser
+		logger.
+			WithField("userID", action.UserID).
+			WithField("action.ActionPath", np.InteractionCallback.CallbackID).
+			Info("invokeWorkflowInner")
+		furtherActions, err = communityRoutes(np, conn).Handler()(action.ActionPath.ToRelActionPath(), np)
+		for _, a := range furtherActions {
+			err = invokeWorkflowInner(np, a)(conn)
+			if err != nil {
+				return
+			}
 		}
+		return
 	}
-	return
 }
 // NB: It'll fail if there are issues in templates constructors.
 // Though, it is unprobable
@@ -136,4 +140,10 @@ func communityRoutes(np models.NamespacePayload4, conn common.DynamoDBConnection
 		FeedbackNamespace: feedbackRoutes.Handler(),
 	}
 	return
+}
+
+// InvokeWorkflowByPath is 
+func InvokeWorkflowByPath(immediateAction wf.TriggerImmediateEventForAnotherUser) func (conn common.DynamoDBConnection) (err error) {
+	np := models.NamespacePayload4{}
+	return invokeWorkflowInner(np, immediateAction)
 }
