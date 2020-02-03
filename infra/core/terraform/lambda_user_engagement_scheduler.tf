@@ -76,8 +76,7 @@ data "aws_iam_policy_document" "user_engagement_scheduler_policy" {
       "${aws_dynamodb_table.user_objectives_progress.arn}/index/${var.dynamo_user_objectives_progress_index}",
       "${aws_dynamodb_table.ad_hoc_holidays.arn}/index/${var.dynamo_holidays_date_index}",
       "${aws_dynamodb_table.strategy_objectives.arn}/index/${var.dynamo_strategy_objectives_platform_index}",
-      "${aws_dynamodb_table.strategy_initiatives.arn}/index/${var.dynamo_strategy_initiatives_platform_index}",
-      "${aws_dynamodb_table.strategy_initiatives.arn}/index/${var.dynamo_strategy_initiatives_initiative_community_index}",
+      "${aws_dynamodb_table.strategy_initiatives.arn}/index/*",
 
       // New ADM perms
       "${aws_dynamodb_table.user_objective_dynamodb_table.arn}/index/${var.dynamo_user_objectives_type_index}",

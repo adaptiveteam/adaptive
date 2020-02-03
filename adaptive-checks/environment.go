@@ -32,17 +32,17 @@ var (
 
 	// strategy
 	initiativesTable                   = utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE_NAME")
-	initiativesPlatformIndex           = utils.NonEmptyEnv("STRATEGY_INITIATIVES_PLATFORM_INDEX")
+	initiativesPlatformIndex           = "StrategyInitiativesPlatformIndex"
 	strategyObjectivesTableName        = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME")
-	strategyObjectivesPlatformIndex    = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_PLATFORM_INDEX")
+	strategyObjectivesPlatformIndex    = "StrategyObjectivesPlatformIndex"
 	capabilityCommunitiesTable         = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")
 	capabilityCommunitiesPlatformIndex = "CapabilityCommunitiesPlatformIndex"
 	initiativeCommunitiesTableName     = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME")
 	initiativeCommunitiesPlatformIndex = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX")
 	strategyCommunitiesTable           = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
 
-	strategyObjectivesCapabilityCommunityIndex  = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_CAPABILITY_COMMUNITY_INDEX")
-	strategyInitiativesInitiativeCommunityIndex = utils.NonEmptyEnv("STRATEGY_INITIATIVES_INITIATIVE_COMMUNITY_ID_INDEX")
+	strategyObjectivesCapabilityCommunityIndex  = "StrategyObjectivesCapabilityCommunityIndex"
+	strategyInitiativesInitiativeCommunityIndex = "StrategyInitiativesInitiativeCommunityIndex"
 
 	userFeedbackTable         = utils.NonEmptyEnv("USER_FEEDBACK_TABLE_NAME")
 	userFeedbackSourceQYIndex = utils.NonEmptyEnv("USER_FEEDBACK_SOURCE_QUARTER_YEAR_INDEX")

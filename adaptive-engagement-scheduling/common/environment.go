@@ -17,7 +17,7 @@ var (
 	CommunityUsersTable               = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
 	CommunityUsersCommunityIndex      = utils.NonEmptyEnv("COMMUNITY_USERS_COMMUNITY_INDEX")
 	CoachingRelationshipsTable        = utils.NonEmptyEnv("COACHING_RELATIONSHIPS_TABLE_NAME")
-	CoachingRelationshipsCoacheeIndex = utils.NonEmptyEnv("COACHING_RELATIONSHIPS_COACHEE_QUARTER_YEAR_INDEX")
+	CoachingRelationshipsCoacheeIndex = "CoacheeQuarterYearIndex"
 	CoachQuarterYearIndex             = utils.NonEmptyEnv("COACHING_RELATIONSHIPS_COACH_QUARTER_YEAR_INDEX")
 	CoachingRelationshipsQYIndex      = utils.NonEmptyEnv("COACHING_RELATIONSHIPS_QUARTER_YEAR_INDEX")
 	UserObjectivesTable               = utils.NonEmptyEnv("USER_OBJECTIVES_TABLE")
@@ -38,9 +38,9 @@ var (
 	AdHocHolidaysPlatformDateIndex = utils.NonEmptyEnv("HOLIDAYS_PLATFORM_DATE_INDEX")
 
 	StrategyInitiativesTableName     = utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE")
-	StrategyInitiativesPlatformIndex = utils.NonEmptyEnv("STRATEGY_INITIATIVES_PLATFORM_INDEX")
+	StrategyInitiativesPlatformIndex = "StrategyInitiativesPlatformIndex"
 	StrategyObjectivesTableName      = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE")
-	StrategyObjectivesPlatformIndex  = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_PLATFORM_INDEX")
+	StrategyObjectivesPlatformIndex  = "StrategyObjectivesPlatformIndex"
 
 	D   = awsutils.NewDynamo(Region, "", Namespace)
 	L   = awsutils.NewLambda(Region, "", Namespace)

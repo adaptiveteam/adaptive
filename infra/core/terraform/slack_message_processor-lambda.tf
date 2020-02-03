@@ -88,7 +88,7 @@ data "aws_iam_policy_document" "slack_message_processor_dynamo_write_policy" {
       "${aws_dynamodb_table.strategy_communities.arn}/index/${var.dynamo_strategy_communities_platform_channel_created_index}",
       "${aws_dynamodb_table.capability_communities.arn}/index/${var.dynamo_capability_communities_platform_index}",
       "${aws_dynamodb_table.initiative_communities.arn}/index/${var.dynamo_strategy_initiative_communities_platform_index}",
-      "${aws_dynamodb_table.strategy_initiatives.arn}/index/${var.dynamo_strategy_initiatives_platform_index}",
+      "${aws_dynamodb_table.strategy_initiatives.arn}/index/*",
       "${aws_dynamodb_table.strategy_objectives.arn}/index/${var.dynamo_strategy_objectives_platform_index}",
       "${aws_dynamodb_table.strategy_objectives.arn}/index/${var.dynamo_strategy_objectives_capability_community_index}",
       "${aws_dynamodb_table.strategy_initiatives.arn}/index/${var.dynamo_strategy_initiatives_initiative_community_index}",
