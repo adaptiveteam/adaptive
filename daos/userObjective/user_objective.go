@@ -211,7 +211,6 @@ func (d DAOImpl) CreateOrUpdate(userObjective UserObjective) (err error) {
 
 				key := idParams(old.ID)
 				expr, exprAttributes, names := updateExpression(userObjective, old)
-				fmt.Printf("expr=%s, attr=%v, names=%v", expr, exprAttributes, names)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
 					TableName:                 aws.String(d.Name),
