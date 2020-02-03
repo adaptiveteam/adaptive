@@ -25,7 +25,7 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				bindings["FetchEngagementsForMe"],
 				"What do I have right now?",
 				"").
-				AddOptionCheck(profile, acfn.UndeliveredEngagementsExistForMe, true),
+				AddOptionCheck(profile, acfn.UndeliveredEngagementsOrPostponedEventsExistForMe, true),
 		).AddGroupOption(
 			// This fetches any IDO's not updated in the last 7 days
 			menu.NewAdaptiveDynamicMenuSpecification(

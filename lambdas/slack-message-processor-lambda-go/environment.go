@@ -42,13 +42,13 @@ var (
 	visionTable                      = utils.NonEmptyEnv("VISION_TABLE_NAME")
 
 	strategyObjectivesTableName                    = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME")
-	strategyObjectivesPlatformIndex                = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_PLATFORM_INDEX")
+	strategyObjectivesPlatformIndex                = "StrategyObjectivesPlatformIndex"
 	capabilityCommunitiesTable                     = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")     // required
 	capabilityCommunitiesPlatformIndex             = "CapabilityCommunitiesPlatformIndex" // required
 	initiativeCommunitiesTable                     = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME")     // required
 	initiativeCommunitiesPlatformIndex             = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX") // required
 	_                                              = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
-	strategyCommunitiesPlatformChannelCreatedIndex = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_PLATFORM_CHANNEL_CREATED_INDEX")
+	strategyCommunitiesPlatformChannelCreatedIndex = "StrategyCommunityPlatformChannelCreatedIndex"
 
 	engScriptingLambda = utils.NonEmptyEnv("USER_ENGAGEMENT_SCRIPTING_LAMBDA_NAME")
 

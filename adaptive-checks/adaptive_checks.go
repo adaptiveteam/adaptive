@@ -15,6 +15,7 @@ import (
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
+	"github.com/adaptiveteam/adaptive/daos/postponedEvent"
 )
 
 /* IDO Checks */
@@ -328,6 +329,23 @@ func UndeliveredEngagementsExistForMe(userID string, _ business_time.Date) (res 
 	defer RecoverToLog("UndeliveredEngagementsExistForMe")
 	engs := user.NotPostedUnansweredNotIgnoredEngagements(userID, engagementsTable, engagementsAnsweredIndex)
 	return len(engs) > 0
+}
+
+// PostponedEventsExistForMe -
+func PostponedEventsExistForMe(userID string, _ business_time.Date) (res bool) {
+	defer RecoverToLog("PostponedEventsExistForMe")
+	dao := postponedEvent.NewDAO(common.DeprecatedGetGlobalDns().Dynamo,"PostponedEventsExistForMe", clientID)
+	
+	events, err2 := dao.ReadByUserID(userID)//, engagementsTable, engagementsAnsweredIndex)
+	res = err2 == nil && len(events) > 0
+	
+	return
+}
+
+// UndeliveredEngagementsOrPostponedEventsExistForMe -
+func UndeliveredEngagementsOrPostponedEventsExistForMe(userID string, date business_time.Date) (res bool) {
+	return UndeliveredEngagementsExistForMe(userID, date) || 
+		   PostponedEventsExistForMe(userID, date)
 }
 
 /* Reports exist check */

@@ -36,7 +36,8 @@ var AllTrueTestProfile = checks.CheckFunctionMap {
 	acfn.HolidaysExist                             :checks.ReturnsFalse,
 	acfn.CollaborationReportExists                 :checks.ReturnsFalse,
 	acfn.UndeliveredEngagementsExistForMe          :checks.ReturnsFalse,
-
+	acfn.UndeliveredEngagementsOrPostponedEventsExistForMe:checks.ReturnsFalse,
+	
 	// Strategy component existence tests independent of the user
 	acfn.TeamValuesExist                           :checks.ReturnsFalse,
 	acfn.CompanyVisionExists                       :checks.ReturnsFalse,
