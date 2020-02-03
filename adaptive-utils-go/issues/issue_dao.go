@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"time"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -513,6 +514,7 @@ func SetCancelled(issueID string) func (conn DynamoDBConnection) (err error) {
 			if len(objs) > 0 {
 				objs[0].Cancelled = 1
 				objs[0].Completed = 1
+				objs[0].CompletedDate = core.ISODateLayout.Format(time.Now())
 				err = dao.CreateOrUpdate(objs[0])
 			} else {
 				err = errors.New("UserObjective " + issueID + " not found (SetCancelled)")
@@ -531,6 +533,7 @@ func SetCompleted(issueID string) func (conn DynamoDBConnection) (err error) {
 		objs, err = dao.ReadOrEmpty(issueID)
 		if len(objs) > 0 {
 			objs[0].Completed = 1
+			objs[0].CompletedDate = core.ISODateLayout.Format(time.Now())
 			err = dao.CreateOrUpdate(objs[0])
 		} else {
 			err = errors.New("UserObjective " + issueID + " not found (SetCompleted)")
