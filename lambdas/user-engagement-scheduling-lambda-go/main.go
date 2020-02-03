@@ -120,8 +120,8 @@ func HandleRequest(ctx context.Context) (err error) {
 						PlatformID: platformID,
 					}
 					switch platformID {
-					case EmbursePlatformID, GeigsenPlatformID:
-						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, platformID, config)
+//					case EmbursePlatformID, GeigsenPlatformID:
+//						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, platformID, config)
 					case IvanPlatformID, StagingPlatformID:
 						emulateDates(TestDateShiftConfig, time.Now(), user.ID, platformID, config)
 					default:
