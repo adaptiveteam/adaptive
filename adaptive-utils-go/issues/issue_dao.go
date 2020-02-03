@@ -512,6 +512,7 @@ func SetCancelled(issueID string) func (conn DynamoDBConnection) (err error) {
 		if err == nil {
 			if len(objs) > 0 {
 				objs[0].Cancelled = 1
+				objs[0].Completed = 1
 				err = dao.CreateOrUpdate(objs[0])
 			} else {
 				err = errors.New("UserObjective " + issueID + " not found (SetCancelled)")
