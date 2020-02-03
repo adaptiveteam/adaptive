@@ -28,7 +28,7 @@ var (
 		region:                          region,
 		visionTable:                     utils.NonEmptyEnv("VISION_TABLE_NAME"),
 		strategyObjectivesTable:         utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME"),
-		strategyObjectivesPlatformIndex: utils.NonEmptyEnv("STRATEGY_OBJECTIVES_PLATFORM_INDEX"),
+		strategyObjectivesPlatformIndex: "StrategyObjectivesPlatformIndex",
 		userObjectivesTable:             utils.NonEmptyEnv("USER_OBJECTIVES_TABLE_NAME"),
 		communitiesTable:                utils.NonEmptyEnv("ADAPTIVE_COMMUNITIES_TABLE"),
 		l:                               awsutils.NewLambda(region, "", namespace),
