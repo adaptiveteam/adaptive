@@ -25,6 +25,7 @@ import (
 	aesc "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
+	holidaysLambda "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
@@ -255,7 +256,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 				slackevents.OptionNoVerifyToken(),
 			)
 			core.ErrorHandler(err, namespace, "Could not parse eventsAPIEvent")
-
+			slackRequest := models.EventsAPIEvent(requestPayload)
 			logger.Infof("EVENT %v", eventsAPIEvent.Type)
 
 			switch eventsAPIEvent.Type {
@@ -341,6 +342,14 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 					u := userDAO.ReadUnsafe(userID)
 					apiAppID := u.PlatformID
 					platformID := u.PlatformID
+					np := models.NamespacePayload4{
+						ID:        core.Uuid(),
+						Namespace: namespace,
+						PlatformRequest: models.PlatformRequest{
+							PlatformID:   apiAppID,
+							SlackRequest: slackRequest,
+						},
+					}	
 					forwardToNamespace := forwardToNamespaceWithAppID(apiAppID, requestPayload)
 					invokeLambdaWithNamespace := invokeLambdaWithAppID(apiAppID, requestPayload)
 
@@ -403,8 +412,13 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 									invokeLambdaWithNamespace("strategy")
 								case SayHelloMenuItem:
 									forwardToNamespace(HelloWorldNamespace)
-								case holidays.HolidaysListMenuItem, holidays.HolidaysSimpleListMenuItem, holidays.HolidaysCreateNewMenuItem:
-									forwardToNamespace(HolidaysNamespace)
+								case 
+									holidays.HolidaysListMenuItem, 
+									holidays.HolidaysSimpleListMenuItem, 
+									holidays.HolidaysCreateNewMenuItem:
+									
+									holidaysLambda.LambdaRouting.HandleNamespacePayload4(ctx, np)
+									// forwardToNamespace(HolidaysNamespace)
 								case values.AdaptiveValuesListMenuItem, values.AdaptiveValuesSimpleListMenuItem, values.AdaptiveValuesCreateNewMenuItem:
 									forwardToNamespace(AdaptiveValuesNamespace)
 								case "StrategyPerformanceReport":
@@ -443,7 +457,8 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 					} else if strings.Contains(callbackID, "community") {
 						forwardToNamespace("community")
 					} else if strings.Contains(callbackID, "holidays") {
-						forwardToNamespace(HolidaysNamespace)
+						holidaysLambda.LambdaRouting.HandleNamespacePayload4(ctx, np)
+						// forwardToNamespace(HolidaysNamespace)
 					} else if strings.Contains(callbackID, "adaptive_values") {
 						forwardToNamespace(AdaptiveValuesNamespace)
 					}
