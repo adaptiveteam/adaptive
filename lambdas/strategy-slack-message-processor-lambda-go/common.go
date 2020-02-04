@@ -99,3 +99,9 @@ func getUserIDsSet(communityUsers []models.AdaptiveCommunityUser3) map[string]st
 	}
 	return userIDset
 }
+
+func timeFormatChange(str string, oldFormat, newFormat core.AdaptiveDateLayout) string {
+	t, err := oldFormat.ChangeLayout(str, newFormat)
+	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse time %s using format %s", str, oldFormat))
+	return t
+}

@@ -71,9 +71,6 @@ var (
 	initiativeDescriptionContext     = "dialog/strategy/language-coaching/initiative/description"
 	initiativeCommDescriptionContext = "dialog/strategy/language-coaching/community/initiative"
 
-	tsOldFormat = TimestampFormat
-	tsNewFormat = DateFormat
-
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 
 	isMemberInCommunity = func(userID string, comm community.AdaptiveCommunity) bool {
@@ -1657,7 +1654,7 @@ func onInitiativeSelectCommunityEventCreateOrUpdateDialogSubmission(request slac
 		Description: newSi.Description, AccountabilityPartner: capObj.Advocate, Accepted: 1,
 		ObjectiveType: StrategyDevelopmentObjective, StrategyAlignmentEntityID: newSi.InitiativeCommunityID,
 		StrategyAlignmentEntityType: models.ObjectiveStrategyInitiativeAlignment, PlatformID: platformID,
-		CreatedDate:     timeFormatChange(newSi.CreatedAt, tsOldFormat, tsNewFormat),
+		CreatedDate:     core.NormalizeDate(newSi.CreatedAt),
 		ExpectedEndDate: newSi.ExpectedEndDate}
 	err = d.PutTableEntry(uObj, userObjectivesTable)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not write entry to %s table",
@@ -1796,12 +1793,6 @@ func SliceIndex(limit int, predicate func(i int) bool) int {
 var (
 	StrategyDevelopmentObjective models.DevelopmentObjectiveType = "strategy"
 )
-
-func timeFormatChange(str string, oldFormat, newFormat core.AdaptiveDateLayout) string {
-	t, err := oldFormat.ChangeLayout(str, newFormat)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse time %s using format %s", str, oldFormat))
-	return t
-}
 
 // userCapabilityCommunities queries strategy_community for 
 // all communities for the user.
