@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	platformNotification "github.com/adaptiveteam/adaptive/lambdas/adaptive-platform-notification-lambda-go"
 	platformEngagementScheduler "github.com/adaptiveteam/adaptive/lambdas/platform-engagement-scheduler-lambda-go"
@@ -15,24 +16,39 @@ import (
 	userQuery "github.com/adaptiveteam/adaptive/lambdas/user-query-lambda-go"
 	userSettings "github.com/adaptiveteam/adaptive/lambdas/user-settings-lambda-go"
 	userSetup "github.com/adaptiveteam/adaptive/lambdas/user-setup-lambda-go"
+	strategySlackMessageProcessor "github.com/adaptiveteam/adaptive/lambdas/strategy-slack-message-processor-lambda-go"
 	ls "github.com/aws/aws-lambda-go/lambda"
 )
 
 func main() {
 	role := utils.NonEmptyEnv("LAMBDA_ROLE")
 	switch role {
-	case "platform-notification": ls.Start(platformNotification.HandleRequest)
-	case "platform-engagement-scheduler": ls.Start(platformEngagementScheduler.HandleRequest)
-	case "slack-message-processor": ls.Start(slackMessageProcessor.HandleRequest)
-	case "slack-user-query": ls.Start(slackUserQuery.HandleRequest)
-	case "user-engagement": ls.Start(userEngagement.HandleRequest)
-	case "user-engagement-scheduler": ls.Start(userEngagementScheduler.HandleRequest)
-	case "user-engagement-scheduling": ls.Start(userEngagementScheduling.HandleRequest)
-	case "user-engagement-scripting": ls.Start(userEngagementScripting.HandleRequest)
-	case "user-profile": ls.Start(userProfile.HandleRequest)
-	case "user-query": ls.Start(userQuery.HandleRequest)
-	case "user-settings": ls.Start(userSettings.HandleRequest)
-	case "user-setup": ls.Start(userSetup.HandleRequest)
+	case "platform-notification":
+		ls.Start(platformNotification.HandleRequest)
+	case "platform-engagement-scheduler":
+		ls.Start(platformEngagementScheduler.HandleRequest)
+	case "slack-message-processor":
+		ls.Start(slackMessageProcessor.HandleRequest)
+	case "slack-user-query":
+		ls.Start(slackUserQuery.HandleRequest)
+	case "user-engagement":
+		ls.Start(userEngagement.HandleRequest)
+	case "user-engagement-scheduler":
+		ls.Start(userEngagementScheduler.HandleRequest)
+	case "user-engagement-scheduling":
+		ls.Start(userEngagementScheduling.HandleRequest)
+	case "user-engagement-scripting":
+		ls.Start(userEngagementScripting.HandleRequest)
+	case "user-profile":
+		ls.Start(userProfile.HandleRequest)
+	case "user-query":
+		ls.Start(userQuery.HandleRequest)
+	case "user-settings":
+		ls.Start(userSettings.HandleRequest)
+	case "user-setup":
+		ls.Start(userSetup.HandleRequest)
+	case "strategy-slack-message-processor":
+		ls.Start(strategySlackMessageProcessor.HandleRequest)
 	default:
 		log.Printf("Unknown role %s", role)
 	}

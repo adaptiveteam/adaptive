@@ -74,6 +74,6 @@ locals {
     USER_PROFILE_LAMBDA_NAME                = local.user_profile_lambda_function_name
 
 
-
+    STRATEGY_INITIATIVE_COMMUNITIES_TABLE_NAME = aws_dynamodb_table.initiative_communities.name
   }
 }

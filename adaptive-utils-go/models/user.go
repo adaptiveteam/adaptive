@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/nlopes/slack"
 	"github.com/adaptiveteam/adaptive/daos/user"
+	"github.com/adaptiveteam/adaptive/daos/common"
 )
 
 type User = user.User
@@ -39,8 +40,8 @@ type UserToken struct {
 }
 
 // PlatformIDUnsafe extracts PlatformID and ensures that it's nonempty.
-func (ut UserToken) PlatformIDUnsafe() string {
-	platformID := ut.ClientPlatformRequest.Id
+func (ut UserToken) PlatformIDUnsafe() common.PlatformID {
+	platformID := ut.ClientPlatformRequest.PlatformID
 	if platformID == "" {
 		panic("Platform ID is empty")
 	}

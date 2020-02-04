@@ -9,7 +9,7 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/visionMission"
 )
 
-type StrategyObjectiveType string
+type StrategyObjectiveType = strategyObjective.StrategyObjectiveType
 
 const (
 	CustomerStrategyObjective   StrategyObjectiveType = "Customer"

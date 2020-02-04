@@ -102,7 +102,7 @@ func publish(msg models.PlatformSimpleNotification) {
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not publish message to %s topic", platformNotificationTopic))
 }
 
-func helloMessage(userID, channelID, platformID string) {
+func helloMessage(userID, channelID string, platformID models.PlatformID) {
 	keyParams := map[string]*dynamodb.AttributeValue{
 		"id": {
 			S: aws.String(userID),
@@ -164,7 +164,7 @@ func helloMessage(userID, channelID, platformID string) {
 	}
 }
 
-func forwardToNamespaceWithAppID(appID string, eventsAPIEvent string) func(string) {
+func forwardToNamespaceWithAppID(appID models.PlatformID, eventsAPIEvent string) func(string) {
 	return func(namespace string) {
 		np2 := models.NamespacePayload4{
 			ID:        core.Uuid(),
@@ -182,13 +182,13 @@ func forwardToNamespaceWithAppID(appID string, eventsAPIEvent string) func(strin
 	}
 }
 
-func invokeLambdaWithAppID(appID string, eventsAPIEvent string) func(string) {
+func invokeLambdaWithAppID(appID models.PlatformID, eventsAPIEvent string) func(string) {
 	return func(namespace string) {
 		np2 := models.NamespacePayload4{
 			ID:        core.Uuid(),
 			Namespace: namespace,
 			PlatformRequest: models.PlatformRequest{
-				PlatformID:   models.PlatformID(appID),
+				PlatformID:   appID,
 				SlackRequest: models.EventsAPIEvent(eventsAPIEvent),
 			},
 		}
@@ -237,7 +237,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 			if ahe.Event.Type == AppHomeOpened {
 				userID := ahe.Event.User
 				channelID := ahe.Event.Channel
-				helloMessage(userID, channelID, ahe.ApiAppId)
+				helloMessage(userID, channelID, models.PlatformID(ahe.ApiAppId))
 			}
 		} else {
 			requestBody := request.Body
@@ -264,7 +264,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 				return GwOk(urlVerification.Challenge, nil)
 			case slackevents.CallbackEvent:
 				callbackEvent := eventsAPIEvent.Data.(*slackevents.EventsAPICallbackEvent)
-				apiAppID := callbackEvent.APIAppID
+				apiAppID := models.PlatformID(callbackEvent.APIAppID)
 				forwardToNamespace := forwardToNamespaceWithAppID(apiAppID, requestPayload)
 				invokeLambdaWithNamespace := invokeLambdaWithAppID(apiAppID, requestPayload)
 				eventType := eventsAPIEvent.InnerEvent.Type
@@ -339,7 +339,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 					callbackID := getCallbackID(eventsAPIEvent)
 					fmt.Printf("userID=%v,callbackID=%v\n", userID, callbackID)
 					u := userDAO.ReadUnsafe(userID)
-					apiAppID := string(u.PlatformID)
+					apiAppID := u.PlatformID
 					platformID := u.PlatformID
 					forwardToNamespace := forwardToNamespaceWithAppID(apiAppID, requestPayload)
 					invokeLambdaWithNamespace := invokeLambdaWithAppID(apiAppID, requestPayload)

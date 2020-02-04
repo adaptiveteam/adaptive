@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-func CommunityMembers(table string, ID string, platformID, userCommIndex string) []models.AdaptiveCommunityUser2 {
+func CommunityMembers(table string, ID string, platformID models.PlatformID, userCommIndex string) []models.AdaptiveCommunityUser2 {
 	var commUsers []models.AdaptiveCommunityUser2
 	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(table, awsutils.DynamoIndexExpression{
 		IndexName: userCommIndex,
@@ -26,13 +26,13 @@ func CommunityMembers(table string, ID string, platformID, userCommIndex string)
 	return commUsers
 }
 
-func CommunityById(communityId, platformId string, communitiesTable string) models.AdaptiveCommunity {
+func CommunityById(communityId string, platformId models.PlatformID, communitiesTable string) models.AdaptiveCommunity {
 	params := map[string]*dynamodb.AttributeValue{
 		"id": {
 			S: aws.String(communityId),
 		},
 		"platform_id": {
-			S: aws.String(platformId),
+			S: aws.String(string(platformId)),
 		},
 	}
 	var comm models.AdaptiveCommunity
@@ -112,7 +112,7 @@ func PlatformCommunityMemberIDs(platformID models.PlatformID, communitiesTable, 
 	if err == nil {
 		for _, each := range communities {
 			// Get community members by querying community users table based on platform id and community id
-			members := CommunityMembers(communityUsersTable, each.ID, string(platformID), communityUsersCommunityIndex)
+			members := CommunityMembers(communityUsersTable, each.ID, platformID, communityUsersCommunityIndex)
 			for _, member := range members {
 				allCommunitiesMemberIDs = append(allCommunitiesMemberIDs, member.UserId)
 			}

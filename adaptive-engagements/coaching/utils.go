@@ -10,10 +10,10 @@ import (
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
 
-func UserDNPlatform(userId string, userProfileLambda, region string, dns common.DynamoNamespace) (string, string) {
+func UserDNPlatform(userId string, userProfileLambda, region string, dns common.DynamoNamespace) (string, models.PlatformID) {
 	ut, err := utils.UserToken(userId, userProfileLambda, region, dns.Namespace)
 	core.ErrorHandler(err, dns.Namespace, fmt.Sprintf("Could not query for user token"))
-	return ut.DisplayName, ut.ClientPlatformRequest.Id
+	return ut.DisplayName, ut.ClientPlatformRequest.PlatformID
 }
 
 func Coach(table string, coachee string, quarter, year int, coachingCoacheeIndex string, dns common.DynamoNamespace) (

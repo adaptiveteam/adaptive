@@ -224,7 +224,7 @@ func ProduceIndividualReports(date bt.Date, target string) {
 
 // utility methods
 
-func AddObjective(userID, platformID string, urgent bool, userIDsToDisplayNames common.UserIDsToDisplayNames) {
+func AddObjective(userID string, platformID models.PlatformID, urgent bool, userIDsToDisplayNames common.UserIDsToDisplayNames) {
 	allObjs := objectives.AllUserObjectives(userID, UserObjectivesTable, UserObjectivesUserIDIndex,
 		models.IndividualDevelopmentObjective, 0)
 	if len(allObjs) == 0 {
