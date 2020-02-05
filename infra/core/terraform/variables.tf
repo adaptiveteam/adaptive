@@ -140,7 +140,7 @@ variable "dynamo_community_users_user_community_index" {
 
 variable "dynamo_community_users_user_index" {
   description = "GSI for community-users index by user"
-  default = "CommunityUsersUserIndex"
+  default = "UserIDIndex"
 }
 
 variable "dynamo_community_users_community_index" {

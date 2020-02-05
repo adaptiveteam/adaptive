@@ -64,7 +64,7 @@ engagementTableName                         = func(clientID string) string { ret
 const communityUsersUserCommunityIndex            = "UserIDCommunityIDIndex"
 const strategyObjectivesPlatformIndex             = "StrategyObjectivesPlatformIndex"
 const strategyInitiativesPlatformIndex            = "StrategyInitiativesPlatformIndex"
-const communityUsersUserIndex                     = "CommunityUsersUserIndex"
+const communityUsersUserIndex                     = "UserIDIndex"
 
 // SelectFromIssuesWhereTypeAndUserID reads all issues of the given type accessible by userID
 func SelectFromIssuesWhereTypeAndUserID(userID string, issueType IssueType, completed int) func (conn common.DynamoDBConnection) (res []Issue, err error) {
