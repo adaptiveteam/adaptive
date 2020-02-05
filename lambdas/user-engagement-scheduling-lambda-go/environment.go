@@ -33,7 +33,7 @@ func readConfigFromEnvironment() Config {
 		engSchedulerLambdaName:  utils.NonEmptyEnv("USER_ENGAGEMENT_SCHEDULER_LAMBDA_NAME"),
 		usersTable:              utils.NonEmptyEnv("USERS_TABLE_NAME"),
 		communityUsersTable:     utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME"),
-		usersScheduledTimeIndex: "UsersScheduledTimeIndex",
+		usersScheduledTimeIndex: "PlatformIDAdaptiveScheduledTimeInUTCIndex",
 		usersZoneOffsetIndex:    "PlatformIDTimezoneOffsetIndex",
 		communityUsersUserIndex: utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX"),
 		clientConfigTable:       utils.NonEmptyEnv("CLIENT_CONFIG_TABLE_NAME"),

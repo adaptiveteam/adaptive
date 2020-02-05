@@ -110,7 +110,7 @@ variable "dynamo_users_timezone_offset_index" {
 
 variable "dynamo_users_scheduled_time_index" {
   description = "GSI for users on platform scheduled time with Adaptive"
-  default = "UsersScheduledTimeIndex"
+  default = "PlatformIDAdaptiveScheduledTimeInUTCIndex"
 }
 
 variable "dynamo_coaching_relationship_coach_index" {
