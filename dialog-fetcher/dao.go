@@ -54,7 +54,7 @@ func (d DAOImpl)FetchByContextSubject(
 	err = d.Dynamo.QueryTableWithIndex(
 		d.Table,
 		awsutils.DynamoIndexExpression{
-			IndexName: "context-subject-index",
+			IndexName: "ContextSubjectIndex",
 			Condition: "context = :c and subject = :s",
 			Attributes: map[string]interface{}{
 				":c": contextHash,

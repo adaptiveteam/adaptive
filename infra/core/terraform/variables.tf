@@ -150,7 +150,7 @@ variable "dynamo_community_users_community_index" {
 
 variable "dynamo_dialog_content_contect_subject_index" {
   description = "GSI for dailog content by context-subject"
-  default = "context-subject-index"
+  default = "ContextSubjectIndex"
 }
 
 variable "user_engagement_scheduler_lambda_prefix" {

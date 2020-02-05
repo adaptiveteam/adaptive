@@ -39,7 +39,7 @@ func createDialogTable(db *dynamodb.DynamoDB) error {
 		AttributeName: &subject_field_name,
 		AttributeType: &subject_field_type,
 	}
-	context_subject_index_name := "context-subject-index"
+	context_subject_index_name := "ContextSubjectIndex"
 	projectionType := "ALL"
 	_, err := db.CreateTable(&dynamodb.CreateTableInput{
 		TableName: &schemaDialogTable,
