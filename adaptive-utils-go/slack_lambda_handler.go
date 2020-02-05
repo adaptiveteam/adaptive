@@ -43,3 +43,18 @@ func (l LambdaHandler)HandleRequest(ctx context.Context, e events.SNSEvent) erro
 	}
 	return nil // we do not have handlable errors. Only panics
 }
+
+// HandleNamespacePayload4 receives lambda json event
+func (l LambdaHandler)HandleNamespacePayload4(ctx context.Context, np models.NamespacePayload4) error {
+	fmt.Println("adaptiveValues/main.go/HandleRequest entered")
+	if np.Namespace == l.Namespace {
+		switch np.PlatformRequest.Type {
+		case models.InteractionSlackRequestType:
+			l.DispatchSlackInteractionCallback(np.PlatformRequest.InteractionCallback)
+		case models.DialogSubmissionSlackRequestType:
+			l.DispatchSlackDialogSubmissionCallback(np.PlatformRequest.InteractionCallback, 
+				np.PlatformRequest.DialogSubmissionCallback)
+		}
+	}
+	return nil // we do not have handlable errors. Only panics
+}

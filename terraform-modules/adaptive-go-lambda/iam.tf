@@ -1,24 +1,16 @@
 data "aws_iam_policy_document" "assume_role" {
   statement {
-    effect  = "Allow"
-    actions = [
-      "sts:AssumeRole"]
-
+    actions = ["sts:AssumeRole"]
     principals {
-      identifiers = [
-        "lambda.amazonaws.com"]
+      identifiers = ["lambda.amazonaws.com"]
       type        = "Service"
     }
   }
 
   statement {
-    effect  = "Allow"
-    actions = [
-      "sts:AssumeRole"]
-
+    actions = ["sts:AssumeRole"]
     principals {
-      identifiers = [
-        "events.amazonaws.com"]
+      identifiers = ["events.amazonaws.com"]
       type        = "Service"
     }
   }
