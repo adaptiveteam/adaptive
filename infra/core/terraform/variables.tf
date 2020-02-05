@@ -130,7 +130,7 @@ variable "dynamo_coaching_relationship_quarter_year_index" {
 
 variable "dynamo_community_users_channel_index" {
   description = "GSI for community-users index by channel"
-  default = "CommunityUsersChannelIndex"
+  default = "ChannelIDIndex"
 }
 
 variable "dynamo_community_users_user_community_index" {

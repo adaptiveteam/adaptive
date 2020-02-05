@@ -58,7 +58,7 @@ type CommunityUsersTableSchema struct {
 func CommunityUsersTableSchemaForClientID(clientID string) CommunityUsersTableSchema {
 	return CommunityUsersTableSchema{
 		Name: clientID + "_community_users",
-		ChannelIndex: "CommunityUsersChannelIndex",
+		ChannelIndex: "ChannelIDIndex",
 		UserCommunityIndex: "CommunityUsersUserCommunityIndex",
 		UserIndex: "CommunityUsersUserIndex",
 		CommunityIndex: "CommunityUsersCommunityIndex",
