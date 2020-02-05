@@ -105,7 +105,7 @@ variable "dynamo_users_platform_index" {
 
 variable "dynamo_users_timezone_offset_index" {
   description = "GSI for users on platform with timezone offset"
-  default = "UsersTimezoneOffsetIndex"
+  default = "PlatformIDTimezoneOffsetIndex"
 }
 
 variable "dynamo_users_scheduled_time_index" {

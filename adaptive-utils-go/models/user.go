@@ -66,7 +66,7 @@ func AdaptiveUsersTableSchemaForClientID(clientID string) AdaptiveUsersTableSche
 	return AdaptiveUsersTableSchema{
 		Name:                       clientID + "_adaptive_users",
 		PlatformIndex:              "PlatformIDIndex",
-		PlatformTZOffsetIndex:      "UsersTimezoneOffsetIndex",
+		PlatformTZOffsetIndex:      "PlatformIDTimezoneOffsetIndex",
 		PlatformScheduledTimeIndex: "UsersScheduledTimeIndex",
 	}
 }
