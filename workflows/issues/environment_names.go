@@ -18,7 +18,7 @@ var (
 	communitiesTableName                        = func(clientID string) string { return clientID + "_communities" }
 	competenciesTableName                       = func(clientID string) string { return clientID + "_adaptive_value" }
 	strategyInitiativeCommunitiesTableName      = func(clientID string) string { return clientID + "_initiative_communities" }
-	strategyInitiativeCommunitiesPlatformIndex  = "InitiativeCommunitiesPlatformIndex"
+	strategyInitiativeCommunitiesPlatformIndex  = "PlatformIDIndex"
 	strategyCommunityTableName                  = func(clientID string) string { return clientID + "_strategy_communities" }
 	communityUsersUserCommunityIndex            = "CommunityUsersUserCommunityIndex"
 	visionTableName                             = func(clientID string) string { return clientID + "_vision" }

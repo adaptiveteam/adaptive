@@ -256,7 +256,7 @@ output "dynamo_strategy_communities_platform_channel_created_index" {
 
 output "dynamo_strategy_initiative_communities_platform_index" {
   description = "Index for strategy initiatives based on platform id"
-  value = "InitiativeCommunitiesPlatformIndex"
+  value = "PlatformIDIndex"
 }
 
 output "dynamo_strategy_communities_channel_index" {
