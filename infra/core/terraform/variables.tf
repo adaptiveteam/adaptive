@@ -200,7 +200,7 @@ variable "dynamo_user_objectives_progress_created_on_index" {
 
 variable "dynamo_strategy_communities_platform_channel_created_index" {
   description = "Index for strategy community platform-channel index"
-  default = "StrategyCommunityPlatformChannelCreatedIndex"
+  default = "PlatformIDChannelCreatedIndex"
 }
 
 variable "dynamo_strategy_communities_platform_index" {

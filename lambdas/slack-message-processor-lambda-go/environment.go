@@ -48,7 +48,7 @@ var (
 	initiativeCommunitiesTable                     = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME")     // required
 	initiativeCommunitiesPlatformIndex             = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX") // required
 	_                                              = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
-	strategyCommunitiesPlatformChannelCreatedIndex = "StrategyCommunityPlatformChannelCreatedIndex"
+	strategyCommunitiesPlatformChannelCreatedIndex = "PlatformIDChannelCreatedIndex"
 
 	engScriptingLambda = utils.NonEmptyEnv("USER_ENGAGEMENT_SCRIPTING_LAMBDA_NAME")
 
