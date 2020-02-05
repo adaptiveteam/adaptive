@@ -61,7 +61,7 @@ adaptiveUserTableName                      = func(clientID string) string { retu
 engagementTableName                         = func(clientID string) string { return clientID + "_adaptive_users_engagements" }
 )
 
-const communityUsersUserCommunityIndex            = "CommunityUsersUserCommunityIndex"
+const communityUsersUserCommunityIndex            = "UserIDCommunityIDIndex"
 const strategyObjectivesPlatformIndex             = "StrategyObjectivesPlatformIndex"
 const strategyInitiativesPlatformIndex            = "StrategyInitiativesPlatformIndex"
 const communityUsersUserIndex                     = "CommunityUsersUserIndex"

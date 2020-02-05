@@ -36,7 +36,7 @@ var (
 	userObjectivesTypeIndex          = "UserIDTypeIndex"
 	userCommunitiesTable             = utils.NonEmptyEnv("USER_COMMUNITIES_TABLE")
 	communityUsersTable              = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
-	communityUsersUserCommunityIndex = "CommunityUsersUserCommunityIndex"
+	communityUsersUserCommunityIndex = "UserIDCommunityIDIndex"
 	communityUsersUserIndex          = utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX")
 	dialogTableName                  = utils.NonEmptyEnv("DIALOG_TABLE")
 	visionTable                      = utils.NonEmptyEnv("VISION_TABLE_NAME")

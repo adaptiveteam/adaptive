@@ -59,7 +59,7 @@ func CommunityUsersTableSchemaForClientID(clientID string) CommunityUsersTableSc
 	return CommunityUsersTableSchema{
 		Name: clientID + "_community_users",
 		ChannelIndex: "ChannelIDIndex",
-		UserCommunityIndex: "CommunityUsersUserCommunityIndex",
+		UserCommunityIndex: "UserIDCommunityIDIndex",
 		UserIndex: "CommunityUsersUserIndex",
 		CommunityIndex: "CommunityUsersCommunityIndex",
 	}
