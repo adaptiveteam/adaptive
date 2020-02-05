@@ -100,7 +100,7 @@ variable "gateway_global_cloudwatch_role" {
 ## Coaching
 variable "dynamo_users_platform_index" {
   description = "GSI for users on platform id"
-  default = "UsersPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 variable "dynamo_users_timezone_offset_index" {
