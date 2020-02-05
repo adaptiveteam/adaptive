@@ -158,26 +158,31 @@ variable "user_engagement_scheduler_lambda_prefix" {
 }
 
 ## User objectives
+# TODO: remove the following variable - dynamo_user_objectives_user_index. It's not used to create the index. The actual index name is defined in daos.
 variable "dynamo_user_objectives_user_index" {
   description = "GSI for user objectives user index"
   default = "UserIDCompletedIndex"
 }
 
+# TODO: remove the following variable - dynamo_user_objectives_id_index. It's not used to create the index. There is no such index
 variable "dynamo_user_objectives_id_index" {
   description = "GSI for user objectives id index"
   default = "IDIndex"
 }
 
+# TODO: remove the following variable - dynamo_user_objectives_partner_index. It's not used to create the index. The actual index name is defined in daos.
 variable "dynamo_user_objectives_partner_index" {
   description = "GSI for user objectives partner index"
   default = "AccountabilityPartnerIndex"
 }
 
+# TODO: remove the following variable - dynamo_user_objectives_accepted_index. It's not used to create the index. The actual index name is defined in daos.
 variable "dynamo_user_objectives_accepted_index" {
   description = "GSI for user objectives accepted index"
   default = "AcceptedIndex"
 }
 
+# TODO: remove the following variable - dynamo_user_objectives_type_index. It's not used to create the index. The actual index name is defined in daos.
 variable "dynamo_user_objectives_type_index" {
   description = "GSI for user objectives based on type (individual/strategy)"
   default = "UserIDTypeIndex"
