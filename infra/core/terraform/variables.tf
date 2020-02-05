@@ -60,7 +60,7 @@ variable "dynamo_stream_view_type" {
 
 variable "user_engagement_answered_dynamo_index" {
   description = "GSI for user with answered engagements"
-  default = "UserAnsweredEngagementIndex"
+  default = "UserIDAnsweredIndex"
 }
 
 # DAX

@@ -28,7 +28,7 @@ var (
 
 	// engagements
 	engagementsTable         = utils.NonEmptyEnv("USER_ENGAGEMENTS_TABLE_NAME")
-	engagementsAnsweredIndex = "UserAnsweredEngagementIndex"
+	engagementsAnsweredIndex = "UserIDAnsweredIndex"
 
 	// strategy
 	initiativesTable                   = utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE_NAME")
