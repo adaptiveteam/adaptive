@@ -145,7 +145,7 @@ variable "dynamo_community_users_user_index" {
 
 variable "dynamo_community_users_community_index" {
   description = "GSI for community-users index by community"
-  default = "CommunityUsersCommunityIndex"
+  default = "PlatformIDCommunityIDIndex"
 }
 
 variable "dynamo_dialog_content_contect_subject_index" {

@@ -13,7 +13,7 @@ var (
 	userObjectivesTypeIndex                     = "UserIDTypeIndex"
 	userObjectivesProgressTableName             = func(clientID string) string { return clientID + "_user_objectives_progress" }
 	communityUsersTableName                     = func(clientID string) string { return clientID + "_community_users" }
-	communityUsersCommunityIndex                = "CommunityUsersCommunityIndex"
+	communityUsersCommunityIndex                = "PlatformIDCommunityIDIndex"
 	communityUsersUserIndex                     = "UserIDIndex"
 	communitiesTableName                        = func(clientID string) string { return clientID + "_communities" }
 	competenciesTableName                       = func(clientID string) string { return clientID + "_adaptive_value" }

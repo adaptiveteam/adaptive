@@ -61,6 +61,6 @@ func CommunityUsersTableSchemaForClientID(clientID string) CommunityUsersTableSc
 		ChannelIndex: "ChannelIDIndex",
 		UserCommunityIndex: "UserIDCommunityIDIndex",
 		UserIndex: "UserIDIndex",
-		CommunityIndex: "CommunityUsersCommunityIndex",
+		CommunityIndex: "PlatformIDCommunityIDIndex",
 	}
 }
