@@ -187,12 +187,12 @@ variable "dynamo_user_objectives_type_index" {
   description = "GSI for user objectives based on type (individual/strategy)"
   default = "UserIDTypeIndex"
 }
-
+# This variable was updated accordingly to daos._user_objective_progress
 variable "dynamo_user_objectives_progress_index" {
   description = "GSI for user objectives progress index"
   default = "IDIndex"
 }
-
+# This variable was updated accordingly to daos._user_objective_progress
 variable "dynamo_user_objectives_progress_created_on_index" {
   description = "GSI for user objectives progress created on index"
   default = "CreatedOnIndex"
