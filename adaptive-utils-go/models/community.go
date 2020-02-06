@@ -25,7 +25,7 @@ type AdaptiveCommunityTableSchema struct {
 func AdaptiveCommunityTableSchemaForClientID(clientID string) AdaptiveCommunityTableSchema {
 	return AdaptiveCommunityTableSchema{
 		Name: clientID + "_communities",
-		ChannelIndex: "UserCommunityChannelIndex",
+		ChannelIndex: "ChannelIndex",
 		PlatformIndex: "UserCommunityPlatformIndex",
 	}
 }

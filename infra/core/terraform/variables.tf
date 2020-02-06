@@ -245,6 +245,7 @@ variable "dynamo_strategy_objectives_capability_community_index" {
 }
 
 # values
+# TODO: remove the following variable - dynamo_adaptive_values_platform_id_index. It's not used to create the index. The actual index name is defined in daos.
 variable "dynamo_adaptive_values_platform_id_index" {
   description = "GSI for adaptive values dynamo_adaptive_values_platform_id_index index"
   default = "PlatformIDIndex"
@@ -253,7 +254,7 @@ variable "dynamo_adaptive_values_platform_id_index" {
 # User communities
 variable "user_community_channel_dynamo_index" {
   description = "GSI for user communities with channel"
-  default = "UserCommunityChannelIndex"
+  default = "ChannelIndex"
 }
 
 variable "user_community_platform_dynamo_index" {
