@@ -15,7 +15,7 @@ import (
 
 // UserAttribute encapsulates key-value setting for a user
 type UserAttribute struct  {
-	// UserId is the Id of the user to send an engagement to
+	// UserID is the ID of the user to send an engagement to
 	// This usually corresponds to the platform user id
 	UserID string `json:"user_id"`
 	// Key of the setting

@@ -21,9 +21,10 @@ type UserFeedback struct  {
 	ConfidenceFactor string `json:"confidence_factor"`
 	Feedback string `json:"feedback"`
 	QuarterYear string `json:"quarter_year"`
-	// Channel, if any, to engage user in response to the feedback
+	// ChannelID is a channel identifier. TODO: rename db field `channel` to `channel_id`
+	// ChannelID, if any, to engage user in response to the feedback
 	// This is useful to reply to an event with no knowledge of the previous context
-	Channel string `json:"channel"`
+	ChannelID string `json:"channel"`
 	// A reference to the original timestamp that can be used to reply via threading
 	MsgTimestamp string `json:"msg_timestamp"`
 	PlatformID common.PlatformID `json:"platform_id"`
@@ -39,7 +40,7 @@ func (userFeedback UserFeedback)CollectEmptyFields() (emptyFields []string, ok b
 	if userFeedback.ConfidenceFactor == "" { emptyFields = append(emptyFields, "ConfidenceFactor")}
 	if userFeedback.Feedback == "" { emptyFields = append(emptyFields, "Feedback")}
 	if userFeedback.QuarterYear == "" { emptyFields = append(emptyFields, "QuarterYear")}
-	if userFeedback.Channel == "" { emptyFields = append(emptyFields, "Channel")}
+	if userFeedback.ChannelID == "" { emptyFields = append(emptyFields, "ChannelID")}
 	if userFeedback.MsgTimestamp == "" { emptyFields = append(emptyFields, "MsgTimestamp")}
 	if userFeedback.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
 	ok = len(emptyFields) == 0
@@ -271,7 +272,7 @@ func allParams(userFeedback UserFeedback, old UserFeedback) (params map[string]*
 	if userFeedback.ConfidenceFactor != old.ConfidenceFactor { params[":a4"] = common.DynS(userFeedback.ConfidenceFactor) }
 	if userFeedback.Feedback != old.Feedback { params[":a5"] = common.DynS(userFeedback.Feedback) }
 	if userFeedback.QuarterYear != old.QuarterYear { params[":a6"] = common.DynS(userFeedback.QuarterYear) }
-	if userFeedback.Channel != old.Channel { params[":a7"] = common.DynS(userFeedback.Channel) }
+	if userFeedback.ChannelID != old.ChannelID { params[":a7"] = common.DynS(userFeedback.ChannelID) }
 	if userFeedback.MsgTimestamp != old.MsgTimestamp { params[":a8"] = common.DynS(userFeedback.MsgTimestamp) }
 	if userFeedback.PlatformID != old.PlatformID { params[":a9"] = common.DynS(string(userFeedback.PlatformID)) }
 	return
@@ -287,7 +288,7 @@ func updateExpression(userFeedback UserFeedback, old UserFeedback) (expr string,
 	if userFeedback.ConfidenceFactor != old.ConfidenceFactor { updateParts = append(updateParts, "confidence_factor = :a4"); params[":a4"] = common.DynS(userFeedback.ConfidenceFactor);  }
 	if userFeedback.Feedback != old.Feedback { updateParts = append(updateParts, "feedback = :a5"); params[":a5"] = common.DynS(userFeedback.Feedback);  }
 	if userFeedback.QuarterYear != old.QuarterYear { updateParts = append(updateParts, "quarter_year = :a6"); params[":a6"] = common.DynS(userFeedback.QuarterYear);  }
-	if userFeedback.Channel != old.Channel { updateParts = append(updateParts, "channel = :a7"); params[":a7"] = common.DynS(userFeedback.Channel);  }
+	if userFeedback.ChannelID != old.ChannelID { updateParts = append(updateParts, "channel = :a7"); params[":a7"] = common.DynS(userFeedback.ChannelID);  }
 	if userFeedback.MsgTimestamp != old.MsgTimestamp { updateParts = append(updateParts, "msg_timestamp = :a8"); params[":a8"] = common.DynS(userFeedback.MsgTimestamp);  }
 	if userFeedback.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a9"); params[":a9"] = common.DynS(string(userFeedback.PlatformID));  }
 	expr = "set " + strings.Join(updateParts, ", ")

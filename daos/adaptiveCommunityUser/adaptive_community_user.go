@@ -15,6 +15,8 @@ import (
 
 type AdaptiveCommunityUser struct  {
 	ChannelID string `json:"channel_id"`
+	// UserID is the ID of the user to send an engagement to
+	// This usually corresponds to the platform user id
 	UserID string `json:"user_id"`
 	PlatformID common.PlatformID `json:"platform_id"`
 	CommunityID string `json:"community_id"`

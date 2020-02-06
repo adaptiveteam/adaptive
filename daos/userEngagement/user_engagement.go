@@ -22,10 +22,10 @@ type UserEngagement struct  {
 	// PlatformID is the identifier of the platform.
 	// It's used to get platform token required to send message to Slack/Teams.
 	PlatformID common.PlatformID `json:"platform_id"`
-	// UserId is the Id of the user to send an engagement to
+	// UserID is the ID of the user to send an engagement to
 	// This usually corresponds to the platform user id
 	UserID string `json:"user_id"`
-	// TargetId is the Id of the user for whom this is related to
+	// TargetID is the ID of the user for whom this is related to
 	TargetID string `json:"target_id"`
 	// Namespace for the engagement
 	Namespace string `json:"namespace"`
@@ -44,8 +44,8 @@ type UserEngagement struct  {
 	Priority common.PriorityValue `json:"priority"`
 	// A boolean flag indicating if it's optional
 	Optional bool `json:"optional"`
-	// A flag indicating is a user has responded to the engagement - 1 for answered, 0 for un-answered
-	// this is required because, we need to keep the engagement even after a user has answered it
+	// Answered is a flag indicating that a user has responded to the engagement: 1 for answered, 0 for un-answered. 
+	// This is required because, we need to keep the engagement even after a user has answered it. 
 	// If the user wants to edit later, we will refer to the same engagement to post to user, like getting survey information
 	// So, we need a way to differentiate between answered and unanswered engagements
 	Answered int `json:"answered"`

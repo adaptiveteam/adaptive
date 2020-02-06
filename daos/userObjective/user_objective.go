@@ -31,7 +31,7 @@ const (
 type UserObjective struct  {
 	ID string `json:"id"`
 	PlatformID common.PlatformID `json:"platform_id"`
-	// UserId is the Id of the user to send an engagement to
+	// UserID is the ID of the user to send an engagement to
 	// This usually corresponds to the platform user id
 	UserID string `json:"user_id"`
 	Name string `json:"name"`

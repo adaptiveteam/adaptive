@@ -17,7 +17,8 @@ import (
 type AdaptiveCommunity struct  {
 	ID string `json:"id"`
 	PlatformID common.PlatformID `json:"platform_id"`
-	Channel string `json:"channel"`
+	// ChannelID is a channel identifier. TODO: rename db field `channel` to `channel_id`
+	ChannelID string `json:"channel"`
 	Active bool `json:"active"`
 	RequestedBy string `json:"requested_by"`
 	// Automatically maintained field
@@ -31,7 +32,7 @@ type AdaptiveCommunity struct  {
 func (adaptiveCommunity AdaptiveCommunity)CollectEmptyFields() (emptyFields []string, ok bool) {
 	if adaptiveCommunity.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if adaptiveCommunity.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
-	if adaptiveCommunity.Channel == "" { emptyFields = append(emptyFields, "Channel")}
+	if adaptiveCommunity.ChannelID == "" { emptyFields = append(emptyFields, "ChannelID")}
 	if adaptiveCommunity.RequestedBy == "" { emptyFields = append(emptyFields, "RequestedBy")}
 	ok = len(emptyFields) == 0
 	return
@@ -53,8 +54,8 @@ type DAO interface {
 	CreateOrUpdateUnsafe(adaptiveCommunity AdaptiveCommunity)
 	Delete(id string) error
 	DeleteUnsafe(id string)
-	ReadByChannel(channel string) (adaptiveCommunity []AdaptiveCommunity, err error)
-	ReadByChannelUnsafe(channel string) (adaptiveCommunity []AdaptiveCommunity)
+	ReadByChannel(channelID string) (adaptiveCommunity []AdaptiveCommunity, err error)
+	ReadByChannelUnsafe(channelID string) (adaptiveCommunity []AdaptiveCommunity)
 	ReadByPlatformID(platformID common.PlatformID) (adaptiveCommunity []AdaptiveCommunity, err error)
 	ReadByPlatformIDUnsafe(platformID common.PlatformID) (adaptiveCommunity []AdaptiveCommunity)
 }
@@ -209,13 +210,13 @@ func (d DAOImpl)DeleteUnsafe(id string) {
 }
 
 
-func (d DAOImpl)ReadByChannel(channel string) (out []AdaptiveCommunity, err error) {
+func (d DAOImpl)ReadByChannel(channelID string) (out []AdaptiveCommunity, err error) {
 	var instances []AdaptiveCommunity
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
 		IndexName: "ChannelIndex",
 		Condition: "channel = :a0",
 		Attributes: map[string]interface{}{
-			":a0": channel,
+			":a0": channelID,
 		},
 	}, map[string]string{}, true, -1, &instances)
 	out = instances
@@ -223,8 +224,8 @@ func (d DAOImpl)ReadByChannel(channel string) (out []AdaptiveCommunity, err erro
 }
 
 
-func (d DAOImpl)ReadByChannelUnsafe(channel string) (out []AdaptiveCommunity) {
-	out, err := d.ReadByChannel(channel)
+func (d DAOImpl)ReadByChannelUnsafe(channelID string) (out []AdaptiveCommunity) {
+	out, err := d.ReadByChannel(channelID)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query ChannelIndex on %s table\n", d.Name))
 	return
 }
@@ -260,7 +261,7 @@ func allParams(adaptiveCommunity AdaptiveCommunity, old AdaptiveCommunity) (para
 	params = map[string]*dynamodb.AttributeValue{}
 	if adaptiveCommunity.ID != old.ID { params[":a0"] = common.DynS(adaptiveCommunity.ID) }
 	if adaptiveCommunity.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(adaptiveCommunity.PlatformID)) }
-	if adaptiveCommunity.Channel != old.Channel { params[":a2"] = common.DynS(adaptiveCommunity.Channel) }
+	if adaptiveCommunity.ChannelID != old.ChannelID { params[":a2"] = common.DynS(adaptiveCommunity.ChannelID) }
 	if adaptiveCommunity.Active != old.Active { params[":a3"] = common.DynBOOL(adaptiveCommunity.Active) }
 	if adaptiveCommunity.RequestedBy != old.RequestedBy { params[":a4"] = common.DynS(adaptiveCommunity.RequestedBy) }
 	if adaptiveCommunity.CreatedAt != old.CreatedAt { params[":a5"] = common.DynS(adaptiveCommunity.CreatedAt) }
@@ -273,7 +274,7 @@ func updateExpression(adaptiveCommunity AdaptiveCommunity, old AdaptiveCommunity
 	names := map[string]*string{}
 	if adaptiveCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(adaptiveCommunity.ID);  }
 	if adaptiveCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(adaptiveCommunity.PlatformID));  }
-	if adaptiveCommunity.Channel != old.Channel { updateParts = append(updateParts, "channel = :a2"); params[":a2"] = common.DynS(adaptiveCommunity.Channel);  }
+	if adaptiveCommunity.ChannelID != old.ChannelID { updateParts = append(updateParts, "channel = :a2"); params[":a2"] = common.DynS(adaptiveCommunity.ChannelID);  }
 	if adaptiveCommunity.Active != old.Active { updateParts = append(updateParts, "active = :a3"); params[":a3"] = common.DynBOOL(adaptiveCommunity.Active);  }
 	if adaptiveCommunity.RequestedBy != old.RequestedBy { updateParts = append(updateParts, "requested_by = :a4"); params[":a4"] = common.DynS(adaptiveCommunity.RequestedBy);  }
 	if adaptiveCommunity.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a5"); params[":a5"] = common.DynS(adaptiveCommunity.CreatedAt);  }
