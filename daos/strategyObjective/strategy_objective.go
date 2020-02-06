@@ -28,7 +28,7 @@ type StrategyObjective struct  {
 	ObjectiveType StrategyObjectiveType `json:"objective_type"`
 	Advocate string `json:"advocate"`
 	// community id not require d for customer/financial objectives
-	CapabilityCommunityIDs []string `json:"capability_community_ids"`
+	CapabilityCommunityIDs []string `json:"capability_community_id"`
 	ExpectedEndDate string `json:"expected_end_date"`
 	CreatedBy string `json:"created_by"`
 	// Automatically maintained field
@@ -72,8 +72,8 @@ type DAO interface {
 	DeleteUnsafe(id string)
 	ReadByPlatformID(platformID common.PlatformID) (strategyObjective []StrategyObjective, err error)
 	ReadByPlatformIDUnsafe(platformID common.PlatformID) (strategyObjective []StrategyObjective)
-	ReadByCapabilityCommunityIDs(capabilityCommunityIDs []string) (strategyObjective []StrategyObjective, err error)
-	ReadByCapabilityCommunityIDsUnsafe(capabilityCommunityIDs []string) (strategyObjective []StrategyObjective)
+	ReadByCapabilityCommunityID(capabilityCommunityIDs []string) (strategyObjective []StrategyObjective, err error)
+	ReadByCapabilityCommunityIDUnsafe(capabilityCommunityIDs []string) (strategyObjective []StrategyObjective)
 }
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
@@ -247,11 +247,11 @@ func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []Stra
 }
 
 
-func (d DAOImpl)ReadByCapabilityCommunityIDs(capabilityCommunityIDs []string) (out []StrategyObjective, err error) {
+func (d DAOImpl)ReadByCapabilityCommunityID(capabilityCommunityIDs []string) (out []StrategyObjective, err error) {
 	var instances []StrategyObjective
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "CapabilityCommunityIDsIndex",
-		Condition: "capability_community_ids = :a0",
+		IndexName: "CapabilityCommunityIDIndex",
+		Condition: "capability_community_id = :a0",
 		Attributes: map[string]interface{}{
 			":a0": capabilityCommunityIDs,
 		},
@@ -261,9 +261,9 @@ func (d DAOImpl)ReadByCapabilityCommunityIDs(capabilityCommunityIDs []string) (o
 }
 
 
-func (d DAOImpl)ReadByCapabilityCommunityIDsUnsafe(capabilityCommunityIDs []string) (out []StrategyObjective) {
-	out, err := d.ReadByCapabilityCommunityIDs(capabilityCommunityIDs)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query CapabilityCommunityIDsIndex on %s table\n", d.Name))
+func (d DAOImpl)ReadByCapabilityCommunityIDUnsafe(capabilityCommunityIDs []string) (out []StrategyObjective) {
+	out, err := d.ReadByCapabilityCommunityID(capabilityCommunityIDs)
+	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query CapabilityCommunityIDIndex on %s table\n", d.Name))
 	return
 }
 
@@ -302,7 +302,7 @@ func updateExpression(strategyObjective StrategyObjective, old StrategyObjective
 	if strategyObjective.Targets != old.Targets { updateParts = append(updateParts, "targets = :a5"); params[":a5"] = common.DynS(strategyObjective.Targets);  }
 	if strategyObjective.ObjectiveType != old.ObjectiveType { updateParts = append(updateParts, "objective_type = :a6"); params[":a6"] = common.DynS(string(strategyObjective.ObjectiveType));  }
 	if strategyObjective.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a7"); params[":a7"] = common.DynS(strategyObjective.Advocate);  }
-	if !common.StringArraysEqual(strategyObjective.CapabilityCommunityIDs, old.CapabilityCommunityIDs) { updateParts = append(updateParts, "capability_community_ids = :a8"); params[":a8"] = common.DynSS(strategyObjective.CapabilityCommunityIDs);  }
+	if !common.StringArraysEqual(strategyObjective.CapabilityCommunityIDs, old.CapabilityCommunityIDs) { updateParts = append(updateParts, "capability_community_id = :a8"); params[":a8"] = common.DynSS(strategyObjective.CapabilityCommunityIDs);  }
 	if strategyObjective.ExpectedEndDate != old.ExpectedEndDate { updateParts = append(updateParts, "expected_end_date = :a9"); params[":a9"] = common.DynS(strategyObjective.ExpectedEndDate);  }
 	if strategyObjective.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a10"); params[":a10"] = common.DynS(strategyObjective.CreatedBy);  }
 	if strategyObjective.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a11"); params[":a11"] = common.DynS(strategyObjective.CreatedAt);  }
