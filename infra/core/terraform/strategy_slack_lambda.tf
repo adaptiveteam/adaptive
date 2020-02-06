@@ -58,6 +58,7 @@ data "aws_iam_policy_document" "strategy_slack_policy" {
     ]
     resources = [
       aws_dynamodb_table.strategy_objectives.arn,
+      aws_dynamodb_table.strategy_initiatives.arn,
       aws_dynamodb_table.user_objectives_progress.arn,
       ]
   }
@@ -70,7 +71,6 @@ data "aws_iam_policy_document" "strategy_slack_policy" {
     resources = [
       aws_dynamodb_table.vision.arn,
       aws_dynamodb_table.capability_communities.arn,
-      aws_dynamodb_table.strategy_initiatives.arn,
       aws_dynamodb_table.initiative_communities.arn,
       aws_dynamodb_table.user_objective_dynamodb_table.arn,
       aws_dynamodb_table.user_objectives_progress.arn,
