@@ -17,7 +17,7 @@ type UserFeedback struct  {
 	ID string `json:"id"`
 	Source string `json:"source"`
 	Target string `json:"target"`
-	Dimension string `json:"dimension"`
+	ValueID string `json:"value_id"`
 	ConfidenceFactor string `json:"confidence_factor"`
 	Feedback string `json:"feedback"`
 	QuarterYear string `json:"quarter_year"`
@@ -36,7 +36,7 @@ func (userFeedback UserFeedback)CollectEmptyFields() (emptyFields []string, ok b
 	if userFeedback.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if userFeedback.Source == "" { emptyFields = append(emptyFields, "Source")}
 	if userFeedback.Target == "" { emptyFields = append(emptyFields, "Target")}
-	if userFeedback.Dimension == "" { emptyFields = append(emptyFields, "Dimension")}
+	if userFeedback.ValueID == "" { emptyFields = append(emptyFields, "ValueID")}
 	if userFeedback.ConfidenceFactor == "" { emptyFields = append(emptyFields, "ConfidenceFactor")}
 	if userFeedback.Feedback == "" { emptyFields = append(emptyFields, "Feedback")}
 	if userFeedback.QuarterYear == "" { emptyFields = append(emptyFields, "QuarterYear")}
@@ -268,7 +268,7 @@ func allParams(userFeedback UserFeedback, old UserFeedback) (params map[string]*
 	if userFeedback.ID != old.ID { params[":a0"] = common.DynS(userFeedback.ID) }
 	if userFeedback.Source != old.Source { params[":a1"] = common.DynS(userFeedback.Source) }
 	if userFeedback.Target != old.Target { params[":a2"] = common.DynS(userFeedback.Target) }
-	if userFeedback.Dimension != old.Dimension { params[":a3"] = common.DynS(userFeedback.Dimension) }
+	if userFeedback.ValueID != old.ValueID { params[":a3"] = common.DynS(userFeedback.ValueID) }
 	if userFeedback.ConfidenceFactor != old.ConfidenceFactor { params[":a4"] = common.DynS(userFeedback.ConfidenceFactor) }
 	if userFeedback.Feedback != old.Feedback { params[":a5"] = common.DynS(userFeedback.Feedback) }
 	if userFeedback.QuarterYear != old.QuarterYear { params[":a6"] = common.DynS(userFeedback.QuarterYear) }
@@ -284,7 +284,7 @@ func updateExpression(userFeedback UserFeedback, old UserFeedback) (expr string,
 	if userFeedback.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(userFeedback.ID);  }
 	if userFeedback.Source != old.Source { updateParts = append(updateParts, "#source = :a1"); params[":a1"] = common.DynS(userFeedback.Source); fldName := "source"; names["#source"] = &fldName }
 	if userFeedback.Target != old.Target { updateParts = append(updateParts, "target = :a2"); params[":a2"] = common.DynS(userFeedback.Target);  }
-	if userFeedback.Dimension != old.Dimension { updateParts = append(updateParts, "dimension = :a3"); params[":a3"] = common.DynS(userFeedback.Dimension);  }
+	if userFeedback.ValueID != old.ValueID { updateParts = append(updateParts, "value_id = :a3"); params[":a3"] = common.DynS(userFeedback.ValueID);  }
 	if userFeedback.ConfidenceFactor != old.ConfidenceFactor { updateParts = append(updateParts, "confidence_factor = :a4"); params[":a4"] = common.DynS(userFeedback.ConfidenceFactor);  }
 	if userFeedback.Feedback != old.Feedback { updateParts = append(updateParts, "feedback = :a5"); params[":a5"] = common.DynS(userFeedback.Feedback);  }
 	if userFeedback.QuarterYear != old.QuarterYear { updateParts = append(updateParts, "quarter_year = :a6"); params[":a6"] = common.DynS(userFeedback.QuarterYear);  }

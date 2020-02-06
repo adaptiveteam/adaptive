@@ -200,7 +200,7 @@ val UserFeedback = Entity(
     List(
         sourceField,
         targetField,
-        "Dimension".camel :: string,
+        "ValueID".camel :: string,
         "ConfidenceFactor".camel :: string,
         "Feedback".camel :: string,
         quarterYearField,
