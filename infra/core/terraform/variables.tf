@@ -208,7 +208,7 @@ variable "dynamo_strategy_communities_platform_index" {
 }
 
 variable "dynamo_strategy_communities_channel_index" {
-  default = "StrategyCommunitiesChannelIndex"
+  default = "ChannelIDIndex"
 }
 
 # strategy communities

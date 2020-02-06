@@ -260,7 +260,7 @@ output "dynamo_strategy_initiative_communities_platform_index" {
 }
 
 output "dynamo_strategy_communities_channel_index" {
-  value = "StrategyCommunitiesChannelIndex"
+  value = "ChannelIDIndex"
 }
 
 # strategy communities
