@@ -408,7 +408,7 @@ val AdHocHolidayTable = Table(
     AdHocHoliday,
     Index(idField, None),
     List(
-        Index(dateField, Some(platformIdField))
+        Index(platformIdField, Some(dateField))
     )
 )
 
