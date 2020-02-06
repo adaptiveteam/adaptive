@@ -43,6 +43,6 @@ type HolidaysTableSchema struct {
 func HolidaysTableSchemaForClientID(clientID string) HolidaysTableSchema {
 	return HolidaysTableSchema{
 		Name: clientID + "_ad_hoc_holidays",
-		PlatformDateIndex: "HolidaysPlatformDateIndex",
+		PlatformDateIndex: "PlatformIDDateIndex",
 	}
 }

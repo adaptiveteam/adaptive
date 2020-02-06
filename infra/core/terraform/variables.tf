@@ -265,7 +265,7 @@ variable "user_community_platform_dynamo_index" {
 # Holidays
 variable "dynamo_holidays_date_index" {
   description = "GSI for holidays date index"
-  default = "HolidaysPlatformDateIndex"
+  default = "PlatformIDDateIndex"
 }
 variable "dynamo_holidays_id_index" {
   description = "GSI for HW id index"
