@@ -6,7 +6,7 @@ var (
 	strategyObjectivesPlatformIndex             = "StrategyObjectivesPlatformIndex"
 	strategyInitiativesTableName                = func(clientID string) string { return clientID + "_strategy_initiatives" }
 	strategyInitiativesPlatformIndex            = "PlatformIDIndex"
-	strategyInitiativesInitiativeCommunityIndex = "StrategyInitiativesInitiativeCommunityIndex"
+	strategyInitiativesInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
 	userObjectivesTableName                     = func(clientID string) string { return clientID + "_user_objective" }
 	userObjectivesIDIndex                       = "IDIndex"
 	userObjectivesUserIDIndex                   = "UserIDCompletedIndex"

@@ -42,7 +42,7 @@ var (
 dialogContentTableName                      = func(clientID string) string { return clientID + "_dialog_content" }
 strategyObjectiveTableName                 = func(clientID string) string { return clientID + "_strategy_objectives" }
 strategyInitiativeTableName                = func(clientID string) string { return clientID + "_strategy_initiatives" }
-strategyInitiativeInitiativeCommunityIndex = "StrategyInitiativesInitiativeCommunityIndex"
+strategyInitiativeInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
 userObjectiveTableName                     = func(clientID string) string { return clientID + "_user_objective" }
 userObjectiveIDIndex                       = "IDIndex"
 userObjectiveUserIDIndex                   = "UserIDCompletedIndex"
@@ -316,7 +316,7 @@ func IssuesFromGivenStrategyInitiatives(inits []models.StrategyInitiative) func 
 func IssuesFromCapabilityCommunityInitiatives(userID string) func (conn DynamoDBConnection)(res []Issue, err error) {
 	return func (conn DynamoDBConnection)(res []Issue, err error) {
 		defer core.RecoverToErrorVar("CapabilityCommunityInitiatives", &err)
-		strategyInitiativesInitiativeCommunityIndex := "StrategyInitiativesInitiativeCommunityIndex"
+		strategyInitiativesInitiativeCommunityIndex := "InitiativeCommunityIDIndex"
 		inits := strategy.UserCapabilityCommunityInitiatives(userID, 
 			strategyObjectiveTableName(conn.ClientID), strategyObjectivesPlatformIndex,
 			strategyInitiativeTableName(conn.ClientID), strategyInitiativesInitiativeCommunityIndex,

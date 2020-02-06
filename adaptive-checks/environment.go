@@ -42,7 +42,7 @@ var (
 	strategyCommunitiesTable           = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
 
 	strategyObjectivesCapabilityCommunityIndex  = "StrategyObjectivesCapabilityCommunityIndex"
-	strategyInitiativesInitiativeCommunityIndex = "StrategyInitiativesInitiativeCommunityIndex"
+	strategyInitiativesInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
 
 	userFeedbackTable         = utils.NonEmptyEnv("USER_FEEDBACK_TABLE_NAME")
 	userFeedbackSourceQYIndex = utils.NonEmptyEnv("USER_FEEDBACK_SOURCE_QUARTER_YEAR_INDEX")
