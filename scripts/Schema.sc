@@ -573,8 +573,7 @@ val ClientPlatformTokenPackage = Package(ClientPlatformToken.name,
 )
 
 val StrategyObjectiveType = TypeAlias("StrategyObjectiveType".camel, string)
-val capabilityCommunityIDsField = (spacedName("capability community IDs") :: optionStringArray).
-    dbName("capability_community_ids".camel)\\"community id not require d for customer/financial objectives"
+val capabilityCommunityIDsField = (spacedName("capability community IDs") :: optionStringArray) \\ /*.dbName("capability_community_ids".camel)*/ "community id not require d for customer/financial objectives"
 val createdByField = "CreatedBy".camel :: string
 val advocateField = "Advocate".camel :: string
 val StrategyObjective = Entity(
@@ -596,7 +595,8 @@ val StrategyObjective = Entity(
 val StrategyObjectiveTable = Table(StrategyObjective,
     Index(idField, Some(platformIdField)),
     List(
-        Index(platformIdField, None)
+        Index(platformIdField, None),
+        Index(capabilityCommunityIDsField, None)
     )
 )
 

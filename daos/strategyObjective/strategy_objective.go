@@ -72,6 +72,8 @@ type DAO interface {
 	DeleteUnsafe(id string)
 	ReadByPlatformID(platformID common.PlatformID) (strategyObjective []StrategyObjective, err error)
 	ReadByPlatformIDUnsafe(platformID common.PlatformID) (strategyObjective []StrategyObjective)
+	ReadByCapabilityCommunityIDs(capabilityCommunityIDs []string) (strategyObjective []StrategyObjective, err error)
+	ReadByCapabilityCommunityIDsUnsafe(capabilityCommunityIDs []string) (strategyObjective []StrategyObjective)
 }
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
@@ -241,6 +243,27 @@ func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []StrategyOb
 func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []StrategyObjective) {
 	out, err := d.ReadByPlatformID(platformID)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
+	return
+}
+
+
+func (d DAOImpl)ReadByCapabilityCommunityIDs(capabilityCommunityIDs []string) (out []StrategyObjective, err error) {
+	var instances []StrategyObjective
+	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+		IndexName: "CapabilityCommunityIDsIndex",
+		Condition: "capability_community_ids = :a0",
+		Attributes: map[string]interface{}{
+			":a0": capabilityCommunityIDs,
+		},
+	}, map[string]string{}, true, -1, &instances)
+	out = instances
+	return
+}
+
+
+func (d DAOImpl)ReadByCapabilityCommunityIDsUnsafe(capabilityCommunityIDs []string) (out []StrategyObjective) {
+	out, err := d.ReadByCapabilityCommunityIDs(capabilityCommunityIDs)
+	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query CapabilityCommunityIDsIndex on %s table\n", d.Name))
 	return
 }
 
