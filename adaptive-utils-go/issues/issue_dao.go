@@ -63,7 +63,7 @@ engagementTableName                         = func(clientID string) string { ret
 
 const communityUsersUserCommunityIndex            = "UserIDCommunityIDIndex"
 const strategyObjectivesPlatformIndex             = "StrategyObjectivesPlatformIndex"
-const strategyInitiativesPlatformIndex            = "StrategyInitiativesPlatformIndex"
+const strategyInitiativesPlatformIndex            = "PlatformIDIndex"
 const communityUsersUserIndex                     = "UserIDIndex"
 
 // SelectFromIssuesWhereTypeAndUserID reads all issues of the given type accessible by userID

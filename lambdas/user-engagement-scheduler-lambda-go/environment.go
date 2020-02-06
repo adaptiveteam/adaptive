@@ -36,7 +36,7 @@ var (
 	adHocHolidaysPlatformDateIndex = utils.NonEmptyEnv("HOLIDAYS_PLATFORM_DATE_INDEX")
 
 	strategyInitiativesTableName     = utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE")
-	strategyInitiativesPlatformIndex = "StrategyInitiativesPlatformIndex"
+	strategyInitiativesPlatformIndex = "PlatformIDIndex"
 	strategyObjectivesTableName      = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE")
 	strategyObjectivesPlatformIndex  = "StrategyObjectivesPlatformIndex"
 

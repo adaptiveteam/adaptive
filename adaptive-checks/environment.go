@@ -32,7 +32,7 @@ var (
 
 	// strategy
 	initiativesTable                   = utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE_NAME")
-	initiativesPlatformIndex           = "StrategyInitiativesPlatformIndex"
+	initiativesPlatformIndex           = "PlatformIDIndex"
 	strategyObjectivesTableName        = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME")
 	strategyObjectivesPlatformIndex    = "StrategyObjectivesPlatformIndex"
 	capabilityCommunitiesTable         = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")
