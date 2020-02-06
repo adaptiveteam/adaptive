@@ -56,7 +56,7 @@ strategyInitiativeCommunityPlatformIndex  = "PlatformIDIndex"
 strategyCommunityTableName                  = func(clientID string) string { return clientID + "_strategy_communities" }
 visionMissionTableName                             = func(clientID string) string { return clientID + "_vision" }
 capabilityCommunityTableName              = func(clientID string) string { return clientID + "_capability_communities" }
-capabilityCommunityPlatformIndex          = "CapabilityCommunitiesPlatformIndex"
+capabilityCommunityPlatformIndex          = "PlatformIDIndex"
 adaptiveUserTableName                      = func(clientID string) string { return clientID + "_adaptive_users" }
 engagementTableName                         = func(clientID string) string { return clientID + "_adaptive_users_engagements" }
 )

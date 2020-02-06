@@ -26,7 +26,7 @@ var (
 
 	strategyObjectivesPlatformIndex            = "StrategyObjectivesPlatformIndex"
 	strategyObjectivesCapabilityCommunityIndex = "StrategyObjectivesCapabilityCommunityIndex"
-	capabilityCommunitiesPlatformIndex         = "CapabilityCommunitiesPlatformIndex"
+	capabilityCommunitiesPlatformIndex         = "PlatformIDIndex"
 	strategyInitiativesPlatformIndex           = "StrategyInitiativesPlatformIndex"
 	strategyInitiativeCommunitiesPlatformIndex = "PlatformIDIndex"
 	strategyCommunitiesPlatformIndex           = "PlatformIDIndex"

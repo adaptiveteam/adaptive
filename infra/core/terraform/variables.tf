@@ -214,7 +214,7 @@ variable "dynamo_strategy_communities_channel_index" {
 # strategy communities
 variable "dynamo_capability_communities_platform_index" {
   description = "Index for strategy objectives based on platform id"
-  default = "CapabilityCommunitiesPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 variable "dynamo_strategy_initiative_communities_platform_index" {
