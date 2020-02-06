@@ -267,6 +267,7 @@ variable "dynamo_holidays_date_index" {
   description = "GSI for holidays date index"
   default = "PlatformIDDateIndex"
 }
+# TODO: Remove this variable. The index does not exist and is not being used
 variable "dynamo_holidays_id_index" {
   description = "GSI for HW id index"
   default = "HolidaysIdIndex"
@@ -275,7 +276,7 @@ variable "dynamo_holidays_id_index" {
 # User feedback
 variable "feedback_source_quarter_year_index" {
   description = "GSI for source with quarter year"
-  default = "SourceQuarterYear"
+  default = "QuarterYearSourceIndex"
 }
 variable "feedback_target_quarter_year_index" {
   description = "GSI for target with quarter year"
