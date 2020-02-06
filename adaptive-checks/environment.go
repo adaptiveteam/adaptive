@@ -41,7 +41,7 @@ var (
 	initiativeCommunitiesPlatformIndex = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX")
 	strategyCommunitiesTable           = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
 
-	strategyObjectivesCapabilityCommunityIndex  = "StrategyObjectivesCapabilityCommunityIndex"
+	strategyObjectivesCapabilityCommunityIndex  = "CapabilityCommunityIDsIndex"
 	strategyInitiativesInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
 
 	userFeedbackTable         = utils.NonEmptyEnv("USER_FEEDBACK_TABLE_NAME")
