@@ -29,7 +29,7 @@ var (
 	capabilityCommunitiesPlatformIndex         = "CapabilityCommunitiesPlatformIndex"
 	strategyInitiativesPlatformIndex           = "StrategyInitiativesPlatformIndex"
 	strategyInitiativeCommunitiesPlatformIndex = "PlatformIDIndex"
-	strategyCommunitiesPlatformIndex           = "StrategyCommunitiesPlatformIndex"
+	strategyCommunitiesPlatformIndex           = "PlatformIDIndex"
 	communityUsersUserCommunityIndex           = "UserIDCommunityIDIndex"
 
 	usersTableName     = utils.NonEmptyEnv("USERS_TABLE_NAME")

@@ -204,7 +204,7 @@ variable "dynamo_strategy_communities_platform_channel_created_index" {
 }
 
 variable "dynamo_strategy_communities_platform_index" {
-  default = "StrategyCommunitiesPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 variable "dynamo_strategy_communities_channel_index" {

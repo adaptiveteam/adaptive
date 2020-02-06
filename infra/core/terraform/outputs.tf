@@ -291,7 +291,7 @@ output "dynamo_initiative_communities_platform_index" {
 }
 
 output "dynamo_strategy_communities_platform_index" {
-  value = "StrategyCommunitiesPlatformIndex"
+  value = "PlatformIDIndex"
 }
 
 # strategy initiatives
