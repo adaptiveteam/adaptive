@@ -463,7 +463,7 @@ func viewObjectiveReadonly(ctx wf.EventHandlingContext, item models.StrategyObje
 
 func findStrategyCommunityConversation(ctx wf.EventHandlingContext) platform.ConversationID {
 	comm := CommunityById("strategy", ctx.PlatformID)
-	return platform.ConversationID(comm.Channel)
+	return platform.ConversationID(comm.ChannelID)
 }
 
 func channelizeID(msgID mapper.MessageID) (messageID chan mapper.MessageID) {

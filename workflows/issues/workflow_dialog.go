@@ -172,7 +172,7 @@ func (w workflowImpl) OnDialogCancelled(ctx wf.EventHandlingContext) (out wf.Eve
 func findStrategyCommunityConversation(w workflowImpl, ctx wf.EventHandlingContext) (platform.ConversationID, error) {
 	comm, err2 := AdaptiveCommunityReadByID(community.Strategy)(w.DynamoDBConnection)
 	err2 = errors.Wrap(err2, "{findStrategyCommunityConversation}")
-	return platform.ConversationID(comm.Channel), err2
+	return platform.ConversationID(comm.ChannelID), err2
 }
 
 func (w workflowImpl) requestCoach(ctx wf.EventHandlingContext, newAndOldIssues NewAndOldIssues) (postponedEvents []wf.PostponeEventForAnotherUser) {

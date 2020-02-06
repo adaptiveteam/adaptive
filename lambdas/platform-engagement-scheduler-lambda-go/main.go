@@ -67,7 +67,7 @@ func communityChannel(community community.AdaptiveCommunity,
 	var comm models.AdaptiveCommunity
 	err = d.QueryTable(communitiesTable, params, &comm)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table", communitiesTable))
-	channel = comm.Channel
+	channel = comm.ChannelID
 	return
 }
 

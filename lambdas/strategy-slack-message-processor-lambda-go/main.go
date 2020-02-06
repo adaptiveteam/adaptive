@@ -510,7 +510,7 @@ func PostMsgToUser(text, userId, channelId, ts string) {
 
 func PostMsgToCommunity(commID community.AdaptiveCommunity, platformID models.PlatformID, text string, attachs []ebm.Attachment) {
 	comm := CommunityById(string(commID), platformID)
-	publish(models.PlatformSimpleNotification{UserId: comm.Channel, Message: core.TextWrap(text, core.Underscore),
+	publish(models.PlatformSimpleNotification{UserId: comm.ChannelID, Message: core.TextWrap(text, core.Underscore),
 		Attachments: attachs})
 }
 
