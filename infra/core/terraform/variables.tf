@@ -278,9 +278,10 @@ variable "feedback_source_quarter_year_index" {
   description = "GSI for source with quarter year"
   default = "QuarterYearSourceIndex"
 }
+# TODO: remove this variable 'feedback_target_quarter_year_index'. It's not being referenced anywhere
 variable "feedback_target_quarter_year_index" {
   description = "GSI for target with quarter year"
-  default = "TargetQuarterYear"
+  default = "QuarterYearTargetIndex"
 }
 
 variable "RDS_HOST" {}
