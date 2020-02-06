@@ -59,6 +59,7 @@ var (
 	CreateInitiative                           = strategy.CreateInitiative                                // "create_initiative"
 	CreateInitiativeCommunity                  = strategy.CreateInitiativeCommunity                       // "create_initiative_community"
 	AssociateInitiativeWithInitiativeCommunity = strategy.AssociateInitiativeWithInitiativeCommunityEvent // "associate_initiative_with_initiative_community"
+	InitiativeCommunityAssociationSelectInitiative = "initiative_community_association_select_initiative"
 
 	AssociateStrategyObjectiveToCapabilityCommunity = strategy.AssociateStrategyObjectiveToCapabilityCommunity
 
@@ -425,6 +426,44 @@ func handleInitiativeCommunityCreate(mc models.MessageCallback, actionName, acti
 	}
 }
 
+func handleInitiativeCommunityAssociationSelectObjective(mc models.MessageCallback, actionName, actionValue string, userID, channelID string,
+	message slack.InteractionCallback, platformID models.PlatformID) {
+	if mc.Action == string(strategy.Create) || mc.Action == string(strategy.Update) {
+		// create association
+		if strings.HasPrefix(actionName, strategy.CreatePrefix) || strings.HasPrefix(actionName, strategy.UpdatePrefix) {
+			act, update := getUpdateParams(actionName)
+			switch act {
+			case string(models.Now):
+				initID := actionSelected(message.ActionCallback.AttachmentActions)
+				init := strategy.StrategyInitiativeByID(platformID, initID, strategyInitiativesTable)
+				initCommID := mc.Target
+				logger.
+					WithField("initCommID", initCommID).
+					WithField("init.ID", init.ID).
+					Infof("Creating/updating %v initiative(ID=%s).InitiativeCommunityID := %s", update, init.ID, initCommID)
+				init.InitiativeCommunityID = initCommID
+
+				keyParams := map[string]*dynamodb.AttributeValue{
+					"id":          dynString(init.ID),
+					"platform_id": dynString(string(platformID)),
+				}
+				exprAttributes := map[string]*dynamodb.AttributeValue{
+					":icid": dynString(initCommID),
+				}
+				updateExpression := "set initiative_community_id = :icid"
+				err := d.UpdateTableEntry(exprAttributes, keyParams, updateExpression, strategyInitiativesTable)
+				core.ErrorHandler(err, namespace, fmt.Sprintf("Could not update initiative in %s table",
+					strategyObjectivesTable))
+				PostMsgToUser(fmt.Sprintf("The selected initiative '%s' has been associated with this initiative community", init.Name), 
+					userID, channelID, message.MessageTs)
+			case string(models.Ignore):
+				utils.UpdateEngAsIgnored(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
+			}
+		}
+	}
+	DeleteOriginalEng(userID, channelID, message.MessageTs)
+}
+
 func handleObjectiveCommunityAssociationSelectObjective(mc models.MessageCallback, actionName, actionValue string, userID, channelID string,
 	message slack.InteractionCallback, platformID models.PlatformID) {
 	if mc.Action == string(strategy.Create) || mc.Action == string(strategy.Update) {
@@ -741,6 +780,20 @@ func allCapabilityObjectivesAssociatableOptions(userID string, platformID models
 	return opts
 }
 
+func allInitiativesAssociatableOptions(userID string, platformID models.PlatformID) []ebm.MenuOption {
+	var opts []ebm.MenuOption
+	inits := AllStrategyInitiatives(platformID)
+	initComms := getInitiativeCommunitiesForUserIDUnsafe(userID, models.PlatformID(platformID))
+	commIDs := AsValues(initComms, "ID")
+	for _, each := range inits {
+		eachCommIDs := []string{each.InitiativeCommunityID}
+		if len(core.InAButNotB(commIDs, eachCommIDs)) > 0 {
+			opts = append(opts, ebm.MenuOption{Text: each.Name, Value: each.ID})
+		}
+	}
+	return opts
+}
+
 func actionSelected(actions []*slack.AttachmentAction) string {
 	var selected string
 	if len(actions) > 0 {
@@ -755,6 +808,7 @@ func actionSelected(actions []*slack.AttachmentAction) string {
 
 func handleCreateEvent1(mc models.MessageCallback, userID, channelID string, platformID models.PlatformID, actionName,
 	actionValue string, message slack.InteractionCallback) {
+	logger.WithField("mc.Topic", mc.Topic).Infof("handleCreateEvent1")
 	switch mc.Topic {
 	case ObjectiveEvent:
 		// Once retrieving the cap comm id, set target back to empty. This wil further be used if the cap community is being updated
@@ -801,6 +855,8 @@ func handleCreateEvent1(mc models.MessageCallback, userID, channelID string, pla
 		handleInitiativeCommunityCreate(mc, actionName, actionValue, userID, channelID, message, platformID)
 	case ObjectiveCommunityAssociationSelectObjective:
 		handleObjectiveCommunityAssociationSelectObjective(mc, actionName, actionValue, userID, channelID, message, platformID)
+	case InitiativeCommunityAssociationSelectInitiative:
+		handleInitiativeCommunityAssociationSelectObjective(mc, actionName, actionValue, userID, channelID, message, platformID)
 	// adhoc events
 	case ObjectiveAdhocEvent:
 		handleMenuObjectiveCreate(userID, channelID, platformID, message, false)
@@ -816,6 +872,10 @@ func handleCreateEvent1(mc models.MessageCallback, userID, channelID string, pla
 		// copied from CreateInitiativeCommunity event in menu_list
 		handleCreateEvent(InitiativeCommunityEvent, "Would you like to create an initiative community?", userID,
 			channelID, platformID, message, true)
+	case strategy.AssociateInitiativeWithInitiativeCommunityEvent:
+		handleMenuInitiativeAssociationCreate(userID, channelID, message, false, platformID,  mc.Target)
+	default:
+		logger.WithField("mc.Topic", mc.Topic).Infof("Unhandled topic in handleCreateEvent1")
 	}
 }
 
@@ -929,12 +989,7 @@ func handleMenuCreateInitiative(userID, channelID string, platformID models.Plat
 	message slack.InteractionCallback, deleteOriginal bool) {
 	logger.Infof("In handleMenuCreateInitiative for user %s with platform %s", userID, platformID)
 	// Query all the Strategy Initiative communities
-	var initComms []strategy.StrategyInitiativeCommunity
-	if isMemberInCommunity(userID, community.Strategy) {
-		initComms = strategy.AllStrategyInitiativeCommunities(platformID, strategyInitiativeCommunitiesTable, strategyInitiativeCommunitiesPlatformIndex, strategyCommunitiesTable)
-	} else {
-		initComms = StrategyInitiativeCommunitiesForUserID(userID, models.PlatformID(platformID))
-	}
+	initComms := getInitiativeCommunitiesForUserIDUnsafe(userID, models.PlatformID(platformID))
 
 	var adaptiveAssociatedInitComms []strategy.StrategyInitiativeCommunity
 	// Get a list of Adaptive associated Initiative communities
@@ -984,6 +1039,28 @@ func handleMenuObjectiveCreate(userID, channelID string, platformID models.Platf
 		// send a message that user is not authorized to create objectives
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
 			Message: fmt.Sprintf("You are not part of the Adaptive Strategy Community, you will not be able to create Capability Objectives.")})
+	}
+}
+
+func handleMenuInitiativeAssociationCreate(userID, channelID string, message slack.InteractionCallback,
+	deleteOriginal bool, platformID models.PlatformID, initCommID string) {
+	mc := models.MessageCallback{
+		Module: string(community.Strategy), 
+		Source: userID,
+		Topic: InitiativeCommunityAssociationSelectInitiative,
+		Action: string(strategy.Create),
+		Target: initCommID,
+	}
+	initCommsOpts := allInitiativesAssociatableOptions(userID, platformID)
+	if len(initCommsOpts) > 0 {
+		// TODO: Check if there are objectives to associate
+		handleMenuEvent("Select which initiative you want to associate with the Initiative Community.", userID, mc, initCommsOpts)
+	} else {
+		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
+			Message: fmt.Sprintf("There are no initiatives to associate with this Community.")})
+	}
+	if deleteOriginal {
+		DeleteOriginalEng(userID, channelID, message.MessageTs)
 	}
 }
 
@@ -1055,7 +1132,11 @@ func onSlackInteraction(np models.NamespacePayload4) (err error) {
 	// 'menu_list' is for the options that are presented to the user
 	if action.Name == "menu_list" {
 		selected := action.SelectedOptions[0]
-		logger.WithField("name", action.Name).WithField("value", action.Value).Info("In menu_list")
+		logger.
+			WithField("name", action.Name).
+			WithField("value", action.Value).
+			WithField("selected.Value", selected.Value).
+			Info("In menu_list")
 		switch selected.Value {
 		case CreateStrategyObjective:
 			// Create a strategy objective
@@ -1063,6 +1144,9 @@ func onSlackInteraction(np models.NamespacePayload4) (err error) {
 			// err = enterWorkflow(CreateObjectiveWorkflow, np, "")
 		case AssociateInitiativeWithInitiativeCommunity:
 			handleMenuObjectiveAssociationCreate(userID, channelID, message, true, models.PlatformID(platformID))
+		// // case AssociateInitiativeWithInitiativeCommunity:
+		// 	handleCreateEvent(strategy.AssociateInitiativeWithInitiativeCommunityEvent, "I see you want to associate an initiative with an initiative community.",
+		// 		userID, channelID, platformID, message, true)
 		case CreateFinancialObjective:
 			// np.InteractionCallback.CallbackID = FirstWorkflowPath.Encode()
 			// invokeWorkflow(np) // TODO: This is a temporary invocation of workflow from menu. Just to make sure everything is working.
@@ -1088,9 +1172,6 @@ func onSlackInteraction(np models.NamespacePayload4) (err error) {
 		case CreateInitiativeCommunity:
 			handleCreateEvent(InitiativeCommunityEvent, "Would you like to create an initiative community?",
 				userID, channelID, platformID, message, true)
-		// case AssociateInitiativeWithInitiativeCommunity:
-		//	handleCreateEvent(strategy.AssociateInitiativeWithInitiativeCommunityEvent, "I see you want to associate an initiative with an initiative community.",
-		//		userID, channelID, message, true)
 		case ViewAdvocacyObjectives:
 			logger.Error("Not entering Old CreateObjectiveWorkflow/ViewMyObjectivesEvent")
 			// err = enterWorkflow(CreateObjectiveWorkflow, np, ViewMyObjectivesEvent)
@@ -1113,6 +1194,8 @@ func onSlackInteraction(np models.NamespacePayload4) (err error) {
 				inits = InitiativeCommunityInitiatives(userID)
 			}
 			onViewInitiatives(request, platformID, inits)
+		default:
+			logger.Infof("Unhandled option %s", selected.Value)
 		}
 	} else {
 		action := message.ActionCallback.AttachmentActions[0]

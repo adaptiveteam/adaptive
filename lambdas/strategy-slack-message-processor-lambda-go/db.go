@@ -2,16 +2,19 @@ package lambda
 
 import (
 	"encoding/json"
-	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	"fmt"
+	"strconv"
+
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"strconv"
 )
+
 // StrategyInitiativeCommunityByID reads initiative community from table.
 func StrategyInitiativeCommunityByID(id string, platformID models.PlatformID) (result strategy.StrategyInitiativeCommunity) {
 	entity := StrategyEntityById(id, platformID, strategyInitiativeCommunitiesTable)
@@ -45,7 +48,6 @@ func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(platf
 	}
 	return
 }
-
 
 func dynListString(list []string) *dynamodb.AttributeValue {
 	attr := dynamodb.AttributeValue{SS: aws.StringSlice(list)}
@@ -100,7 +102,7 @@ func SetObjectiveField(uObj models.UserObjective, fieldName string, fieldValue i
 
 	key := map[string]*dynamodb.AttributeValue{
 		"user_id": dynString(uObj.UserID),
-		"id": dynString(uObj.ID),
+		"id":      dynString(uObj.ID),
 	}
 	updateExpression := fmt.Sprintf("set %s = :f", fieldName)
 	err := d.UpdateTableEntry(exprAttributes, key, updateExpression, userObjectivesTable)
@@ -127,4 +129,13 @@ func LatestProgressUpdateByObjectiveID(id string) []models.UserObjectiveProgress
 		logger.WithField("error", err).Errorf("Could not get progress for %s objective", id)
 	}
 	return ops
+}
+
+func getInitiativeCommunitiesForUserIDUnsafe(userID string, platformID models.PlatformID) (initComms []strategy.StrategyInitiativeCommunity) {
+	if isMemberInCommunity(userID, community.Strategy) {
+		initComms = strategy.AllStrategyInitiativeCommunities(platformID, strategyInitiativeCommunitiesTable, strategyInitiativeCommunitiesPlatformIndex, strategyCommunitiesTable)
+	} else {
+		initComms = StrategyInitiativeCommunitiesForUserID(userID, models.PlatformID(platformID))
+	}
+	return
 }

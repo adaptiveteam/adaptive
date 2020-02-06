@@ -76,14 +76,14 @@ func InitiativeCommunityViewAttachmentReadOnly(mc models.MessageCallback, newSi,
 	return EntityViewAttachment(common.AttachmentEntity{MC: mc, Title: title, Fields: kvs})
 }
 
-func initiativeCommunityEditActions(siID string, mc models.MessageCallback, strategyInitiativesTable, strategyInitiativesPlatformIndex string) []ebm.AttachmentAction {
+func initiativeCommunityEditActions(initCommID string, mc models.MessageCallback, strategyInitiativesTable, strategyInitiativesPlatformIndex string) []ebm.AttachmentAction {
 	var actions []ebm.AttachmentAction
 	platformID := UserIDToPlatformID(userDAO())(mc.Source)
 	allInits := AllStrategyInitiatives(platformID, strategyInitiativesTable, strategyInitiativesPlatformIndex)
-	mc = *mc.WithTarget(siID)
+	mc = *mc.WithTarget(initCommID)
 	if len(allInits) > 0 {
-		// Show allocation button when there are initiative communities
-		actions = append(actions, AllocateInitiativeForCommunityAttachAction(mc))
+		// Show allocation button when there are initiatives
+		actions = append(actions, AllocateInitiativeForCommunityAttachAction(mc, initCommID))
 	}
 	// actions = append(actions, AddInitiativeAttachAction(mc))
 	return actions
@@ -98,9 +98,11 @@ func InitiativeCommunityViewAttachmentEditable(mc models.MessageCallback, newSi,
 	return EntityViewAttachment(common.AttachmentEntity{MC: mc, Title: title, Actions: actions, Fields: kvs})
 }
 
-func AllocateInitiativeForCommunityAttachAction(mc models.MessageCallback) ebm.AttachmentAction {
+func AllocateInitiativeForCommunityAttachAction(mc models.MessageCallback, initCommID string) ebm.AttachmentAction {
 	return *models.SimpleAttachAction(
-		*mc.WithAction(string(Create)).WithTopic(AssociateInitiativeWithInitiativeCommunityEvent),
+		*mc.WithAction(string(Create)).
+			WithTopic(AssociateInitiativeWithInitiativeCommunityEvent).
+			WithTarget(initCommID),
 		models.Now,
 		"Allocate Initiative",
 	)
