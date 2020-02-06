@@ -36,19 +36,19 @@ var (
 	userObjectivesTypeIndex          = "UserIDTypeIndex"
 	userCommunitiesTable             = utils.NonEmptyEnv("USER_COMMUNITIES_TABLE")
 	communityUsersTable              = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
-	communityUsersUserCommunityIndex = "CommunityUsersUserCommunityIndex"
+	communityUsersUserCommunityIndex = "UserIDCommunityIDIndex"
 	communityUsersUserIndex          = utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX")
 	dialogTableName                  = utils.NonEmptyEnv("DIALOG_TABLE")
 	visionTable                      = utils.NonEmptyEnv("VISION_TABLE_NAME")
 
 	strategyObjectivesTableName                    = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME")
-	strategyObjectivesPlatformIndex                = "StrategyObjectivesPlatformIndex"
+	strategyObjectivesPlatformIndex                = "PlatformIDIndex"
 	capabilityCommunitiesTable                     = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")     // required
-	capabilityCommunitiesPlatformIndex             = "CapabilityCommunitiesPlatformIndex" // required
+	capabilityCommunitiesPlatformIndex             = "PlatformIDIndex" // required
 	initiativeCommunitiesTable                     = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME")     // required
 	initiativeCommunitiesPlatformIndex             = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX") // required
 	_                                              = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
-	strategyCommunitiesPlatformChannelCreatedIndex = "StrategyCommunityPlatformChannelCreatedIndex"
+	strategyCommunitiesPlatformChannelCreatedIndex = "PlatformIDChannelCreatedIndex"
 
 	engScriptingLambda = utils.NonEmptyEnv("USER_ENGAGEMENT_SCRIPTING_LAMBDA_NAME")
 

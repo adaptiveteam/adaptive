@@ -28,4 +28,4 @@ func readConfigFromEnvVars() (config Config) {
 }
 
 var userFeedbackTableName = func (clientID string) string { return clientID + "_adaptive_user_feedback" }
-const userFeedbackSourceQYIndex = "SourceQuarterYear"
+const userFeedbackSourceQYIndex = "QuarterYearSourceIndex"

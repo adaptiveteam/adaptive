@@ -42,7 +42,7 @@ var (
 dialogContentTableName                      = func(clientID string) string { return clientID + "_dialog_content" }
 strategyObjectiveTableName                 = func(clientID string) string { return clientID + "_strategy_objectives" }
 strategyInitiativeTableName                = func(clientID string) string { return clientID + "_strategy_initiatives" }
-strategyInitiativeInitiativeCommunityIndex = "StrategyInitiativesInitiativeCommunityIndex"
+strategyInitiativeInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
 userObjectiveTableName                     = func(clientID string) string { return clientID + "_user_objective" }
 userObjectiveIDIndex                       = "IDIndex"
 userObjectiveUserIDIndex                   = "UserIDCompletedIndex"
@@ -52,19 +52,19 @@ adaptiveCommunityUserTableName                     = func(clientID string) strin
 communityTableName                        = func(clientID string) string { return clientID + "_communities" }
 competencyTableName                       = func(clientID string) string { return clientID + "_adaptive_value" }
 strategyInitiativeCommunityTableName      = func(clientID string) string { return clientID + "_initiative_communities" }
-strategyInitiativeCommunityPlatformIndex  = "InitiativeCommunitiesPlatformIndex"
+strategyInitiativeCommunityPlatformIndex  = "PlatformIDIndex"
 strategyCommunityTableName                  = func(clientID string) string { return clientID + "_strategy_communities" }
 visionMissionTableName                             = func(clientID string) string { return clientID + "_vision" }
 capabilityCommunityTableName              = func(clientID string) string { return clientID + "_capability_communities" }
-capabilityCommunityPlatformIndex          = "CapabilityCommunitiesPlatformIndex"
+capabilityCommunityPlatformIndex          = "PlatformIDIndex"
 adaptiveUserTableName                      = func(clientID string) string { return clientID + "_adaptive_users" }
 engagementTableName                         = func(clientID string) string { return clientID + "_adaptive_users_engagements" }
 )
 
-const communityUsersUserCommunityIndex            = "CommunityUsersUserCommunityIndex"
-const strategyObjectivesPlatformIndex             = "StrategyObjectivesPlatformIndex"
-const strategyInitiativesPlatformIndex            = "StrategyInitiativesPlatformIndex"
-const communityUsersUserIndex                     = "CommunityUsersUserIndex"
+const communityUsersUserCommunityIndex            = "UserIDCommunityIDIndex"
+const strategyObjectivesPlatformIndex             = "PlatformIDIndex"
+const strategyInitiativesPlatformIndex            = "PlatformIDIndex"
+const communityUsersUserIndex                     = "UserIDIndex"
 
 // SelectFromIssuesWhereTypeAndUserID reads all issues of the given type accessible by userID
 func SelectFromIssuesWhereTypeAndUserID(userID string, issueType IssueType, completed int) func (conn common.DynamoDBConnection) (res []Issue, err error) {
@@ -316,7 +316,7 @@ func IssuesFromGivenStrategyInitiatives(inits []models.StrategyInitiative) func 
 func IssuesFromCapabilityCommunityInitiatives(userID string) func (conn DynamoDBConnection)(res []Issue, err error) {
 	return func (conn DynamoDBConnection)(res []Issue, err error) {
 		defer core.RecoverToErrorVar("CapabilityCommunityInitiatives", &err)
-		strategyInitiativesInitiativeCommunityIndex := "StrategyInitiativesInitiativeCommunityIndex"
+		strategyInitiativesInitiativeCommunityIndex := "InitiativeCommunityIDIndex"
 		inits := strategy.UserCapabilityCommunityInitiatives(userID, 
 			strategyObjectiveTableName(conn.ClientID), strategyObjectivesPlatformIndex,
 			strategyInitiativeTableName(conn.ClientID), strategyInitiativesInitiativeCommunityIndex,

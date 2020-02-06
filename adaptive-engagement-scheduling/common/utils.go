@@ -118,7 +118,7 @@ func communityChannel(userID string, community community.AdaptiveCommunity) stri
 	var comm aug.AdaptiveCommunity
 	err := D.QueryTable(CommunitiesTable, params, &comm)
 	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not query %s table", CommunitiesTable))
-	return comm.Channel
+	return comm.ChannelID
 }
 
 func UserToken(userID string) aug.UserToken {

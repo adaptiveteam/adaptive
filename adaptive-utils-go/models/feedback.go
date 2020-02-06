@@ -61,6 +61,6 @@ type UserFeedbackTableSchema struct {
 func UserFeedbackTableSchemaForClientID(clientID string) UserFeedbackTableSchema {
 	return UserFeedbackTableSchema{
 		Name:                           clientID + "_adaptive_user_feedback",
-		FeedbackSourceQuarterYearIndex: "SourceQuarterYear",
+		FeedbackSourceQuarterYearIndex: "QuarterYearSourceIndex",
 	}
 }

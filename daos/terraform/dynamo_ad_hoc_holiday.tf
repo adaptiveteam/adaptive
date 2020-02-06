@@ -20,9 +20,9 @@ resource "aws_dynamodb_table" "ad_hoc_holiday_dynamodb_table"  {
 	    type = "S"
 	}
 	global_secondary_index {
-		name            = "DatePlatformIDIndex"
-		hash_key        = "date"
-		range_key       = "platform_id"
+		name            = "PlatformIDDateIndex"
+		hash_key        = "platform_id"
+		range_key       = "date"
 		projection_type = "ALL"
 		write_capacity  = var.dynamo_ondemand_write_capacity
 		read_capacity   = var.dynamo_ondemand_read_capacity

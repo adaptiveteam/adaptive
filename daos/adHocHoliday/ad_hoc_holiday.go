@@ -64,8 +64,8 @@ type DAO interface {
 	CreateOrUpdateUnsafe(adHocHoliday AdHocHoliday)
 	Deactivate(id string) error
 	DeactivateUnsafe(id string)
-	ReadByDatePlatformID(date string, platformID common.PlatformID) (adHocHoliday []AdHocHoliday, err error)
-	ReadByDatePlatformIDUnsafe(date string, platformID common.PlatformID) (adHocHoliday []AdHocHoliday)
+	ReadByPlatformIDDate(platformID common.PlatformID, date string) (adHocHoliday []AdHocHoliday, err error)
+	ReadByPlatformIDDateUnsafe(platformID common.PlatformID, date string) (adHocHoliday []AdHocHoliday)
 }
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
@@ -220,14 +220,14 @@ func (d DAOImpl)DeactivateUnsafe(id string) {
 }
 
 
-func (d DAOImpl)ReadByDatePlatformID(date string, platformID common.PlatformID) (out []AdHocHoliday, err error) {
+func (d DAOImpl)ReadByPlatformIDDate(platformID common.PlatformID, date string) (out []AdHocHoliday, err error) {
 	var instances []AdHocHoliday
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: "DatePlatformIDIndex",
-		Condition: "#date = :a0 and platform_id = :a1",
+		IndexName: "PlatformIDDateIndex",
+		Condition: "platform_id = :a0 and #date = :a1",
 		Attributes: map[string]interface{}{
-			":a0": date,
-			":a1": platformID,
+			":a0": platformID,
+			":a1": date,
 		},
 	}, map[string]string{"#date": "date"}, true, -1, &instances)
 	out = AdHocHolidayFilterActive(instances)
@@ -235,9 +235,9 @@ func (d DAOImpl)ReadByDatePlatformID(date string, platformID common.PlatformID) 
 }
 
 
-func (d DAOImpl)ReadByDatePlatformIDUnsafe(date string, platformID common.PlatformID) (out []AdHocHoliday) {
-	out, err := d.ReadByDatePlatformID(date, platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query DatePlatformIDIndex on %s table\n", d.Name))
+func (d DAOImpl)ReadByPlatformIDDateUnsafe(platformID common.PlatformID, date string) (out []AdHocHoliday) {
+	out, err := d.ReadByPlatformIDDate(platformID, date)
+	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDDateIndex on %s table\n", d.Name))
 	return
 }
 

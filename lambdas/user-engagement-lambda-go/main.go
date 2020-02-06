@@ -52,7 +52,7 @@ var (
 	profileLambda              = utils.NonEmptyEnv("USER_PROFILE_LAMBDA_NAME")
 	communityUsersTable        = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
 	communityUsersUserIndex    = utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX")
-	communityUsersChannelIndex = "CommunityUsersChannelIndex"
+	communityUsersChannelIndex = "ChannelIDIndex"
 	engagementTable            = utils.NonEmptyEnv("USER_ENGAGEMENTS_TABLE_NAME")
 	d                          = awsutils.NewDynamo(utils.NonEmptyEnv("AWS_REGION"), "", namespace)
 

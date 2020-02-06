@@ -28,7 +28,7 @@ var (
 		region:                          region,
 		visionTable:                     utils.NonEmptyEnv("VISION_TABLE_NAME"),
 		strategyObjectivesTable:         utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME"),
-		strategyObjectivesPlatformIndex: "StrategyObjectivesPlatformIndex",
+		strategyObjectivesPlatformIndex: "PlatformIDIndex",
 		userObjectivesTable:             utils.NonEmptyEnv("USER_OBJECTIVES_TABLE_NAME"),
 		communitiesTable:                utils.NonEmptyEnv("ADAPTIVE_COMMUNITIES_TABLE"),
 		l:                               awsutils.NewLambda(region, "", namespace),
@@ -67,7 +67,7 @@ func communityChannel(community community.AdaptiveCommunity,
 	var comm models.AdaptiveCommunity
 	err = d.QueryTable(communitiesTable, params, &comm)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table", communitiesTable))
-	channel = comm.Channel
+	channel = comm.ChannelID
 	return
 }
 

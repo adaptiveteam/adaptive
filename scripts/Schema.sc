@@ -190,6 +190,10 @@ val coachingRelationshipPackage = defaultPackage(coachingRelationshipTable, impo
 val sourceField = "Source".camel :: string
 val targetField = "Target".camel :: string
 val quarterYearField = "QuarterYear".camel :: string
+val channelIdField = "ChannelID".camel :: string
+val channelIDField = channelIdField//"ChannelID".camel :: string
+val channelIdFieldWithOldDbName = channelIdField.dbName("Channel".camel)  \\ "ChannelID is a channel identifier. TODO: rename db field `channel` to `channel_id`"
+
 val UserFeedback = Entity(
     "UserFeedback".camel, 
     List(idField),
@@ -200,8 +204,8 @@ val UserFeedback = Entity(
         "ConfidenceFactor".camel :: string,
         "Feedback".camel :: string,
         quarterYearField,
-        ("Channel".camel :: string) \\ 
-            "Channel, if any, to engage user in response to the feedback" \\ 
+        channelIdFieldWithOldDbName \\ // TODO: rename field to channel_id
+            "ChannelID, if any, to engage user in response to the feedback" \\ 
             "This is useful to reply to an event with no knowledge of the previous context",
         ("MsgTimestamp".camel :: string) \\ "A reference to the original timestamp that can be used to reply via threading",
         platformIdField
@@ -218,14 +222,14 @@ val UserFeedbackTable = Table(UserFeedback,
 
 val UserFeedbackPackage = defaultPackage(UserFeedbackTable, imports)
 
-val userIdField = (spacedName("user ID") :: string) \\ 
-    "UserId is the Id of the user to send an engagement to" \\
+val userIdField = ("UserID".camel :: string) \\ 
+    "UserID is the ID of the user to send an engagement to" \\
     "This usually corresponds to the platform user id"
-val targetIdField = (spacedName("target ID") :: string) \\ 
-    "TargetId is the Id of the user for whom this is related to"
+val targetIdField = ("TargetID".camel :: string) \\ 
+    "TargetID is the ID of the user for whom this is related to"
 val answeredField = ("Answered".camel :: int) \\ 
-    "A flag indicating is a user has responded to the engagement - 1 for answered, 0 for un-answered"\\
-    "this is required because, we need to keep the engagement even after a user has answered it"\\
+    "Answered is a flag indicating that a user has responded to the engagement: 1 for answered, 0 for un-answered. "\\
+    "This is required because, we need to keep the engagement even after a user has answered it. "\\
     "If the user wants to edit later, we will refer to the same engagement to post to user, like getting survey information"\\
     "So, we need a way to differentiate between answered and unanswered engagements"
 val scriptField = ("Script".camel :: string) \\ 
@@ -312,8 +316,7 @@ val PostponedEventTable = Table(PostponedEvent,
 
 val PostponedEventPackage = defaultPackage(PostponedEventTable, allEntitySpecificImports(PostponedEvent))
 
-val channelIDField = "ChannelID".camel :: string
-val userIDField = "UserID".camel :: string
+val userIDField = userIdField // "UserID".camel :: string
 val communityIDField = "CommunityID".camel :: string
 val AdaptiveCommunityUser = Entity(
     "AdaptiveCommunityUser".camel, 
@@ -337,13 +340,13 @@ val AdaptiveCommunityUserTable = Table(AdaptiveCommunityUser,
 )
 val AdaptiveCommunityUserPackage = defaultPackage(AdaptiveCommunityUserTable, imports)
 
-val channelField = "Channel".camel :: string
+// val channelField = "Channel".camel :: string
 val AdaptiveCommunity = Entity(
     "AdaptiveCommunity".camel, 
     List(idField),
     List(
         platformIdField,
-        channelField,
+        channelIdFieldWithOldDbName, // TODO: rename db field to channel_id
         "Active".camel :: boolean,
         "RequestedBy".camel :: string
     ),
@@ -356,7 +359,7 @@ val AdaptiveCommunity = Entity(
 val AdaptiveCommunityTable = Table(AdaptiveCommunity, 
     Index(idField, Some(platformIdField)),
     List(
-        Index(channelField, None),
+        Index(channelIdFieldWithOldDbName, None),
         Index(platformIdField, None)
     )
 )
@@ -405,7 +408,7 @@ val AdHocHolidayTable = Table(
     AdHocHoliday,
     Index(idField, None),
     List(
-        Index(dateField, Some(platformIdField))
+        Index(platformIdField, Some(dateField))
     )
 )
 
@@ -573,8 +576,9 @@ val ClientPlatformTokenPackage = Package(ClientPlatformToken.name,
 )
 
 val StrategyObjectiveType = TypeAlias("StrategyObjectiveType".camel, string)
+// TODO: rename field in DB and then remove `dbName` 
 val capabilityCommunityIDsField = (spacedName("capability community IDs") :: optionStringArray).
-    dbName("capability_community_ids".camel)\\"community id not require d for customer/financial objectives"
+    dbName(spacedName("capability community ID")) \\ "community id not require d for customer/financial objectives"
 val createdByField = "CreatedBy".camel :: string
 val advocateField = "Advocate".camel :: string
 val StrategyObjective = Entity(
@@ -596,7 +600,8 @@ val StrategyObjective = Entity(
 val StrategyObjectiveTable = Table(StrategyObjective,
     Index(idField, Some(platformIdField)),
     List(
-        Index(platformIdField, None)
+        Index(platformIdField, None),
+        Index(capabilityCommunityIDsField, None)
     )
 )
 
@@ -711,7 +716,6 @@ val VisionMissionTable = Table(VisionMission,
 val VisionMissionPackage = defaultPackage(VisionMissionTable, allEntitySpecificImports(VisionMission))
 
 val channelCreatedField = ("ChannelCreated".camel :: int)\\ "0 for false"
-val channelIdField = "ChannelID".camel :: string
 val StrategyCommunity = Entity(
     "StrategyCommunity".camel, 
     List(idField),

@@ -2,6 +2,8 @@ package strategy
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
@@ -9,7 +11,6 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"strings"
 )
 
 // QueryCommunityUserIndex gets Adaptive communities that the user is a part of
@@ -34,9 +35,9 @@ type DynamoTableWithIndex struct {
 // StrategyCommunitiesDAOReadByPlatformID is a copy of daos/StrategyCommunity.go/DAO/ReadByPlatformID
 func StrategyCommunitiesDAOReadByPlatformID(platformID models.PlatformID, strategyCommunityTableName string) (out []StrategyCommunity, err error) {
 	var instances []StrategyCommunity
-	err = common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(strategyCommunityTableName, 
+	err = common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(strategyCommunityTableName,
 		awsutils.DynamoIndexExpression{
-			IndexName: "StrategyCommunitiesPlatformIndex",// TODO: rename to "PlatformIDIndex",
+			IndexName: "PlatformIDIndex",
 			Condition: "platform_id = :a0",
 			Attributes: map[string]interface{}{
 				":a0": platformID,

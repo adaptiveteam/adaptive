@@ -60,7 +60,7 @@ variable "dynamo_stream_view_type" {
 
 variable "user_engagement_answered_dynamo_index" {
   description = "GSI for user with answered engagements"
-  default = "UserAnsweredEngagementIndex"
+  default = "UserIDAnsweredIndex"
 }
 
 # DAX
@@ -100,17 +100,17 @@ variable "gateway_global_cloudwatch_role" {
 ## Coaching
 variable "dynamo_users_platform_index" {
   description = "GSI for users on platform id"
-  default = "UsersPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 variable "dynamo_users_timezone_offset_index" {
   description = "GSI for users on platform with timezone offset"
-  default = "UsersTimezoneOffsetIndex"
+  default = "PlatformIDTimezoneOffsetIndex"
 }
 
 variable "dynamo_users_scheduled_time_index" {
   description = "GSI for users on platform scheduled time with Adaptive"
-  default = "UsersScheduledTimeIndex"
+  default = "PlatformIDAdaptiveScheduledTimeInUTCIndex"
 }
 
 variable "dynamo_coaching_relationship_coach_index" {
@@ -130,27 +130,27 @@ variable "dynamo_coaching_relationship_quarter_year_index" {
 
 variable "dynamo_community_users_channel_index" {
   description = "GSI for community-users index by channel"
-  default = "CommunityUsersChannelIndex"
+  default = "ChannelIDIndex"
 }
 
 variable "dynamo_community_users_user_community_index" {
   description = "GSI for community-users index by user and community"
-  default = "CommunityUsersUserCommunityIndex"
+  default = "UserIDCommunityIDIndex"
 }
 
 variable "dynamo_community_users_user_index" {
   description = "GSI for community-users index by user"
-  default = "CommunityUsersUserIndex"
+  default = "UserIDIndex"
 }
 
 variable "dynamo_community_users_community_index" {
   description = "GSI for community-users index by community"
-  default = "CommunityUsersCommunityIndex"
+  default = "PlatformIDCommunityIDIndex"
 }
 
 variable "dynamo_dialog_content_contect_subject_index" {
   description = "GSI for dailog content by context-subject"
-  default = "context-subject-index"
+  default = "ContextSubjectIndex"
 }
 
 variable "user_engagement_scheduler_lambda_prefix" {
@@ -158,36 +158,41 @@ variable "user_engagement_scheduler_lambda_prefix" {
 }
 
 ## User objectives
+# TODO: remove the following variable - dynamo_user_objectives_user_index. It's not used to create the index. The actual index name is defined in daos.
 variable "dynamo_user_objectives_user_index" {
   description = "GSI for user objectives user index"
   default = "UserIDCompletedIndex"
 }
 
+# TODO: remove the following variable - dynamo_user_objectives_id_index. It's not used to create the index. There is no such index
 variable "dynamo_user_objectives_id_index" {
   description = "GSI for user objectives id index"
   default = "IDIndex"
 }
 
+# TODO: remove the following variable - dynamo_user_objectives_partner_index. It's not used to create the index. The actual index name is defined in daos.
 variable "dynamo_user_objectives_partner_index" {
   description = "GSI for user objectives partner index"
   default = "AccountabilityPartnerIndex"
 }
 
+# TODO: remove the following variable - dynamo_user_objectives_accepted_index. It's not used to create the index. The actual index name is defined in daos.
 variable "dynamo_user_objectives_accepted_index" {
   description = "GSI for user objectives accepted index"
   default = "AcceptedIndex"
 }
 
+# TODO: remove the following variable - dynamo_user_objectives_type_index. It's not used to create the index. The actual index name is defined in daos.
 variable "dynamo_user_objectives_type_index" {
   description = "GSI for user objectives based on type (individual/strategy)"
   default = "UserIDTypeIndex"
 }
-
+# This variable was updated accordingly to daos._user_objective_progress
 variable "dynamo_user_objectives_progress_index" {
   description = "GSI for user objectives progress index"
   default = "IDIndex"
 }
-
+# This variable was updated accordingly to daos._user_objective_progress
 variable "dynamo_user_objectives_progress_created_on_index" {
   description = "GSI for user objectives progress created on index"
   default = "CreatedOnIndex"
@@ -195,51 +200,52 @@ variable "dynamo_user_objectives_progress_created_on_index" {
 
 variable "dynamo_strategy_communities_platform_channel_created_index" {
   description = "Index for strategy community platform-channel index"
-  default = "StrategyCommunityPlatformChannelCreatedIndex"
+  default = "PlatformIDChannelCreatedIndex"
 }
 
 variable "dynamo_strategy_communities_platform_index" {
-  default = "StrategyCommunitiesPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 variable "dynamo_strategy_communities_channel_index" {
-  default = "StrategyCommunitiesChannelIndex"
+  default = "ChannelIDIndex"
 }
 
 # strategy communities
 variable "dynamo_capability_communities_platform_index" {
   description = "Index for strategy objectives based on platform id"
-  default = "CapabilityCommunitiesPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 variable "dynamo_strategy_initiative_communities_platform_index" {
   description = "Index for strategy initiatives based on platform id"
-  default = "InitiativeCommunitiesPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 # strategy initiatives
 variable "dynamo_strategy_initiatives_platform_index" {
   description = "Index for strategy initiatives based on platform id"
-  default = "StrategyInitiativesPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 variable "dynamo_strategy_initiatives_initiative_community_index" {
   description = "Index for strategy initiatives based on initiative community id"
-  default = "StrategyInitiativesInitiativeCommunityIndex"
+  default = "InitiativeCommunityIDIndex"
 }
 
 # strategy objectives
 variable "dynamo_strategy_objectives_platform_index" {
   description = "Index for strategy objectives based on platform id"
-  default = "StrategyObjectivesPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 variable "dynamo_strategy_objectives_capability_community_index" {
   description = "Index for strategy objectives based on capabbility community id"
-  default = "StrategyObjectivesCapabilityCommunityIndex"
+  default = "CapabilityCommunityIDsIndex"
 }
 
 # values
+# TODO: remove the following variable - dynamo_adaptive_values_platform_id_index. It's not used to create the index. The actual index name is defined in daos.
 variable "dynamo_adaptive_values_platform_id_index" {
   description = "GSI for adaptive values dynamo_adaptive_values_platform_id_index index"
   default = "PlatformIDIndex"
@@ -248,19 +254,20 @@ variable "dynamo_adaptive_values_platform_id_index" {
 # User communities
 variable "user_community_channel_dynamo_index" {
   description = "GSI for user communities with channel"
-  default = "UserCommunityChannelIndex"
+  default = "ChannelIndex"
 }
 
 variable "user_community_platform_dynamo_index" {
   description = "GSI for user communities with platform"
-  default = "UserCommunityPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 # Holidays
 variable "dynamo_holidays_date_index" {
   description = "GSI for holidays date index"
-  default = "HolidaysPlatformDateIndex"
+  default = "PlatformIDDateIndex"
 }
+# TODO: Remove this variable. The index does not exist and is not being used
 variable "dynamo_holidays_id_index" {
   description = "GSI for HW id index"
   default = "HolidaysIdIndex"
@@ -269,11 +276,12 @@ variable "dynamo_holidays_id_index" {
 # User feedback
 variable "feedback_source_quarter_year_index" {
   description = "GSI for source with quarter year"
-  default = "SourceQuarterYear"
+  default = "QuarterYearSourceIndex"
 }
+# TODO: remove this variable 'feedback_target_quarter_year_index'. It's not being referenced anywhere
 variable "feedback_target_quarter_year_index" {
   description = "GSI for target with quarter year"
-  default = "TargetQuarterYear"
+  default = "QuarterYearTargetIndex"
 }
 
 variable "RDS_HOST" {}

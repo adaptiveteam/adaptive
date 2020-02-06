@@ -65,8 +65,8 @@ type AdaptiveUsersTableSchema struct {
 func AdaptiveUsersTableSchemaForClientID(clientID string) AdaptiveUsersTableSchema {
 	return AdaptiveUsersTableSchema{
 		Name:                       clientID + "_adaptive_users",
-		PlatformIndex:              "UsersPlatformIndex",
-		PlatformTZOffsetIndex:      "UsersTimezoneOffsetIndex",
-		PlatformScheduledTimeIndex: "UsersScheduledTimeIndex",
+		PlatformIndex:              "PlatformIDIndex",
+		PlatformTZOffsetIndex:      "PlatformIDTimezoneOffsetIndex",
+		PlatformScheduledTimeIndex: "PlatformIDAdaptiveScheduledTimeInUTCIndex",
 	}
 }

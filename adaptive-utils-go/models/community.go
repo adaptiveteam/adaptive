@@ -25,8 +25,8 @@ type AdaptiveCommunityTableSchema struct {
 func AdaptiveCommunityTableSchemaForClientID(clientID string) AdaptiveCommunityTableSchema {
 	return AdaptiveCommunityTableSchema{
 		Name: clientID + "_communities",
-		ChannelIndex: "UserCommunityChannelIndex",
-		PlatformIndex: "UserCommunityPlatformIndex",
+		ChannelIndex: "ChannelIndex",
+		PlatformIndex: "PlatformIDIndex",
 	}
 }
 
@@ -58,9 +58,9 @@ type CommunityUsersTableSchema struct {
 func CommunityUsersTableSchemaForClientID(clientID string) CommunityUsersTableSchema {
 	return CommunityUsersTableSchema{
 		Name: clientID + "_community_users",
-		ChannelIndex: "CommunityUsersChannelIndex",
-		UserCommunityIndex: "CommunityUsersUserCommunityIndex",
-		UserIndex: "CommunityUsersUserIndex",
-		CommunityIndex: "CommunityUsersCommunityIndex",
+		ChannelIndex: "ChannelIDIndex",
+		UserCommunityIndex: "UserIDCommunityIDIndex",
+		UserIndex: "UserIDIndex",
+		CommunityIndex: "PlatformIDCommunityIDIndex",
 	}
 }

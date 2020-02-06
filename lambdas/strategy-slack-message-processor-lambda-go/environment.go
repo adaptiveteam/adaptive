@@ -21,16 +21,16 @@ var (
 	capabilityCommunitiesTable                  = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")
 	strategyInitiativesTable                    = utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE_NAME") // required
 	strategyInitiativeCommunitiesTable          = utils.NonEmptyEnv("STRATEGY_INITIATIVE_COMMUNITIES_TABLE_NAME")
-	strategyInitiativesInitiativeCommunityIndex = "StrategyInitiativesInitiativeCommunityIndex"
+	strategyInitiativesInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
 	strategyCommunitiesTable                    = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
 
-	strategyObjectivesPlatformIndex            = "StrategyObjectivesPlatformIndex"
-	strategyObjectivesCapabilityCommunityIndex = "StrategyObjectivesCapabilityCommunityIndex"
-	capabilityCommunitiesPlatformIndex         = "CapabilityCommunitiesPlatformIndex"
-	strategyInitiativesPlatformIndex           = "StrategyInitiativesPlatformIndex"
-	strategyInitiativeCommunitiesPlatformIndex = "InitiativeCommunitiesPlatformIndex"
-	strategyCommunitiesPlatformIndex           = "StrategyCommunitiesPlatformIndex"
-	communityUsersUserCommunityIndex           = "CommunityUsersUserCommunityIndex"
+	strategyObjectivesPlatformIndex            = "PlatformIDIndex"
+	strategyObjectivesCapabilityCommunityIndex = "CapabilityCommunityIDsIndex"
+	capabilityCommunitiesPlatformIndex         = "PlatformIDIndex"
+	strategyInitiativesPlatformIndex           = "PlatformIDIndex"
+	strategyInitiativeCommunitiesPlatformIndex = "PlatformIDIndex"
+	strategyCommunitiesPlatformIndex           = "PlatformIDIndex"
+	communityUsersUserCommunityIndex           = "UserIDCommunityIDIndex"
 
 	usersTableName     = utils.NonEmptyEnv("USERS_TABLE_NAME")
 	usersPlatformIndex = utils.NonEmptyEnv("USERS_PLATFORM_INDEX")
