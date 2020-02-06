@@ -62,7 +62,7 @@ engagementTableName                         = func(clientID string) string { ret
 )
 
 const communityUsersUserCommunityIndex            = "UserIDCommunityIDIndex"
-const strategyObjectivesPlatformIndex             = "StrategyObjectivesPlatformIndex"
+const strategyObjectivesPlatformIndex             = "PlatformIDIndex"
 const strategyInitiativesPlatformIndex            = "PlatformIDIndex"
 const communityUsersUserIndex                     = "UserIDIndex"
 

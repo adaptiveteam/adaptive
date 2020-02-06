@@ -42,7 +42,7 @@ var (
 	visionTable                      = utils.NonEmptyEnv("VISION_TABLE_NAME")
 
 	strategyObjectivesTableName                    = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME")
-	strategyObjectivesPlatformIndex                = "StrategyObjectivesPlatformIndex"
+	strategyObjectivesPlatformIndex                = "PlatformIDIndex"
 	capabilityCommunitiesTable                     = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")     // required
 	capabilityCommunitiesPlatformIndex             = "PlatformIDIndex" // required
 	initiativeCommunitiesTable                     = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME")     // required

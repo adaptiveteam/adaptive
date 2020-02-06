@@ -38,7 +38,7 @@ var (
 	strategyInitiativesTableName     = utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE")
 	strategyInitiativesPlatformIndex = "PlatformIDIndex"
 	strategyObjectivesTableName      = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE")
-	strategyObjectivesPlatformIndex  = "StrategyObjectivesPlatformIndex"
+	strategyObjectivesPlatformIndex  = "PlatformIDIndex"
 
 	d       = awsutils.NewDynamo(region, "", namespace)
 	l       = awsutils.NewLambda(region, "", namespace)

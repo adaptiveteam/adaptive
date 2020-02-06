@@ -3,7 +3,7 @@ package issues
 var (
 	dialogContentTableName                      = func(clientID string) string { return clientID + "_dialog_content" }
 	strategyObjectivesTableName                 = func(clientID string) string { return clientID + "_strategy_objectives" }
-	strategyObjectivesPlatformIndex             = "StrategyObjectivesPlatformIndex"
+	strategyObjectivesPlatformIndex             = "PlatformIDIndex"
 	strategyInitiativesTableName                = func(clientID string) string { return clientID + "_strategy_initiatives" }
 	strategyInitiativesPlatformIndex            = "PlatformIDIndex"
 	strategyInitiativesInitiativeCommunityIndex = "InitiativeCommunityIDIndex"

@@ -24,7 +24,7 @@ var (
 	strategyInitiativesInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
 	strategyCommunitiesTable                    = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
 
-	strategyObjectivesPlatformIndex            = "StrategyObjectivesPlatformIndex"
+	strategyObjectivesPlatformIndex            = "PlatformIDIndex"
 	strategyObjectivesCapabilityCommunityIndex = "StrategyObjectivesCapabilityCommunityIndex"
 	capabilityCommunitiesPlatformIndex         = "PlatformIDIndex"
 	strategyInitiativesPlatformIndex           = "PlatformIDIndex"
