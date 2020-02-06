@@ -259,7 +259,7 @@ variable "user_community_channel_dynamo_index" {
 
 variable "user_community_platform_dynamo_index" {
   description = "GSI for user communities with platform"
-  default = "UserCommunityPlatformIndex"
+  default = "PlatformIDIndex"
 }
 
 # Holidays

@@ -26,7 +26,7 @@ func AdaptiveCommunityTableSchemaForClientID(clientID string) AdaptiveCommunityT
 	return AdaptiveCommunityTableSchema{
 		Name: clientID + "_communities",
 		ChannelIndex: "ChannelIndex",
-		PlatformIndex: "UserCommunityPlatformIndex",
+		PlatformIndex: "PlatformIDIndex",
 	}
 }
 
