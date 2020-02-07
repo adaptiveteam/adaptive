@@ -16,7 +16,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	"github.com/adaptiveteam/adaptive/checks"
-	"github.com/aws/aws-sdk-go/aws"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 
 	"strconv"
@@ -105,18 +105,16 @@ func publish(msg models.PlatformSimpleNotification) {
 
 func helloMessage(userID, channelID string, platformID models.PlatformID) {
 	keyParams := map[string]*dynamodb.AttributeValue{
-		"id": {
-			S: aws.String(userID),
-		},
+		"id": daosCommon.DynS(userID),
 	}
 
 	// Check if the user already exists
 	var aUser models.User
-	err := d.QueryTable(usersTable, keyParams, &aUser)
+	found, err := d.GetItemOrEmptyFromTable(usersTable, keyParams, &aUser)
 	core.ErrorHandler(err, namespace, "Couldn't find user "+userID)
 	// If the user doesn't exist in our tables, add the user first and then proceed to evaluate ADM
 	if err == nil {
-		if aUser.ID == "" {
+		if !found {
 			log.Println("User does not exist, adding...")
 			// refresh user cache
 			engageUser, _ := json.Marshal(models.UserEngage{UserId: userID, PlatformID: models.PlatformID(platformID)})
