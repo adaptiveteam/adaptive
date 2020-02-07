@@ -4,10 +4,10 @@ import (
 	"log"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -28,16 +28,12 @@ func CommunityMembers(table string, ID string, platformID models.PlatformID, use
 
 func CommunityById(communityId string, platformId models.PlatformID, communitiesTable string) models.AdaptiveCommunity {
 	params := map[string]*dynamodb.AttributeValue{
-		"id": {
-			S: aws.String(communityId),
-		},
-		"platform_id": {
-			S: aws.String(string(platformId)),
-		},
+		"id": daosCommon.DynS(communityId),
+		"platform_id": daosCommon.DynS(string(platformId)),
 	}
 	var comm models.AdaptiveCommunity
-	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTable(communitiesTable, params, &comm)
-	core.ErrorHandler(err, common.DeprecatedGetGlobalDns().Namespace, fmt.Sprintf("Could not query %s table", communitiesTable))
+	err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemFromTable(communitiesTable, params, &comm)
+	core.ErrorHandler(err2, "CommunityById", fmt.Sprintf("Could not find %s in %s table", communityId, communitiesTable))
 	return comm
 }
 

@@ -3,6 +3,7 @@ package holidays
 import (
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"time"
 	// awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
@@ -96,13 +97,13 @@ func (d DAOImpl) AddAdHocHoliday(holiday models.AdHocHoliday) error {
 // Read reads the ad-hoc holiday
 func (d DAOImpl) Read(holidayID string) (models.AdHocHoliday, error) {
 	params := map[string]*dynamodb.AttributeValue{
-		"id": {S: aws.String(holidayID)},
+		"id": daosCommon.DynS(holidayID),
 	}
 	var out models.AdHocHoliday
-	err := d.DNS.Dynamo.QueryTable(d.Table, params, &out)
+	err2 := d.DNS.Dynamo.GetItemFromTable(d.Table, params, &out)
 	//if len(out) < 1 { return models.AdHocHoliday{}, errors.New("NotFound AdHocHoliday#ID=" + holidayID) }
 	//if len(out) > 1 { return models.AdHocHoliday{}, errors.New("Found many AdHocHoliday#ID=" + holidayID) }
-	return out, err
+	return out, err2
 }
 
 // ReadUnsafe reads the ad-hoc holiday. Panics in case of any errors
@@ -115,7 +116,7 @@ func (d DAOImpl) ReadUnsafe(holidayID string) models.AdHocHoliday {
 // Delete removes the ad-hoc holiday
 func (d DAOImpl) Delete(holidayID string) error {
 	userParams := map[string]*dynamodb.AttributeValue{
-		"id": {S: aws.String(holidayID)},
+		"id": daosCommon.DynS(holidayID),
 	}
 	return d.DNS.Dynamo.DeleteEntry(d.Table, userParams)
 }
@@ -123,24 +124,14 @@ func (d DAOImpl) Delete(holidayID string) error {
 // Update updates the ad-hoc holiday by ID
 func (d DAOImpl) Update(holiday models.AdHocHoliday) error {
 	exprAttributes := map[string]*dynamodb.AttributeValue{
-		":name1": {
-			S: aws.String(holiday.Name),
-		},
-		":description": {
-			S: aws.String(holiday.Description),
-		},
-		":date1": {
-			S: aws.String(holiday.Date),
-		},
-		":location": {
-			S: aws.String(holiday.ScopeCommunities),
-		},
-		":platform_id": {
-			S: aws.String(string(holiday.PlatformID)),
-		},
+		":name1": daosCommon.DynS(holiday.Name),
+		":description": daosCommon.DynS(holiday.Description),
+		":date1": daosCommon.DynS(holiday.Date),
+		":location": daosCommon.DynS(holiday.ScopeCommunities),
+		":platform_id": daosCommon.DynS(string(holiday.PlatformID)),
 	}
 	key := map[string]*dynamodb.AttributeValue{
-		"id": {S: aws.String(holiday.ID)},
+		"id": daosCommon.DynS(holiday.ID),
 	}
 	n := "name"
 	da := "date"

@@ -146,8 +146,8 @@ func StrategyCommunityByIDUnsafe(id, strategyCommunitiesTable string) StrategyCo
 		"id": dynString(id),
 	}
 	var comm StrategyCommunity
-	err := d().QueryTable(strategyCommunitiesTable, params, &comm)
-	core.ErrorHandler(err, namespace(), fmt.Sprintf("Could not query %s table", strategyCommunitiesTable))
+	err2 := d().GetItemFromTable(strategyCommunitiesTable, params, &comm)
+	core.ErrorHandler(err2, namespace(), fmt.Sprintf("StrategyCommunityByIDUnsafe: Could not find %s in %s table", id, strategyCommunitiesTable))
 	return comm
 }
 
@@ -245,11 +245,11 @@ func dynString(str string) *dynamodb.AttributeValue {
 }
 
 func getByIDAndPlatformIDUnsafe(table string, ID string, platformID models.PlatformID, result interface{}) {
-	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTable(table, map[string]*dynamodb.AttributeValue{
+	err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemFromTable(table, map[string]*dynamodb.AttributeValue{
 		"id":          dynString(ID),
 		"platform_id": dynString(string(platformID)),
 	}, &result)
-	core.ErrorHandler(err, common.DeprecatedGetGlobalDns().Namespace, fmt.Sprintf("Could not query %s table", table))
+	core.ErrorHandler(err2, "getByIDAndPlatformIDUnsafe", fmt.Sprintf("Could not find %s in %s table", ID, table))
 }
 
 func CapabilityCommunityByID(platformID models.PlatformID, ID, table string) (res CapabilityCommunity) {
@@ -283,20 +283,19 @@ func InitiativeCommunityByID(platformID models.PlatformID, ID, table string) (re
 	}
 	return
 }
-
-func StrategyVision(platformID models.PlatformID, visionTable string) *models.VisionMission {
+// StrategyVision returns vision for platform ID or nil if absent
+func StrategyVision(platformID models.PlatformID, visionTable string) (res *models.VisionMission) {
 	log.Println("### In StrategyVision: platformID: " + platformID)
 	// Query for the vision
 	params := map[string]*dynamodb.AttributeValue{
 		"platform_id": dynString(string(platformID)),
 	}
-	var vm models.VisionMission
-	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTable(visionTable, params, &vm)
-	core.ErrorHandler(err, common.DeprecatedGetGlobalDns().Namespace, fmt.Sprintf("Could not query %s table", visionTable))
-	if vm.ID == core.EmptyString {
-		return nil
+	found, err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemOrEmptyFromTable(visionTable, params, res)
+	core.ErrorHandler(err2, "StrategyVision", fmt.Sprintf("Could not find vision for platformID=%s in %s table", platformID, visionTable))
+	if !found {
+		res =  nil
 	}
-	return &vm
+	return
 }
 
 // String representation of new and old field values

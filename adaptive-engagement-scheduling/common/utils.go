@@ -11,9 +11,9 @@ import (
 	aug "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	"github.com/adaptiveteam/adaptive/checks"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -108,15 +108,11 @@ func communityChannel(userID string, community community.AdaptiveCommunity) stri
 	ut := UserToken(userID)
 	// Querying for admin community
 	params := map[string]*dynamodb.AttributeValue{
-		"id": {
-			S: aws.String(string(community)),
-		},
-		"platform_id": {
-			S: aws.String(string(ut.ClientPlatformRequest.PlatformID)),
-		},
+		"id": daosCommon.DynS(string(community)),
+		"platform_id": daosCommon.DynS(string(ut.ClientPlatformRequest.PlatformID)),
 	}
 	var comm aug.AdaptiveCommunity
-	err := D.QueryTable(CommunitiesTable, params, &comm)
+	err := D.GetItemFromTable(CommunitiesTable, params, &comm)
 	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not query %s table", CommunitiesTable))
 	return comm.ChannelID
 }

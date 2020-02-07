@@ -68,11 +68,11 @@ func (d DAOImpl) Create(adaptiveValue models.AdaptiveValue) error {
 // Read reads the adaptiveValue
 func (d DAOImpl) Read(adaptiveValueID string) (models.AdaptiveValue, error) {
 	params := map[string]*dynamodb.AttributeValue{
-		"id": {S: aws.String(adaptiveValueID)},
+		"id": daosCommon.DynS(adaptiveValueID),
 	}
 	var out models.AdaptiveValue
-	err := d.DNS.Dynamo.QueryTable(d.Name, params, &out)
-	return out, err
+	err2 := d.DNS.Dynamo.GetItemFromTable(d.Name, params, &out)
+	return out, err2
 }
 
 // ReadUnsafe reads the adaptiveValue. Panics in case of any errors
@@ -85,7 +85,7 @@ func (d DAOImpl) ReadUnsafe(adaptiveValueID string) models.AdaptiveValue {
 // Delete removes the adaptiveValue
 func (d DAOImpl) Delete(adaptiveValueID string) error {
 	userParams := map[string]*dynamodb.AttributeValue{
-		"id": {S: aws.String(adaptiveValueID)},
+		"id": daosCommon.DynS(adaptiveValueID),
 	}
 	return d.DNS.Dynamo.DeleteEntry(d.Name, userParams)
 }
@@ -108,21 +108,13 @@ func (d DAOImpl) Deactivate(adaptiveValueID string) (err error) {
 // deprecated. This might be used if we want to update only some of the attributes
 func (d DAOImpl) UpdateGivenAttributes(adaptiveValue models.AdaptiveValue) error {
 	exprAttributes := map[string]*dynamodb.AttributeValue{
-		":value_name": {
-			S: aws.String(adaptiveValue.Name),
-		},
-		":description": {
-			S: aws.String(adaptiveValue.Description),
-		},
-		":value_type": {
-			S: aws.String(adaptiveValue.ValueType),
-		},
-		":platform_id": {
-			S: aws.String(string(adaptiveValue.PlatformID)),
-		},
+		":value_name": daosCommon.DynS(adaptiveValue.Name),
+		":description": daosCommon.DynS(adaptiveValue.Description),
+		":value_type": daosCommon.DynS(adaptiveValue.ValueType),
+		":platform_id": daosCommon.DynS(string(adaptiveValue.PlatformID)),
 	}
 	key := map[string]*dynamodb.AttributeValue{
-		"id": {S: aws.String(adaptiveValue.ID)},
+		"id": daosCommon.DynS(adaptiveValue.ID),
 	}
 	updateExpression := "set value_name = :value_name, description = :description, value_type = :value_type, platform_id = :platform_id"
 	input := dynamodb.UpdateItemInput{

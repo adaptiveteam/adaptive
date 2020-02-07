@@ -4,6 +4,7 @@ package userSetup
 import (
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/userEngagement"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -13,7 +14,6 @@ import (
 	eb "github.com/adaptiveteam/adaptive/engagement-builder"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"strings"
 )
@@ -41,18 +41,21 @@ func mapTimeToMenuOption(times []business_time.LocalTime, f func(business_time.L
 
 func dbGetCurrentMeetingTime(userID, usersTable string) (currentTime business_time.LocalTime) {
 	params := map[string]*dynamodb.AttributeValue{
-		"id": {S: aws.String(userID)},
+		"id": daosCommon.DynS(userID),
 	}
 	var out models.User
-	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTable(usersTable, params, &out)
+	err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemFromTable(usersTable, params, &out)
 
 	currentValue := out.AdaptiveScheduledTime
 	if currentValue == "" {
 		currentValue = defaultMeetingTime.ID()
 	}
-	currentTime, err = business_time.ParseLocalTimeID(currentValue)
-	if err != nil {
-		fmt.Printf("Couldn't parse current meeting time %s: %v; Using default value %v", currentValue, err, defaultMeetingTime)
+	if err2 != nil {
+		fmt.Printf("Error reading user userID=%s: %v", userID, err2)
+	}
+	currentTime, err2 = business_time.ParseLocalTimeID(currentValue)
+	if err2 != nil {
+		fmt.Printf("Couldn't parse current meeting time %s: %v; Using default value %v", currentValue, err2, defaultMeetingTime)
 		currentTime = defaultMeetingTime
 	}
 	return

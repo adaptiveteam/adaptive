@@ -58,7 +58,7 @@ func (d DAOImpl) ReadByID(platformID models.PlatformID, communityID string) (com
 		"id":          dynString(communityID),
 		"platform_id": dynString(string(platformID)),
 	}
-	err = d.Dynamo.QueryTable(d.Name, params, &comm)
+	err = d.Dynamo.GetItemFromTable(d.Name, params, &comm)
 	return
 }
 
