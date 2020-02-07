@@ -29,13 +29,13 @@ func (d InMemoryDAO)FetchByContextSubject(
 }
 
 // FetchByDialogID fetches a piece of dialog using a unique UUID associated with the dialog
-func (d InMemoryDAO)FetchByDialogID(dialogID string) (result DialogEntry, err error) {
+func (d InMemoryDAO)FetchByDialogID(dialogID string) (result DialogEntry, found bool, err error) {
 	for _, de := range d.DialogEntries {
 		if de.DialogID == dialogID {
-			return de, nil
+			return de, true, nil
 		}
 	}
-	return DialogEntry{}, fmt.Errorf("Not found %s", dialogID)
+	return DialogEntry{}, false, fmt.Errorf("Not found %s", dialogID)
 }
 
 // FetchByAlias fetches a piece of dialog using a application/package ID, context alias, and subject

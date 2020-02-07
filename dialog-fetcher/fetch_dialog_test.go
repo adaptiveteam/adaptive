@@ -16,7 +16,8 @@ func CheckFetchBySubject(t *testing.T, dialogTableName string) {
 		"above")
 	if err != nil {t.Errorf("Error in NewFetchDialogByContext.FetchDialog (%v)", err)}
 
-	resultDialogID,err := dao.FetchByDialogID("e53bf79b-dff2-4a34-9c92-7f3bf07cdea5")
+	resultDialogID, _, err := dao.FetchByDialogID("e53bf79b-dff2-4a34-9c92-7f3bf07cdea5")
+	
 	if err != nil {t.Errorf("Error in NewFetchDialogByID.FetchDialog (%v)", err)}
 
 	resultAlias,err := dao.FetchByAlias(

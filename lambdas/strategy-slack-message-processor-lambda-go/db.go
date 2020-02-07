@@ -11,6 +11,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
@@ -28,13 +29,11 @@ func StrategyInitiativeCommunityByID(id string, platformID models.PlatformID) (r
 // panics when not found.
 func StrategyCommunityByID(id string) strategy.StrategyCommunity {
 	params := map[string]*dynamodb.AttributeValue{
-		"id": {
-			S: aws.String(id),
-		},
+		"id": daosCommon.DynS(id),
 	}
 	var comm strategy.StrategyCommunity
-	err := d.QueryTable(strategyCommunitiesTable, params, &comm)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table", strategyCommunitiesTable))
+	err2 := d.GetItemFromTable(strategyCommunitiesTable, params, &comm)
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query %s table", strategyCommunitiesTable))
 	return comm
 }
 

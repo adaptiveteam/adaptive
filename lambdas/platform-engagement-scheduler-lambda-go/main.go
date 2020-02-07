@@ -9,7 +9,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/aws/aws-sdk-go/aws"
@@ -65,8 +64,8 @@ func communityChannel(community community.AdaptiveCommunity,
 		},
 	}
 	var comm models.AdaptiveCommunity
-	err = d.QueryTable(communitiesTable, params, &comm)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table", communitiesTable))
+	err = d.GetItemFromTable(communitiesTable, params, &comm)
+	// core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table", communitiesTable))
 	channel = comm.ChannelID
 	return
 }
