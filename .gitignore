@@ -55,3 +55,5 @@ infra/core/src/slack-message-processor-lambda-go/slack-message-processor-lambda-
 infra/core/src/slack-user-query-lambda-go/slack-user-query-lambda-go
 infra/core/bin/
 infra/core/dump/
+dump/
+dynamodump/
