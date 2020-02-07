@@ -290,9 +290,12 @@ func StrategyVision(platformID models.PlatformID, visionTable string) (res *mode
 	params := map[string]*dynamodb.AttributeValue{
 		"platform_id": dynString(string(platformID)),
 	}
-	found, err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemOrEmptyFromTable(visionTable, params, res)
+	var vision models.VisionMission
+	found, err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemOrEmptyFromTable(visionTable, params, &vision)
 	core.ErrorHandler(err2, "StrategyVision", fmt.Sprintf("Could not find vision for platformID=%s in %s table", platformID, visionTable))
-	if !found {
+	if found {
+		res = &vision
+	} else {
 		res =  nil
 	}
 	return
