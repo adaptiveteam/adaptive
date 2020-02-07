@@ -3,7 +3,7 @@ package fetch_dialog
 import (
 	"fmt"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	"github.com/aws/aws-sdk-go/aws"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"strings"
 )
@@ -14,7 +14,7 @@ type DAO interface {
 		context string,
 		subject string,
 	) (rv DialogEntry, err error)
-	FetchByDialogID(dialogID string) (result DialogEntry, err error)
+	FetchByDialogID(dialogID string) (result DialogEntry, found bool, err error)
 	FetchByAlias(
 		packageName,
 		contextAlias,
@@ -72,14 +72,12 @@ func (d DAOImpl)FetchByContextSubject(
 }
 
 // FetchByDialogID fetches a piece of dialog using a unique UUID associated with the dialog
-func (d DAOImpl)FetchByDialogID(dialogID string) (result DialogEntry, err error) {
+func (d DAOImpl)FetchByDialogID(dialogID string) (result DialogEntry, found bool, err error) {
 	params := map[string]*dynamodb.AttributeValue{
-		"dialog_id": {
-			S: aws.String(dialogID),
-		},
+		"dialog_id": daosCommon.DynS(dialogID),
 	}
-	err = d.Dynamo.QueryTable(d.Table, params, &result)
-	return result, err
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Table, params, &result)
+	return
 }
 
 // FetchByAlias fetches a piece of dialog using a application/package ID, context alias, and subject
@@ -92,12 +90,10 @@ func (d DAOImpl)FetchByAlias(
 	var contextAliasEntry ContextAliasEntry
 	applicationAlias := packageName+"#"+contextAlias
 	params := map[string]*dynamodb.AttributeValue{
-		"application_alias": {
-			S: aws.String(applicationAlias),
-		},
+		"application_alias": daosCommon.DynS(applicationAlias),
 	}
 
-	err = d.Dynamo.QueryTable(d.AliasesTable, params, &contextAliasEntry)
+	err = d.Dynamo.GetItemFromTable(d.AliasesTable, params, &contextAliasEntry)
 
 	if err == nil {
 		rv, err = d.FetchByContextSubject(contextAliasEntry.Context, subject)

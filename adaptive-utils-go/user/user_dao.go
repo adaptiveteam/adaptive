@@ -52,7 +52,7 @@ func (d DAOImpl) Read(userID string) (out models.User, err error) {
 	if userID == "" {
 		err = errors.Errorf("An attempt to read user with an empty user id")
 	} else {
-		err = d.Dynamo.QueryTable(d.Name, idParams(userID), &out)
+		err = d.Dynamo.GetItemFromTable(d.Name, idParams(userID), &out)
 	}
 	return
 }

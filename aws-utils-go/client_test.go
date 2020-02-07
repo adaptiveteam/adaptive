@@ -158,7 +158,7 @@ var _ = Describe("IT Tests", func() {
 
 		It("should query table", func() {
 			var op movie
-			err := d.QueryTable(testTableName, keyParams, &op)
+			err := d.GetItemFromTable(testTableName, keyParams, &op)
 			Expect(err).To(BeNil())
 			Expect(op).To(Equal(movie{2018, "Infinity War", 8}))
 		})

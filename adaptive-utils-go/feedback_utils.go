@@ -92,10 +92,10 @@ func UserEng(id, userId, table string, d *awsutils.DynamoRequest, namespace stri
 		},
 	}
 	var ue models.UserEngagement
-	err := d.QueryTable(table, params, &ue)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table", table))
+	err2 := d.GetItemFromTable(table, params, &ue)
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not find (id=%s, userId=%s), in %s table", id, userId, table))
 	var op ebm.Message
-	err = json.Unmarshal([]byte(ue.Script), &op)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not unmarshal query output to Message from surveys"))
+	err2 = json.Unmarshal([]byte(ue.Script), &op)
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not unmarshal query output to Message from surveys"))
 	return op
 }

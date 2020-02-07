@@ -106,6 +106,8 @@ func CommunityById(communityID string, platformID models.PlatformID) models.Adap
 	return community.CommunityById(communityID, platformID, communitiesTable)
 }
 
+// StrategyEntityById - a weird way to read entities.
+// deprecated: should use typesafe DAO.Read
 func StrategyEntityById(id string, platformID models.PlatformID, table string) interface{} {
 	params := map[string]*dynamodb.AttributeValue{
 		"id": {
@@ -116,8 +118,8 @@ func StrategyEntityById(id string, platformID models.PlatformID, table string) i
 		},
 	}
 	var comm interface{}
-	err := d.QueryTable(table, params, &comm)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table", communitiesTable))
+	err2 := d.GetItemFromTable(table, params, &comm)
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query %s table", communitiesTable))
 	return comm
 }
 

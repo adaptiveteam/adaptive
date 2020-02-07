@@ -43,7 +43,7 @@ func (d DAOImpl) Read(platformID models.PlatformID) (models.ClientPlatformToken,
 		"platform_id": dynString(string(platformID)),
 	}
 	var out models.ClientPlatformToken
-	err := d.Dynamo.QueryTable(d.Name, params, &out)
+	err := d.Dynamo.GetItemFromTable(d.Name, params, &out)
 	return out, err
 }
 

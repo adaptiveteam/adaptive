@@ -129,12 +129,16 @@ func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated() fun
 			capabilityCommunitiesTableName(conn.ClientID), capabilityCommunitiesPlatformIndex, strategyCommunitiesTableName(conn.ClientID))
 		for _, each := range capComms {
 			var stratComm strategy.StrategyCommunity
-			stratComm, err = StrategyCommunityByID(each.ID)(conn)
+			var found bool
+			stratComm, found, err = StrategyCommunityByID(each.ID)(conn)
 			if err != nil {
 				err = errors.Wrapf(err, "AdaptiveCommunityDynamoDBConnection) SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(conn.PlatformID=%s)", conn.PlatformID)
 				return
 			}
-			if stratComm.ChannelCreated == 1 {
+			if !found {
+				log.Printf("Not found StrategyCommunityByID %s", each.ID)
+			}
+			if found && stratComm.ChannelCreated == 1 {
 				res = append(res, each)
 			}
 		}
@@ -198,12 +202,16 @@ func SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(userI
 			if _, ok := existingIds[each.ID]; !ok {
 				existingIds[each.ID] = struct{}{}
 				var stratComm strategy.StrategyCommunity
-				stratComm, err = StrategyCommunityByID(each.ID)(conn)
+				var found bool
+				stratComm, found, err = StrategyCommunityByID(each.ID)(conn)
 				if err != nil {
 					err = errors.Wrapf(err, "AdaptiveCommunityDynamoDBConnection) SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(conn.PlatformID=%s)", conn.PlatformID)
 					return
 				}
-				if stratComm.ChannelCreated == 1 {
+				if !found {
+					log.Printf("Not found StrategyCommunityByID %s", each.ID)
+				}
+				if found && stratComm.ChannelCreated == 1 {
 					res = append(res, each)
 				}
 			}
@@ -213,12 +221,12 @@ func SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(userI
 	}
 }
 
-func StrategyCommunityByID(id string) func(conn AdaptiveCommunityDynamoDBConnection) (comm strategy.StrategyCommunity, err error) {
-	return func(conn AdaptiveCommunityDynamoDBConnection) (comm strategy.StrategyCommunity, err error) {
+func StrategyCommunityByID(id string) func (conn AdaptiveCommunityDynamoDBConnection) (comm strategy.StrategyCommunity, found bool, err error) {
+	return func (conn AdaptiveCommunityDynamoDBConnection) (comm strategy.StrategyCommunity, found bool, err error) {
 		params := map[string]*dynamodb.AttributeValue{
 			"id": dynString(id),
 		}
-		err = conn.Dynamo.QueryTable(strategyCommunitiesTableName(conn.ClientID), params, &comm)
+		found, err = conn.Dynamo.GetItemOrEmptyFromTable(strategyCommunitiesTableName(conn.ClientID), params, &comm)
 		err = errors.Wrapf(err, "AdaptiveCommunityDynamoDBConnection) StrategyCommunityByID(id=%s)", id)
 		return
 	}
@@ -414,7 +422,7 @@ func StrategyInitiativeCommunityRead(id string) func(conn DynamoDBConnection) (r
 			"id":          dynString(id),
 			"platform_id": dynString(string(conn.PlatformID)),
 		}
-		err = conn.Dynamo.QueryTable(strategyInitiativeCommunitiesTableName(conn.ClientID), params, &res)
+		err = conn.Dynamo.GetItemFromTable(strategyInitiativeCommunitiesTableName(conn.ClientID), params, &res)
 		if res.ID != id {
 			err = fmt.Errorf("couldn't find StrategyInitiativeCommunity(id=%s). Instead got ID=%s", id, res.ID)
 		}
