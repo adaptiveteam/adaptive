@@ -58,7 +58,6 @@ visionMissionTableName                             = func(clientID string) strin
 capabilityCommunityTableName              = func(clientID string) string { return clientID + "_capability_communities" }
 capabilityCommunityPlatformIndex          = "PlatformIDIndex"
 adaptiveUserTableName                      = func(clientID string) string { return clientID + "_adaptive_users" }
-engagementTableName                         = func(clientID string) string { return clientID + "_adaptive_users_engagements" }
 )
 
 const communityUsersUserCommunityIndex            = "UserIDCommunityIDIndex"
