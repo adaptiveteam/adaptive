@@ -11,3 +11,10 @@ backdate-feedback: ${PWD}/bin/backdate
 	export LOG_NAMESPACE="backdate" ;\
 #	export PLATFORM_ID="NO-PLATFORM" ;\
 	${PWD}/bin/backdate
+
+rename-user-engagement: backup-all 
+	mv ./dump/${ADAPTIVE_CLIENT_ID}_adaptive_users_engagements ./dump/${ADAPTIVE_CLIENT_ID}_user_engagement ;\
+	pushd infra/core/terraform ;\
+	terraform apply -target=aws_dynamodb_table.adaptive_user_engagements_dynamo_table ;\
+	popd ;\
+	$(call restore-table,${ADAPTIVE_CLIENT_ID}_user_engagement)
