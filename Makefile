@@ -13,6 +13,8 @@ SHELL := /bin/bash
 .ONESHELL:
 
 .PHONY: help test core-apply core-lambdas install
+
+THIS_FILE := $(lastword $(MAKEFILE_LIST))
 LAMBDAS_SRC_DIR := $(shell cd ..; pwd)
 PWD := $(shell pwd)
 AMM_BIN := ${PWD}/bin/amm
@@ -28,7 +30,8 @@ include common.Makefile
 include build.Makefile
 include deploy.Makefile
 include migrations.Makefile
-#include core.main.Makefile
+# include core.main.Makefile
+include backup.Makefile
 
 # compile: compile-core compile-coaching compile-user-community compile-strategy
 

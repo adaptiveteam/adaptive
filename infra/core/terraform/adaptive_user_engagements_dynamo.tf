@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "adaptive_user_engagements_dynamo_table" {
-  name = "${var.client_id}_adaptive_users_engagements"
+  name = "${var.client_id}_user_engagement"
   billing_mode = "PAY_PER_REQUEST"
 
   hash_key = "user_id"
