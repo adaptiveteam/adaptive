@@ -26,7 +26,6 @@ var (
 	capabilityCommunitiesPlatformIndex          = "PlatformIDIndex"
 	strategyCommunitiesTableName                = func(clientID string) string { return clientID + "_strategy_communities" }
 	adaptiveUsersTableName                      = func(clientID string) string { return clientID + "_adaptive_users" }
-	engagementTableName                         = func(clientID string) string { return clientID + "_adaptive_users_engagements" }
 
 	objectiveCloseoutPath = ""
 )
