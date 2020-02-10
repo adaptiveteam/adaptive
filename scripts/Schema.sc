@@ -140,10 +140,12 @@ val user = Entity(
             spacedName("platform org") :: string,
             spacedName("is admin") :: boolean,
             spacedName("deleted") :: boolean,
-            spacedName("created at") :: timestamp,
-            spacedName("modified at") :: optionTimestamp,
+            // spacedName("created at") :: timestamp,
+            // spacedName("modified at") :: optionTimestamp,
             spacedName("is shared") :: boolean
-        ))
+        ),
+        Nil, List(DeactivationTrait, CreatedModifiedTimesTrait)
+)
 
 val userTableDefaultIndex = Index(idField, None)
 val userTable = Table(user, userTableDefaultIndex, List(
@@ -152,7 +154,7 @@ val userTable = Table(user, userTableDefaultIndex, List(
     Index(platformIdField, Some(adaptiveScheduledTimeInUtcField)),
 ))
 
-val userPackage = defaultPackage(userTable, imports)
+val userPackage = defaultPackage(userTable, timeImport :: imports)
 
 val coachQuarterYearField = spacedName("coach quarter year") :: string
 val coacheeQuarterYearField = spacedName("coachee quarter year") :: string
