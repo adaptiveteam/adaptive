@@ -164,7 +164,7 @@ func (d DAOImpl) Create($structVarName $structName) (err error) {
 	if ok {
 		${
 			if(entity.supports(CreatedModifiedTimesTrait)) {
-				s"""$structVarName.ModifiedAt = core.TimestampLayout.Format(time.Now())
+				s"""$structVarName.ModifiedAt = core.CurrentRFCTimestamp()
 			|	$structVarName.CreatedAt = $structVarName.ModifiedAt
 			|	""".stripMargin
 			} else ""
@@ -244,7 +244,7 @@ s"""
 func (d DAOImpl) CreateOrUpdate($structVarName $structName) (err error) {
 	${
 		if(entity.supports(CreatedModifiedTimesTrait)) {
-			s"""$structVarName.ModifiedAt = core.TimestampLayout.Format(time.Now())
+			s"""$structVarName.ModifiedAt = core.CurrentRFCTimestamp()
            |	if $structVarName.CreatedAt == "" { $structVarName.CreatedAt = $structVarName.ModifiedAt }
            |	""".stripMargin
 		} else ""
@@ -262,7 +262,7 @@ func (d DAOImpl) CreateOrUpdate($structVarName $structName) (err error) {
 				old := olds[0]
 				${
 					if(entity.supports(CreatedModifiedTimesTrait)) {
-						s"$structVarName.ModifiedAt = core.TimestampLayout.Format(time.Now())" + "\n"
+						s"$structVarName.ModifiedAt = core.CurrentRFCTimestamp()" + "\n"
 					} else ""
 				}
 				key := idParams(${idFieldNames.map("old." + _).mkString(", ")})
@@ -320,7 +320,7 @@ func (d DAOImpl)DeleteUnsafe($idArgs) {
 		|func (d DAOImpl)Deactivate($idArgs) error {
 		|	instance, err2 := d.Read($idVarNames)
 		|	if err2 == nil {
-		|		instance.${goPublicName(deactivatedAtField.name)} = core.TimestampLayout.Format(time.Now())
+  |		instance.${goPublicName(deactivatedAtField.name)} = core.CurrentRFCTimestamp()
 		|		err2 = d.CreateOrUpdate(instance)
 		|	}
 		|	return err2
