@@ -66,7 +66,7 @@ func ConvertValuesToValueTypesMapping(values []AdaptiveValue) ValueTypeMapping {
 // AdaptiveValueFilterActive removes deactivated values
 func AdaptiveValueFilterActive(values []AdaptiveValue) (res []AdaptiveValue) {
 	for _, v := range values {
-		if v.DeactivatedOn == "" {
+		if v.DeactivatedAt == "" {
 			res = append(res, v)
 		}
 	}

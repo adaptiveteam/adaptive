@@ -85,7 +85,7 @@ def deactivationFilter(entity: Entity): List[String] =
             |// ${goPublicName(entity.name)}FilterActive removes deactivated values
             |func ${goPublicName(entity.name)}FilterActive(in []${goPublicName(entity.name)}) (res []${goPublicName(entity.name)}) {
             |	for _, i := range in {
-            |		if i.DeactivatedOn == "" {
+            |		if i.${goPublicName(deactivatedAtField.name)} == "" {
             |			res = append(res, i)
             |		}
             |	}
