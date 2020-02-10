@@ -139,9 +139,7 @@ val user = Entity(
             platformIdField,
             spacedName("platform org") :: string,
             spacedName("is admin") :: boolean,
-            spacedName("deleted") :: boolean,
-            // spacedName("created at") :: timestamp,
-            // spacedName("modified at") :: optionTimestamp,
+            // spacedName("deleted") :: boolean,
             spacedName("is shared") :: boolean
         ),
         Nil, List(DeactivationTrait, CreatedModifiedTimesTrait)
