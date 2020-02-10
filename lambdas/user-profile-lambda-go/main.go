@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
+	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/nlopes/slack"
 	"log"
 )
@@ -74,6 +74,11 @@ func convertUserToProfile(user models.User) (profile models.UserProfile) {
 }
 
 func convertSlackUserToUser(user slack.User, platformID models.PlatformID) (mUser models.User) {
+	now := core.CurrentRFCTimestamp()
+	deactivatedAt := ""
+	if user.Deleted {
+		deactivatedAt = now
+	}
 	return models.User{
 		// UserProfile: models.UserProfile{
 		ID:             user.ID,
@@ -85,8 +90,8 @@ func convertSlackUserToUser(user slack.User, platformID models.PlatformID) (mUse
 		// },
 		PlatformID: platformID,
 		IsAdmin:    user.IsAdmin,
-		Deleted:    user.Deleted,
-		CreatedAt:  core_utils_go.CurrentRFCTimestamp(),
+		DeactivatedAt: deactivatedAt,
+		CreatedAt:  now,
 		IsShared:   false}
 }
 
