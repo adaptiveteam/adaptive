@@ -31,7 +31,7 @@ type ObjectiveTypeDictionary struct  {
 // ObjectiveTypeDictionaryFilterActive removes deactivated values
 func ObjectiveTypeDictionaryFilterActive(in []ObjectiveTypeDictionary) (res []ObjectiveTypeDictionary) {
 	for _, i := range in {
-		if i.DeactivatedOn == "" {
+		if i.DeactivatedAt == "" {
 			res = append(res, i)
 		}
 	}
@@ -218,7 +218,7 @@ func (d DAOImpl) CreateOrUpdateUnsafe(objectiveTypeDictionary ObjectiveTypeDicti
 func (d DAOImpl)Deactivate(id string) error {
 	instance, err2 := d.Read(id)
 	if err2 == nil {
-		instance.DeactivatedOn = core.ISODateLayout.Format(time.Now())
+		instance.DeactivatedAt = core.TimestampLayout.Format(time.Now())
 		err2 = d.CreateOrUpdate(instance)
 	}
 	return err2

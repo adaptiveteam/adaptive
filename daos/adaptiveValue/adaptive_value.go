@@ -27,7 +27,7 @@ type AdaptiveValue struct  {
 // AdaptiveValueFilterActive removes deactivated values
 func AdaptiveValueFilterActive(in []AdaptiveValue) (res []AdaptiveValue) {
 	for _, i := range in {
-		if i.DeactivatedOn == "" {
+		if i.DeactivatedAt == "" {
 			res = append(res, i)
 		}
 	}
@@ -210,7 +210,7 @@ func (d DAOImpl) CreateOrUpdateUnsafe(adaptiveValue AdaptiveValue) {
 func (d DAOImpl)Deactivate(id string) error {
 	instance, err2 := d.Read(id)
 	if err2 == nil {
-		instance.DeactivatedOn = core.ISODateLayout.Format(time.Now())
+		instance.DeactivatedAt = core.TimestampLayout.Format(time.Now())
 		err2 = d.CreateOrUpdate(instance)
 	}
 	return err2
