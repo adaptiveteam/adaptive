@@ -300,73 +300,69 @@ func IDOCoaches(userID string) func(conn DynamoDBConnection) (res []models.KvPai
 	}
 }
 
-// type CompetencyDynamoDBConnection DynamoDBConnection
-
+// CompetencyRead -
 func CompetencyRead(id string) func(conn DynamoDBConnection) (res adaptiveValue.AdaptiveValue, err error) {
 	return func(conn DynamoDBConnection) (res adaptiveValue.AdaptiveValue, err error) {
-		dao := adaptiveValue.NewDAOByTableName(conn.Dynamo, "CompetencyDynamoDBConnection", competenciesTableName(conn.ClientID))
+		dao := adaptiveValue.NewDAOByTableName(conn.Dynamo, "CompetencyRead", competenciesTableName(conn.ClientID))
 		res, err = dao.Read(id)
-		err = errors.Wrapf(err, "CompetencyDynamoDBConnection) Read(id=%s)", id)
+		err = errors.Wrapf(err, "CompetencyRead(id=%s)", id)
 		return
 	}
 }
-
+// CompetencyReadAll - reads all competencies defined for PlatformID
 func CompetencyReadAll() func(conn DynamoDBConnection) (res []adaptiveValue.AdaptiveValue, err error) {
 	return func(conn DynamoDBConnection) (res []adaptiveValue.AdaptiveValue, err error) {
-		dao := adaptiveValue.NewDAOByTableName(conn.Dynamo, "CompetencyDynamoDBConnection", competenciesTableName(conn.ClientID))
+		dao := adaptiveValue.NewDAOByTableName(conn.Dynamo, "CompetencyReadAll", competenciesTableName(conn.ClientID))
 		res, err = dao.ReadByPlatformID(conn.PlatformID)
-		err = errors.Wrapf(err, "CompetencyDynamoDBConnection) ReadAll(conn.PlatformID=%s)", conn.PlatformID)
+		err = errors.Wrapf(err, "CompetencyReadAll(conn.PlatformID=%s)", conn.PlatformID)
 		return
 	}
 }
-
-// type StrategyObjectiveDynamoDBConnection DynamoDBConnection
-
+// StrategyObjectiveRead -
 func StrategyObjectiveRead(id string) func(conn DynamoDBConnection) (res models.StrategyObjective, err error) {
 	return func(conn DynamoDBConnection) (res models.StrategyObjective, err error) {
-		defer recoverToErrorVar("StrategyObjectiveDynamoDBConnection.Read", &err)
+		defer recoverToErrorVar("StrategyObjectiveRead", &err)
 		id2 := id
 		i := strings.Index(id2, "_")
 		if i >= 0 {
-			log.Printf("WARN: StrategyObjectiveDynamoDBConnection) Read: ID has '_': %s\n", id)
+			log.Printf("WARN: StrategyObjectiveRead: ID has '_': %s\n", id)
 			id2 = id[0:i]
 		}
 
-		log.Printf("StrategyObjectiveDynamoDBConnection) Read: reading id2=%s\n", id2)
+		log.Printf("StrategyObjectiveRead: reading id2=%s\n", id2)
 		res = strategy.StrategyObjectiveByID(conn.PlatformID, id2, strategyObjectivesTableName(conn.ClientID))
 		if res.ID != id2 {
-			err = fmt.Errorf("couldn't find StrategyObjectiveByID(id2=%s, id=%s). Instead got ID=%s", id2, id, res.ID)
+			err = fmt.Errorf("StrategyObjectiveRead: couldn't find StrategyObjectiveByID(id2=%s, id=%s). Instead got ID=%s", id2, id, res.ID)
 		}
 		return
 	}
 }
 
+// StrategyObjectiveCreateOrUpdate - 
 func StrategyObjectiveCreateOrUpdate(so models.StrategyObjective) func(conn DynamoDBConnection) (err error) {
 	return func(conn DynamoDBConnection) (err error) {
 		if so.ID == "" {
 			err = errors.New("ID is empty")
 		} else if so.PlatformID == "" {
-			err = fmt.Errorf("PlatformID is empty for ID=%s", so.ID)
+			err = errors.New("PlatformID is empty")
 		} else if so.CapabilityCommunityIDs == nil {
-			err = fmt.Errorf("CapabilityCommunityIDs is empty for ID=%s", so.ID)
+			err = errors.New("CapabilityCommunityIDs is empty")
 		}
 		if err == nil {
 			err = conn.Dynamo.PutTableEntry(so, strategyObjectivesTableName(conn.ClientID))
 		}
-		err = errors.Wrapf(err, "StrategyObjectiveDynamoDBConnection) CreateOrUpdate(so.ID=%s)", so.ID)
+		err = errors.Wrapf(err, "StrategyObjectiveCreateOrUpdate(so.ID=%s)", so.ID)
 
 		return
 	}
 }
-
-// type StrategyCommunityDynamoDBConnection DynamoDBConnection
-
+// StrategyCommunityRead -
 func StrategyCommunityRead(id string) func(conn DynamoDBConnection) (res strategy.StrategyCommunity, err error) {
 	return func(conn DynamoDBConnection) (res strategy.StrategyCommunity, err error) {
-		defer recoverToErrorVar("StrategyCommunityDynamoDBConnection.Read", &err)
+		defer recoverToErrorVar("StrategyCommunityRead", &err)
 		res = strategy.StrategyCommunityByID(id, strategyCommunityTableName(conn.ClientID))
 		if res.ID != id {
-			err = fmt.Errorf("couldn't find StrategyCommunityByID(id=%s). Instead got ID=%s", id, res.ID)
+			err = fmt.Errorf("StrategyCommunityRead: couldn't find StrategyCommunityByID(id=%s). Instead got ID=%s", id, res.ID)
 		}
 		return
 	}

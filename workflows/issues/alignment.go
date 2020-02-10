@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"log"
 	"fmt"
 	"strings"
 
@@ -36,6 +37,10 @@ func (IDOImpl) GetAlignment(issue Issue) (alignment string) {
 		alignment = renderStrategyAssociations("Initiative", "Name", issue.AlignedCapabilityInitiative)
 	case userObjective.ObjectiveCompetencyAlignment:
 		alignment = fmt.Sprintf("Competency: `%s`", issue.AlignedCompetency.Name)
+		log.Printf("[alignment.go:40] issue (uo.id=%s).AlignedCompetency (id=%s, name=%s)",
+			issue.UserObjective.ID,
+			issue.AlignedCompetency.ID,
+			issue.AlignedCompetency.Name)
 	}
 	return
 }

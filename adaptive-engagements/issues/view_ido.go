@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"log"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	ui "github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
@@ -37,6 +38,7 @@ func (ViewIDO) GetProgressFields(newAndOldIssues NewAndOldIssues) (fields []ebm.
 	return
 }
 
+// GetAlignment is the property value that shows alignment of the issue.
 func (ViewIDO) GetAlignment(issue Issue) (alignment ui.PlainText) {
 	switch issue.StrategyAlignmentEntityType {
 	case userObjective.ObjectiveStrategyObjectiveAlignment:
@@ -45,10 +47,18 @@ func (ViewIDO) GetAlignment(issue Issue) (alignment ui.PlainText) {
 		alignment = renderStrategyAssociations("Initiative", issue.AlignedCapabilityInitiative.Name)
 	case userObjective.ObjectiveCompetencyAlignment:
 		alignment = ui.PlainText(ui.Sprintf("Competency: `%s`", issue.AlignedCompetency.Name))
+		log.Printf("[view_ido.go:50] issue (uo.id=%s).AlignedCompetency (id=%s, name=%s)",
+			issue.UserObjective.ID,
+			issue.AlignedCompetency.ID,
+			issue.AlignedCompetency.Name)
+	default:
+		log.Printf("[view_ido.go:55] unknown issue(uo.id=%s).StrategyAlignmentEntityType == %s",
+			issue.UserObjective.ID,
+			issue.StrategyAlignmentEntityType)
 	}
 	return
 }
-
+// GetTextView - return name and description as rich text
 func (ViewIDO) GetTextView(issue Issue) ui.RichText {
 	return ui.Sprintf("*%s*: %s \n *%s*: %s",
 		NameLabel, issue.UserObjective.Name,
