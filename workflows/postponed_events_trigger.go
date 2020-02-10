@@ -14,7 +14,8 @@ import (
 // 	ClientID: clientID,
 // 	PlatformID: platformID,
 // }
-func TriggerAllPostponedEvents(platformID models.PlatformID, userID string)func (conn common.DynamoDBConnection)(err error) {
+// returns the number of posted events
+func TriggerAllPostponedEvents(platformID models.PlatformID, userID string)func (conn common.DynamoDBConnection)(count int, err error) {
 	return wf.ForeachActionPathForUserID(userID, func (ap models.ActionPath, conn common.DynamoDBConnection) (err error) {
 		callbackID := ap.Encode()
 		logger.WithField("userID", userID).WithField("callbackID", callbackID).
