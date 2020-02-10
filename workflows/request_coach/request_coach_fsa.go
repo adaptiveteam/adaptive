@@ -61,10 +61,7 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 		Name: Namespace,
 		Template: wf.Template{
 			Init: InitState, // initial state is "init". This is used when the user first triggers the workflow
-			FSA: map[struct {
-				wf.State
-				wf.Event
-			}]wf.Handler{
+			FSA: map[struct {wf.State; wf.Event}]wf.Handler{
 				{State: InitState, Event: ""}:                  w.OnCoachRequested(),
 				{State: FormShownState, Event: ConfirmedEvent}: wf.SimpleHandler(w.OnConfirmed(), wf.DoneState),
 				{State: FormShownState, Event: RejectedEvent}:  wf.SimpleHandler(w.OnRejected(), wf.DoneState),
@@ -163,6 +160,13 @@ func (w workflowImpl) OnConfirmed() wf.Handler {
 						issueOwner, 
 						issue.GetIssueType().Template(),
 						objectiveView))
+					out.Responses = append(out.Responses, 
+						platform.Post(platform.ConversationID(issue.UserID), 
+							platform.Message(ui.Sprintf("<@%s> has accepted your request about the following %s:\n%s",
+								ctx.Request.User.ID, 
+								issue.GetIssueType().Template(),
+								objectiveView)),
+						))
 				}
 			}
 		}
