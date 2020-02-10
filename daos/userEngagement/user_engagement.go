@@ -3,7 +3,6 @@ package userEngagement
 // The changes will be overridden by the next automatic generation.
 import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"time"
 	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	common "github.com/adaptiveteam/adaptive/daos/common"
@@ -127,7 +126,7 @@ func TableName(clientID string) string {
 func (d DAOImpl) Create(userEngagement UserEngagement) (err error) {
 	emptyFields, ok := userEngagement.CollectEmptyFields()
 	if ok {
-		userEngagement.ModifiedAt = core.TimestampLayout.Format(time.Now())
+		userEngagement.ModifiedAt = core.CurrentRFCTimestamp()
 	userEngagement.CreatedAt = userEngagement.ModifiedAt
 	err = d.Dynamo.PutTableEntry(userEngagement, d.Name)
 	} else {
@@ -194,7 +193,7 @@ func (d DAOImpl) ReadOrEmptyUnsafe(id string) []UserEngagement {
 
 // CreateOrUpdate saves the UserEngagement regardless of if it exists.
 func (d DAOImpl) CreateOrUpdate(userEngagement UserEngagement) (err error) {
-	userEngagement.ModifiedAt = core.TimestampLayout.Format(time.Now())
+	userEngagement.ModifiedAt = core.CurrentRFCTimestamp()
 	if userEngagement.CreatedAt == "" { userEngagement.CreatedAt = userEngagement.ModifiedAt }
 	
 	var olds []UserEngagement
@@ -208,7 +207,7 @@ func (d DAOImpl) CreateOrUpdate(userEngagement UserEngagement) (err error) {
 			emptyFields, ok := userEngagement.CollectEmptyFields()
 			if ok {
 				old := olds[0]
-				userEngagement.ModifiedAt = core.TimestampLayout.Format(time.Now())
+				userEngagement.ModifiedAt = core.CurrentRFCTimestamp()
 
 				key := idParams(old.ID)
 				expr, exprAttributes, names := updateExpression(userEngagement, old)
