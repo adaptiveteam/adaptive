@@ -358,8 +358,8 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 					bindings["ViewCollaborationReport"],
 					"Collaboration Report",
 					"").
-					AddOptionCheck(profile, acfn.CollaborationReportExists, true).
-					AddOptionCheck(profile, acfn.InStrategyCommunity, true),
+					AddOptionCheck(profile, acfn.CollaborationReportExists, true),
+					// AddOptionCheck(profile, acfn.InStrategyCommunity, true),
 			).
 			AddGroupOption(
 				menu.NewAdaptiveDynamicMenuSpecification(
