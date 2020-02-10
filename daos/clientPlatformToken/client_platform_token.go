@@ -108,6 +108,9 @@ func (d DAOImpl) Read(platformID common.PlatformID) (out ClientPlatformToken, er
 	if err == nil && len(outs) == 0 {
 		err = fmt.Errorf("Not found platformID==%s in %s\n", platformID, d.Name)
 	}
+	if len(outs) > 0 {
+		out = outs[0]
+	}
 	return
 }
 

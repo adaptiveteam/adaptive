@@ -118,6 +118,9 @@ func (d DAOImpl) Read(id string, createdOn string) (out UserObjectiveProgress, e
 	if err == nil && len(outs) == 0 {
 		err = fmt.Errorf("Not found id==%s, createdOn==%s in %s\n", id, createdOn, d.Name)
 	}
+	if len(outs) > 0 {
+		out = outs[0]
+	}
 	return
 }
 
