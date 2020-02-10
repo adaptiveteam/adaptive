@@ -180,8 +180,8 @@ func (d DAOImpl) Create($structVarName $structName) (err error) {
 s"""
 // CreateUnsafe saves the $structName.
 func (d DAOImpl) CreateUnsafe($entityArgValue) {
-	err := d.Create($structVarName)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create $formatIds in %s\\n", ${idFieldNames.map{f => structVarName + "." + f}.mkString(", ")}, d.Name))
+	err2 := d.Create($structVarName)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create $formatIds in %s\\n", ${idFieldNames.map{f => structVarName + "." + f}.mkString(", ")}, d.Name))
 }
 """
 	def DaoOperationReadTemplate: String =
@@ -200,8 +200,8 @@ func (d DAOImpl) Read($idArgs) (out $structName, err error) {
 s"""
 // ReadUnsafe reads the $structName. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe($idArgs) $structName {
-	out, err := d.Read($idVarNames)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading $formatIds in %s\\n", $idVarNames, d.Name))
+	out, err2 := d.Read($idVarNames)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading $formatIds in %s\\n", $idVarNames, d.Name))
 	return out
 }
 """
@@ -212,11 +212,14 @@ s"""
 func (d DAOImpl) ReadOrEmpty($idArgs) (out []$structName, err error) {
 	var outOrEmpty $structName
 	ids := idParams($idVarNames)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if ${entity.primaryKeyFields.map(fld => "outOrEmpty." + goPublicName(fld.name) + " == " + goPrivateName(fld.name)).mkString(" && ")} {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if ${entity.primaryKeyFields.map(fld => "outOrEmpty." + goPublicName(fld.name) + " == " + goPrivateName(fld.name)).mkString(" && ")} {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: $formatIds are different from the found ones: $formatIds", $idVarNames, ${idFieldNames.map("outOrEmpty." + _).mkString(", ")}) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "$structName DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -226,8 +229,8 @@ func (d DAOImpl) ReadOrEmpty($idArgs) (out []$structName, err error) {
 s"""
 // ReadOrEmptyUnsafe reads the $structName. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe($idArgs) []$structName {
-	out, err := d.ReadOrEmpty($idVarNames)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading $formatIds in %s\\n", $idVarNames, d.Name))
+	out, err2 := d.ReadOrEmpty($idVarNames)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading $formatIds in %s\\n", $idVarNames, d.Name))
 	return out
 }
 """
@@ -285,8 +288,8 @@ func (d DAOImpl) CreateOrUpdate($structVarName $structName) (err error) {
 s"""
 // CreateOrUpdateUnsafe saves the $structName regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe($structVarName $structName) {
-	err := d.CreateOrUpdate($structVarName)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\\n", $structVarName, d.Name))
+	err2 := d.CreateOrUpdate($structVarName)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\\n", $structVarName, d.Name))
 }
 """
 
@@ -301,8 +304,8 @@ func (d DAOImpl)Delete($idArgs) error {
 s"""
 // DeleteUnsafe deletes $structName and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe($idArgs) {
-	err := d.Delete($idVarNames)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete $formatIds in %s\\n", $idVarNames, d.Name))
+	err2 := d.Delete($idVarNames)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete $formatIds in %s\\n", $idVarNames, d.Name))
 }
 """
 
@@ -312,20 +315,20 @@ func (d DAOImpl)DeleteUnsafe($idArgs) {
 		|// The mechanism is adding timestamp to `DeactivatedOn` field. 
 		|// Then, if this field is not empty, the instance is considered to be "active"
 		|func (d DAOImpl)Deactivate($idArgs) error {
-		|	instance, err := d.Read($idVarNames)
-		|	if err == nil {
+		|	instance, err2 := d.Read($idVarNames)
+		|	if err2 == nil {
 		|		instance.DeactivatedOn = core.ISODateLayout.Format(time.Now())
-		|		err = d.CreateOrUpdate(instance)
+		|		err2 = d.CreateOrUpdate(instance)
 		|	}
-		|	return err
+		|	return err2
 		|}
 		|""".stripMargin
 	def DaoOperationDeactivationUnsafeTemplate: String =
 		s"""
 		|// DeactivateUnsafe "deletes" $structName and panics in case of errors.
 		|func (d DAOImpl)DeactivateUnsafe($idArgs) {
-		|	err := d.Deactivate($idVarNames)
-		|	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not deactivate $formatIds in %s\\n", $idVarNames, d.Name))
+		|	err2 := d.Deactivate($idVarNames)
+		|	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not deactivate $formatIds in %s\\n", $idVarNames, d.Name))
 		|}
 		|""".stripMargin
 
@@ -363,8 +366,8 @@ ${index.fields.zipWithIndex.map{case (fld, i) =>  "\t\t\t\":a" + i.toString + "\
 		def ReadByIndexUnsafeTemplate: String = {
 s"""
 func (d DAOImpl)ReadBy${indexShortName}Unsafe($args) (out []$structName) {
-	out, err := d.ReadBy${indexShortName}(${index.fields.map(varName).mkString(", ")})
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query $indexFullName on %s table\\n", d.Name))
+	out, err2 := d.ReadBy${indexShortName}(${index.fields.map(varName).mkString(", ")})
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query $indexFullName on %s table\\n", d.Name))
 	return
 }
 """
