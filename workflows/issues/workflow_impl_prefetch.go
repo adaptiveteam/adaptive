@@ -89,6 +89,8 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 		issue.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
 	case userObjective.ObjectiveCompetencyAlignment:
 		issue.PrefetchedData.AlignedCompetency, err = CompetencyRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
+	default:
+		w.AdaptiveLogger.Warnf("Unknown StrategyAlignmentEntityType=%s", issue.StrategyAlignmentEntityType)
 	}
 	if err != nil {
 		w.AdaptiveLogger.
