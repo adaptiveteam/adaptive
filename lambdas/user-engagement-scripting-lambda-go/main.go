@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"sort"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,7 +9,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/adaptiveteam/adaptive/core-utils-go/mmap"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
@@ -39,25 +39,13 @@ func publish(msg models.PlatformSimpleNotification) {
 }
 
 func postEngs(engs []models.UserEngagement, userID string, api mapper.PlatformAPI) (delivered, undelivered []models.UserEngagement) {
-	// TODO: Implement a more sophisticated scripting algorithm
-	m := mmap.NewMultiMap()
-	for _, each := range engs {
-		// Grouping engagements by target id
-		m.Put(each.TargetID, each)
-	}
-	// Taking one target user at a time
-	for idx := range m.KeySet() {
-		list, _ := m.Get(m.KeySet()[idx])
-		for _, each := range list {
-			eng := each.(models.UserEngagement)
-			err := postToUser(eng, userID, api)
-			if err == nil {
-				delivered = append(delivered, eng)
-
-			} else {
-				logger.Errorf("Could not deliver engagement with id %s to %s user", eng.ID, userID)
-				undelivered = append(undelivered, eng)
-			}
+	for _, eng := range engs {
+		err2 := postToUser(eng, userID, api)
+		if err2 == nil {
+			delivered = append(delivered, eng)
+		} else {
+			logger.WithError(err2).Errorf("Could not deliver engagement with id %s to %s user", eng.ID, userID)
+			undelivered = append(undelivered, eng)
 		}
 	}
 	return
@@ -84,57 +72,75 @@ func HandleRequest(ctx context.Context, engage models.UserEngageWithCheckValues)
 	}
 
 	engs := user.NotPostedUnansweredNotIgnoredEngagements(engage.UserId, engagementTable, engagementAnsweredIndex)
-	logger.WithField("engagements", &engs).Info("Queried engagements")
-	logger.Infof("Queried all the engagements for user %s, total: %d", engage.UserId, len(engs))
-
-	// Check if there are any un-answered high priority engagements
-	var urgentEngs []models.UserEngagement
-	var nonUrgentEngs []models.UserEngagement
-
-	// Collect urgent and non-urgent engagements
-	for _, eng := range engs {
-		if eng.Priority == models.UrgentPriority && eng.Ignored == 0 {
-			urgentEngs = append(urgentEngs, eng)
-		} else if eng.Ignored == 0 {
-			nonUrgentEngs = append(nonUrgentEngs, eng)
-		}
-	}
-
-	allValidEngagements := append(urgentEngs, nonUrgentEngs...)
-
-	if len(allValidEngagements) > 0 {
-		slackAdapter := platformAdapter.ForPlatformID(engage.PlatformID)
-		if !engage.OnDemand {
-			slackAdapter.PostSyncUnsafe(plat.Post(plat.ConversationID(engage.UserId), plat.MessageContent{
-				Message:     ui.RichText(fmt.Sprintf("You have %d engagements for today", len(allValidEngagements))),
-				Attachments: nil,
-			}))
-		}
-		var delivered []models.UserEngagement
-		// First post urgent engagements and then post non-urgent engagements
-		if len(urgentEngs) > 0 {
-			delivered1, _ := postEngs(urgentEngs, engage.UserId, slackAdapter)
-			delivered = append(delivered, delivered1...)
-		}
-		logger.Infof("Posted urgent engagements for user %s", engage.UserId)
-		if len(nonUrgentEngs) > 0 {
-			delivered2, _ := postEngs(nonUrgentEngs, engage.UserId, slackAdapter)
-			delivered = append(delivered, delivered2...)
-		}
-		logger.Infof("Posted non-urgent engagements for user %s", engage.UserId)
-		// Deleting only delivered engagements
-		updateEngagementsAsPostedAsync(engage.UserId, delivered)
-
-	} else if engage.OnDemand {
+	allValidEngagements := filterEngagements(engs, isNotIgnored)
+	logger.WithField("not ignored engagements", &allValidEngagements).Info("Queried engagements")
+	logger.Infof("Queried all not ignored engagements for user %s, total: %d", engage.UserId, len(engs))
+	totalCount := len(allValidEngagements)
+	conn := common.DynamoDBConnection{Dynamo: d, ClientID: clientID, PlatformID: engage.PlatformID}
+	count, err2 := workflows.TriggerAllPostponedEvents(engage.PlatformID, engage.UserId)(conn)
+	core.ErrorHandler(err2, "TriggerAllPostponedEvents", "TriggerAllPostponedEvents")
+	totalCount += count
+	if totalCount == 0 && engage.OnDemand {
 		publish(models.PlatformSimpleNotification{UserId: engage.UserId, Message: string(greeting())})
 	}
-	conn := common.DynamoDBConnection{
-		Dynamo: d,
-		ClientID: clientID,
-		PlatformID: engage.PlatformID,
+}
+
+func filterEngagements(engs[]models.UserEngagement, f func(models.UserEngagement)bool ) (filtered []models.UserEngagement) {
+	for _, eng := range engs {
+		if f(eng) {
+			filtered = append(filtered, eng)
+		}
 	}
-	err2 := workflows.TriggerAllPostponedEvents(engage.PlatformID, engage.UserId)(conn)
-	core.ErrorHandler(err2, "TriggerAllPostponedEvents", "TriggerAllPostponedEvents")
+	return
+}
+// UserEngagementSortedByPriorityAndTarget sorter for engagements
+type UserEngagementSortedByPriorityAndTarget []models.UserEngagement
+
+func (a UserEngagementSortedByPriorityAndTarget) Len() int           { return len(a) }
+func (a UserEngagementSortedByPriorityAndTarget) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a UserEngagementSortedByPriorityAndTarget) Less(i, j int) bool { 
+	urgentI := 0
+	if a[i].Priority != models.UrgentPriority { urgentI = 1}
+	urgentJ := 0
+	if a[j].Priority != models.UrgentPriority { urgentJ = 1}
+
+	return urgentI < urgentJ || (urgentI == urgentJ && a[i].TargetID < a[j].TargetID) 
+}
+
+// Collect urgent and non-urgent engagements
+func sortEngagements(engs[]models.UserEngagement) {
+	sort.Sort(UserEngagementSortedByPriorityAndTarget(engs))
+	// urgentEngs := filterEngagements(engs, isUrgent)
+	// nonUrgentEngs := filterEngagements(engs, isNotUrgent)
+	// orderedEngs = append(urgentEngs, nonUrgentEngs...)
+	return
+}
+func isNotIgnored(eng models.UserEngagement) bool {
+	return eng.Ignored == 0
+}
+func isUrgent(eng models.UserEngagement) bool {
+	return eng.Priority == models.UrgentPriority
+}
+func isNotUrgent(eng models.UserEngagement) bool {
+	return !isUrgent(eng)
+}
+
+func showEngagements(engage models.UserEngageWithCheckValues, allValidEngagements[]models.UserEngagement) {
+	// Check if there are any un-answered high priority engagements
+	// First post urgent engagements and then post non-urgent engagements. Also sort by TargetID to improve locality
+	sortEngagements(allValidEngagements)
+
+	slackAdapter := platformAdapter.ForPlatformID(engage.PlatformID)
+	if !engage.OnDemand && len(allValidEngagements) > 0 {
+		slackAdapter.PostSyncUnsafe(plat.Post(plat.ConversationID(engage.UserId), plat.MessageContent{
+			Message:     ui.RichText(fmt.Sprintf("You have %d engagements for today", len(allValidEngagements))),
+			Attachments: nil,
+		}))
+	}
+	delivered, _ := postEngs(allValidEngagements, engage.UserId, slackAdapter)
+	logger.Infof("Posted engagements for user %s", engage.UserId)
+	// Deleting only delivered engagements
+	updateEngagementsAsPostedAsync(engage.UserId, delivered)
 }
 
 func updateEngagementsAsPostedAsync(userID string, engagements []models.UserEngagement) {
