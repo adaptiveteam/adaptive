@@ -28,7 +28,6 @@ type User struct  {
 	PlatformID common.PlatformID `json:"platform_id"`
 	PlatformOrg string `json:"platform_org"`
 	IsAdmin bool `json:"is_admin"`
-	Deleted bool `json:"deleted"`
 	IsShared bool `json:"is_shared"`
 	DeactivatedAt string `json:"deactivated_at,omitempty"`
 	// Automatically maintained field
@@ -330,11 +329,10 @@ func allParams(user User, old User) (params map[string]*dynamodb.AttributeValue)
 	if user.PlatformID != old.PlatformID { params[":a9"] = common.DynS(string(user.PlatformID)) }
 	if user.PlatformOrg != old.PlatformOrg { params[":a10"] = common.DynS(user.PlatformOrg) }
 	if user.IsAdmin != old.IsAdmin { params[":a11"] = common.DynBOOL(user.IsAdmin) }
-	if user.Deleted != old.Deleted { params[":a12"] = common.DynBOOL(user.Deleted) }
-	if user.IsShared != old.IsShared { params[":a13"] = common.DynBOOL(user.IsShared) }
-	if user.DeactivatedAt != old.DeactivatedAt { params[":a14"] = common.DynS(user.DeactivatedAt) }
-	if user.CreatedAt != old.CreatedAt { params[":a15"] = common.DynS(user.CreatedAt) }
-	if user.ModifiedAt != old.ModifiedAt { params[":a16"] = common.DynS(user.ModifiedAt) }
+	if user.IsShared != old.IsShared { params[":a12"] = common.DynBOOL(user.IsShared) }
+	if user.DeactivatedAt != old.DeactivatedAt { params[":a13"] = common.DynS(user.DeactivatedAt) }
+	if user.CreatedAt != old.CreatedAt { params[":a14"] = common.DynS(user.CreatedAt) }
+	if user.ModifiedAt != old.ModifiedAt { params[":a15"] = common.DynS(user.ModifiedAt) }
 	return
 }
 func updateExpression(user User, old User) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -353,11 +351,10 @@ func updateExpression(user User, old User) (expr string, params map[string]*dyna
 	if user.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a9"); params[":a9"] = common.DynS(string(user.PlatformID));  }
 	if user.PlatformOrg != old.PlatformOrg { updateParts = append(updateParts, "platform_org = :a10"); params[":a10"] = common.DynS(user.PlatformOrg);  }
 	if user.IsAdmin != old.IsAdmin { updateParts = append(updateParts, "is_admin = :a11"); params[":a11"] = common.DynBOOL(user.IsAdmin);  }
-	if user.Deleted != old.Deleted { updateParts = append(updateParts, "deleted = :a12"); params[":a12"] = common.DynBOOL(user.Deleted);  }
-	if user.IsShared != old.IsShared { updateParts = append(updateParts, "is_shared = :a13"); params[":a13"] = common.DynBOOL(user.IsShared);  }
-	if user.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a14"); params[":a14"] = common.DynS(user.DeactivatedAt);  }
-	if user.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a15"); params[":a15"] = common.DynS(user.CreatedAt);  }
-	if user.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a16"); params[":a16"] = common.DynS(user.ModifiedAt);  }
+	if user.IsShared != old.IsShared { updateParts = append(updateParts, "is_shared = :a12"); params[":a12"] = common.DynBOOL(user.IsShared);  }
+	if user.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a13"); params[":a13"] = common.DynS(user.DeactivatedAt);  }
+	if user.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a14"); params[":a14"] = common.DynS(user.CreatedAt);  }
+	if user.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a15"); params[":a15"] = common.DynS(user.ModifiedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return
