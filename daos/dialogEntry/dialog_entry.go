@@ -128,6 +128,9 @@ func (d DAOImpl) Read(dialogID string) (out DialogEntry, err error) {
 	if err == nil && len(outs) == 0 {
 		err = fmt.Errorf("Not found dialogID==%s in %s\n", dialogID, d.Name)
 	}
+	if len(outs) > 0 {
+		out = outs[0]
+	}
 	return
 }
 

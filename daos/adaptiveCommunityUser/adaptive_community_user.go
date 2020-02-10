@@ -111,6 +111,9 @@ func (d DAOImpl) Read(channelID string, userID string) (out AdaptiveCommunityUse
 	if err == nil && len(outs) == 0 {
 		err = fmt.Errorf("Not found channelID==%s, userID==%s in %s\n", channelID, userID, d.Name)
 	}
+	if len(outs) > 0 {
+		out = outs[0]
+	}
 	return
 }
 

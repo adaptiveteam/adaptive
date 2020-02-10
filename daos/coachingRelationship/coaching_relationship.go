@@ -109,6 +109,9 @@ func (d DAOImpl) Read(coachQuarterYear string) (out CoachingRelationship, err er
 	if err == nil && len(outs) == 0 {
 		err = fmt.Errorf("Not found coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name)
 	}
+	if len(outs) > 0 {
+		out = outs[0]
+	}
 	return
 }
 

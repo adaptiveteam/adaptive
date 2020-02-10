@@ -107,6 +107,9 @@ func (d DAOImpl) Read(userID string, attrKey string) (out UserAttribute, err err
 	if err == nil && len(outs) == 0 {
 		err = fmt.Errorf("Not found userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name)
 	}
+	if len(outs) > 0 {
+		out = outs[0]
+	}
 	return
 }
 

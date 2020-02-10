@@ -102,6 +102,9 @@ func (d DAOImpl) Read(applicationAlias string) (out ContextAliasEntry, err error
 	if err == nil && len(outs) == 0 {
 		err = fmt.Errorf("Not found applicationAlias==%s in %s\n", applicationAlias, d.Name)
 	}
+	if len(outs) > 0 {
+		out = outs[0]
+	}
 	return
 }
 

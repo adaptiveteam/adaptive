@@ -116,6 +116,9 @@ func (d DAOImpl) Read(id string) (out StrategyInitiativeCommunity, err error) {
 	if err == nil && len(outs) == 0 {
 		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
 	}
+	if len(outs) > 0 {
+		out = outs[0]
+	}
 	return
 }
 
