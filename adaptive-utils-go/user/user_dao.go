@@ -18,8 +18,6 @@ type DAO interface {
 	Create(user models.User) error
 	CreateUnsafe(user models.User)
 	UserIDsToDisplayNamesUnsafe(userIDs []string) (res []models.KvPair)
-	Delete(userID string) error
-	DeleteUnsafe(userID string)
 	Update(user models.User) error
 	UpdateUnsafe(user models.User)
 }
@@ -96,17 +94,6 @@ func (d DAOImpl) UserIDsToDisplayNamesUnsafe(userIDs []string) (res []models.KvP
 // UserIDsToDisplayNames is a function that fetches user information for ids.
 // For each user their display name is put to `Name` and user id to `Value`.
 type UserIDsToDisplayNames func([]string) []models.KvPair
-
-// Delete removes user from db
-func (d DAOImpl) Delete(userID string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(userID))
-}
-
-// DeleteUnsafe deletes user and panics in case of errors.
-func (d DAOImpl) DeleteUnsafe(userID string) {
-	err := d.Delete(userID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete %s in %s", userID, d.Name))
-}
 
 func idParams(id string) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue{

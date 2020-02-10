@@ -5,7 +5,7 @@ import (
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	"github.com/adaptiveteam/adaptive/daos/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	"github.com/sirupsen/logrus"
 )
@@ -21,7 +21,7 @@ var (
 
 	platformTokenDao = plat.NewDAOFromSchema(d, namespace, schema)
 	// instead of profile lambda
-	userDao = user.NewDAOFromSchema(d, namespace, schema)
+	userDao = user.NewDAOByTableName(d, namespace, schema.AdaptiveUsers.Name)
 
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 
