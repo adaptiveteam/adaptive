@@ -320,7 +320,7 @@ func (d DAOImpl)DeleteUnsafe($idArgs) {
 		|func (d DAOImpl)Deactivate($idArgs) error {
 		|	instance, err2 := d.Read($idVarNames)
 		|	if err2 == nil {
-		|		instance.DeactivatedOn = core.ISODateLayout.Format(time.Now())
+		|		instance.${goPublicName(deactivatedAtField.name)} = core.TimestampLayout.Format(time.Now())
 		|		err2 = d.CreateOrUpdate(instance)
 		|	}
 		|	return err2
