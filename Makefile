@@ -76,11 +76,6 @@ generate-dry-run: ${AMM}
 # 	make backup-all ;\
 # 	popd
 
-restore-all:
-	pushd $(ADAPTIVE_REPOS)/core-infra-terraform ;\
-	make restore-all ;\
-	popd
-
 all:
 	echo "all"
 
