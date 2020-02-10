@@ -106,8 +106,8 @@ func (d DAOImpl) Create(userObjectiveProgress UserObjectiveProgress) (err error)
 
 // CreateUnsafe saves the UserObjectiveProgress.
 func (d DAOImpl) CreateUnsafe(userObjectiveProgress UserObjectiveProgress) {
-	err := d.Create(userObjectiveProgress)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s, createdOn==%s in %s\n", userObjectiveProgress.ID, userObjectiveProgress.CreatedOn, d.Name))
+	err2 := d.Create(userObjectiveProgress)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s, createdOn==%s in %s\n", userObjectiveProgress.ID, userObjectiveProgress.CreatedOn, d.Name))
 }
 
 
@@ -124,8 +124,8 @@ func (d DAOImpl) Read(id string, createdOn string) (out UserObjectiveProgress, e
 
 // ReadUnsafe reads the UserObjectiveProgress. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string, createdOn string) UserObjectiveProgress {
-	out, err := d.Read(id, createdOn)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s, createdOn==%s in %s\n", id, createdOn, d.Name))
+	out, err2 := d.Read(id, createdOn)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s, createdOn==%s in %s\n", id, createdOn, d.Name))
 	return out
 }
 
@@ -134,11 +134,14 @@ func (d DAOImpl) ReadUnsafe(id string, createdOn string) UserObjectiveProgress {
 func (d DAOImpl) ReadOrEmpty(id string, createdOn string) (out []UserObjectiveProgress, err error) {
 	var outOrEmpty UserObjectiveProgress
 	ids := idParams(id, createdOn)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id && outOrEmpty.CreatedOn == createdOn {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id && outOrEmpty.CreatedOn == createdOn {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s, createdOn==%s are different from the found ones: id==%s, createdOn==%s", id, createdOn, outOrEmpty.ID, outOrEmpty.CreatedOn) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "UserObjectiveProgress DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -147,8 +150,8 @@ func (d DAOImpl) ReadOrEmpty(id string, createdOn string) (out []UserObjectivePr
 
 // ReadOrEmptyUnsafe reads the UserObjectiveProgress. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string, createdOn string) []UserObjectiveProgress {
-	out, err := d.ReadOrEmpty(id, createdOn)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s, createdOn==%s in %s\n", id, createdOn, d.Name))
+	out, err2 := d.ReadOrEmpty(id, createdOn)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s, createdOn==%s in %s\n", id, createdOn, d.Name))
 	return out
 }
 
@@ -193,8 +196,8 @@ func (d DAOImpl) CreateOrUpdate(userObjectiveProgress UserObjectiveProgress) (er
 
 // CreateOrUpdateUnsafe saves the UserObjectiveProgress regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(userObjectiveProgress UserObjectiveProgress) {
-	err := d.CreateOrUpdate(userObjectiveProgress)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userObjectiveProgress, d.Name))
+	err2 := d.CreateOrUpdate(userObjectiveProgress)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userObjectiveProgress, d.Name))
 }
 
 
@@ -206,8 +209,8 @@ func (d DAOImpl)Delete(id string, createdOn string) error {
 
 // DeleteUnsafe deletes UserObjectiveProgress and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string, createdOn string) {
-	err := d.Delete(id, createdOn)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s, createdOn==%s in %s\n", id, createdOn, d.Name))
+	err2 := d.Delete(id, createdOn)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s, createdOn==%s in %s\n", id, createdOn, d.Name))
 }
 
 
@@ -226,8 +229,8 @@ func (d DAOImpl)ReadByID(id string) (out []UserObjectiveProgress, err error) {
 
 
 func (d DAOImpl)ReadByIDUnsafe(id string) (out []UserObjectiveProgress) {
-	out, err := d.ReadByID(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query IDIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByID(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query IDIndex on %s table\n", d.Name))
 	return
 }
 
@@ -247,8 +250,8 @@ func (d DAOImpl)ReadByCreatedOn(createdOn string) (out []UserObjectiveProgress, 
 
 
 func (d DAOImpl)ReadByCreatedOnUnsafe(createdOn string) (out []UserObjectiveProgress) {
-	out, err := d.ReadByCreatedOn(createdOn)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query CreatedOnIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByCreatedOn(createdOn)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query CreatedOnIndex on %s table\n", d.Name))
 	return
 }
 

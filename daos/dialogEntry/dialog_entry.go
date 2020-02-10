@@ -116,8 +116,8 @@ func (d DAOImpl) Create(dialogEntry DialogEntry) (err error) {
 
 // CreateUnsafe saves the DialogEntry.
 func (d DAOImpl) CreateUnsafe(dialogEntry DialogEntry) {
-	err := d.Create(dialogEntry)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create dialogID==%s in %s\n", dialogEntry.DialogID, d.Name))
+	err2 := d.Create(dialogEntry)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create dialogID==%s in %s\n", dialogEntry.DialogID, d.Name))
 }
 
 
@@ -134,8 +134,8 @@ func (d DAOImpl) Read(dialogID string) (out DialogEntry, err error) {
 
 // ReadUnsafe reads the DialogEntry. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(dialogID string) DialogEntry {
-	out, err := d.Read(dialogID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading dialogID==%s in %s\n", dialogID, d.Name))
+	out, err2 := d.Read(dialogID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading dialogID==%s in %s\n", dialogID, d.Name))
 	return out
 }
 
@@ -144,11 +144,14 @@ func (d DAOImpl) ReadUnsafe(dialogID string) DialogEntry {
 func (d DAOImpl) ReadOrEmpty(dialogID string) (out []DialogEntry, err error) {
 	var outOrEmpty DialogEntry
 	ids := idParams(dialogID)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.DialogID == dialogID {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.DialogID == dialogID {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: dialogID==%s are different from the found ones: dialogID==%s", dialogID, outOrEmpty.DialogID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "DialogEntry DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -157,8 +160,8 @@ func (d DAOImpl) ReadOrEmpty(dialogID string) (out []DialogEntry, err error) {
 
 // ReadOrEmptyUnsafe reads the DialogEntry. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(dialogID string) []DialogEntry {
-	out, err := d.ReadOrEmpty(dialogID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading dialogID==%s in %s\n", dialogID, d.Name))
+	out, err2 := d.ReadOrEmpty(dialogID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading dialogID==%s in %s\n", dialogID, d.Name))
 	return out
 }
 
@@ -203,8 +206,8 @@ func (d DAOImpl) CreateOrUpdate(dialogEntry DialogEntry) (err error) {
 
 // CreateOrUpdateUnsafe saves the DialogEntry regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(dialogEntry DialogEntry) {
-	err := d.CreateOrUpdate(dialogEntry)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", dialogEntry, d.Name))
+	err2 := d.CreateOrUpdate(dialogEntry)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", dialogEntry, d.Name))
 }
 
 
@@ -216,8 +219,8 @@ func (d DAOImpl)Delete(dialogID string) error {
 
 // DeleteUnsafe deletes DialogEntry and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(dialogID string) {
-	err := d.Delete(dialogID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete dialogID==%s in %s\n", dialogID, d.Name))
+	err2 := d.Delete(dialogID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete dialogID==%s in %s\n", dialogID, d.Name))
 }
 
 
@@ -237,8 +240,8 @@ func (d DAOImpl)ReadByContextSubject(context string, subject string) (out []Dial
 
 
 func (d DAOImpl)ReadByContextSubjectUnsafe(context string, subject string) (out []DialogEntry) {
-	out, err := d.ReadByContextSubject(context, subject)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query ContextSubjectIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByContextSubject(context, subject)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query ContextSubjectIndex on %s table\n", d.Name))
 	return
 }
 

@@ -118,8 +118,8 @@ func (d DAOImpl) Create(strategyObjective StrategyObjective) (err error) {
 
 // CreateUnsafe saves the StrategyObjective.
 func (d DAOImpl) CreateUnsafe(strategyObjective StrategyObjective) {
-	err := d.Create(strategyObjective)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", strategyObjective.ID, d.Name))
+	err2 := d.Create(strategyObjective)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", strategyObjective.ID, d.Name))
 }
 
 
@@ -136,8 +136,8 @@ func (d DAOImpl) Read(id string) (out StrategyObjective, err error) {
 
 // ReadUnsafe reads the StrategyObjective. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) StrategyObjective {
-	out, err := d.Read(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.Read(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -146,11 +146,14 @@ func (d DAOImpl) ReadUnsafe(id string) StrategyObjective {
 func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyObjective, err error) {
 	var outOrEmpty StrategyObjective
 	ids := idParams(id)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "StrategyObjective DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -159,8 +162,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyObjective, err error) {
 
 // ReadOrEmptyUnsafe reads the StrategyObjective. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []StrategyObjective {
-	out, err := d.ReadOrEmpty(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.ReadOrEmpty(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -208,8 +211,8 @@ func (d DAOImpl) CreateOrUpdate(strategyObjective StrategyObjective) (err error)
 
 // CreateOrUpdateUnsafe saves the StrategyObjective regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(strategyObjective StrategyObjective) {
-	err := d.CreateOrUpdate(strategyObjective)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", strategyObjective, d.Name))
+	err2 := d.CreateOrUpdate(strategyObjective)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", strategyObjective, d.Name))
 }
 
 
@@ -221,8 +224,8 @@ func (d DAOImpl)Delete(id string) error {
 
 // DeleteUnsafe deletes StrategyObjective and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string) {
-	err := d.Delete(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+	err2 := d.Delete(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
 }
 
 
@@ -241,8 +244,8 @@ func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []StrategyOb
 
 
 func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []StrategyObjective) {
-	out, err := d.ReadByPlatformID(platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByPlatformID(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
 	return
 }
 
@@ -262,8 +265,8 @@ func (d DAOImpl)ReadByCapabilityCommunityID(capabilityCommunityIDs []string) (ou
 
 
 func (d DAOImpl)ReadByCapabilityCommunityIDUnsafe(capabilityCommunityIDs []string) (out []StrategyObjective) {
-	out, err := d.ReadByCapabilityCommunityID(capabilityCommunityIDs)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query CapabilityCommunityIDIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByCapabilityCommunityID(capabilityCommunityIDs)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query CapabilityCommunityIDIndex on %s table\n", d.Name))
 	return
 }
 

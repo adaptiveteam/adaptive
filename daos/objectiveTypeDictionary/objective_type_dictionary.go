@@ -111,8 +111,8 @@ func (d DAOImpl) Create(objectiveTypeDictionary ObjectiveTypeDictionary) (err er
 
 // CreateUnsafe saves the ObjectiveTypeDictionary.
 func (d DAOImpl) CreateUnsafe(objectiveTypeDictionary ObjectiveTypeDictionary) {
-	err := d.Create(objectiveTypeDictionary)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", objectiveTypeDictionary.ID, d.Name))
+	err2 := d.Create(objectiveTypeDictionary)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", objectiveTypeDictionary.ID, d.Name))
 }
 
 
@@ -129,8 +129,8 @@ func (d DAOImpl) Read(id string) (out ObjectiveTypeDictionary, err error) {
 
 // ReadUnsafe reads the ObjectiveTypeDictionary. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) ObjectiveTypeDictionary {
-	out, err := d.Read(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.Read(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -139,11 +139,14 @@ func (d DAOImpl) ReadUnsafe(id string) ObjectiveTypeDictionary {
 func (d DAOImpl) ReadOrEmpty(id string) (out []ObjectiveTypeDictionary, err error) {
 	var outOrEmpty ObjectiveTypeDictionary
 	ids := idParams(id)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "ObjectiveTypeDictionary DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -152,8 +155,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []ObjectiveTypeDictionary, err erro
 
 // ReadOrEmptyUnsafe reads the ObjectiveTypeDictionary. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []ObjectiveTypeDictionary {
-	out, err := d.ReadOrEmpty(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.ReadOrEmpty(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -201,8 +204,8 @@ func (d DAOImpl) CreateOrUpdate(objectiveTypeDictionary ObjectiveTypeDictionary)
 
 // CreateOrUpdateUnsafe saves the ObjectiveTypeDictionary regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(objectiveTypeDictionary ObjectiveTypeDictionary) {
-	err := d.CreateOrUpdate(objectiveTypeDictionary)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", objectiveTypeDictionary, d.Name))
+	err2 := d.CreateOrUpdate(objectiveTypeDictionary)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", objectiveTypeDictionary, d.Name))
 }
 
 
@@ -210,19 +213,19 @@ func (d DAOImpl) CreateOrUpdateUnsafe(objectiveTypeDictionary ObjectiveTypeDicti
 // The mechanism is adding timestamp to `DeactivatedOn` field. 
 // Then, if this field is not empty, the instance is considered to be "active"
 func (d DAOImpl)Deactivate(id string) error {
-	instance, err := d.Read(id)
-	if err == nil {
+	instance, err2 := d.Read(id)
+	if err2 == nil {
 		instance.DeactivatedOn = core.ISODateLayout.Format(time.Now())
-		err = d.CreateOrUpdate(instance)
+		err2 = d.CreateOrUpdate(instance)
 	}
-	return err
+	return err2
 }
 
 
 // DeactivateUnsafe "deletes" ObjectiveTypeDictionary and panics in case of errors.
 func (d DAOImpl)DeactivateUnsafe(id string) {
-	err := d.Deactivate(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, d.Name))
+	err2 := d.Deactivate(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, d.Name))
 }
 
 
@@ -241,8 +244,8 @@ func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []ObjectiveT
 
 
 func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []ObjectiveTypeDictionary) {
-	out, err := d.ReadByPlatformID(platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByPlatformID(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
 	return
 }
 

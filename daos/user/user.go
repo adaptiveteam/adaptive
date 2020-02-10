@@ -110,8 +110,8 @@ func (d DAOImpl) Create(user User) (err error) {
 
 // CreateUnsafe saves the User.
 func (d DAOImpl) CreateUnsafe(user User) {
-	err := d.Create(user)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", user.ID, d.Name))
+	err2 := d.Create(user)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", user.ID, d.Name))
 }
 
 
@@ -128,8 +128,8 @@ func (d DAOImpl) Read(id string) (out User, err error) {
 
 // ReadUnsafe reads the User. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) User {
-	out, err := d.Read(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.Read(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -138,11 +138,14 @@ func (d DAOImpl) ReadUnsafe(id string) User {
 func (d DAOImpl) ReadOrEmpty(id string) (out []User, err error) {
 	var outOrEmpty User
 	ids := idParams(id)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "User DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -151,8 +154,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []User, err error) {
 
 // ReadOrEmptyUnsafe reads the User. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []User {
-	out, err := d.ReadOrEmpty(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.ReadOrEmpty(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -197,8 +200,8 @@ func (d DAOImpl) CreateOrUpdate(user User) (err error) {
 
 // CreateOrUpdateUnsafe saves the User regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(user User) {
-	err := d.CreateOrUpdate(user)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", user, d.Name))
+	err2 := d.CreateOrUpdate(user)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", user, d.Name))
 }
 
 
@@ -210,8 +213,8 @@ func (d DAOImpl)Delete(id string) error {
 
 // DeleteUnsafe deletes User and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string) {
-	err := d.Delete(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+	err2 := d.Delete(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
 }
 
 
@@ -230,8 +233,8 @@ func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []User, err 
 
 
 func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []User) {
-	out, err := d.ReadByPlatformID(platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByPlatformID(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
 	return
 }
 
@@ -252,8 +255,8 @@ func (d DAOImpl)ReadByPlatformIDTimezoneOffset(platformID common.PlatformID, tim
 
 
 func (d DAOImpl)ReadByPlatformIDTimezoneOffsetUnsafe(platformID common.PlatformID, timezoneOffset int) (out []User) {
-	out, err := d.ReadByPlatformIDTimezoneOffset(platformID, timezoneOffset)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDTimezoneOffsetIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByPlatformIDTimezoneOffset(platformID, timezoneOffset)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDTimezoneOffsetIndex on %s table\n", d.Name))
 	return
 }
 
@@ -274,8 +277,8 @@ func (d DAOImpl)ReadByPlatformIDAdaptiveScheduledTimeInUTC(platformID common.Pla
 
 
 func (d DAOImpl)ReadByPlatformIDAdaptiveScheduledTimeInUTCUnsafe(platformID common.PlatformID, adaptiveScheduledTimeInUTC string) (out []User) {
-	out, err := d.ReadByPlatformIDAdaptiveScheduledTimeInUTC(platformID, adaptiveScheduledTimeInUTC)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDAdaptiveScheduledTimeInUTCIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByPlatformIDAdaptiveScheduledTimeInUTC(platformID, adaptiveScheduledTimeInUTC)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDAdaptiveScheduledTimeInUTCIndex on %s table\n", d.Name))
 	return
 }
 
