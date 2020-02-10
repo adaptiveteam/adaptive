@@ -30,17 +30,17 @@ type User struct  {
 	IsAdmin bool `json:"is_admin"`
 	Deleted bool `json:"deleted"`
 	IsShared bool `json:"is_shared"`
-	DeactivatedOn string `json:"deactivated_on"`
+	DeactivatedAt string `json:"deactivated_at,omitempty"`
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
 	// Automatically maintained field
-	ModifiedAt string `json:"modified_at"`
+	ModifiedAt string `json:"modified_at,omitempty"`
 }
 
 // UserFilterActive removes deactivated values
 func UserFilterActive(in []User) (res []User) {
 	for _, i := range in {
-		if i.DeactivatedOn == "" {
+		if i.DeactivatedAt == "" {
 			res = append(res, i)
 		}
 	}
@@ -232,7 +232,7 @@ func (d DAOImpl) CreateOrUpdateUnsafe(user User) {
 func (d DAOImpl)Deactivate(id string) error {
 	instance, err2 := d.Read(id)
 	if err2 == nil {
-		instance.DeactivatedOn = core.ISODateLayout.Format(time.Now())
+		instance.DeactivatedAt = core.TimestampLayout.Format(time.Now())
 		err2 = d.CreateOrUpdate(instance)
 	}
 	return err2
@@ -332,7 +332,7 @@ func allParams(user User, old User) (params map[string]*dynamodb.AttributeValue)
 	if user.IsAdmin != old.IsAdmin { params[":a11"] = common.DynBOOL(user.IsAdmin) }
 	if user.Deleted != old.Deleted { params[":a12"] = common.DynBOOL(user.Deleted) }
 	if user.IsShared != old.IsShared { params[":a13"] = common.DynBOOL(user.IsShared) }
-	if user.DeactivatedOn != old.DeactivatedOn { params[":a14"] = common.DynS(user.DeactivatedOn) }
+	if user.DeactivatedAt != old.DeactivatedAt { params[":a14"] = common.DynS(user.DeactivatedAt) }
 	if user.CreatedAt != old.CreatedAt { params[":a15"] = common.DynS(user.CreatedAt) }
 	if user.ModifiedAt != old.ModifiedAt { params[":a16"] = common.DynS(user.ModifiedAt) }
 	return
@@ -355,7 +355,7 @@ func updateExpression(user User, old User) (expr string, params map[string]*dyna
 	if user.IsAdmin != old.IsAdmin { updateParts = append(updateParts, "is_admin = :a11"); params[":a11"] = common.DynBOOL(user.IsAdmin);  }
 	if user.Deleted != old.Deleted { updateParts = append(updateParts, "deleted = :a12"); params[":a12"] = common.DynBOOL(user.Deleted);  }
 	if user.IsShared != old.IsShared { updateParts = append(updateParts, "is_shared = :a13"); params[":a13"] = common.DynBOOL(user.IsShared);  }
-	if user.DeactivatedOn != old.DeactivatedOn { updateParts = append(updateParts, "deactivated_on = :a14"); params[":a14"] = common.DynS(user.DeactivatedOn);  }
+	if user.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a14"); params[":a14"] = common.DynS(user.DeactivatedAt);  }
 	if user.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a15"); params[":a15"] = common.DynS(user.CreatedAt);  }
 	if user.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a16"); params[":a16"] = common.DynS(user.ModifiedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
