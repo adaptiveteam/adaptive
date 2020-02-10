@@ -193,6 +193,9 @@ func (d DAOImpl) Read($idArgs) (out $structName, err error) {
 	if err == nil && len(outs) == 0 {
 		err = fmt.Errorf("Not found $formatIds in %s\\n", $idVarNames, d.Name)
 	}
+	if len(outs) > 0 {
+		out = outs[0]
+	}
 	return
 }
 """
