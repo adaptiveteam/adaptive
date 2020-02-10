@@ -24,8 +24,8 @@ type ObjectiveTypeDictionary struct  {
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
 	// Automatically maintained field
-	ModifiedAt string `json:"modified_at"`
-	DeactivatedOn string `json:"deactivated_on"`
+	ModifiedAt string `json:"modified_at,omitempty"`
+	DeactivatedAt string `json:"deactivated_at,omitempty"`
 }
 
 // ObjectiveTypeDictionaryFilterActive removes deactivated values
@@ -266,7 +266,7 @@ func allParams(objectiveTypeDictionary ObjectiveTypeDictionary, old ObjectiveTyp
 	if objectiveTypeDictionary.Description != old.Description { params[":a3"] = common.DynS(objectiveTypeDictionary.Description) }
 	if objectiveTypeDictionary.CreatedAt != old.CreatedAt { params[":a4"] = common.DynS(objectiveTypeDictionary.CreatedAt) }
 	if objectiveTypeDictionary.ModifiedAt != old.ModifiedAt { params[":a5"] = common.DynS(objectiveTypeDictionary.ModifiedAt) }
-	if objectiveTypeDictionary.DeactivatedOn != old.DeactivatedOn { params[":a6"] = common.DynS(objectiveTypeDictionary.DeactivatedOn) }
+	if objectiveTypeDictionary.DeactivatedAt != old.DeactivatedAt { params[":a6"] = common.DynS(objectiveTypeDictionary.DeactivatedAt) }
 	return
 }
 func updateExpression(objectiveTypeDictionary ObjectiveTypeDictionary, old ObjectiveTypeDictionary) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -279,7 +279,7 @@ func updateExpression(objectiveTypeDictionary ObjectiveTypeDictionary, old Objec
 	if objectiveTypeDictionary.Description != old.Description { updateParts = append(updateParts, "description = :a3"); params[":a3"] = common.DynS(objectiveTypeDictionary.Description);  }
 	if objectiveTypeDictionary.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a4"); params[":a4"] = common.DynS(objectiveTypeDictionary.CreatedAt);  }
 	if objectiveTypeDictionary.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a5"); params[":a5"] = common.DynS(objectiveTypeDictionary.ModifiedAt);  }
-	if objectiveTypeDictionary.DeactivatedOn != old.DeactivatedOn { updateParts = append(updateParts, "deactivated_on = :a6"); params[":a6"] = common.DynS(objectiveTypeDictionary.DeactivatedOn);  }
+	if objectiveTypeDictionary.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a6"); params[":a6"] = common.DynS(objectiveTypeDictionary.DeactivatedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return

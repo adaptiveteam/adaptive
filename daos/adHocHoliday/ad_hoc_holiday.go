@@ -22,7 +22,7 @@ type AdHocHoliday struct  {
 	Name string `json:"name"`
 	Description string `json:"description"`
 	ScopeCommunities string `json:"scope_communities"`
-	DeactivatedOn string `json:"deactivated_on"`
+	DeactivatedAt string `json:"deactivated_at,omitempty"`
 }
 
 // AdHocHolidayFilterActive removes deactivated values
@@ -261,7 +261,7 @@ func allParams(adHocHoliday AdHocHoliday, old AdHocHoliday) (params map[string]*
 	if adHocHoliday.Name != old.Name { params[":a3"] = common.DynS(adHocHoliday.Name) }
 	if adHocHoliday.Description != old.Description { params[":a4"] = common.DynS(adHocHoliday.Description) }
 	if adHocHoliday.ScopeCommunities != old.ScopeCommunities { params[":a5"] = common.DynS(adHocHoliday.ScopeCommunities) }
-	if adHocHoliday.DeactivatedOn != old.DeactivatedOn { params[":a6"] = common.DynS(adHocHoliday.DeactivatedOn) }
+	if adHocHoliday.DeactivatedAt != old.DeactivatedAt { params[":a6"] = common.DynS(adHocHoliday.DeactivatedAt) }
 	return
 }
 func updateExpression(adHocHoliday AdHocHoliday, old AdHocHoliday) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -274,7 +274,7 @@ func updateExpression(adHocHoliday AdHocHoliday, old AdHocHoliday) (expr string,
 	if adHocHoliday.Name != old.Name { updateParts = append(updateParts, "#name = :a3"); params[":a3"] = common.DynS(adHocHoliday.Name); fldName := "name"; names["#name"] = &fldName }
 	if adHocHoliday.Description != old.Description { updateParts = append(updateParts, "description = :a4"); params[":a4"] = common.DynS(adHocHoliday.Description);  }
 	if adHocHoliday.ScopeCommunities != old.ScopeCommunities { updateParts = append(updateParts, "scope_communities = :a5"); params[":a5"] = common.DynS(adHocHoliday.ScopeCommunities);  }
-	if adHocHoliday.DeactivatedOn != old.DeactivatedOn { updateParts = append(updateParts, "deactivated_on = :a6"); params[":a6"] = common.DynS(adHocHoliday.DeactivatedOn);  }
+	if adHocHoliday.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a6"); params[":a6"] = common.DynS(adHocHoliday.DeactivatedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return

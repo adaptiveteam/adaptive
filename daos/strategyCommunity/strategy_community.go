@@ -28,7 +28,7 @@ type StrategyCommunity struct  {
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
 	// Automatically maintained field
-	ModifiedAt string `json:"modified_at"`
+	ModifiedAt string `json:"modified_at,omitempty"`
 }
 
 // CollectEmptyFields returns entity field names that are empty.
