@@ -139,8 +139,8 @@ func (d DAOImpl) Create(userEngagement UserEngagement) (err error) {
 
 // CreateUnsafe saves the UserEngagement.
 func (d DAOImpl) CreateUnsafe(userEngagement UserEngagement) {
-	err := d.Create(userEngagement)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", userEngagement.ID, d.Name))
+	err2 := d.Create(userEngagement)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", userEngagement.ID, d.Name))
 }
 
 
@@ -157,8 +157,8 @@ func (d DAOImpl) Read(id string) (out UserEngagement, err error) {
 
 // ReadUnsafe reads the UserEngagement. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) UserEngagement {
-	out, err := d.Read(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.Read(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -167,11 +167,14 @@ func (d DAOImpl) ReadUnsafe(id string) UserEngagement {
 func (d DAOImpl) ReadOrEmpty(id string) (out []UserEngagement, err error) {
 	var outOrEmpty UserEngagement
 	ids := idParams(id)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "UserEngagement DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -180,8 +183,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserEngagement, err error) {
 
 // ReadOrEmptyUnsafe reads the UserEngagement. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []UserEngagement {
-	out, err := d.ReadOrEmpty(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.ReadOrEmpty(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -229,8 +232,8 @@ func (d DAOImpl) CreateOrUpdate(userEngagement UserEngagement) (err error) {
 
 // CreateOrUpdateUnsafe saves the UserEngagement regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(userEngagement UserEngagement) {
-	err := d.CreateOrUpdate(userEngagement)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userEngagement, d.Name))
+	err2 := d.CreateOrUpdate(userEngagement)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userEngagement, d.Name))
 }
 
 
@@ -242,8 +245,8 @@ func (d DAOImpl)Delete(id string) error {
 
 // DeleteUnsafe deletes UserEngagement and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string) {
-	err := d.Delete(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+	err2 := d.Delete(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
 }
 
 
@@ -263,8 +266,8 @@ func (d DAOImpl)ReadByUserIDAnswered(userID string, answered int) (out []UserEng
 
 
 func (d DAOImpl)ReadByUserIDAnsweredUnsafe(userID string, answered int) (out []UserEngagement) {
-	out, err := d.ReadByUserIDAnswered(userID, answered)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query UserIDAnsweredIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByUserIDAnswered(userID, answered)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query UserIDAnsweredIndex on %s table\n", d.Name))
 	return
 }
 

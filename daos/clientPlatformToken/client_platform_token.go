@@ -96,8 +96,8 @@ func (d DAOImpl) Create(clientPlatformToken ClientPlatformToken) (err error) {
 
 // CreateUnsafe saves the ClientPlatformToken.
 func (d DAOImpl) CreateUnsafe(clientPlatformToken ClientPlatformToken) {
-	err := d.Create(clientPlatformToken)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create platformID==%s in %s\n", clientPlatformToken.PlatformID, d.Name))
+	err2 := d.Create(clientPlatformToken)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create platformID==%s in %s\n", clientPlatformToken.PlatformID, d.Name))
 }
 
 
@@ -114,8 +114,8 @@ func (d DAOImpl) Read(platformID common.PlatformID) (out ClientPlatformToken, er
 
 // ReadUnsafe reads the ClientPlatformToken. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(platformID common.PlatformID) ClientPlatformToken {
-	out, err := d.Read(platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading platformID==%s in %s\n", platformID, d.Name))
+	out, err2 := d.Read(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading platformID==%s in %s\n", platformID, d.Name))
 	return out
 }
 
@@ -124,11 +124,14 @@ func (d DAOImpl) ReadUnsafe(platformID common.PlatformID) ClientPlatformToken {
 func (d DAOImpl) ReadOrEmpty(platformID common.PlatformID) (out []ClientPlatformToken, err error) {
 	var outOrEmpty ClientPlatformToken
 	ids := idParams(platformID)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.PlatformID == platformID {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.PlatformID == platformID {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: platformID==%s are different from the found ones: platformID==%s", platformID, outOrEmpty.PlatformID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "ClientPlatformToken DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -137,8 +140,8 @@ func (d DAOImpl) ReadOrEmpty(platformID common.PlatformID) (out []ClientPlatform
 
 // ReadOrEmptyUnsafe reads the ClientPlatformToken. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(platformID common.PlatformID) []ClientPlatformToken {
-	out, err := d.ReadOrEmpty(platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading platformID==%s in %s\n", platformID, d.Name))
+	out, err2 := d.ReadOrEmpty(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading platformID==%s in %s\n", platformID, d.Name))
 	return out
 }
 
@@ -183,8 +186,8 @@ func (d DAOImpl) CreateOrUpdate(clientPlatformToken ClientPlatformToken) (err er
 
 // CreateOrUpdateUnsafe saves the ClientPlatformToken regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(clientPlatformToken ClientPlatformToken) {
-	err := d.CreateOrUpdate(clientPlatformToken)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", clientPlatformToken, d.Name))
+	err2 := d.CreateOrUpdate(clientPlatformToken)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", clientPlatformToken, d.Name))
 }
 
 
@@ -196,8 +199,8 @@ func (d DAOImpl)Delete(platformID common.PlatformID) error {
 
 // DeleteUnsafe deletes ClientPlatformToken and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(platformID common.PlatformID) {
-	err := d.Delete(platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete platformID==%s in %s\n", platformID, d.Name))
+	err2 := d.Delete(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete platformID==%s in %s\n", platformID, d.Name))
 }
 
 func idParams(platformID common.PlatformID) map[string]*dynamodb.AttributeValue {

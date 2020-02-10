@@ -106,8 +106,8 @@ func (d DAOImpl) Create(postponedEvent PostponedEvent) (err error) {
 
 // CreateUnsafe saves the PostponedEvent.
 func (d DAOImpl) CreateUnsafe(postponedEvent PostponedEvent) {
-	err := d.Create(postponedEvent)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", postponedEvent.ID, d.Name))
+	err2 := d.Create(postponedEvent)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", postponedEvent.ID, d.Name))
 }
 
 
@@ -124,8 +124,8 @@ func (d DAOImpl) Read(id string) (out PostponedEvent, err error) {
 
 // ReadUnsafe reads the PostponedEvent. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) PostponedEvent {
-	out, err := d.Read(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.Read(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -134,11 +134,14 @@ func (d DAOImpl) ReadUnsafe(id string) PostponedEvent {
 func (d DAOImpl) ReadOrEmpty(id string) (out []PostponedEvent, err error) {
 	var outOrEmpty PostponedEvent
 	ids := idParams(id)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "PostponedEvent DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -147,8 +150,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []PostponedEvent, err error) {
 
 // ReadOrEmptyUnsafe reads the PostponedEvent. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []PostponedEvent {
-	out, err := d.ReadOrEmpty(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.ReadOrEmpty(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -196,8 +199,8 @@ func (d DAOImpl) CreateOrUpdate(postponedEvent PostponedEvent) (err error) {
 
 // CreateOrUpdateUnsafe saves the PostponedEvent regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(postponedEvent PostponedEvent) {
-	err := d.CreateOrUpdate(postponedEvent)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", postponedEvent, d.Name))
+	err2 := d.CreateOrUpdate(postponedEvent)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", postponedEvent, d.Name))
 }
 
 
@@ -209,8 +212,8 @@ func (d DAOImpl)Delete(id string) error {
 
 // DeleteUnsafe deletes PostponedEvent and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string) {
-	err := d.Delete(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+	err2 := d.Delete(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
 }
 
 
@@ -230,8 +233,8 @@ func (d DAOImpl)ReadByPlatformIDUserID(platformID common.PlatformID, userID stri
 
 
 func (d DAOImpl)ReadByPlatformIDUserIDUnsafe(platformID common.PlatformID, userID string) (out []PostponedEvent) {
-	out, err := d.ReadByPlatformIDUserID(platformID, userID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDUserIDIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByPlatformIDUserID(platformID, userID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDUserIDIndex on %s table\n", d.Name))
 	return
 }
 
@@ -251,8 +254,8 @@ func (d DAOImpl)ReadByUserID(userID string) (out []PostponedEvent, err error) {
 
 
 func (d DAOImpl)ReadByUserIDUnsafe(userID string) (out []PostponedEvent) {
-	out, err := d.ReadByUserID(userID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query UserIDIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByUserID(userID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query UserIDIndex on %s table\n", d.Name))
 	return
 }
 

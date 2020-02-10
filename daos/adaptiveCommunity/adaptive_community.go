@@ -102,8 +102,8 @@ func (d DAOImpl) Create(adaptiveCommunity AdaptiveCommunity) (err error) {
 
 // CreateUnsafe saves the AdaptiveCommunity.
 func (d DAOImpl) CreateUnsafe(adaptiveCommunity AdaptiveCommunity) {
-	err := d.Create(adaptiveCommunity)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", adaptiveCommunity.ID, d.Name))
+	err2 := d.Create(adaptiveCommunity)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", adaptiveCommunity.ID, d.Name))
 }
 
 
@@ -120,8 +120,8 @@ func (d DAOImpl) Read(id string) (out AdaptiveCommunity, err error) {
 
 // ReadUnsafe reads the AdaptiveCommunity. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) AdaptiveCommunity {
-	out, err := d.Read(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.Read(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -130,11 +130,14 @@ func (d DAOImpl) ReadUnsafe(id string) AdaptiveCommunity {
 func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveCommunity, err error) {
 	var outOrEmpty AdaptiveCommunity
 	ids := idParams(id)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "AdaptiveCommunity DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -143,8 +146,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveCommunity, err error) {
 
 // ReadOrEmptyUnsafe reads the AdaptiveCommunity. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []AdaptiveCommunity {
-	out, err := d.ReadOrEmpty(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.ReadOrEmpty(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -192,8 +195,8 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunity AdaptiveCommunity) (err error)
 
 // CreateOrUpdateUnsafe saves the AdaptiveCommunity regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(adaptiveCommunity AdaptiveCommunity) {
-	err := d.CreateOrUpdate(adaptiveCommunity)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", adaptiveCommunity, d.Name))
+	err2 := d.CreateOrUpdate(adaptiveCommunity)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", adaptiveCommunity, d.Name))
 }
 
 
@@ -205,8 +208,8 @@ func (d DAOImpl)Delete(id string) error {
 
 // DeleteUnsafe deletes AdaptiveCommunity and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string) {
-	err := d.Delete(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+	err2 := d.Delete(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
 }
 
 
@@ -225,8 +228,8 @@ func (d DAOImpl)ReadByChannel(channelID string) (out []AdaptiveCommunity, err er
 
 
 func (d DAOImpl)ReadByChannelUnsafe(channelID string) (out []AdaptiveCommunity) {
-	out, err := d.ReadByChannel(channelID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query ChannelIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByChannel(channelID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query ChannelIndex on %s table\n", d.Name))
 	return
 }
 
@@ -246,8 +249,8 @@ func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []AdaptiveCo
 
 
 func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []AdaptiveCommunity) {
-	out, err := d.ReadByPlatformID(platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByPlatformID(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
 	return
 }
 

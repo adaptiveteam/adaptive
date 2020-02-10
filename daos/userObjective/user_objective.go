@@ -144,8 +144,8 @@ func (d DAOImpl) Create(userObjective UserObjective) (err error) {
 
 // CreateUnsafe saves the UserObjective.
 func (d DAOImpl) CreateUnsafe(userObjective UserObjective) {
-	err := d.Create(userObjective)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", userObjective.ID, d.Name))
+	err2 := d.Create(userObjective)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", userObjective.ID, d.Name))
 }
 
 
@@ -162,8 +162,8 @@ func (d DAOImpl) Read(id string) (out UserObjective, err error) {
 
 // ReadUnsafe reads the UserObjective. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) UserObjective {
-	out, err := d.Read(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.Read(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -172,11 +172,14 @@ func (d DAOImpl) ReadUnsafe(id string) UserObjective {
 func (d DAOImpl) ReadOrEmpty(id string) (out []UserObjective, err error) {
 	var outOrEmpty UserObjective
 	ids := idParams(id)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "UserObjective DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -185,8 +188,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserObjective, err error) {
 
 // ReadOrEmptyUnsafe reads the UserObjective. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []UserObjective {
-	out, err := d.ReadOrEmpty(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.ReadOrEmpty(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -234,8 +237,8 @@ func (d DAOImpl) CreateOrUpdate(userObjective UserObjective) (err error) {
 
 // CreateOrUpdateUnsafe saves the UserObjective regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(userObjective UserObjective) {
-	err := d.CreateOrUpdate(userObjective)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userObjective, d.Name))
+	err2 := d.CreateOrUpdate(userObjective)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userObjective, d.Name))
 }
 
 
@@ -247,8 +250,8 @@ func (d DAOImpl)Delete(id string) error {
 
 // DeleteUnsafe deletes UserObjective and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string) {
-	err := d.Delete(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+	err2 := d.Delete(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
 }
 
 
@@ -268,8 +271,8 @@ func (d DAOImpl)ReadByUserIDCompleted(userID string, completed int) (out []UserO
 
 
 func (d DAOImpl)ReadByUserIDCompletedUnsafe(userID string, completed int) (out []UserObjective) {
-	out, err := d.ReadByUserIDCompleted(userID, completed)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query UserIDCompletedIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByUserIDCompleted(userID, completed)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query UserIDCompletedIndex on %s table\n", d.Name))
 	return
 }
 
@@ -289,8 +292,8 @@ func (d DAOImpl)ReadByAccepted(accepted int) (out []UserObjective, err error) {
 
 
 func (d DAOImpl)ReadByAcceptedUnsafe(accepted int) (out []UserObjective) {
-	out, err := d.ReadByAccepted(accepted)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query AcceptedIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByAccepted(accepted)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query AcceptedIndex on %s table\n", d.Name))
 	return
 }
 
@@ -310,8 +313,8 @@ func (d DAOImpl)ReadByAccountabilityPartner(accountabilityPartner string) (out [
 
 
 func (d DAOImpl)ReadByAccountabilityPartnerUnsafe(accountabilityPartner string) (out []UserObjective) {
-	out, err := d.ReadByAccountabilityPartner(accountabilityPartner)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query AccountabilityPartnerIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByAccountabilityPartner(accountabilityPartner)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query AccountabilityPartnerIndex on %s table\n", d.Name))
 	return
 }
 
@@ -332,8 +335,8 @@ func (d DAOImpl)ReadByUserIDType(userID string, objectiveType DevelopmentObjecti
 
 
 func (d DAOImpl)ReadByUserIDTypeUnsafe(userID string, objectiveType DevelopmentObjectiveType) (out []UserObjective) {
-	out, err := d.ReadByUserIDType(userID, objectiveType)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query UserIDTypeIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByUserIDType(userID, objectiveType)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query UserIDTypeIndex on %s table\n", d.Name))
 	return
 }
 

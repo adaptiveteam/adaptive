@@ -97,8 +97,8 @@ func (d DAOImpl) Create(coachingRelationship CoachingRelationship) (err error) {
 
 // CreateUnsafe saves the CoachingRelationship.
 func (d DAOImpl) CreateUnsafe(coachingRelationship CoachingRelationship) {
-	err := d.Create(coachingRelationship)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create coachQuarterYear==%s in %s\n", coachingRelationship.CoachQuarterYear, d.Name))
+	err2 := d.Create(coachingRelationship)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create coachQuarterYear==%s in %s\n", coachingRelationship.CoachQuarterYear, d.Name))
 }
 
 
@@ -115,8 +115,8 @@ func (d DAOImpl) Read(coachQuarterYear string) (out CoachingRelationship, err er
 
 // ReadUnsafe reads the CoachingRelationship. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(coachQuarterYear string) CoachingRelationship {
-	out, err := d.Read(coachQuarterYear)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name))
+	out, err2 := d.Read(coachQuarterYear)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name))
 	return out
 }
 
@@ -125,11 +125,14 @@ func (d DAOImpl) ReadUnsafe(coachQuarterYear string) CoachingRelationship {
 func (d DAOImpl) ReadOrEmpty(coachQuarterYear string) (out []CoachingRelationship, err error) {
 	var outOrEmpty CoachingRelationship
 	ids := idParams(coachQuarterYear)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.CoachQuarterYear == coachQuarterYear {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.CoachQuarterYear == coachQuarterYear {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: coachQuarterYear==%s are different from the found ones: coachQuarterYear==%s", coachQuarterYear, outOrEmpty.CoachQuarterYear) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "CoachingRelationship DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -138,8 +141,8 @@ func (d DAOImpl) ReadOrEmpty(coachQuarterYear string) (out []CoachingRelationshi
 
 // ReadOrEmptyUnsafe reads the CoachingRelationship. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(coachQuarterYear string) []CoachingRelationship {
-	out, err := d.ReadOrEmpty(coachQuarterYear)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name))
+	out, err2 := d.ReadOrEmpty(coachQuarterYear)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name))
 	return out
 }
 
@@ -184,8 +187,8 @@ func (d DAOImpl) CreateOrUpdate(coachingRelationship CoachingRelationship) (err 
 
 // CreateOrUpdateUnsafe saves the CoachingRelationship regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(coachingRelationship CoachingRelationship) {
-	err := d.CreateOrUpdate(coachingRelationship)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", coachingRelationship, d.Name))
+	err2 := d.CreateOrUpdate(coachingRelationship)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", coachingRelationship, d.Name))
 }
 
 
@@ -197,8 +200,8 @@ func (d DAOImpl)Delete(coachQuarterYear string) error {
 
 // DeleteUnsafe deletes CoachingRelationship and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(coachQuarterYear string) {
-	err := d.Delete(coachQuarterYear)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name))
+	err2 := d.Delete(coachQuarterYear)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name))
 }
 
 
@@ -217,8 +220,8 @@ func (d DAOImpl)ReadByCoachQuarterYear(coachQuarterYear string) (out []CoachingR
 
 
 func (d DAOImpl)ReadByCoachQuarterYearUnsafe(coachQuarterYear string) (out []CoachingRelationship) {
-	out, err := d.ReadByCoachQuarterYear(coachQuarterYear)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query CoachQuarterYearIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByCoachQuarterYear(coachQuarterYear)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query CoachQuarterYearIndex on %s table\n", d.Name))
 	return
 }
 
@@ -239,8 +242,8 @@ func (d DAOImpl)ReadByQuarterYear(quarter int, year int) (out []CoachingRelation
 
 
 func (d DAOImpl)ReadByQuarterYearUnsafe(quarter int, year int) (out []CoachingRelationship) {
-	out, err := d.ReadByQuarterYear(quarter, year)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query QuarterYearIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByQuarterYear(quarter, year)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query QuarterYearIndex on %s table\n", d.Name))
 	return
 }
 
@@ -260,8 +263,8 @@ func (d DAOImpl)ReadByCoacheeQuarterYear(coacheeQuarterYear string) (out []Coach
 
 
 func (d DAOImpl)ReadByCoacheeQuarterYearUnsafe(coacheeQuarterYear string) (out []CoachingRelationship) {
-	out, err := d.ReadByCoacheeQuarterYear(coacheeQuarterYear)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query CoacheeQuarterYearIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByCoacheeQuarterYear(coacheeQuarterYear)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query CoacheeQuarterYearIndex on %s table\n", d.Name))
 	return
 }
 

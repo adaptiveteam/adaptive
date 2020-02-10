@@ -95,8 +95,8 @@ func (d DAOImpl) Create(userAttribute UserAttribute) (err error) {
 
 // CreateUnsafe saves the UserAttribute.
 func (d DAOImpl) CreateUnsafe(userAttribute UserAttribute) {
-	err := d.Create(userAttribute)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create userID==%s, attrKey==%s in %s\n", userAttribute.UserID, userAttribute.AttrKey, d.Name))
+	err2 := d.Create(userAttribute)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create userID==%s, attrKey==%s in %s\n", userAttribute.UserID, userAttribute.AttrKey, d.Name))
 }
 
 
@@ -113,8 +113,8 @@ func (d DAOImpl) Read(userID string, attrKey string) (out UserAttribute, err err
 
 // ReadUnsafe reads the UserAttribute. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(userID string, attrKey string) UserAttribute {
-	out, err := d.Read(userID, attrKey)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name))
+	out, err2 := d.Read(userID, attrKey)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name))
 	return out
 }
 
@@ -123,11 +123,14 @@ func (d DAOImpl) ReadUnsafe(userID string, attrKey string) UserAttribute {
 func (d DAOImpl) ReadOrEmpty(userID string, attrKey string) (out []UserAttribute, err error) {
 	var outOrEmpty UserAttribute
 	ids := idParams(userID, attrKey)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.UserID == userID && outOrEmpty.AttrKey == attrKey {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.UserID == userID && outOrEmpty.AttrKey == attrKey {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: userID==%s, attrKey==%s are different from the found ones: userID==%s, attrKey==%s", userID, attrKey, outOrEmpty.UserID, outOrEmpty.AttrKey) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "UserAttribute DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -136,8 +139,8 @@ func (d DAOImpl) ReadOrEmpty(userID string, attrKey string) (out []UserAttribute
 
 // ReadOrEmptyUnsafe reads the UserAttribute. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(userID string, attrKey string) []UserAttribute {
-	out, err := d.ReadOrEmpty(userID, attrKey)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name))
+	out, err2 := d.ReadOrEmpty(userID, attrKey)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name))
 	return out
 }
 
@@ -182,8 +185,8 @@ func (d DAOImpl) CreateOrUpdate(userAttribute UserAttribute) (err error) {
 
 // CreateOrUpdateUnsafe saves the UserAttribute regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(userAttribute UserAttribute) {
-	err := d.CreateOrUpdate(userAttribute)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userAttribute, d.Name))
+	err2 := d.CreateOrUpdate(userAttribute)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userAttribute, d.Name))
 }
 
 
@@ -195,8 +198,8 @@ func (d DAOImpl)Delete(userID string, attrKey string) error {
 
 // DeleteUnsafe deletes UserAttribute and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(userID string, attrKey string) {
-	err := d.Delete(userID, attrKey)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name))
+	err2 := d.Delete(userID, attrKey)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name))
 }
 
 func idParams(userID string, attrKey string) map[string]*dynamodb.AttributeValue {

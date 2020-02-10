@@ -109,8 +109,8 @@ func (d DAOImpl) Create(userFeedback UserFeedback) (err error) {
 
 // CreateUnsafe saves the UserFeedback.
 func (d DAOImpl) CreateUnsafe(userFeedback UserFeedback) {
-	err := d.Create(userFeedback)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", userFeedback.ID, d.Name))
+	err2 := d.Create(userFeedback)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", userFeedback.ID, d.Name))
 }
 
 
@@ -127,8 +127,8 @@ func (d DAOImpl) Read(id string) (out UserFeedback, err error) {
 
 // ReadUnsafe reads the UserFeedback. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) UserFeedback {
-	out, err := d.Read(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.Read(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -137,11 +137,14 @@ func (d DAOImpl) ReadUnsafe(id string) UserFeedback {
 func (d DAOImpl) ReadOrEmpty(id string) (out []UserFeedback, err error) {
 	var outOrEmpty UserFeedback
 	ids := idParams(id)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "UserFeedback DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -150,8 +153,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserFeedback, err error) {
 
 // ReadOrEmptyUnsafe reads the UserFeedback. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []UserFeedback {
-	out, err := d.ReadOrEmpty(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.ReadOrEmpty(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -196,8 +199,8 @@ func (d DAOImpl) CreateOrUpdate(userFeedback UserFeedback) (err error) {
 
 // CreateOrUpdateUnsafe saves the UserFeedback regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(userFeedback UserFeedback) {
-	err := d.CreateOrUpdate(userFeedback)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userFeedback, d.Name))
+	err2 := d.CreateOrUpdate(userFeedback)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userFeedback, d.Name))
 }
 
 
@@ -209,8 +212,8 @@ func (d DAOImpl)Delete(id string) error {
 
 // DeleteUnsafe deletes UserFeedback and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string) {
-	err := d.Delete(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+	err2 := d.Delete(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
 }
 
 
@@ -230,8 +233,8 @@ func (d DAOImpl)ReadByQuarterYearSource(quarterYear string, source string) (out 
 
 
 func (d DAOImpl)ReadByQuarterYearSourceUnsafe(quarterYear string, source string) (out []UserFeedback) {
-	out, err := d.ReadByQuarterYearSource(quarterYear, source)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query QuarterYearSourceIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByQuarterYearSource(quarterYear, source)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query QuarterYearSourceIndex on %s table\n", d.Name))
 	return
 }
 
@@ -252,8 +255,8 @@ func (d DAOImpl)ReadByQuarterYearTarget(quarterYear string, target string) (out 
 
 
 func (d DAOImpl)ReadByQuarterYearTargetUnsafe(quarterYear string, target string) (out []UserFeedback) {
-	out, err := d.ReadByQuarterYearTarget(quarterYear, target)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query QuarterYearTargetIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByQuarterYearTarget(quarterYear, target)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query QuarterYearTargetIndex on %s table\n", d.Name))
 	return
 }
 

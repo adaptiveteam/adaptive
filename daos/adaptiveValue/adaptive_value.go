@@ -106,8 +106,8 @@ func (d DAOImpl) Create(adaptiveValue AdaptiveValue) (err error) {
 
 // CreateUnsafe saves the AdaptiveValue.
 func (d DAOImpl) CreateUnsafe(adaptiveValue AdaptiveValue) {
-	err := d.Create(adaptiveValue)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", adaptiveValue.ID, d.Name))
+	err2 := d.Create(adaptiveValue)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", adaptiveValue.ID, d.Name))
 }
 
 
@@ -124,8 +124,8 @@ func (d DAOImpl) Read(id string) (out AdaptiveValue, err error) {
 
 // ReadUnsafe reads the AdaptiveValue. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) AdaptiveValue {
-	out, err := d.Read(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.Read(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -134,11 +134,14 @@ func (d DAOImpl) ReadUnsafe(id string) AdaptiveValue {
 func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveValue, err error) {
 	var outOrEmpty AdaptiveValue
 	ids := idParams(id)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "AdaptiveValue DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -147,8 +150,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveValue, err error) {
 
 // ReadOrEmptyUnsafe reads the AdaptiveValue. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []AdaptiveValue {
-	out, err := d.ReadOrEmpty(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.ReadOrEmpty(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -193,8 +196,8 @@ func (d DAOImpl) CreateOrUpdate(adaptiveValue AdaptiveValue) (err error) {
 
 // CreateOrUpdateUnsafe saves the AdaptiveValue regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(adaptiveValue AdaptiveValue) {
-	err := d.CreateOrUpdate(adaptiveValue)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", adaptiveValue, d.Name))
+	err2 := d.CreateOrUpdate(adaptiveValue)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", adaptiveValue, d.Name))
 }
 
 
@@ -202,19 +205,19 @@ func (d DAOImpl) CreateOrUpdateUnsafe(adaptiveValue AdaptiveValue) {
 // The mechanism is adding timestamp to `DeactivatedOn` field. 
 // Then, if this field is not empty, the instance is considered to be "active"
 func (d DAOImpl)Deactivate(id string) error {
-	instance, err := d.Read(id)
-	if err == nil {
+	instance, err2 := d.Read(id)
+	if err2 == nil {
 		instance.DeactivatedOn = core.ISODateLayout.Format(time.Now())
-		err = d.CreateOrUpdate(instance)
+		err2 = d.CreateOrUpdate(instance)
 	}
-	return err
+	return err2
 }
 
 
 // DeactivateUnsafe "deletes" AdaptiveValue and panics in case of errors.
 func (d DAOImpl)DeactivateUnsafe(id string) {
-	err := d.Deactivate(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, d.Name))
+	err2 := d.Deactivate(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, d.Name))
 }
 
 
@@ -233,8 +236,8 @@ func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []AdaptiveVa
 
 
 func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []AdaptiveValue) {
-	out, err := d.ReadByPlatformID(platformID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByPlatformID(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
 	return
 }
 

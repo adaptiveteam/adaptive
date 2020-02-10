@@ -108,8 +108,8 @@ func (d DAOImpl) Create(adHocHoliday AdHocHoliday) (err error) {
 
 // CreateUnsafe saves the AdHocHoliday.
 func (d DAOImpl) CreateUnsafe(adHocHoliday AdHocHoliday) {
-	err := d.Create(adHocHoliday)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", adHocHoliday.ID, d.Name))
+	err2 := d.Create(adHocHoliday)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", adHocHoliday.ID, d.Name))
 }
 
 
@@ -126,8 +126,8 @@ func (d DAOImpl) Read(id string) (out AdHocHoliday, err error) {
 
 // ReadUnsafe reads the AdHocHoliday. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) AdHocHoliday {
-	out, err := d.Read(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.Read(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -136,11 +136,14 @@ func (d DAOImpl) ReadUnsafe(id string) AdHocHoliday {
 func (d DAOImpl) ReadOrEmpty(id string) (out []AdHocHoliday, err error) {
 	var outOrEmpty AdHocHoliday
 	ids := idParams(id)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ID == id {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ID == id {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "AdHocHoliday DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -149,8 +152,8 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []AdHocHoliday, err error) {
 
 // ReadOrEmptyUnsafe reads the AdHocHoliday. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []AdHocHoliday {
-	out, err := d.ReadOrEmpty(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	out, err2 := d.ReadOrEmpty(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
 	return out
 }
 
@@ -195,8 +198,8 @@ func (d DAOImpl) CreateOrUpdate(adHocHoliday AdHocHoliday) (err error) {
 
 // CreateOrUpdateUnsafe saves the AdHocHoliday regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(adHocHoliday AdHocHoliday) {
-	err := d.CreateOrUpdate(adHocHoliday)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", adHocHoliday, d.Name))
+	err2 := d.CreateOrUpdate(adHocHoliday)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", adHocHoliday, d.Name))
 }
 
 
@@ -204,19 +207,19 @@ func (d DAOImpl) CreateOrUpdateUnsafe(adHocHoliday AdHocHoliday) {
 // The mechanism is adding timestamp to `DeactivatedOn` field. 
 // Then, if this field is not empty, the instance is considered to be "active"
 func (d DAOImpl)Deactivate(id string) error {
-	instance, err := d.Read(id)
-	if err == nil {
+	instance, err2 := d.Read(id)
+	if err2 == nil {
 		instance.DeactivatedOn = core.ISODateLayout.Format(time.Now())
-		err = d.CreateOrUpdate(instance)
+		err2 = d.CreateOrUpdate(instance)
 	}
-	return err
+	return err2
 }
 
 
 // DeactivateUnsafe "deletes" AdHocHoliday and panics in case of errors.
 func (d DAOImpl)DeactivateUnsafe(id string) {
-	err := d.Deactivate(id)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, d.Name))
+	err2 := d.Deactivate(id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, d.Name))
 }
 
 
@@ -236,8 +239,8 @@ func (d DAOImpl)ReadByPlatformIDDate(platformID common.PlatformID, date string) 
 
 
 func (d DAOImpl)ReadByPlatformIDDateUnsafe(platformID common.PlatformID, date string) (out []AdHocHoliday) {
-	out, err := d.ReadByPlatformIDDate(platformID, date)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query PlatformIDDateIndex on %s table\n", d.Name))
+	out, err2 := d.ReadByPlatformIDDate(platformID, date)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDDateIndex on %s table\n", d.Name))
 	return
 }
 

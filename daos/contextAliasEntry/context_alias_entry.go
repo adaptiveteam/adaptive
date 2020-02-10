@@ -90,8 +90,8 @@ func (d DAOImpl) Create(contextAliasEntry ContextAliasEntry) (err error) {
 
 // CreateUnsafe saves the ContextAliasEntry.
 func (d DAOImpl) CreateUnsafe(contextAliasEntry ContextAliasEntry) {
-	err := d.Create(contextAliasEntry)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create applicationAlias==%s in %s\n", contextAliasEntry.ApplicationAlias, d.Name))
+	err2 := d.Create(contextAliasEntry)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create applicationAlias==%s in %s\n", contextAliasEntry.ApplicationAlias, d.Name))
 }
 
 
@@ -108,8 +108,8 @@ func (d DAOImpl) Read(applicationAlias string) (out ContextAliasEntry, err error
 
 // ReadUnsafe reads the ContextAliasEntry. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(applicationAlias string) ContextAliasEntry {
-	out, err := d.Read(applicationAlias)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error reading applicationAlias==%s in %s\n", applicationAlias, d.Name))
+	out, err2 := d.Read(applicationAlias)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading applicationAlias==%s in %s\n", applicationAlias, d.Name))
 	return out
 }
 
@@ -118,11 +118,14 @@ func (d DAOImpl) ReadUnsafe(applicationAlias string) ContextAliasEntry {
 func (d DAOImpl) ReadOrEmpty(applicationAlias string) (out []ContextAliasEntry, err error) {
 	var outOrEmpty ContextAliasEntry
 	ids := idParams(applicationAlias)
-	err = d.Dynamo.QueryTable(d.Name, ids, &outOrEmpty)
-	if outOrEmpty.ApplicationAlias == applicationAlias {
-		out = append(out, outOrEmpty)
-	} else if err != nil && strings.HasPrefix(err.Error(), "[NOT FOUND]") {
-		err = nil // expected not-found error	
+	var found bool
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	if found {
+		if outOrEmpty.ApplicationAlias == applicationAlias {
+			out = append(out, outOrEmpty)
+		} else {
+			err = fmt.Errorf("Requested ids: applicationAlias==%s are different from the found ones: applicationAlias==%s", applicationAlias, outOrEmpty.ApplicationAlias) // unexpected error: found ids != ids
+		}
 	}
 	err = errors.Wrapf(err, "ContextAliasEntry DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
 	return
@@ -131,8 +134,8 @@ func (d DAOImpl) ReadOrEmpty(applicationAlias string) (out []ContextAliasEntry, 
 
 // ReadOrEmptyUnsafe reads the ContextAliasEntry. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(applicationAlias string) []ContextAliasEntry {
-	out, err := d.ReadOrEmpty(applicationAlias)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Error while reading applicationAlias==%s in %s\n", applicationAlias, d.Name))
+	out, err2 := d.ReadOrEmpty(applicationAlias)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading applicationAlias==%s in %s\n", applicationAlias, d.Name))
 	return out
 }
 
@@ -177,8 +180,8 @@ func (d DAOImpl) CreateOrUpdate(contextAliasEntry ContextAliasEntry) (err error)
 
 // CreateOrUpdateUnsafe saves the ContextAliasEntry regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(contextAliasEntry ContextAliasEntry) {
-	err := d.CreateOrUpdate(contextAliasEntry)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", contextAliasEntry, d.Name))
+	err2 := d.CreateOrUpdate(contextAliasEntry)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", contextAliasEntry, d.Name))
 }
 
 
@@ -190,8 +193,8 @@ func (d DAOImpl)Delete(applicationAlias string) error {
 
 // DeleteUnsafe deletes ContextAliasEntry and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(applicationAlias string) {
-	err := d.Delete(applicationAlias)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete applicationAlias==%s in %s\n", applicationAlias, d.Name))
+	err2 := d.Delete(applicationAlias)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete applicationAlias==%s in %s\n", applicationAlias, d.Name))
 }
 
 func idParams(applicationAlias string) map[string]*dynamodb.AttributeValue {
