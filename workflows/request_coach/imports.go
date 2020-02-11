@@ -9,6 +9,7 @@ import (
 type Issue = issues.Issue
 type DynamoDBConnection = common.DynamoDBConnection
 type NewAndOldIssues = issues.NewAndOldIssues
+type DialogSituationIDWithoutIssueType = issues.DialogSituationIDWithoutIssueType
 
 // IssueIDKey - data key that will contain Issue ID
 const IssueIDKey = exchange.IssueIDKey
