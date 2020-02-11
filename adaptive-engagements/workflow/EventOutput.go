@@ -33,3 +33,17 @@ func (eo EventOutput) WithRuntimeData(rd interface {}) (out EventOutput) {
 	out.RuntimeData = &rd
 	return
 }
+
+// WithNextState - sets the NextState to output
+func (eo EventOutput) WithNextState(nextState State) (out EventOutput) {
+	out = eo
+	out.NextState = nextState
+	return
+}
+
+// WithInteractiveMessage - adds InteractiveMessages to output
+func (eo EventOutput) WithInteractiveMessage(messages ... InteractiveMessage) (out EventOutput) {
+	out = eo
+	out.Interaction.Messages = append(out.Interaction.Messages, messages ...)
+	return
+}
