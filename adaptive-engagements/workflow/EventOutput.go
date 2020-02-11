@@ -1,5 +1,8 @@
 package workflow
 
+import (
+	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
+)
 // EventOutput contains the result of event handling
 type EventOutput struct {
 	Interaction
@@ -45,5 +48,11 @@ func (eo EventOutput) WithNextState(nextState State) (out EventOutput) {
 func (eo EventOutput) WithInteractiveMessage(messages ... InteractiveMessage) (out EventOutput) {
 	out = eo
 	out.Interaction.Messages = append(out.Interaction.Messages, messages ...)
+	return
+}
+// WithSurvey appends the survey to the output
+func (eo EventOutput) WithSurvey(aaSurvey ebm.AttachmentActionSurvey) (out EventOutput) {
+	out = eo
+	out.Interaction.OptionalSurvey = append(out.Interaction.OptionalSurvey, Survey{AttachmentActionSurvey: aaSurvey})
 	return
 }
