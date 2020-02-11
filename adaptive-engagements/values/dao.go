@@ -98,7 +98,7 @@ func (d DAOImpl) Update(adaptiveValue models.AdaptiveValue) error {
 func (d DAOImpl) Deactivate(adaptiveValueID string) (err error) {
 	adaptiveValue, err := d.Read(adaptiveValueID)
 	if err == nil {
-		adaptiveValue.DeactivatedOn = core.ISODateLayout.Format(time.Now())
+		adaptiveValue.DeactivatedAt = core.TimestampLayout.Format(time.Now())
 		err = d.Update(adaptiveValue)
 	}
 	return

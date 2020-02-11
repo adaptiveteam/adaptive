@@ -21,13 +21,13 @@ type AdaptiveValue struct  {
 	Name string `json:"value_name"`
 	ValueType string `json:"value_type"`
 	Description string `json:"description"`
-	DeactivatedOn string `json:"deactivated_on"`
+	DeactivatedAt string `json:"deactivated_at,omitempty"`
 }
 
 // AdaptiveValueFilterActive removes deactivated values
 func AdaptiveValueFilterActive(in []AdaptiveValue) (res []AdaptiveValue) {
 	for _, i := range in {
-		if i.DeactivatedOn == "" {
+		if i.DeactivatedAt == "" {
 			res = append(res, i)
 		}
 	}
@@ -210,7 +210,7 @@ func (d DAOImpl) CreateOrUpdateUnsafe(adaptiveValue AdaptiveValue) {
 func (d DAOImpl)Deactivate(id string) error {
 	instance, err2 := d.Read(id)
 	if err2 == nil {
-		instance.DeactivatedOn = core.ISODateLayout.Format(time.Now())
+		instance.DeactivatedAt = core.TimestampLayout.Format(time.Now())
 		err2 = d.CreateOrUpdate(instance)
 	}
 	return err2
@@ -257,7 +257,7 @@ func allParams(adaptiveValue AdaptiveValue, old AdaptiveValue) (params map[strin
 	if adaptiveValue.Name != old.Name { params[":a2"] = common.DynS(adaptiveValue.Name) }
 	if adaptiveValue.ValueType != old.ValueType { params[":a3"] = common.DynS(adaptiveValue.ValueType) }
 	if adaptiveValue.Description != old.Description { params[":a4"] = common.DynS(adaptiveValue.Description) }
-	if adaptiveValue.DeactivatedOn != old.DeactivatedOn { params[":a5"] = common.DynS(adaptiveValue.DeactivatedOn) }
+	if adaptiveValue.DeactivatedAt != old.DeactivatedAt { params[":a5"] = common.DynS(adaptiveValue.DeactivatedAt) }
 	return
 }
 func updateExpression(adaptiveValue AdaptiveValue, old AdaptiveValue) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -269,7 +269,7 @@ func updateExpression(adaptiveValue AdaptiveValue, old AdaptiveValue) (expr stri
 	if adaptiveValue.Name != old.Name { updateParts = append(updateParts, "value_name = :a2"); params[":a2"] = common.DynS(adaptiveValue.Name);  }
 	if adaptiveValue.ValueType != old.ValueType { updateParts = append(updateParts, "value_type = :a3"); params[":a3"] = common.DynS(adaptiveValue.ValueType);  }
 	if adaptiveValue.Description != old.Description { updateParts = append(updateParts, "description = :a4"); params[":a4"] = common.DynS(adaptiveValue.Description);  }
-	if adaptiveValue.DeactivatedOn != old.DeactivatedOn { updateParts = append(updateParts, "deactivated_on = :a5"); params[":a5"] = common.DynS(adaptiveValue.DeactivatedOn);  }
+	if adaptiveValue.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a5"); params[":a5"] = common.DynS(adaptiveValue.DeactivatedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return
