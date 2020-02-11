@@ -54,3 +54,14 @@ func (ctx EventHandlingContext)ToggleFlag(flag string) {
 		ctx.Data[flag] = "true" // setting "flag"
 	}
 }
+// SetFlag -
+func (ctx EventHandlingContext)SetFlag(flag string, value bool) {
+	if value {
+		ctx.Data[flag] = "true" // setting "flag"
+	} else {
+		_, isOn := ctx.Data[flag]
+		if isOn {
+			delete(ctx.Data, flag) // removing "flag"
+		}
+	}
+}
