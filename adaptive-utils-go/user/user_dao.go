@@ -143,7 +143,7 @@ func (d DAOImpl) UpdateUnsafe(user models.User) {
 // ConvertUsersToUserProfilesAndRemoveAdaptiveBot converts users to user profiles.
 func ConvertUsersToUserProfilesAndRemoveAdaptiveBot(users []models.User) (userProfiles []models.UserProfile) {
 	for _, each := range users {
-		if !each.IsShared && !each.IsAdaptiveBot && !each.Deleted {
+		if !each.IsShared && !each.IsAdaptiveBot && each.DeactivatedAt == "" {
 			userProfiles = append(userProfiles,
 				models.UserProfile{Id: each.ID,
 					DisplayName: each.DisplayName,

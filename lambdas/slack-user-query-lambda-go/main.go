@@ -12,6 +12,11 @@ import (
 )
 
 func addSlackUser(user slack.User, event models.ClientPlatformRequest, platformID models.PlatformID) (err error) {
+	now := core.CurrentRFCTimestamp()
+	deactivatedAt := ""
+	if user.Deleted {
+		deactivatedAt = now
+	}
 	item := models.User{
 		// UserProfile: models.UserProfile{
 		ID:             user.ID,
@@ -22,8 +27,9 @@ func addSlackUser(user slack.User, event models.ClientPlatformRequest, platformI
 		TimezoneOffset: user.TZOffset,
 		// },
 		PlatformID: event.PlatformID, 
-		PlatformOrg: event.Org, IsAdmin: user.IsAdmin, Deleted: user.Deleted,
-		CreatedAt: core.CurrentRFCTimestamp(), IsShared: false}
+		PlatformOrg: event.Org, IsAdmin: user.IsAdmin, 
+		DeactivatedAt: deactivatedAt,
+		CreatedAt: now, IsShared: false}
 	item.IsAdaptiveBot = user.IsBot && user.Profile.ApiAppID == string(platformID)
 
 	// Check if the user already exists
