@@ -2,11 +2,39 @@ package exchange
 
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 )
 
 const IssueIDKey = "iid"
 const IssueTypeKey = "itype"
 const DialogSituationKey = "dsit"
+
+const ItemIDKey = "itemID"
+const CapCommIDKey = "capCommID"
+const IsShowingDetailsKey = "isShowingDetails"
+const IsShowingProgressKey = "isShowingProgress"
+
+func GetIssueID(ctx wf.EventHandlingContext) string {
+	return ctx.Data[IssueIDKey]
+}
+
+func GetIssueType(ctx wf.EventHandlingContext) IssueType {
+	return IssueType(ctx.Data[IssueTypeKey])
+}
+
+func GetDialogSituation(ctx wf.EventHandlingContext) DialogSituationIDWithoutIssueType {
+	return DialogSituationIDWithoutIssueType(ctx.Data[DialogSituationKey])
+}
+
+func IsShowingDetails(ctx wf.EventHandlingContext) (res bool) {
+	_, res = ctx.Data[IsShowingDetailsKey]
+	return
+}
+
+func IsShowingProgress(ctx wf.EventHandlingContext) (res bool) {
+	_, res = ctx.Data[IsShowingProgressKey]
+	return
+}
 
 const CommunityNamespace = "community"
 
