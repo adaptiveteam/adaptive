@@ -2,14 +2,15 @@ package user
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/engagement-builder/model"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"time"
 )
 
 // UserProfilesIntersect only keeps the given users.
@@ -62,7 +63,7 @@ func SelectUserTemplateActions(mc models.MessageCallback, userProfiles []models.
 // UserSelectAttachments reads users, filters them twice, then renders options as attachments.
 // deprecated. Breaks SRP. Inline instead
 func UserSelectAttachments(mc models.MessageCallback, userIDs, toFilterOutUserIDs []string,
-	platformID models.PlatformID, dao user.DAO) []model.AttachmentAction {
+	platformID models.PlatformID, dao daosUser.DAO) []model.AttachmentAction {
 	userProfiles := ReadAllUserProfiles(dao, platformID)
 	if len(userIDs) > 0 {
 		// If users are passed, use them directly
@@ -75,11 +76,11 @@ func UserSelectAttachments(mc models.MessageCallback, userIDs, toFilterOutUserID
 	return SelectUserTemplateActions(mc, userProfiles)
 }
 
-// UserSelectEng reads users, filters them twice, then renders options as attachments, 
+// UserSelectEng reads users, filters them twice, then renders options as attachments,
 // then creates engagement.
 // deprecated. Breaks SRP. Inline.
 func UserSelectEng(userID, engagementsTable string, platformID models.PlatformID,
-	dao user.DAO,
+	dao daosUser.DAO,
 	mc models.MessageCallback, users, toFilterUsers []string,
 	text, context string, check models.UserEngagementCheckWithValue) {
 	attachs := UserSelectAttachments(mc, users, toFilterUsers, platformID, dao)
