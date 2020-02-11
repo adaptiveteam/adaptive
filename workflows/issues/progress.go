@@ -124,9 +124,9 @@ func (w workflowImpl) OnProgressCloseout(ctx wf.EventHandlingContext) (out wf.Ev
 						uo.AccountabilityPartner, typLabel, uo.Name),
 				},
 			})
-			out.PostponedEvents = []wf.PostponeEventForAnotherUser{
+			out = out.WithPostponedEvent(
 				exchange.RequestCloseoutForIssue(newAndOldIssues.NewIssue),
-			}
+			)
 		}
 	}
 	return

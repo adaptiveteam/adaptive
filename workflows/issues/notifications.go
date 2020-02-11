@@ -4,7 +4,9 @@ import (
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
 )
+
 // notifications about changes in issue
 // Triggers Analysis!
 func (w workflowImpl) onNewOrUpdatedItemAvailable(ctx wf.EventHandlingContext,
@@ -29,8 +31,11 @@ func (w workflowImpl) onNewOrUpdatedItemAvailable(ctx wf.EventHandlingContext,
 			}
 		}
 	}
-	// We also set output runtime date
-	out.RuntimeData = runtimeData(newAndOldIssues)
+	out = out.
+		WithPostponedEvent(
+			exchange.NotifyAboutUpdatesForIssue(newAndOldIssues, dialogSituationID),
+		).
+		WithRuntimeData(newAndOldIssues) // We also set output runtime date
 	return
 }
 
@@ -47,7 +52,7 @@ func (w workflowImpl) notifyStrategy(ctx wf.EventHandlingContext, tc IssueTypeCl
 
 	msgToStrategyCommunity := viewObjectiveReadonly(w, tc, newAndOldIssues, isShowingProgress)
 	// userID := ctx.Request.User.ID
-	msgToStrategyCommunity.Message = eventDescription//ui.Sprintf("Below objective has been %s by <@%s>", eventDescription, userID)
+	msgToStrategyCommunity.Message = eventDescription //ui.Sprintf("Below objective has been %s by <@%s>", eventDescription, userID)
 	notification = platform.Post(strategyCommunityConversation, msgToStrategyCommunity)
 	return
 }

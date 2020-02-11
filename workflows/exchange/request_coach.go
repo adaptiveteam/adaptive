@@ -29,3 +29,21 @@ func RequestCoach(issueType IssueType, issueID string, coachID string) wf.Postpo
 		ValidThrough: time.Now().Add(DefaultCoachRequestValidityDuration),
 	}
 }
+// NotifyAboutUpdatesForIssue creates a postponed event
+func NotifyAboutUpdatesForIssue(newAndOldIssues NewAndOldIssues, dialogSituationID DialogSituationIDWithoutIssueType) (evt wf.PostponeEventForAnotherUser) {
+	evt = wf.PostponeEventForAnotherUser{
+		ActionPath: wf.ExternalActionPathWithData(
+			models.ParsePath("/community/" + RequestCoachNamespace), 
+			"init", 
+			"progress-updated",
+			map[string]string{
+				IssueIDKey: newAndOldIssues.NewIssue.GetIssueID(),
+				IssueTypeKey: string(newAndOldIssues.NewIssue.GetIssueType()),
+			},
+			false, // IsOriginalPermanent
+		),
+		UserID: newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner,
+		ValidThrough: time.Now().Add(DefaultCoachRequestValidityDuration),
+	}
+	return
+}

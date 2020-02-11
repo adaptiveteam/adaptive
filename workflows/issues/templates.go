@@ -113,18 +113,7 @@ func formatObjectivesGroup(capabilityObjectives []models.StrategyObjective) (res
 }
 
 type GlobalDialogContext = string
-type DialogSituationIDWithoutIssueType = string
 type GlobalDialogContextByType = map[IssueType]GlobalDialogContext
-
-const (
-	DescriptionContext              DialogSituationIDWithoutIssueType = "description"
-	CloseoutDisagreementContext     DialogSituationIDWithoutIssueType = "close-out-disagreement"
-	CloseoutAgreementContext        DialogSituationIDWithoutIssueType = "close-out-agreement"
-	UpdateContext                   DialogSituationIDWithoutIssueType = "update"
-	UpdateResponseContext           DialogSituationIDWithoutIssueType = "update-response"
-	CoachingRequestRejectionContext DialogSituationIDWithoutIssueType = "coaching-request-rejection"
-	ProgressUpdateContext           DialogSituationIDWithoutIssueType = "progress-update"
-)
 
 var contexts = map[DialogSituationIDWithoutIssueType]GlobalDialogContextByType{
 	DescriptionContext: {
