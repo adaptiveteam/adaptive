@@ -18,6 +18,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	bt "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -38,7 +39,7 @@ IDO Creation reminders
 func IDOCreateReminder(date bt.Date, target string) {
 	log.Println(fmt.Sprintf("Checking IDOCreateReminder for user: %s", target))
 	ut := UserToken(target)
-	AddObjective(target, ut.PlatformIDUnsafe(), false, UserDAO.UserIDsToDisplayNamesUnsafe)
+	AddObjective(target, ut.PlatformIDUnsafe(), false, utilsUser.UserIDsToDisplayNamesUnsafe(UserDAO))
 
 }
 

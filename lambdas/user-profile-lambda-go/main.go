@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	// core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/nlopes/slack"
 	"log"
 )
@@ -73,28 +74,6 @@ func convertUserToProfile(user models.User) (profile models.UserProfile) {
 	return
 }
 
-func convertSlackUserToUser(user slack.User, platformID models.PlatformID) (mUser models.User) {
-	now := core.CurrentRFCTimestamp()
-	deactivatedAt := ""
-	if user.Deleted {
-		deactivatedAt = now
-	}
-	return models.User{
-		// UserProfile: models.UserProfile{
-		ID:             user.ID,
-		DisplayName:    user.RealName,
-		FirstName:      user.Profile.FirstName,
-		LastName:       user.Profile.LastName,
-		Timezone:       user.TZ,
-		TimezoneOffset: user.TZOffset,
-		// },
-		PlatformID: platformID,
-		IsAdmin:    user.IsAdmin,
-		DeactivatedAt: deactivatedAt,
-		CreatedAt:  now,
-		IsShared:   false}
-}
-
 func wrapError(err error, name string) error {
 	if err == nil {
 		return nil
@@ -111,7 +90,7 @@ func refreshUserCache(userID string, platformID models.PlatformID) (profile mode
 		api := slack.New(platform.PlatformToken)
 		user, err2 := api.GetUserInfo(userID)
 		err = err2
-		mUser := convertSlackUserToUser(*user, platformID)
+		mUser := utilsUser.ConvertSlackUserToUser(*user, platformID)
 		err = userDao.Create(mUser)
 		profile = models.UserProfile{ //mUser.UserProfile
 			Id:             mUser.ID,
