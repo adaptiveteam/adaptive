@@ -6,7 +6,8 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
-	// core "github.com/adaptiveteam/adaptive/core-utils-go"
+	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/nlopes/slack"
 	// "github.com/aws/aws-sdk-go/aws"
 	// "github.com/aws/aws-sdk-go/service/dynamodb"
 )
@@ -146,4 +147,26 @@ func ConvertUsersToUserProfilesAndRemoveAdaptiveBot(users []models.User) (userPr
 		}
 	}
 	return
+}
+
+// ConvertSlackUserToUser -
+func ConvertSlackUserToUser(user slack.User, platformID models.PlatformID) (mUser models.User) {
+	now := core.CurrentRFCTimestamp()
+	deactivatedAt := ""
+	if user.Deleted {
+		deactivatedAt = now
+	}
+	return models.User{
+		ID:             user.ID,
+		DisplayName:    user.RealName,
+		FirstName:      user.Profile.FirstName,
+		LastName:       user.Profile.LastName,
+		Timezone:       user.TZ,
+		TimezoneOffset: user.TZOffset,
+		PlatformID:     platformID,
+		IsAdmin:        user.IsAdmin,
+		DeactivatedAt:  deactivatedAt,
+		CreatedAt:      now,
+		IsShared:       false,
+	}
 }
