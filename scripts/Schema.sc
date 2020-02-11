@@ -103,8 +103,8 @@ val platformIdField = spacedName("platform ID") :: platformId
 
 def entitySpecificImports(entity: Entity): List[ImportClause] = {
     entity.traits.flatMap{
-        case DeactivationTrait => List(timeImport)
-        case CreatedModifiedTimesTrait => List(timeImport)
+        case DeactivationTrait => List()
+        case CreatedModifiedTimesTrait => List()
     }.distinct
 }
 
@@ -152,7 +152,7 @@ val userTable = Table(user, userTableDefaultIndex, List(
     Index(platformIdField, Some(adaptiveScheduledTimeInUtcField)),
 ))
 
-val userPackage = defaultPackage(userTable, timeImport :: imports)
+val userPackage = defaultPackage(userTable, imports)
 
 val coachQuarterYearField = spacedName("coach quarter year") :: string
 val coacheeQuarterYearField = spacedName("coachee quarter year") :: string

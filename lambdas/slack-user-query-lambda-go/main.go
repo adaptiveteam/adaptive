@@ -36,14 +36,12 @@ func addSlackUser(user slack.User, event models.ClientPlatformRequest, platformI
 	existingUser, err := userDao.Read(user.ID)
 	if err == nil {
 		// Id not-empty meaning user exists
-		if existingUser.ID == "" {
-			err = userDao.Create(item)
-		} else {
+		if existingUser.ID != "" {
 			// Preserving the scheduled time
 			item.AdaptiveScheduledTime = existingUser.AdaptiveScheduledTime
 			item.AdaptiveScheduledTimeInUTC = existingUser.AdaptiveScheduledTimeInUTC
-			err = userDao.Update(item)
 		}
+		err = userDao.CreateOrUpdate(item)
 	}
 	return
 }
@@ -103,9 +101,9 @@ func removeUserAsync(communityUsersIDs []string, userID string, wg *sync.WaitGro
 	// If the user is not part of any community, delete the user
 	if !core.ListContainsString(communityUsersIDs, userID) {
 		logger.Infof("Removing %s from users", userID)
-		err := userDao.Delete(userID)
+		err := userDao.Deactivate(userID)
 		if err != nil {
-			logger.WithField("error", err).Errorf("Error removing %s user", userID)
+			logger.WithField("error", err).Errorf("Error deactivating %s user", userID)
 			ec <- err
 		}
 	}
