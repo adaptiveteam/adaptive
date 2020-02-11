@@ -73,15 +73,6 @@ func (w workflowImpl) OnFieldsShown(textExtractor TextExtractor, dialogSituation
 	}
 }
 
-func toggleContextFlag(ctx wf.EventHandlingContext, flag string) {
-	_, isOn := ctx.Data[flag]
-	if isOn {
-		delete(ctx.Data, flag) // removing "flag"
-	} else {
-		ctx.Data[flag] = "true" // setting "flag"
-	}
-}
-
 func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	w.AdaptiveLogger.Info("standardView")
 	var newAndOldIssues NewAndOldIssues
@@ -157,12 +148,12 @@ func omitEmpty(fields []ebm.AttachmentField) (res []ebm.AttachmentField) {
 }
 
 func (w workflowImpl) OnDetails(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-	toggleContextFlag(ctx, isShowingDetailsKey)
+	ctx.ToggleFlag(isShowingDetailsKey)
 	return w.standardView(ctx)
 }
 
 func (w workflowImpl) OnProgressShow(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-	toggleContextFlag(ctx, isShowingProgressKey)
+	ctx.ToggleFlag(isShowingProgressKey)
 	return w.standardView(ctx)
 }
 
