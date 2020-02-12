@@ -8,6 +8,7 @@ import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 
+	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
 	// common "github.com/adaptiveteam/adaptive/daos/common"
 	issues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
@@ -43,10 +44,7 @@ type Workflow interface {
 
 // this can only be created using constructor function. Thus we can guarantee that
 // all fields will have values.
-type workflowImpl struct {
-	DynamoDBConnection
-	alog.AdaptiveLogger
-}
+type workflowImpl wfCommon.WorkflowContext
 
 // CreateRequestCoachWorkflow - constructor.
 func CreateRequestCoachWorkflow(

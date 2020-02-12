@@ -28,7 +28,7 @@ func (w workflowImpl) OnProgressCancel(ctx wf.EventHandlingContext) (out wf.Even
 	log := w.AdaptiveLogger.WithField("issueID", issueID)
 	log.Info("OnProgressCancel")
 	var newAndOldIssues NewAndOldIssues
-	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
+	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
 	err = errors.Wrapf(err, "OnProgressCancel getNewAndOldIssues")
 	if err != nil {
 		return
@@ -69,7 +69,7 @@ func (w workflowImpl) OnProgressIntermediate(ctx wf.EventHandlingContext) (out w
 	issueID := ctx.Data[issueIDKey]
 	w.AdaptiveLogger.WithField("issueID", issueID).Info("OnProgressIntermediate")
 	var newAndOldIssues NewAndOldIssues
-	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
+	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
 	if err != nil {
 		return
 	}
@@ -101,7 +101,7 @@ func (w workflowImpl) OnProgressCloseout(ctx wf.EventHandlingContext) (out wf.Ev
 	issueID := ctx.Data[issueIDKey]
 	w.AdaptiveLogger.WithField("issueID", issueID).Info("OnProgressCloseout")
 	var newAndOldIssues NewAndOldIssues
-	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
+	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
 	uo := newAndOldIssues.NewIssue.UserObjective
 	itype := getIssueTypeFromContext(ctx)
 	tc := getTypeClass(itype)
@@ -139,7 +139,7 @@ func (w workflowImpl) OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out 
 	w.AdaptiveLogger.WithField("issueID", issueID).Info("OnProgressFormSubmitted")
 	var newAndOldIssues NewAndOldIssues
 	ctx.SetFlag(isShowingProgressKey, true) // enable show progress. This will make sure that progress is prefetched
-	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
+	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
 	ctx.RuntimeData = runtimeData(newAndOldIssues)
 	uo := newAndOldIssues.NewIssue.UserObjective
 	var progress userObjectiveProgress.UserObjectiveProgress

@@ -1,10 +1,11 @@
 package issues
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
 
 	"github.com/pkg/errors"
 
@@ -23,6 +24,7 @@ import (
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
+	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
 	aws "github.com/aws/aws-sdk-go/aws"
 	dynamodb "github.com/aws/aws-sdk-go/service/dynamodb"
 
@@ -39,25 +41,11 @@ type DynamoDBConnection = daosCommon.DynamoDBConnection
 func CreateWorkflowImpl(logger alog.AdaptiveLogger) func(conn DynamoDBConnection) workflowImpl {
 	return func(conn DynamoDBConnection) workflowImpl {
 		return workflowImpl{
-			DynamoDBConnection: conn,
-			//IssueDAO:                       IssueDynamoDBConnection(conn),
-			// IssueProgressDAO:               IssueProgressDynamoDBConnection(conn),
-			// AdaptiveCommunityDAO:           AdaptiveCommunityDynamoDBConnection(conn),
-			// UserDAO:                        UserDynamoDBConnection(conn),
-			// CompetencyDAO:                  CompetencyDynamoDBConnection(conn),
-			// StrategyObjectiveDAO:           StrategyObjectiveDynamoDBConnection(conn),
-			// StrategyInitiativeDAO:          StrategyInitiativeDynamoDBConnection(conn),
-			// StrategyCommunityDAO:           StrategyCommunityDynamoDBConnection(conn),
-			// StrategyInitiativeCommunityDAO: StrategyInitiativeCommunityDynamoDBConnection(conn),
-
-			// CapabilityCommunityDAO: CapabilityCommunityDynamoDBConnection(conn),
-
+			WorkflowContext:    wfCommon.WorkflowContext{
+				AdaptiveLogger: logger,
+				DynamoDBConnection: conn,
+			},
 			DialogFetcherDAO: dialogFetcher.NewDAO(conn.Dynamo, dialogContentTableName(conn.ClientID)),
-
-			// Queries:                    QueriesDynamoDBConnection(conn),
-			AdaptiveLogger: logger,
-			// UserHasWriteAccessToIssues: conn.UserHasWriteAccessToIssuesImpl(),
-			// OnCloseout:                 conn.OnCloseoutImpl,
 		}
 	}
 }
@@ -222,8 +210,8 @@ func SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(userI
 	}
 }
 
-func StrategyCommunityByID(id string) func (conn AdaptiveCommunityDynamoDBConnection) (comm strategy.StrategyCommunity, found bool, err error) {
-	return func (conn AdaptiveCommunityDynamoDBConnection) (comm strategy.StrategyCommunity, found bool, err error) {
+func StrategyCommunityByID(id string) func(conn AdaptiveCommunityDynamoDBConnection) (comm strategy.StrategyCommunity, found bool, err error) {
+	return func(conn AdaptiveCommunityDynamoDBConnection) (comm strategy.StrategyCommunity, found bool, err error) {
 		params := map[string]*dynamodb.AttributeValue{
 			"id": dynString(id),
 		}

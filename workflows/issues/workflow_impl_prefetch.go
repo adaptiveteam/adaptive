@@ -1,53 +1,18 @@
 package issues
 
 import (
+	// "github.com/adaptiveteam/adaptive/workflows/exchange"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/pkg/errors"
 	// "strings"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	userObjective "github.com/adaptiveteam/adaptive/daos/userObjective"
-	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
+	// issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 )
 
 // getNewAndOldIssues loads issue if necessary
 func (w workflowImpl)getNewAndOldIssues(ctx wf.EventHandlingContext) (newAndOldIssues NewAndOldIssues, err error) {
-	issueID := ctx.Data[issueIDKey]
-	itype := getIssueTypeFromContext(ctx)
-	if itype == "" {
-		err = errors.Errorf("issueType is not defined in the context: CallbackID=%s, data is %v", ctx.Request.CallbackID, ctx.Data)
-		return
-	}
-	w.AdaptiveLogger.
-		WithField("issueID", issueID).
-		WithField("IssueTypeFromContext", itype).
-		Info("getNewAndOldIssues")
-	if ctx.RuntimeData == nil {
-		w.AdaptiveLogger.
-			WithField("issueID", issueID).
-			Info("runtime data is empty. Reading from database")
-		newAndOldIssues.NewIssue, err = issuesUtils.Read(itype, issueID)(w.DynamoDBConnection)
-		if err != nil { 
-			err = errors.Wrapf(err, "getNewAndOldIssues/w.IssueDAO.Read")
-			return 
-		}
-		if newAndOldIssues.NewIssue.UserObjective.ID != issueID {
-			err = errors.Errorf(" newAndOldIssues.NewIssue.UserObjective.ID = %s != issueID = %s",  newAndOldIssues.NewIssue.UserObjective.ID, issueID)
-			return  
-		}
-		err = w.prefetch(ctx, &newAndOldIssues.NewIssue)
-		if err != nil { 
-			err = errors.Wrapf(err, "getNewAndOldIssues/prefetch")
-			return 
-		}
-		newAndOldIssues.OldIssue = newAndOldIssues.NewIssue // we don't have the previous version of the entity
-		// err = w.prefetch(ctx, &newAndOldIssues.OldIssue) // TODO: copy unchanged data instead of reloading from DB
-		// if err != nil {return}
-		// CANNOT modify input context! ctx.RuntimeData = runtimeData(newAndOldIssues)
-	} else {
-		newAndOldIssues = (*ctx.RuntimeData).(NewAndOldIssues)
-	}
-	err = errors.Wrap(err, "{getNewAndOldIssues}")
-	return
+	return w.WorkflowContext.GetNewAndOldIssues(ctx)
 }
 
 // prefetch reads joined tables and puts related data into issue

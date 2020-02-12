@@ -1,8 +1,8 @@
 package issues
 
 import (
-	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	issues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
+	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/pkg/errors"
@@ -18,8 +18,8 @@ func ExtractDescription(newAndOldIssues NewAndOldIssues) (text string) {
 
 func (w workflowImpl) textAnalysisInput(ctx *wf.EventHandlingContext, textExtractor TextExtractor, dialogSituationID DialogSituationIDWithoutIssueType) (analysisInput utils.TextAnalysisInput, err error) {
 	var newAndOldIssues NewAndOldIssues
-	newAndOldIssues, err = w.getNewAndOldIssues(*ctx) // userObjectiveByID(itemID)
-	err = errors.Wrapf(err, "textAnalysisInput/getNewAndOldIssues")
+	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(*ctx) // userObjectiveByID(itemID)
+	err = errors.Wrapf(err, "textAnalysisInput/WorkflowContext.GetNewAndOldIssues")
 	ctx.RuntimeData = runtimeData(newAndOldIssues)
 
 	itype := newAndOldIssues.NewIssue.GetIssueType()
@@ -73,17 +73,14 @@ func (w workflowImpl) OnFieldsShown(textExtractor TextExtractor, dialogSituation
 func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	w.AdaptiveLogger.Info("standardView")
 	var newAndOldIssues NewAndOldIssues
-	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
+	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
 	if err != nil {
 		return
 	}
-	if newAndOldIssues.NewIssue.UserObjective.ID == "" {
-		w.AdaptiveLogger.Warnf("INVALID(3): issueID is empty %v\n", newAndOldIssues.NewIssue)
-	}
 	viewState := issues.ViewState{
-		IsShowingDetails: ctx.GetFlag(isShowingDetailsKey),
+		IsShowingDetails:  ctx.GetFlag(isShowingDetailsKey),
 		IsShowingProgress: ctx.GetFlag(isShowingProgressKey),
-		IsWritable: true,
+		IsWritable:        true,
 	}
 	view := issues.GetInteractiveMessage(newAndOldIssues, viewState)
 
