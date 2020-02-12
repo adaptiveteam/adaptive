@@ -1,15 +1,19 @@
 package issues
 
 import (
-	"github.com/pkg/errors"
-	"github.com/adaptiveteam/adaptive/workflows/exchange"
 	"log"
 	"strconv"
 	"time"
 
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
+	"github.com/pkg/errors"
+
 	common "github.com/adaptiveteam/adaptive/adaptive-engagements/common"
+	engIssues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	platform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -17,7 +21,6 @@ import (
 	userObjectiveProgress "github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	ui "github.com/adaptiveteam/adaptive/engagement-builder/ui"
-	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 )
 
 func (w workflowImpl) OnProgressCancel(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
@@ -52,7 +55,7 @@ func (w workflowImpl) OnProgressCancel(ctx wf.EventHandlingContext) (out wf.Even
 			platform.Post(platform.ConversationID(newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner),
 				platform.MessageContent{
 					Message: ui.Sprintf("<@%s> has cancelled the following %s: `%s`",
-						newAndOldIssues.NewIssue.UserObjective.UserID, 
+						newAndOldIssues.NewIssue.UserObjective.UserID,
 						issueTypeNameText,
 						newAndOldIssues.NewIssue.UserObjective.Name),
 				},
@@ -90,7 +93,7 @@ func (w workflowImpl) OnProgressIntermediate(ctx wf.EventHandlingContext) (out w
 		progressCommentSurveyElements(ui.PlainText(newAndOldIssues.NewIssue.UserObjective.Name),
 			newAndOldIssues.NewIssue.UserObjective.CreatedDate))
 	surveyWithValues := fillCommentsSurveyValues(survey, comments, status)
-	out.Interaction = wf.OpenSurvey(surveyWithValues)
+	out = out.WithSurvey(surveyWithValues)
 	out.KeepOriginal = true
 	return
 }
@@ -104,10 +107,10 @@ func (w workflowImpl) OnProgressCloseout(ctx wf.EventHandlingContext) (out wf.Ev
 	tc := getTypeClass(itype)
 	typLabel := tc.IssueTypeName()
 	// If there is no partner assigned, send a message to the user that issue can't be closed-out until there is a coach
-	if IsSpecialOrEmptyUserID(uo.AccountabilityPartner) {
+	if utilsUser.IsSpecialOrEmptyUserID(uo.AccountabilityPartner) {
 		out.Interaction.Messages = wf.InteractiveMessages(wf.InteractiveMessage{
 			PassiveMessage: wf.PassiveMessage{
-				Text: ui.Sprintf("You do not have a coach for the %s: `%s`. Please get a coach before attemping to close out.", 
+				Text: ui.Sprintf("You do not have a coach for the %s: `%s`. Please get a coach before attemping to close out.",
 					typLabel, uo.Name),
 			},
 		})
@@ -116,9 +119,9 @@ func (w workflowImpl) OnProgressCloseout(ctx wf.EventHandlingContext) (out wf.Ev
 		issue.Completed = 1
 		issue.CompletedDate = core.ISODateLayout.Format(time.Now())
 		err = issuesUtils.Save(issue)(w.DynamoDBConnection)
-		if err == nil {				
+		if err == nil {
 			// send a notification to the coachee that partner has been notified
-			out.Interaction.Messages = wf.InteractiveMessages(wf.InteractiveMessage{
+			out = out.WithInteractiveMessage(wf.InteractiveMessage{
 				PassiveMessage: wf.PassiveMessage{
 					Text: ui.Sprintf("Awesome! I’ll schedule time with <@%s> to close out the %s: `%s`",
 						uo.AccountabilityPartner, typLabel, uo.Name),
@@ -135,7 +138,7 @@ func (w workflowImpl) OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out 
 	issueID := ctx.Data[issueIDKey]
 	w.AdaptiveLogger.WithField("issueID", issueID).Info("OnProgressFormSubmitted")
 	var newAndOldIssues NewAndOldIssues
-	ctx.Data[isShowingProgressKey] = "true" // enable show progress. This will make sure that progress is prefetched
+	ctx.SetFlag(isShowingProgressKey, true) // enable show progress. This will make sure that progress is prefetched
 	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
 	ctx.RuntimeData = runtimeData(newAndOldIssues)
 	uo := newAndOldIssues.NewIssue.UserObjective
@@ -145,7 +148,7 @@ func (w workflowImpl) OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out 
 		return
 	}
 	isProgressAvailableForToday := false
-	if len(newAndOldIssues.NewIssue.Progress)>0 {
+	if len(newAndOldIssues.NewIssue.Progress) > 0 {
 		isProgressAvailableForToday = newAndOldIssues.NewIssue.Progress[0].CreatedOn == progress.CreatedOn
 	}
 	err = UserObjectiveProgressSave(progress)(w.DynamoDBConnection)
@@ -166,10 +169,10 @@ func (w workflowImpl) OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out 
 	itype := newAndOldIssues.NewIssue.GetIssueType()
 	tc := getTypeClass(itype)
 	if err == nil {
-		ctx.Data[isShowingProgressKey] = "true"
-	
+		ctx.SetFlag(isShowingProgressKey, true)
+
 		eventDescription := ObjectiveProgressCreatedUpdatedStatusTemplate(isProgressAvailableForToday, ctx.Request.User.ID)
-		out, err = w.onNewOrUpdatedItemAvailable(ctx, tc, newAndOldIssues, ProgressUpdateContext, 
+		out, err = w.onNewOrUpdatedItemAvailable(ctx, tc, newAndOldIssues, ProgressUpdateContext,
 			eventDescription, true)
 		// if err == nil {
 		// 	out.ImmediateEvent = "ProgressFormShown"
@@ -205,21 +208,6 @@ func extractObjectiveProgressFromContext(ctx wf.EventHandlingContext, item userO
 		PercentTimeLapsed: strconv.Itoa(percentTimeLapsed(today, item.CreatedDate, item.ExpectedEndDate)),
 		StatusColor:       models.ObjectiveStatusColor(statusColor)}
 	return
-}
-
-func limitPlainText(text ui.PlainText, maxLength int) ui.PlainText {
-	if len(text) < maxLength {
-		return text
-	}
-	return ui.PlainText(core.ClipString(string(text), maxLength-1, "…"))
-}
-
-func ObjectiveCommentsTitle(objName ui.PlainText) ui.PlainText {
-	return ui.PlainText(core.ClipString("Comments on "+string(objName), SlackLabelLimit, "…"))
-}
-
-func ObjectiveStatusLabel(elapsedDays int, startDate string) ui.PlainText {
-	return ui.PlainText(ui.Sprintf("Status (%d days since %s)", elapsedDays, startDate))
 }
 
 // func ObjectiveProgressText(objective models.UserObjective, today string) ui.RichText {
@@ -305,11 +293,11 @@ func TodayISOString() string {
 // }
 
 func progressCommentSurveyElements(objName ui.PlainText, startDate string) []ebm.AttachmentActionTextElement {
-	nameConstrained := ObjectiveCommentsTitle(objName)
+	nameConstrained := engIssues.ObjectiveCommentsTitle(objName)
 	elapsedDays := common.DurationDays(startDate, TodayISOString(), core.ISODateLayout, "progressCommentSurveyElements")
 	return []ebm.AttachmentActionTextElement{
 		{
-			Label:    string(ObjectiveStatusLabel(elapsedDays, startDate)),
+			Label:    string(engIssues.ObjectiveStatusLabel(elapsedDays, startDate)),
 			Name:     ObjectiveStatusColor,
 			ElemType: models.MenuSelectType,
 			Options:  utils.AttachActionElementOptions(models.ObjectiveStatusColorKeyValues),
@@ -333,6 +321,7 @@ const (
 const (
 	SlackLabelLimit = 48
 )
+
 const (
 	ObjectiveStatusColor       = "objective_status_color"
 	ObjectiveCloseoutComment   = "objective_closeout_comment"

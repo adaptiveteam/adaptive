@@ -1,14 +1,15 @@
 package issues
 
 import (
-	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
-	"github.com/pkg/errors"
-	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
+	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
+	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	ex "github.com/adaptiveteam/adaptive/workflows/exchange"
+	"github.com/pkg/errors"
 )
 
 func (w workflowImpl) showDialog(ctx wf.EventHandlingContext, issue Issue, dialogSituationID DialogSituationIDWithoutIssueType) (out wf.EventOutput, err error) {
@@ -82,20 +83,20 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 	newAP := newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner
 	oldAP := newAndOldIssues.OldIssue.UserObjective.AccountabilityPartner
 	isCoachRequestNeeded :=
-		!IsSpecialOrEmptyUserID(newAP) &&
-		!newAndOldIssues.Updated || 
-			(newAP != oldAP) 
-			
+		!utilsUser.IsSpecialOrEmptyUserID(newAP) &&
+			!newAndOldIssues.Updated ||
+			(newAP != oldAP)
+
 	var postponedEvents []wf.PostponeEventForAnotherUser
 	if isCoachRequestNeeded {
 		postponedEvents = w.requestCoach(ctx, newAndOldIssues)
 	}
 	var responses []platform.Response
-	shouldNotifyOldCoach := !IsSpecialOrEmptyUserID(oldAP) && newAndOldIssues.Updated && newAP != oldAP
+	shouldNotifyOldCoach := !utilsUser.IsSpecialOrEmptyUserID(oldAP) && newAndOldIssues.Updated && newAP != oldAP
 	if shouldNotifyOldCoach {
-		responses = []platform.Response{platform.Post(platform.ConversationID(oldAP), 
+		responses = []platform.Response{platform.Post(platform.ConversationID(oldAP),
 			platform.MessageContent{
-				Message: ui.Sprintf("<@%s> has requested a different coach for the %s", 
+				Message: ui.Sprintf("<@%s> has requested a different coach for the %s",
 					newAndOldIssues.NewIssue.UserObjective.UserID, newAndOldIssues.NewIssue.GetIssueType().Template()),
 			})}
 	}
@@ -116,7 +117,7 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 		eventDescription := ObjectiveCreatedUpdatedStatusTemplate(newAndOldIssues.Updated, ctx.Request.User.ID)
 		out, err = w.onNewOrUpdatedItemAvailable(ctx, tc, newAndOldIssues, dialogSituationID, eventDescription, false)
 	} else {
-		log.WithError(err).Error("OnDialogSubmitted: Couldn't create an "+ui.RichText(itype.Template()))
+		log.WithError(err).Error("OnDialogSubmitted: Couldn't create an " + ui.RichText(itype.Template()))
 		out = ctx.Reply("Couldn't create an " + ui.RichText(itype.Template()))
 		err = nil // we want to show error interaction and we have logged the error
 	}
@@ -177,7 +178,7 @@ func findStrategyCommunityConversation(w workflowImpl, ctx wf.EventHandlingConte
 
 func (w workflowImpl) requestCoach(ctx wf.EventHandlingContext, newAndOldIssues NewAndOldIssues) (postponedEvents []wf.PostponeEventForAnotherUser) {
 	newAP := newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner
-	if !IsSpecialOrEmptyUserID(newAP) {
+	if !utilsUser.IsSpecialOrEmptyUserID(newAP) {
 		postponedEvents = []wf.PostponeEventForAnotherUser{
 			ex.RequestCoach(
 				newAndOldIssues.NewIssue.GetIssueType(),

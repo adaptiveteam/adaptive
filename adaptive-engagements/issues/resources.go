@@ -1,7 +1,12 @@
 package issues
 
 import (
+	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ui "github.com/adaptiveteam/adaptive/engagement-builder/ui"
+)
+
+const (
+	SlackLabelLimit = 48
 )
 
 const (
@@ -79,3 +84,11 @@ const ObjectiveTypeDefaultValue = "No Type"
 const (
 	BlueDiamondEmoji                         = ":small_blue_diamond:"
 )
+
+func ObjectiveCommentsTitle(objName ui.PlainText) ui.PlainText {
+	return ui.PlainText(core.ClipString("Comments on "+string(objName), SlackLabelLimit, "…"))
+}
+
+func ObjectiveStatusLabel(elapsedDays int, startDate string) ui.PlainText {
+	return ui.PlainText(ui.Sprintf("Status (%d days since %s)", elapsedDays, startDate))
+}
