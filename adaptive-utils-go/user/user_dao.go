@@ -1,11 +1,11 @@
 package user
 
 import (
-	// "github.com/pkg/errors"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/nlopes/slack"
 	// "github.com/aws/aws-sdk-go/aws"
@@ -43,6 +43,13 @@ var NewDAO = daosUser.NewDAOByTableName
 // 	}
 // }
 
+// TableName is a function that returns `_user` table name having client id
+var TableName = func(clientID string) string { return clientID + "_adaptive_users" }
+
+// DAOFromConnection -
+func DAOFromConnection(conn daosCommon.DynamoDBConnection) DAO {
+	return NewDAO(conn.Dynamo, "UserDAO", TableName(conn.ClientID))
+}
 // NewDAOFromSchema creates an instance of DAO that will provide access to adaptiveValues table
 func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema models.Schema) DAO {
 	return daosUser.NewDAOByTableName(dynamo, namespace, schema.AdaptiveUsers.Name)
@@ -169,4 +176,15 @@ func ConvertSlackUserToUser(user slack.User, platformID models.PlatformID) (mUse
 		CreatedAt:      now,
 		IsShared:       false,
 	}
+}
+
+const UserID_Requested = "requested"
+const UserID_None = "none"
+
+func IsSpecialUserID(userID string) bool {
+	return userID == UserID_None || userID == UserID_Requested
+}
+
+func IsSpecialOrEmptyUserID(userID string) bool {
+	return IsSpecialUserID(userID) || userID == ""
 }
