@@ -149,14 +149,8 @@ func (SObjectiveImpl) ExtractFromContext(ctx wf.EventHandlingContext, _ string, 
 func (s SObjectiveImpl) View(w workflowImpl, isShowingDetails, isShowingProgress bool,
 	newAndOldIssues NewAndOldIssues,
 	) (fields []ebm.AttachmentField) {
-	view := engIssues.GetView(SObjective)
-	fields = view.GetMainFields(newAndOldIssues)
-	if isShowingDetails {
-		fields = append(fields, view.GetDetailsFields(newAndOldIssues)...)
-	}
-	if isShowingProgress {
-		fields = append(fields, view.GetProgressFields(newAndOldIssues)...)
-	}
+	viewState := engIssues.ViewState{IsShowingDetails: isShowingDetails, IsShowingProgress: isShowingProgress}
+	fields = engIssues.OrdinaryViewFields(newAndOldIssues, viewState)	
 	return
 }
 
