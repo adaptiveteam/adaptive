@@ -54,9 +54,7 @@ func (w workflowImpl)getNewAndOldIssues(ctx wf.EventHandlingContext) (newAndOldI
 func (w workflowImpl)prefetch(ctx wf.EventHandlingContext, 
 	issue *Issue,
 	) (err error ) {
-	// _, isShowingDetails := ctx.Data[isShowingDetailsKey]
-	_, isShowingProgress := ctx.Data[isShowingProgressKey]
-	// progress := []models.UserObjectiveProgress{}
+	isShowingProgress := ctx.GetFlag(isShowingProgressKey)
 	if isShowingProgress {
 		// 	objectiveProgress := LatestProgressUpdateByObjectiveID(issue.UserObjective.ID)
 		issue.PrefetchedData.Progress, err = IssueProgressReadAll(issue.UserObjective.ID, 0)(w.DynamoDBConnection)

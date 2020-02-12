@@ -393,8 +393,8 @@ func viewObjectiveWritable(ctx wf.EventHandlingContext,
 	oldItem models.StrategyObjective,
 	newIssue models.UserObjective,
 	oldIssue models.UserObjective) wf.InteractiveMessage {
-	_, isShowingDetails := ctx.Data[isShowingDetailsKey]
-	_, isShowingProgress := ctx.Data[isShowingProgressKey]
+	isShowingDetails := ctx.GetFlag(isShowingDetailsKey)
+	isShowingProgress := ctx.GetFlag(isShowingProgressKey)
 	fields := objectiveToFields(&newItem, &oldItem, ctx.PlatformID)
 	if isShowingDetails {
 		fields = append(fields, objectiveToFieldsDetails(newIssue, oldIssue, ctx.PlatformID)...)

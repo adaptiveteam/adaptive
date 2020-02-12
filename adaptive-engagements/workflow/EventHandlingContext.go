@@ -65,3 +65,9 @@ func (ctx EventHandlingContext)SetFlag(flag string, value bool) {
 		}
 	}
 }
+
+// GetFlag -
+func (ctx EventHandlingContext)GetFlag(flag string) (value bool) {
+	_, value = ctx.Data[flag]
+	return
+}

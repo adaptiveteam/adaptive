@@ -82,8 +82,8 @@ func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOut
 	}
 	itype := IssueType(ctx.Data[issueTypeKey])
 	tc := getTypeClass(itype)
-	_, isShowingDetails := ctx.Data[isShowingDetailsKey]
-	_, isShowingProgress := ctx.Data[isShowingProgressKey]
+	isShowingDetails := ctx.GetFlag(isShowingDetailsKey)
+	isShowingProgress := ctx.GetFlag(isShowingProgressKey)
 
 	fields := tc.View(w, isShowingDetails, isShowingProgress, newAndOldIssues)
 	interactiveElements := objectiveWritableOperations(ctx, newAndOldIssues)
@@ -158,8 +158,8 @@ func (w workflowImpl) OnProgressShow(ctx wf.EventHandlingContext) (out wf.EventO
 }
 
 func objectiveWritableOperations(ctx wf.EventHandlingContext, newAndOldIssues NewAndOldIssues) (buttons []wf.InteractiveElement) {
-	_, isShowingDetails := ctx.Data[isShowingDetailsKey]
-	_, isShowingProgress := ctx.Data[isShowingProgressKey]
+	isShowingDetails := ctx.GetFlag(isShowingDetailsKey)
+	isShowingProgress := ctx.GetFlag(isShowingProgressKey)
 	isCompleted := newAndOldIssues.NewIssue.Completed == 1 && newAndOldIssues.NewIssue.PartnerVerifiedCompletion
 
 	details := wf.Button(DetailsEvent, caption("Show less", "Show more")(isShowingDetails))
