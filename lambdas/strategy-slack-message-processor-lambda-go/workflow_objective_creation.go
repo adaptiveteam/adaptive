@@ -762,7 +762,7 @@ func CreateObjectiveWorkflow_OnProgressFormSubmitted(ctx wf.EventHandlingContext
 	// 	comments,
 	// 	statusColor, item, models.Update)
 	// publish(models.PlatformSimpleNotification{UserId: dialog.User.ID, Channel: dialog.Channel.ID, Ts: msgState.ThreadTs, Attachments: attachs})
-	ctx.Data[isShowingProgressKey] = "true" // enable show progress
+	ctx.SetFlag(isShowingProgressKey, true) // enable show progress
 	if err == nil {
 		out, err = standardView(ctx, item)
 
