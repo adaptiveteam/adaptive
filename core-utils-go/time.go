@@ -148,3 +148,11 @@ func NormalizeDate(dateOrTimestampOrEmpty string) (dateOrEmpty string) {
 	}
 	return
 }
+// ParseDateOrElseToday - attempts to parse date. In case of failure returns today.
+func ParseDateOrElseToday(date string) int64 {
+	t, isDefined := ParseDateOrTimestamp(date)
+	if !isDefined {
+		t = Bod(time.Now())
+	}
+	return t.Unix()
+}
