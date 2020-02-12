@@ -1,31 +1,35 @@
 package issues
 
+import (
+	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+)
+
 var (
-	dialogContentTableName                      = func(clientID string) string { return clientID + "_dialog_content" }
-	strategyObjectivesTableName                 = func(clientID string) string { return clientID + "_strategy_objectives" }
+	dialogContentTableName                      = models.DialogContentTableName
+	strategyObjectivesTableName                 = models.StrategyObjectivesTableName
+	strategyInitiativesTableName                = models.StrategyInitiativesTableName
+	userObjectivesTableName                     = models.UserObjectivesTableName
+	userObjectivesProgressTableName             = models.UserObjectivesProgressTableName
+	communityUsersTableName                     = models.CommunityUsersTableName
+	communitiesTableName                        = models.CommunitiesTableName
+	competenciesTableName                       = models.CompetenciesTableName
+	strategyInitiativeCommunitiesTableName      = models.StrategyInitiativeCommunitiesTableName
+	strategyCommunityTableName                  = models.StrategyCommunityTableName
+	visionTableName                             = models.VisionTableName
+	capabilityCommunitiesTableName              = models.CapabilityCommunitiesTableName
+	strategyCommunitiesTableName                = models.StrategyCommunitiesTableName
+	adaptiveUsersTableName                      = models.AdaptiveUsersTableName
+
+	objectiveCloseoutPath = ""
 	strategyObjectivesPlatformIndex             = "PlatformIDIndex"
-	strategyInitiativesTableName                = func(clientID string) string { return clientID + "_strategy_initiatives" }
 	strategyInitiativesPlatformIndex            = "PlatformIDIndex"
 	strategyInitiativesInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
-	userObjectivesTableName                     = func(clientID string) string { return clientID + "_user_objective" }
 	userObjectivesIDIndex                       = "IDIndex"
 	userObjectivesUserIDIndex                   = "UserIDCompletedIndex"
 	userObjectivesTypeIndex                     = "UserIDTypeIndex"
-	userObjectivesProgressTableName             = func(clientID string) string { return clientID + "_user_objectives_progress" }
-	communityUsersTableName                     = func(clientID string) string { return clientID + "_community_users" }
 	communityUsersCommunityIndex                = "PlatformIDCommunityIDIndex"
 	communityUsersUserIndex                     = "UserIDIndex"
-	communitiesTableName                        = func(clientID string) string { return clientID + "_communities" }
-	competenciesTableName                       = func(clientID string) string { return clientID + "_adaptive_value" }
-	strategyInitiativeCommunitiesTableName      = func(clientID string) string { return clientID + "_initiative_communities" }
 	strategyInitiativeCommunitiesPlatformIndex  = "PlatformIDIndex"
-	strategyCommunityTableName                  = func(clientID string) string { return clientID + "_strategy_communities" }
 	communityUsersUserCommunityIndex            = "UserIDCommunityIDIndex"
-	visionTableName                             = func(clientID string) string { return clientID + "_vision" }
-	capabilityCommunitiesTableName              = func(clientID string) string { return clientID + "_capability_communities" }
 	capabilityCommunitiesPlatformIndex          = "PlatformIDIndex"
-	strategyCommunitiesTableName                = func(clientID string) string { return clientID + "_strategy_communities" }
-	adaptiveUsersTableName                      = func(clientID string) string { return clientID + "_adaptive_users" }
-
-	objectiveCloseoutPath = ""
 )
