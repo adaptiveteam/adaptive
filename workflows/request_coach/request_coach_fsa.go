@@ -34,6 +34,8 @@ const (
 )
 // UpdateShownState -
 const UpdateShownState wf.State = "UpdateShownState"
+// DialogShownState -
+const DialogShownState wf.State = "DialogShownState"
 // Workflow is a public interface of workflow template.
 type Workflow interface {
 	GetNamedTemplate() wf.NamedTemplate
@@ -65,13 +67,14 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 		Template: wf.Template{
 			Init: InitState, // initial state is "init". This is used when the user first triggers the workflow
 			FSA: map[struct {wf.State; wf.Event}]wf.Handler{
-				{State: InitState, Event: ""}:                         w.OnCoachRequested(),
-				{State: InitState, Event: exchange.IssueUpdatedEvent}: w.OnIssueUpdated(),
-				{State: FormShownState, Event: ConfirmedEvent}:        wf.SimpleHandler(w.OnConfirmed(), wf.DoneState),
-				{State: FormShownState, Event: RejectedEvent}:         wf.SimpleHandler(w.OnRejected(), wf.DoneState),
-				{State: UpdateShownState, Event: ConfirmedEvent}:      wf.SimpleHandler(w.OnProvideFeedback(), wf.DoneState),
-				{State: UpdateShownState, Event: RejectedEvent}:       wf.SimpleHandler(w.OnDismiss(), wf.DoneState),
-
+				{State: InitState, Event: ""}:                             w.OnCoachRequested(),
+				{State: InitState, Event: exchange.IssueUpdatedEvent}:     w.OnIssueUpdated(),
+				{State: FormShownState, Event: ConfirmedEvent}:            wf.SimpleHandler(w.OnConfirmed(), wf.DoneState),
+				{State: FormShownState, Event: RejectedEvent}:             wf.SimpleHandler(w.OnRejected(), wf.DoneState),
+				{State: UpdateShownState, Event: ConfirmedEvent}:          wf.SimpleHandler(w.OnProvideFeedback(), DialogShownState),
+				{State: UpdateShownState, Event: RejectedEvent}:           wf.SimpleHandler(w.OnDismiss(), wf.DoneState),
+				{State: DialogShownState, Event: wf.DialogSubmittedEvent}: wf.SimpleHandler(w.OnCommentsSubmitted(), wf.DoneState),
+				
 			},
 			Parser: wf.Parser,
 		}}
@@ -195,86 +198,6 @@ func (w workflowImpl) OnRejected() wf.Handler {
 					)}),
 			)
 		}
-		return
-	}
-}
-// OnIssueUpdated - an event from issue owner when something is changed.
-// `data` will contain `exchange.DialogSituationKey` with one of the dialog situations.
-func (w workflowImpl) OnIssueUpdated() wf.Handler {
-	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-		issueID := ctx.Data[IssueIDKey]
-		issueType := issues.IssueType(ctx.Data[IssueTypeKey])
-		dialogSituation := DialogSituationIDWithoutIssueType(ctx.Data[exchange.DialogSituationKey])
-		log := w.AdaptiveLogger.
-			WithField("issueID", issueID).
-			WithField("issueType", issueType).
-			WithField("dialogSituation", dialogSituation).
-			WithField("Handler", "OnIssueUpdated")
-		log.Info("Start")
-		var issue issues.Issue
-		issue, err = issues.Read(issueType, issueID)(w.DynamoDBConnection)
-		if err != nil {
-			return
-		}
-		var notificationText ui.RichText
-		switch dialogSituation {
-		case issues.UpdateContext: 
-			notificationText = ui.Sprintf("%s has updated the below %s. "+
-				"You might want to provide some valuable feedback on this update.",
-				engCommon.TaggedUser(issue.UserObjective.UserID),
-				issue.GetIssueType().Template())
-		case issues.ProgressUpdateContext: 
-			notificationText = ui.Sprintf("%s has updated progress on the below %s. "+
-				"You might want to provide some valuable feedback on this update.",
-				engCommon.TaggedUser(issue.UserObjective.UserID),
-				issue.GetIssueType().Template())
-		default:
-			// no text
-		}
-		// TODO: show progress/show details
-		if notificationText != "" {
-			out = out.WithInteractiveMessage(wf.InteractiveMessage{	
-				PassiveMessage: wf.PassiveMessage{
-					AttachmentText: notificationText,
-					Fields: shortViewFields(issue),
-				},
-				InteractiveElements: []wf.InteractiveElement{
-					wf.Button(ConfirmedEvent, "Provide feedback"),
-					wf.Button(RejectedEvent, "Dismiss"),
-				},
-			})
-		}
-		out = out.WithNextState(FormShownState)
-		return
-	}
-}
-
-func (w workflowImpl) OnProvideFeedback() wf.Handler {
-	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-		issueID := ctx.Data[IssueIDKey]
-		issueType := issues.IssueType(ctx.Data[IssueTypeKey])
-		dialogSituation := DialogSituationIDWithoutIssueType(ctx.Data[exchange.DialogSituationKey])
-		log := w.AdaptiveLogger.
-			WithField("issueID", issueID).
-			WithField("issueType", issueType).
-			WithField("dialogSituation", dialogSituation).
-			WithField("Handler", "OnProvideFeedback")
-		log.Info("Start")
-		return
-	}
-}
-
-func (w workflowImpl) OnDismiss() wf.Handler {
-	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-		issueID := ctx.Data[IssueIDKey]
-		issueType := issues.IssueType(ctx.Data[IssueTypeKey])
-		dialogSituation := DialogSituationIDWithoutIssueType(ctx.Data[exchange.DialogSituationKey])
-		log := w.AdaptiveLogger.
-			WithField("issueID", issueID).
-			WithField("issueType", issueType).
-			WithField("dialogSituation", dialogSituation).
-			WithField("Handler", "OnDismiss")
-		log.Info("Dismiss")
 		return
 	}
 }
