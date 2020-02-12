@@ -24,13 +24,18 @@ const Namespace = exchange.RequestCoachNamespace
 
 // InitState - the initial state of this workflow.
 const InitState wf.State = "init"
-// FormShownState
+// FormShownState -
 const FormShownState wf.State = "FormShownState"
 const (
+	// ConfirmedEvent -
 	ConfirmedEvent wf.Event = "Confirmed"
+	// RejectedEvent -
 	RejectedEvent wf.Event = "Rejected"
 )
-
+// UpdateShownState -
+const UpdateShownState wf.State = "UpdateShownState"
+// DialogShownState -
+const DialogShownState wf.State = "DialogShownState"
 // Workflow is a public interface of workflow template.
 type Workflow interface {
 	GetNamedTemplate() wf.NamedTemplate
@@ -62,9 +67,14 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 		Template: wf.Template{
 			Init: InitState, // initial state is "init". This is used when the user first triggers the workflow
 			FSA: map[struct {wf.State; wf.Event}]wf.Handler{
-				{State: InitState, Event: ""}:                  w.OnCoachRequested(),
-				{State: FormShownState, Event: ConfirmedEvent}: wf.SimpleHandler(w.OnConfirmed(), wf.DoneState),
-				{State: FormShownState, Event: RejectedEvent}:  wf.SimpleHandler(w.OnRejected(), wf.DoneState),
+				{State: InitState, Event: ""}:                             w.OnCoachRequested(),
+				{State: InitState, Event: exchange.IssueUpdatedEvent}:     w.OnIssueUpdated(),
+				{State: FormShownState, Event: ConfirmedEvent}:            wf.SimpleHandler(w.OnConfirmed(), wf.DoneState),
+				{State: FormShownState, Event: RejectedEvent}:             wf.SimpleHandler(w.OnRejected(), wf.DoneState),
+				{State: UpdateShownState, Event: ConfirmedEvent}:          wf.SimpleHandler(w.OnProvideFeedback(), DialogShownState),
+				{State: UpdateShownState, Event: RejectedEvent}:           wf.SimpleHandler(w.OnDismiss(), wf.DoneState),
+				{State: DialogShownState, Event: wf.DialogSubmittedEvent}: wf.SimpleHandler(w.OnCommentsSubmitted(), wf.DoneState),
+				
 			},
 			Parser: wf.Parser,
 		}}
@@ -87,17 +97,19 @@ func (w workflowImpl) OnCoachRequested() wf.Handler {
 		}
 		ap := issue.UserObjective.AccountabilityPartner
 		if ap == "" || ap == "none" || issue.UserObjective.Accepted == 0 {
-			out.Interaction = wf.Interaction{
-				Messages: []wf.InteractiveMessage{
-					{
-						PassiveMessage: shortView(issue),
-						InteractiveElements: []wf.InteractiveElement{
-							wf.Button(ConfirmedEvent, "I agree"),
-							wf.Button(RejectedEvent, "I tend to disagree"),
-						},
-					},
+			out = out.WithInteractiveMessage(wf.InteractiveMessage{
+				PassiveMessage: wf.PassiveMessage{
+					AttachmentText: ui.Sprintf("%s is requesting your coaching for the below %s. "+
+						"Are you available to partner with and guide your colleague with this effort?",
+						engCommon.TaggedUser(issue.UserObjective.UserID),
+						issue.GetIssueType().Template()),
+					Fields: shortViewFields(issue),
 				},
-			}
+				InteractiveElements: []wf.InteractiveElement{
+					wf.Button(ConfirmedEvent, "I agree"),
+					wf.Button(RejectedEvent, "I tend to disagree"),
+				},
+			})
 			out.NextState = FormShownState
 		} else {
 			log.WithField("AccountabilityPartner", ap).Info("AccountabilityPartner already assigned")
@@ -107,23 +119,11 @@ func (w workflowImpl) OnCoachRequested() wf.Handler {
 	}
 }
 
-func shortView(issue Issue) wf.PassiveMessage {
+func shortViewFields(issue Issue) []ebm.AttachmentField {
 	view := engIssues.GetView(issue.GetIssueType())
 	newAndOldIssues := NewAndOldIssues{NewIssue: issue, OldIssue: issue}
 	fields := view.GetMainFields(newAndOldIssues)
-	//		AskForPartnershipEngagement(ctx.PlatformID, *mc.WithTopic("coaching").WithTarget(item.ID),
-	// item.AccountabilityPartner, fomitEmptyomitEmptyomitEmptyomitEmptyomitEmptyomitEmptymt.Sprintf(
-	// 	"%s is requesting your coaching for the below Individual Development Objective. Are you available to partner with and guide your colleague with this effort?",
-	// 	common.TaggedUser(item.UserID)), fmt.Sprintf("*%s*: %s\n*%s*: %s", NameLabel, item.Name,
-	// 	DescriptionLabel, core.TextWrap(item.Description, core.Underscore)), "", "", false)
-
-	return wf.PassiveMessage{
-		AttachmentText: ui.Sprintf("%s is requesting your coaching for the below %s. "+
-			"Are you available to partner with and guide your colleague with this effort?",
-			engCommon.TaggedUser(issue.UserObjective.UserID),
-			issue.GetIssueType().Template()),
-		Fields: ebm.OmitEmpty(fields),
-	}
+	return ebm.OmitEmpty(fields)
 }
 
 func (w workflowImpl) OnConfirmed() wf.Handler {

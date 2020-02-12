@@ -9,3 +9,4 @@ type IssueType = issuesUtils.IssueType
 type IssueProgressID = issuesUtils.IssueProgressID
 type NewAndOldIssues = issuesUtils.NewAndOldIssues
 type IssuePredicate = issuesUtils.IssuePredicate
+type DialogSituationIDWithoutIssueType = issuesUtils.DialogSituationIDWithoutIssueType

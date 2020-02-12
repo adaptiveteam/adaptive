@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
 	"fmt"
 	"log"
 	"strings"
@@ -240,7 +241,7 @@ func userDAO(conn DynamoDBConnection) utilsUser.DAO {
 
 func UserRead(userID string) func(conn DynamoDBConnection) (ut models.User, err error) {
 	return func(conn DynamoDBConnection) (ut models.User, err error) {
-		if IsSpecialOrEmptyUserID(userID) {
+		if utilsUser.IsSpecialOrEmptyUserID(userID) {
 			err = errors.Errorf("Cannot read nonexisting userID %s", userID)
 		} else {
 			ut, err = userDAO(conn).Read(userID)
@@ -257,19 +258,8 @@ func mapAdaptiveCommunityUsersToUserID(users []models.AdaptiveCommunityUser2) (u
 	return
 }
 
-const UserID_Requested = "requested"
-const UserID_None = "none"
-
-var requested = models.KvPair{Key: string(objectives.RequestACoachOption), Value: UserID_Requested}
-var none = models.KvPair{Key: string(objectives.CoachNotNeededOption), Value: UserID_None}
-
-func IsSpecialUserID(userID string) bool {
-	return userID == UserID_None || userID == UserID_Requested
-}
-
-func IsSpecialOrEmptyUserID(userID string) bool {
-	return IsSpecialUserID(userID) || userID == ""
-}
+var requested = models.KvPair{Key: string(objectives.RequestACoachOption), Value: utilsUser.UserID_Requested}
+var none = models.KvPair{Key: string(objectives.CoachNotNeededOption), Value: utilsUser.UserID_None}
 
 // IDOCoaches returns Key-Value pairs with user id and user display name
 // The set of users and the format are suitable for IDO dialog coach field.
@@ -372,21 +362,11 @@ func StrategyCommunityRead(id string) func(conn DynamoDBConnection) (res strateg
 	}
 }
 
-// type CapabilityCommunityDynamoDBConnection DynamoDBConnection
-
+// CapabilityCommunityRead -
 func CapabilityCommunityRead(id string) func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
 	return func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
 		defer recoverToErrorVar("CapabilityCommunityDynamoDBConnection.Read", &err)
-		cc := strategy.CapabilityCommunityByID(conn.PlatformID, id, capabilityCommunitiesTableName(conn.ClientID))
-		res = models.CapabilityCommunity{
-			ID:          cc.ID,
-			PlatformID:  cc.PlatformID,
-			Advocate:    cc.Advocate,
-			CreatedAt:   cc.CreatedAt,
-			CreatedBy:   cc.CreatedBy,
-			Description: cc.Description,
-			Name:        cc.Name,
-		}
+		res = strategy.CapabilityCommunityByID(conn.PlatformID, id, capabilityCommunitiesTableName(conn.ClientID))
 		if res.ID != id {
 			err = fmt.Errorf("couldn't find CapabilityCommunityByID(id=%s). Instead got ID=%s", id, res.ID)
 		}
@@ -414,19 +394,12 @@ func StrategyInitiativeCreateOrUpdate(si models.StrategyInitiative) func(conn Dy
 	}
 }
 
-// type StrategyInitiativeCommunityDynamoDBConnection DynamoDBConnection
-
+// StrategyInitiativeCommunityRead -
 func StrategyInitiativeCommunityRead(id string) func(conn DynamoDBConnection) (res models.StrategyInitiativeCommunity, err error) {
 	return func(conn DynamoDBConnection) (res models.StrategyInitiativeCommunity, err error) {
-		params := map[string]*dynamodb.AttributeValue{
-			"id":          dynString(id),
-			"platform_id": dynString(string(conn.PlatformID)),
-		}
-		err = conn.Dynamo.GetItemFromTable(strategyInitiativeCommunitiesTableName(conn.ClientID), params, &res)
-		if res.ID != id {
-			err = fmt.Errorf("couldn't find StrategyInitiativeCommunity(id=%s). Instead got ID=%s", id, res.ID)
-		}
-		err = errors.Wrapf(err, "StrategyInitiativeCommunityDynamoDBConnection) Read(id=%s)", id)
+		dao := strategyInitiativeCommunity.NewDAOByTableName(conn.Dynamo, "StrategyInitiativeCommunityRead", strategyInitiativeCommunitiesTableName(conn.ClientID))
+		res, err = dao.Read(id)
+		err = errors.Wrapf(err, "StrategyInitiativeCommunityRead(id=%s)", id)
 		return
 	}
 }

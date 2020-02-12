@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
 	"time"
 	"encoding/json"
 	"fmt"
@@ -20,7 +21,7 @@ import (
 	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	// "github.com/adaptiveteam/adaptive/daos/adaptiveValue"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	// "github.com/adaptiveteam/adaptive/engagement-builder/ui"
 
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
@@ -28,7 +29,7 @@ import (
 	strategy "github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	// alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	// utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	// aws "github.com/aws/aws-sdk-go/aws"
 	// dynamodb "github.com/aws/aws-sdk-go/service/dynamodb"
@@ -538,6 +539,128 @@ func SetCompleted(issueID string) func (conn DynamoDBConnection) (err error) {
 			err = errors.New("UserObjective " + issueID + " not found (SetCompleted)")
 		}
 		err = errors.Wrapf(err, "DynamoDBConnection) SetCompleted(issueID=%s)", issueID)
+		return
+	}
+}
+
+// ReadNewAndOldIssuesAndPrefetch loads issue and prefetches all dictionaries
+// NB! Only the new issue is loadede and prefetched!
+func ReadNewAndOldIssuesAndPrefetch(issueType IssueType, issueID string, isShowingProgress bool) func (DynamoDBConnection)(newAndOldIssues NewAndOldIssues, err error) {
+	return func (DynamoDBConnection DynamoDBConnection)(newAndOldIssues NewAndOldIssues, err error) {
+		newAndOldIssues.NewIssue, err = Read(issueType, issueID)(DynamoDBConnection)
+		if err != nil { 
+			err = errors.Wrapf(err, "ReadNewAndOldIssuesAndPrefetch/Read")
+			return 
+		}
+		if newAndOldIssues.NewIssue.GetIssueID() != issueID {
+			err = errors.Errorf(" newAndOldIssues.NewIssue.UserObjective.ID = %s != issueID = %s",  newAndOldIssues.NewIssue.GetIssueID(), issueID)
+			return  
+		}
+		err = Prefetch(&newAndOldIssues.NewIssue, isShowingProgress)(DynamoDBConnection)
+		if err != nil { 
+			err = errors.Wrapf(err, "getNewAndOldIssues/prefetch")
+			return 
+		}
+		newAndOldIssues.OldIssue = newAndOldIssues.NewIssue // we don't have the previous version of the entity
+		err = errors.Wrap(err, "{ReadNewAndOldIssues}")
+		return
+	}
+}
+
+// Prefetch reads joined tables and puts related data into issue
+func Prefetch(issueRef *Issue, isShowingProgress bool) func (DynamoDBConnection)(err error ) {
+	return func (DynamoDBConnection DynamoDBConnection)(err error ) {
+		if isShowingProgress {
+			// 	objectiveProgress := LatestProgressUpdateByObjectiveID(issue.UserObjective.ID)
+			issueRef.PrefetchedData.Progress, err = IssueProgressReadAll(issueRef.UserObjective.ID, 0)(DynamoDBConnection)
+			if err != nil { return }
+		}
+		return PrefetchIssueWithoutProgress(issueRef)(DynamoDBConnection)
+	}
+}
+
+// PrefetchIssueWithoutProgress loads issue information ignoring context
+func PrefetchIssueWithoutProgress(issueRef *Issue) func (DynamoDBConnection)(err error ) {
+	return func (DynamoDBConnection DynamoDBConnection)(err error ) {
+		if !utilsUser.IsSpecialOrEmptyUserID(issueRef.UserObjective.AccountabilityPartner) {
+			issueRef.PrefetchedData.AccountabilityPartner, err = 
+				utilsUser.DAOFromConnection(DynamoDBConnection).
+				Read(issueRef.UserObjective.AccountabilityPartner)
+			if err != nil { return }
+		}
+
+		switch issueRef.StrategyAlignmentEntityType {
+		case userObjective.ObjectiveStrategyObjectiveAlignment:
+			issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
+		case userObjective.ObjectiveStrategyInitiativeAlignment:
+			issueRef.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
+		case userObjective.ObjectiveCompetencyAlignment:
+			dao := adaptiveValue.NewDAOByTableName(DynamoDBConnection.Dynamo, "CompetencyDynamoDBConnection", models.SchemaForClientID(DynamoDBConnection.ClientID).AdaptiveValues.Name)	
+			issueRef.PrefetchedData.AlignedCompetency, err = dao.Read(issueRef.StrategyAlignmentEntityID)
+		}
+		if err != nil {
+			return
+		}
+
+		itype := issueRef.GetIssueType()
+		switch itype {
+		case IDO:
+			// see above - prefetched data
+		case SObjective:
+			// already prefetched?
+			if len(issueRef.StrategyObjective.CapabilityCommunityIDs) > 0 {
+				capCommID := issueRef.StrategyObjective.CapabilityCommunityIDs[0]
+				issueRef.PrefetchedData.AlignedCapabilityCommunity, err = CapabilityCommunityRead(capCommID)(DynamoDBConnection)
+			}
+			// splits := strings.Split(issueRef.UserObjective.ID, "_")
+			// if len(splits) == 2 {
+			// 	soID := splits[0]
+			// 	capCommID := splits[1]
+			// 	issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveDAO.Read(platformID, soID)
+			// 	if err != nil { return }
+			// 	issueRef.PrefetchedData.AlignedCapabilityCommunity, err = CapabilityCommunityDAO.Read(platformID, capCommID)
+			// } else {
+			// 	issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveDAO.Read(platformID, issueRef.UserObjective.ID)
+			// }
+		case Initiative:
+			initCommID := issueRef.StrategyInitiative.InitiativeCommunityID
+			if initCommID != "" {
+				dao := strategyInitiativeCommunity.NewDAOByTableName(DynamoDBConnection.Dynamo, "PrefetchIssueWithoutProgress", models.StrategyInitiativeCommunitiesTableName(DynamoDBConnection.ClientID))
+				issueRef.PrefetchedData.AlignedInitiativeCommunity, err = dao.Read(initCommID)
+				if err != nil { return }
+			}
+			capObjID := issueRef.StrategyInitiative.CapabilityObjective
+			if capObjID != "" {
+				issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveRead(capObjID)(DynamoDBConnection)
+			}
+		default:
+		}
+		err = errors.Wrap(err, "{prefetch}")
+		return
+	}
+}
+
+func PrefetchManyIssuesWithoutProgress(issues []Issue) func (DynamoDBConnection)(prefetchedIssues []Issue, err error ) {
+	return  func (DynamoDBConnection DynamoDBConnection)(prefetchedIssues []Issue, err error ) {
+		for _, issue := range issues {
+			err = PrefetchIssueWithoutProgress(&issue)(DynamoDBConnection)
+			if err != nil {
+				return
+			} 
+			prefetchedIssues = append(prefetchedIssues, issue)
+		}
+		return
+	}
+}
+
+// CapabilityCommunityRead -
+func CapabilityCommunityRead(id string) func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
+	return func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
+		defer core.RecoverToErrorVar("CapabilityCommunityRead", &err)
+		res = strategy.CapabilityCommunityByID(conn.PlatformID, id, models.CapabilityCommunitiesTableName(conn.ClientID))
+		if res.ID != id {
+			err = fmt.Errorf("couldn't find CapabilityCommunityByID(id=%s). Instead got ID=%s", id, res.ID)
+		}
 		return
 	}
 }

@@ -73,15 +73,6 @@ func (w workflowImpl) OnFieldsShown(textExtractor TextExtractor, dialogSituation
 	}
 }
 
-func toggleContextFlag(ctx wf.EventHandlingContext, flag string) {
-	_, isOn := ctx.Data[flag]
-	if isOn {
-		delete(ctx.Data, flag) // removing "flag"
-	} else {
-		ctx.Data[flag] = "true" // setting "flag"
-	}
-}
-
 func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	w.AdaptiveLogger.Info("standardView")
 	var newAndOldIssues NewAndOldIssues
@@ -91,8 +82,8 @@ func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOut
 	}
 	itype := IssueType(ctx.Data[issueTypeKey])
 	tc := getTypeClass(itype)
-	_, isShowingDetails := ctx.Data[isShowingDetailsKey]
-	_, isShowingProgress := ctx.Data[isShowingProgressKey]
+	isShowingDetails := ctx.GetFlag(isShowingDetailsKey)
+	isShowingProgress := ctx.GetFlag(isShowingProgressKey)
 
 	fields := tc.View(w, isShowingDetails, isShowingProgress, newAndOldIssues)
 	interactiveElements := objectiveWritableOperations(ctx, newAndOldIssues)
@@ -157,18 +148,18 @@ func omitEmpty(fields []ebm.AttachmentField) (res []ebm.AttachmentField) {
 }
 
 func (w workflowImpl) OnDetails(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-	toggleContextFlag(ctx, isShowingDetailsKey)
+	ctx.ToggleFlag(isShowingDetailsKey)
 	return w.standardView(ctx)
 }
 
 func (w workflowImpl) OnProgressShow(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-	toggleContextFlag(ctx, isShowingProgressKey)
+	ctx.ToggleFlag(isShowingProgressKey)
 	return w.standardView(ctx)
 }
 
 func objectiveWritableOperations(ctx wf.EventHandlingContext, newAndOldIssues NewAndOldIssues) (buttons []wf.InteractiveElement) {
-	_, isShowingDetails := ctx.Data[isShowingDetailsKey]
-	_, isShowingProgress := ctx.Data[isShowingProgressKey]
+	isShowingDetails := ctx.GetFlag(isShowingDetailsKey)
+	isShowingProgress := ctx.GetFlag(isShowingProgressKey)
 	isCompleted := newAndOldIssues.NewIssue.Completed == 1 && newAndOldIssues.NewIssue.PartnerVerifiedCompletion
 
 	details := wf.Button(DetailsEvent, caption("Show less", "Show more")(isShowingDetails))

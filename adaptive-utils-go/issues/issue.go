@@ -97,3 +97,16 @@ type IssueProgressID struct {
 	IssueID string
 	Date string
 }
+
+
+type DialogSituationIDWithoutIssueType = string
+
+const (
+	DescriptionContext              DialogSituationIDWithoutIssueType = "description"
+	CloseoutDisagreementContext     DialogSituationIDWithoutIssueType = "close-out-disagreement"
+	CloseoutAgreementContext        DialogSituationIDWithoutIssueType = "close-out-agreement"
+	UpdateContext                   DialogSituationIDWithoutIssueType = "update"
+	UpdateResponseContext           DialogSituationIDWithoutIssueType = "update-response"
+	CoachingRequestRejectionContext DialogSituationIDWithoutIssueType = "coaching-request-rejection"
+	ProgressUpdateContext           DialogSituationIDWithoutIssueType = "progress-update"
+)

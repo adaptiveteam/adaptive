@@ -10,6 +10,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/thoas/go-funk"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
@@ -22,10 +23,10 @@ import (
 	"time"
 )
 
-const itemIDKey = "itemID"
-const capCommIDKey = "capCommID"
-const isShowingDetailsKey = "isShowingDetails"
-const isShowingProgressKey = "isShowingProgress"
+const itemIDKey = exchange.ItemIDKey
+const capCommIDKey = exchange.CapCommIDKey
+const isShowingDetailsKey = exchange.IsShowingDetailsKey
+const isShowingProgressKey = exchange.IsShowingProgressKey
 
 var CreateObjectiveWorkflow = wf.NamedTemplate{
 	Name: "create-objective", Template: CreateObjectiveWorkflow_Workflow(),
@@ -392,8 +393,8 @@ func viewObjectiveWritable(ctx wf.EventHandlingContext,
 	oldItem models.StrategyObjective,
 	newIssue models.UserObjective,
 	oldIssue models.UserObjective) wf.InteractiveMessage {
-	_, isShowingDetails := ctx.Data[isShowingDetailsKey]
-	_, isShowingProgress := ctx.Data[isShowingProgressKey]
+	isShowingDetails := ctx.GetFlag(isShowingDetailsKey)
+	isShowingProgress := ctx.GetFlag(isShowingProgressKey)
 	fields := objectiveToFields(&newItem, &oldItem, ctx.PlatformID)
 	if isShowingDetails {
 		fields = append(fields, objectiveToFieldsDetails(newIssue, oldIssue, ctx.PlatformID)...)
@@ -650,15 +651,6 @@ func unfiltered(wf.EventHandlingContext) ObjectivePredicate { return func(models
 	return true
 }}
 
-func toggleContextFlag(ctx wf.EventHandlingContext, flag string) {
-	_, isOn := ctx.Data[flag]
-	if isOn {
-		delete(ctx.Data, flag) // removing "flag"
-	} else {
-		ctx.Data[flag] = "true" // setting "flag"
-	}
-}
-
 func standardView(ctx wf.EventHandlingContext, item models.StrategyObjective) (out wf.EventOutput, err error) {
 	newIssue := UserObjectiveFromStrategyObjective(&item, item.CapabilityCommunityIDs[0], ctx.PlatformID)
 	view := viewObjectiveWritable(ctx, item, item, *newIssue, *newIssue)
@@ -674,7 +666,7 @@ func standardView(ctx wf.EventHandlingContext, item models.StrategyObjective) (o
 func CreateObjectiveWorkflow_OnDetails(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	itemID := ctx.Data[itemIDKey]
 	logger.Infof("CreateObjectiveWorkflow_OnDetails itemID:%s", itemID)
-	toggleContextFlag(ctx, isShowingDetailsKey)
+	ctx.ToggleFlag(isShowingDetailsKey)
 	item := readItem(ctx.PlatformID, itemID)
 	return standardView(ctx, item)
 }
@@ -722,8 +714,8 @@ func CreateObjectiveWorkflow_OnProgressCancel(ctx wf.EventHandlingContext) (out 
 
 func CreateObjectiveWorkflow_OnProgressShow(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	itemID := ctx.Data[itemIDKey]
-	logger.Infof("CreateIDOWorkflow_OnProgressShow itemID:%s", itemID)
-	toggleContextFlag(ctx, isShowingProgressKey)
+	logger.Infof("CreateIDOWorkflow_OnProgressShow itemID:%s", itemID)	
+	ctx.ToggleFlag(isShowingProgressKey)
 	item := readItem(ctx.PlatformID, itemID)
 	return standardView(ctx, item)
 }
@@ -770,7 +762,7 @@ func CreateObjectiveWorkflow_OnProgressFormSubmitted(ctx wf.EventHandlingContext
 	// 	comments,
 	// 	statusColor, item, models.Update)
 	// publish(models.PlatformSimpleNotification{UserId: dialog.User.ID, Channel: dialog.Channel.ID, Ts: msgState.ThreadTs, Attachments: attachs})
-	ctx.Data[isShowingProgressKey] = "true" // enable show progress
+	ctx.SetFlag(isShowingProgressKey, true) // enable show progress
 	if err == nil {
 		out, err = standardView(ctx, item)
 
