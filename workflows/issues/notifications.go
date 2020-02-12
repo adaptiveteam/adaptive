@@ -5,6 +5,8 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
+	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
+	engIssues"github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 )
 
 // notifications about changes in issue
@@ -19,40 +21,41 @@ func (w workflowImpl) onNewOrUpdatedItemAvailable(ctx wf.EventHandlingContext,
 	// keeping the old item so that we'll be able to show it again after analysis.
 	ctx.RuntimeData = runtimeData(newAndOldIssues)
 	out, err = w.standardView(ctx)
-	out.ImmediateEvent = MessageIDAvailableEventInContext(dialogSituationID) // this is needed to post analysis
-	if err == nil {
-		if newAndOldIssues.NewIssue.GetIssueType() != IDO {
-
-			notification, err2 := w.notifyStrategy(ctx, tc, newAndOldIssues, eventDescription, isShowingProgress)
-			if err2 == nil {
-				out.Responses = append(out.Responses, notification)
-			} else {
-				w.AdaptiveLogger.WithError(err2).Error("onNewOrUpdatedItemAvailable/notifyStrategy")
-			}
-		}
+	if err != nil {
+		return
 	}
+	out.ImmediateEvent = MessageIDAvailableEventInContext(dialogSituationID) // this is needed to post analysis
 	out = out.
 		WithPostponedEvent(
 			exchange.NotifyAboutUpdatesForIssue(newAndOldIssues, dialogSituationID),
 		).
-		WithRuntimeData(newAndOldIssues) // We also set output runtime date
+		WithRuntimeData(newAndOldIssues). // We also set output runtime date
+		WithResponse(
+			w.notifyStrategyIfNeeded(ctx, tc, newAndOldIssues, eventDescription, isShowingProgress)...
+		)
 	return
 }
 
-func (w workflowImpl) notifyStrategy(ctx wf.EventHandlingContext, tc IssueTypeClass,
+func (w workflowImpl) notifyStrategyIfNeeded(ctx wf.EventHandlingContext, tc IssueTypeClass,
 	newAndOldIssues NewAndOldIssues,
 	eventDescription ui.RichText,
 	isShowingProgress bool,
-) (notification platform.Response, err error) {
-	var strategyCommunityConversation platform.ConversationID
-	strategyCommunityConversation, err = findStrategyCommunityConversation(w, ctx)
-	if err != nil {
-		return
+) (notifications []platform.Response) {
+	if newAndOldIssues.NewIssue.GetIssueType() != IDO {
+		strategyCommunityConversation, err2 := findStrategyCommunityConversation(w, ctx)
+		if err2 == nil {
+			notifications = append(notifications, 
+				platform.Post(strategyCommunityConversation, platform.MessageContent{
+					Message: eventDescription,
+					Attachments: []ebm.Attachment{{
+						Fields: ebm.OmitEmpty(
+							engIssues.OrdinaryViewFields(newAndOldIssues, 
+								engIssues.ViewState{IsShowingProgress: isShowingProgress})),
+					}},
+				}))
+		} else {
+			w.AdaptiveLogger.WithError(err2).Error("onNewOrUpdatedItemAvailable/notifyStrategy")
+		}
 	}
-
-	msgToStrategyCommunity := viewObjectiveReadonly(w, tc, newAndOldIssues, isShowingProgress)
-	// userID := ctx.Request.User.ID
-	msgToStrategyCommunity.Message = eventDescription //ui.Sprintf("Below objective has been %s by <@%s>", eventDescription, userID)
-	notification = platform.Post(strategyCommunityConversation, msgToStrategyCommunity)
 	return
 }

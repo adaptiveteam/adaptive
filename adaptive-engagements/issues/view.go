@@ -1,11 +1,12 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	utilsIssues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	ui "github.com/adaptiveteam/adaptive/engagement-builder/ui"
-	"github.com/pkg/errors"
+	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
 
 // Issue -
@@ -67,6 +68,73 @@ func OrdinaryViewFields(newAndOldIssues NewAndOldIssues, viewState ViewState) (f
 	}
 	if viewState.IsShowingProgress {
 		fields = append(fields, view.GetProgressFields(newAndOldIssues)...)
+	}
+	return
+}
+const (
+	// MessageIDAvailableEvent wf.Event = "MessageIDAvailableEvent"
+	EditEvent wf.Event = "EditEvent"
+	// AddAnotherEvent wf.Event = "AddAnotherEvent"
+	DetailsEvent wf.Event = "DetailsEvent"
+	CancelEvent wf.Event = "CancelEvent"
+	ProgressShowEvent wf.Event = "ProgressShowEvent"
+	ProgressIntermediateEvent wf.Event = "ProgressIntermediateEvent"
+	ProgressCloseoutEvent wf.Event = "ProgressCloseoutEvent"
+)
+
+func caption(trueCaption ui.PlainText, falseCaption ui.PlainText) func(bool) ui.PlainText {
+	return func(flag bool) (res ui.PlainText) {
+		if flag {
+			res = trueCaption
+		} else {
+			res = falseCaption
+		}
+		return
+	}
+}
+
+func OrdinaryInteractiveElements(newAndOldIssues NewAndOldIssues, viewState ViewState) (buttons []wf.InteractiveElement) {
+	isCompleted := newAndOldIssues.NewIssue.Completed == 1 && newAndOldIssues.NewIssue.PartnerVerifiedCompletion
+
+	isWritable := !isCompleted && viewState.IsWritable
+	details := wf.Button(DetailsEvent, caption("Show less", "Show more")(viewState.IsShowingDetails))
+	buttons = append(buttons, details)
+	progressShow := wf.MenuOption(ProgressShowEvent, caption("Hide", "Show")(viewState.IsShowingProgress))
+	progressOptions := []wf.SimpleAction{progressShow}
+	// addAnother := wf.Button("add-another", "Add another?")
+	if isWritable {
+		buttons = append(buttons, wf.Button(EditEvent, "Edit"))
+		progressIntermediate := wf.MenuOption(ProgressIntermediateEvent, "Add/Update progress")
+		progressCloseout := wf.MenuOption(ProgressCloseoutEvent, "Closeout")
+		progressOptions = append(progressOptions, progressIntermediate, progressCloseout)
+	}
+	progress := wf.InlineMenu("Progress", progressOptions...)
+	buttons = append(buttons, progress)
+	if isWritable {
+		buttons = append(buttons, wf.AckButton(CancelEvent, "Cancel"))
+	}
+	return
+}
+// GetInteractiveMessage - returns an interactive message that represents the given issue.
+// View might be in different states.
+func GetInteractiveMessage(newAndOldIssues NewAndOldIssues, viewState ViewState) (view wf.InteractiveMessage) {
+	itype := newAndOldIssues.NewIssue.GetIssueType()
+
+	fields := OrdinaryViewFields(newAndOldIssues, viewState)
+	interactiveElements := OrdinaryInteractiveElements(newAndOldIssues, viewState)
+	createdDate := core.ParseDateOrElseToday(newAndOldIssues.NewIssue.UserObjective.CreatedDate)
+	
+	view = wf.InteractiveMessage{
+		PassiveMessage: wf.PassiveMessage{
+			Fields:             ebm.OmitEmpty(fields),
+			IsPermanentMessage: true, // we don't ever want to delete the form view message
+			Footer:             ebm.AttachmentFooter{Text: "Created at", Timestamp: createdDate},
+		},
+		InteractiveElements: interactiveElements,
+		DataOverride: wf.Data{
+			exchange.IssueIDKey:   newAndOldIssues.NewIssue.UserObjective.ID,
+			exchange.IssueTypeKey: string(itype), //probably we don't need this because it's available
+		},
 	}
 	return
 }
