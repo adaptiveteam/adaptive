@@ -26,50 +26,12 @@ import (
 // `data` will contain `exchange.DialogSituationKey` with one of the dialog situations.
 func (w workflowImpl) OnIssueUpdated() wf.Handler {
 	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-		issueID := ctx.Data[IssueIDKey]
-		issueType := issues.IssueType(ctx.Data[IssueTypeKey])
 		dialogSituation := DialogSituationIDWithoutIssueType(ctx.Data[exchange.DialogSituationKey])
-		log := w.AdaptiveLogger.
-			WithField("issueID", issueID).
-			WithField("issueType", issueType).
-			WithField("dialogSituation", dialogSituation).
-			WithField("Handler", "OnIssueUpdated")
-		log.Info("Start")
+
 		isShowingProgress := dialogSituation == utilsIssues.ProgressUpdateContext
 		ctx.SetFlag(exchange.IsShowingProgressKey, isShowingProgress)
-		var newAndOldIssues issues.NewAndOldIssues
-		newAndOldIssues, err = wfCommon.WorkflowContext(w).GetNewAndOldIssues(ctx)
-		if err != nil {
-			return
-		}
-		issue := newAndOldIssues.NewIssue
-		var notificationText ui.RichText
-		switch dialogSituation {
-		case utilsIssues.UpdateContext:
-			notificationText = ui.Sprintf("%s has updated the below %s. "+
-				"You might want to provide some valuable feedback on this update.",
-				engCommon.TaggedUser(issue.UserObjective.UserID),
-				issue.GetIssueType().Template())
-		case utilsIssues.ProgressUpdateContext:
-			notificationText = ui.Sprintf("%s has updated progress on the below %s. "+
-				"You might want to provide some valuable feedback on this update.",
-				engCommon.TaggedUser(issue.UserObjective.UserID),
-				issue.GetIssueType().Template())
-		default:
-			// no text
-		}
-		// TODO: show progress/show details
-		if notificationText != "" {
-			viewState := engIssues.ViewState{IsShowingProgress: isShowingProgress}
-			view := engIssues.GetInteractiveMessage(newAndOldIssues, viewState)
-			view.AttachmentText = notificationText
-			view.InteractiveElements = append(view.InteractiveElements, 
-				wf.Button(ConfirmedEvent, "Provide feedback"),
-				wf.Button(RejectedEvent, "Dismiss"),
-			)
-			out = out.WithInteractiveMessage(view)
-		}
-		out = out.WithNextState(FormShownState)
+		out, err = w.standardView(ctx)
+		out = out.WithNextState(UpdateShownState)
 		return
 	}
 }
@@ -190,22 +152,56 @@ func (w workflowImpl) OnProgressShow(ctx wf.EventHandlingContext) (out wf.EventO
 
 func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	w.AdaptiveLogger.Info("standardView")
-	var newAndOldIssues NewAndOldIssues
+
+	issueID := ctx.Data[IssueIDKey]
+	issueType := issues.IssueType(ctx.Data[IssueTypeKey])
+	dialogSituation := DialogSituationIDWithoutIssueType(ctx.Data[exchange.DialogSituationKey])
+
+	log := w.AdaptiveLogger.
+		WithField("issueID", issueID).
+		WithField("issueType", issueType).
+		WithField("dialogSituation", dialogSituation).
+		WithField("Handler", "standardView")
+	log.Info("Start")
+	var newAndOldIssues issues.NewAndOldIssues
 	newAndOldIssues, err = wfCommon.WorkflowContext(w).GetNewAndOldIssues(ctx)
 	if err != nil {
 		return
 	}
-	viewState := issues.ViewState{
-		IsShowingDetails:  exchange.IsShowingDetails(ctx),
-		IsShowingProgress: exchange.IsShowingProgress(ctx),
-		IsWritable:        true,
+	issue := newAndOldIssues.NewIssue
+	var notificationText ui.RichText
+	switch dialogSituation {
+	case utilsIssues.UpdateContext:
+		notificationText = ui.Sprintf("%s has updated the below %s. "+
+			"You might want to provide some valuable feedback on this update.",
+			engCommon.TaggedUser(issue.UserObjective.UserID),
+			issue.GetIssueType().Template())
+	case utilsIssues.ProgressUpdateContext:
+		notificationText = ui.Sprintf("%s has updated progress on the below %s. "+
+			"You might want to provide some valuable feedback on this update.",
+			engCommon.TaggedUser(issue.UserObjective.UserID),
+			issue.GetIssueType().Template())
+	default:
+		// no text
 	}
-	view := issues.GetInteractiveMessage(newAndOldIssues, viewState)
+	if notificationText != "" {
+		viewState := issues.ViewState{
+			IsShowingDetails:  exchange.IsShowingDetails(ctx),
+			IsShowingProgress: exchange.IsShowingProgress(ctx),
+			IsWritable:        false,
+		}
+	
+		view := engIssues.GetInteractiveMessage(newAndOldIssues, viewState)
+		view.AttachmentText = notificationText
+		view.OverrideOriginal = true
 
-	view.OverrideOriginal = true
-	out.Interaction = wf.Interaction{
-		Messages: []wf.InteractiveMessage{view},
+		view.InteractiveElements = append(view.InteractiveElements, 
+			wf.Button(ConfirmedEvent, "Provide feedback"),
+			wf.Button(RejectedEvent, "Dismiss"),
+		)
+		out = out.WithInteractiveMessage(view)
 	}
+
 	err = errors.Wrap(err, "{standardView}")
 	return
 }
