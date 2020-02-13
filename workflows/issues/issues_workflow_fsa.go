@@ -92,7 +92,6 @@ type Workflow interface {
 // all fields will have values.
 type workflowImpl struct {
 	wfCommon.WorkflowContext
-	DynamoDBConnection
 	DialogFetcherDAO dialogFetcher.DAO
 }
 
