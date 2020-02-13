@@ -98,6 +98,9 @@ func (w workflowImpl) OnViewListOfQueryIssuesWithTypeInContext(issueQueryFactory
 		if err != nil {
 			return
 		}
+		if len(issues) < len(prefetchedIssues) {
+			w.AdaptiveLogger.Warnf("Found %d issues but prefetched only %d", len(issues), len(prefetchedIssues))
+		}
 
 		threadMessages := wf.InteractiveMessages()
 		for _, issue := range prefetchedIssues {
@@ -109,7 +112,7 @@ func (w workflowImpl) OnViewListOfQueryIssuesWithTypeInContext(issueQueryFactory
 			threadMessages = append(threadMessages, out.Messages...)
 		}
 		if len(threadMessages) < len(prefetchedIssues) {
-			w.AdaptiveLogger.Warnf("Found %d issues but going to show only %d", len(threadMessages), len(prefetchedIssues))
+			w.AdaptiveLogger.Warnf("Found %d issues but going to show only %d", len(prefetchedIssues), len(threadMessages))
 		}
 		var msg ui.RichText
 		if len(threadMessages) == 0 {

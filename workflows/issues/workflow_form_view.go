@@ -85,9 +85,7 @@ func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOut
 	view := issues.GetInteractiveMessage(newAndOldIssues, viewState)
 
 	view.OverrideOriginal = true
-	out.Interaction = wf.Interaction{
-		Messages: []wf.InteractiveMessage{view},
-	}
+	out.Messages = []wf.InteractiveMessage{view}
 	err = errors.Wrap(err, "{standardView}")
 	return
 }

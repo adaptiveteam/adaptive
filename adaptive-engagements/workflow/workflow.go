@@ -45,7 +45,7 @@ const MaxImmediateSteps = 3
 func (w Template) recoverToErrorVar(logInfof LogInfof, err *error) {
 	if err2 := recover(); err2 != nil {
 		if err != nil {
-			logInfof("Before recoverToErrorVar err = %+v", err)
+			logInfof("Before recoverToErrorVar err = %+v", *err)
 		}
 		switch err2.(type) {
 		case error:
@@ -57,7 +57,7 @@ func (w Template) recoverToErrorVar(logInfof LogInfof, err *error) {
 			err3 := err2.(string)
 			err4 := errors.New("Recover from string-panic in workflow HandleRequest: " + err3)
 			err = &err4
-			logInfof("recoverToErrorVar: %+v", err)
+			logInfof("recoverToErrorVar: %+v", *err)
 		}
 	}
 }
