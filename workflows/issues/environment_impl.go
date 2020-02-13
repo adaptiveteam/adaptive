@@ -43,13 +43,17 @@ func CreateWorkflowImpl(logger alog.AdaptiveLogger) func(conn DynamoDBConnection
 		if conn.ClientID == "" {
 			panic(errors.New("CreateWorkflowImpl: clientID == ''"))
 		}
-		return workflowImpl{
+		impl := workflowImpl{
 			WorkflowContext:    wfCommon.WorkflowContext{
 				AdaptiveLogger: logger,
 				DynamoDBConnection: conn,
 			},
 			DialogFetcherDAO: dialogFetcher.NewDAO(conn.Dynamo, dialogContentTableName(conn.ClientID)),
 		}
+		if impl.ClientID == "" {
+			panic(errors.New("CreateWorkflowImpl 2: clientID == ''"))
+		}
+		return impl
 	}
 }
 

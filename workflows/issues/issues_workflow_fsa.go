@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/pkg/errors"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
@@ -104,6 +105,9 @@ func CreateIssueWorkflow(
 }
 
 func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
+	if w.DynamoDBConnection.ClientID == "" {
+		panic(errors.New("GetNamedTemplate: clientID == ''"))
+	}
 	nt := wf.NamedTemplate{
 		Name: Namespace,
 		Template: wf.Template{
