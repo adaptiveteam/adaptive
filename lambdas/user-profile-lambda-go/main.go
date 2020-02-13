@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/pkg/errors"
 	"context"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -83,7 +84,7 @@ func wrapError(err error, name string) error {
 
 func refreshUserCache(userID string, platformID models.PlatformID) (profile models.UserProfile, err error) {
 	if platformID == "" {
-		panic("platformID is empty when querying " + userID)
+		panic(errors.New("refreshUserCache: platformID is empty when querying " + userID))
 	}
 	platform, err := platformTokenDao.Read(platformID)
 	if err == nil {

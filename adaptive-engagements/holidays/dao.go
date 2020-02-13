@@ -1,6 +1,7 @@
 package holidays
 
 import (
+	"github.com/pkg/errors"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -60,7 +61,7 @@ func nonEmpty(env func(string)string) func(string)string {
 	return func(key string)string {
 		value := env(key)
 		if value == "" {
-			panic("Key " + key + " is not defined")
+			panic(errors.New("Key " + key + " is not defined"))
 		}
 		return value
 	}
@@ -78,7 +79,7 @@ func ReadTableConfigUnsafe(env func(string)string) TableConfig {
 // NewDAO creates an instance of DAO that will provide access to holidays table
 func NewDAO(dns *common.DynamoNamespace, table string, index string) DAO {
 	if table == "" || index == "" {
-		panic("Cannot create Holidays DAO without table and index")
+		panic(errors.New("Cannot create Holidays DAO without table and index"))
 	}
 	return DAOImpl{DNS: dns, TableConfig: TableConfig{Table: table, PlatformDateIndex: index}}
 }

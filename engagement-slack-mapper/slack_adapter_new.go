@@ -44,10 +44,10 @@ func SlackAdapter2(platformTokenDao platform.DAO) PlatformAdapter2 {
 // PlatformTokenUnsafe returns platform token for the given platform id
 func (a* PlatformAdapter2Impl)PlatformTokenUnsafe(platformID models.PlatformID) string {
 	if platformID == "" {
-		panic("in PlatformAdapter2 platformID == ''")
+		panic(errors.New("in PlatformAdapter2 platformID == ''"))
 	}
 	if a.tokenCache == nil {
-		panic("PlatformAdapter2 a.tokenCache == nil")
+		panic(errors.New("PlatformAdapter2 a.tokenCache == nil"))
 	}
 	res, ok := a.tokenCache[platformID]
 	if !ok {

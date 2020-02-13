@@ -105,7 +105,7 @@ type DAOImpl struct {
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
-	if clientID == "" { panic("Cannot create DAO without clientID") }
+	if clientID == "" { panic(errors.New("Cannot create UserEngagement.DAO without clientID")) }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		Name: TableName(clientID),
 	}
@@ -113,7 +113,7 @@ func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 
 // NewDAOByTableName creates an instance of DAO that will provide access to the table
 func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic("Cannot create DAO without tableName") }
+	if tableName == "" { panic(errors.New("Cannot create UserEngagement.DAO without tableName")) }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		Name: tableName,
 	}
@@ -280,7 +280,7 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 func allParams(userEngagement UserEngagement, old UserEngagement) (params map[string]*dynamodb.AttributeValue) {
-	panic("struct fields are not supported in UserEngagement.CreateOrUpdate/allParams")
+	panic(errors.New("struct fields are not supported in UserEngagement.CreateOrUpdate/allParams"))
 	return
 }
 func updateExpression(userEngagement UserEngagement, old UserEngagement) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -295,7 +295,7 @@ func updateExpression(userEngagement UserEngagement, old UserEngagement) (expr s
 	if userEngagement.CheckIdentifier != old.CheckIdentifier { updateParts = append(updateParts, "check_identifier = :a5"); params[":a5"] = common.DynS(userEngagement.CheckIdentifier);  }
 	if userEngagement.CheckValue != old.CheckValue { updateParts = append(updateParts, "check_value = :a6"); params[":a6"] = common.DynBOOL(userEngagement.CheckValue);  }
 	if userEngagement.Script != old.Script { updateParts = append(updateParts, "script = :a7"); params[":a7"] = common.DynS(userEngagement.Script);  }
-	panic("struct fields are not supported in UserEngagement.CreateOrUpdate/updateExpression Message")
+	panic(errors.New("struct fields are not supported in UserEngagement.CreateOrUpdate/updateExpression Message"))
 	if userEngagement.Priority != old.Priority { updateParts = append(updateParts, "priority = :a9"); params[":a9"] = common.DynS(string(userEngagement.Priority));  }
 	if userEngagement.Optional != old.Optional { updateParts = append(updateParts, "optional = :a10"); params[":a10"] = common.DynBOOL(userEngagement.Optional);  }
 	if userEngagement.Answered != old.Answered { updateParts = append(updateParts, "answered = :a11"); params[":a11"] = common.DynN(userEngagement.Answered);  }

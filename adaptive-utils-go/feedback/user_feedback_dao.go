@@ -1,6 +1,7 @@
 package feedback
 
 import (
+	"github.com/pkg/errors"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
@@ -29,7 +30,9 @@ type DAOImpl struct {
 
 // NewDAO creates an instance of DAO that will provide access to UserFeedback table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, table string, feedbackSourceQuarterYearIndex string) DAO {
-	if table == "" { panic("Cannot create User DAO without table") }
+	if table == "" { 
+		panic(errors.New("Cannot create User DAO without table"))
+	}
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		UserFeedbackTableSchema: models.UserFeedbackTableSchema{Name: table, 
 			FeedbackSourceQuarterYearIndex: feedbackSourceQuarterYearIndex},

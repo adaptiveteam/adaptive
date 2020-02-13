@@ -1,6 +1,7 @@
 package values
 
 import (
+	"github.com/pkg/errors"
 	"fmt"
 	"time"
 
@@ -47,10 +48,10 @@ type PlatformDAOImpl struct {
 // NewDAO creates an instance of DAO that will provide access to adaptiveValues table
 func NewDAO(dns *common.DynamoNamespace, table string, index string) DAO {
 	if table == "" {
-		panic("Cannot create adaptiveValues DAO without table")
+		panic(errors.New("Cannot create adaptiveValues DAO without table"))
 	}
 	if index == "" {
-		panic("Cannot create adaptiveValues DAO without index")
+		panic(errors.New("Cannot create adaptiveValues DAO without index"))
 	}
 	return DAOImpl{DNS: dns, AdaptiveValuesTableSchema: models.AdaptiveValuesTableSchema{Name: table, PlatformIDIndex: index}}
 }
