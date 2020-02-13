@@ -108,6 +108,9 @@ func (w workflowImpl) OnViewListOfQueryIssuesWithTypeInContext(issueQueryFactory
 			}
 			threadMessages = append(threadMessages, out.Messages...)
 		}
+		if len(threadMessages) < len(prefetchedIssues) {
+			w.AdaptiveLogger.Warnf("Found %d issues but going to show only %d", len(threadMessages), len(prefetchedIssues))
+		}
 		var msg ui.RichText
 		if len(threadMessages) == 0 {
 			msg = ui.Sprintf("There are no %s yet.", queryItemPluralTitle(issueType))
