@@ -91,3 +91,15 @@ data "aws_iam_policy_document" "user_engagement_scripting_policy" {
   }
 }
 
+
+resource "aws_iam_policy_attachment" "user_engagement_scripting_lambda_read_all_tables" {
+  name       = "${local.client_id}_${module.user_engagement_scripting_lambda.function_name}_read_all_tables"
+  roles      = [module.user_engagement_scripting_lambda.role_name]
+  policy_arn = aws_iam_policy.read_all_tables.arn
+}
+
+resource "aws_iam_policy_attachment" "user_engagement_scripting_lambda_write_issues" {
+  name       = "${local.client_id}_${module.slack_message_processor_lambda.function_name}_read_all_tables"
+  roles      = [module.slack_message_processor_lambda.role_name]
+  policy_arn = aws_iam_policy.read_all_tables.arn
+}
