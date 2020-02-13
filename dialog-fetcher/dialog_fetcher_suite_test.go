@@ -97,23 +97,6 @@ var _ = BeforeSuite(func() {
 	}
 })
 
-// // Running this once after the test suite
-// var _ = AfterSuite(func() {
-// 	fmt.Println("Stopping localstack container ... ")
-// 	// Once tests are done, kill and remove the container
-// 	if resourcePool == nil {
-// 		panic("No resource pool")
-// 	}
-// 	if resource != nil {
-// 		err2 := resource.Close()
-// 		testErrorHandler(err2, "There was an error with closing localstack resource")
-
-// 		// err3 := resourcePool.Purge(resource)
-// 		// testErrorHandler(err3, "There was an error with stopping the container")
-// 	}
-// 	fmt.Println("Stopped localstack container")
-// })
-
 func localStackDynamoDB() *dynamodb.DynamoDB {
 	sess := session.Must(session.NewSession(&aws.Config{
 		Credentials:      credentials.NewStaticCredentials("foo", "var", ""),

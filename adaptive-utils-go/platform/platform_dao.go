@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"github.com/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -25,7 +26,7 @@ type DAOImpl struct {
 
 // NewDAO creates an instance of DAO that will provide access to ClientPlatformToken table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, table string) DAO {
-	if table == "" { panic("Cannot create ClientPlatformToken DAO without table") }
+	if table == "" { panic(errors.New("Cannot create ClientPlatformToken DAO without table")) }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		ClientPlatformTokenTableSchema: models.ClientPlatformTokenTableSchema{Name: table},
 	}

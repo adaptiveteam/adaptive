@@ -34,14 +34,6 @@ type DAO = daosUser.DAO
 
 // NewDAO creates an instance of DAO that will provide access to ClientPlatformToken table
 var NewDAO = daosUser.NewDAOByTableName
-// (dynamo *awsutils.DynamoRequest, namespace, table string) DAO {
-// 	if table == "" {
-// 		panic("Cannot create User DAO without table")
-// 	}
-// 	return DAOImpl{Dynamo: dynamo, Namespace: namespace,
-// 		AdaptiveUsersTableSchema: models.AdaptiveUsersTableSchema{Name: table},
-// 	}
-// }
 
 // TableName is a function that returns `_user` table name having client id
 var TableName = func(clientID string) string { return clientID + "_adaptive_users" }

@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/pkg/errors"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -139,7 +140,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) {
 				}
 			} else { // if upt.PlatformName == models.MsTeamsPlatform {
 				// Handle posting to Teams here
-				panic("Unsupported platform " + upt.PlatformName)
+				panic(errors.New("Unsupported platform " + string(upt.PlatformName)))
 			}
 		}
 	}

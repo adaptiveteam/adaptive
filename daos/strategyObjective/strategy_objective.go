@@ -84,7 +84,7 @@ type DAOImpl struct {
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
-	if clientID == "" { panic("Cannot create DAO without clientID") }
+	if clientID == "" { panic(errors.New("Cannot create StrategyObjective.DAO without clientID")) }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		Name: TableName(clientID),
 	}
@@ -92,7 +92,7 @@ func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 
 // NewDAOByTableName creates an instance of DAO that will provide access to the table
 func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic("Cannot create DAO without tableName") }
+	if tableName == "" { panic(errors.New("Cannot create StrategyObjective.DAO without tableName")) }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		Name: tableName,
 	}

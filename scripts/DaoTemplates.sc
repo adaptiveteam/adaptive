@@ -89,7 +89,7 @@ type DAOImpl struct {
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
-	if clientID == "" { panic("Cannot create DAO without clientID") }
+	if clientID == "" { panic(errors.New("Cannot create ${goPublicName(dao.table.entity.name)}.DAO without clientID")) }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		Name: TableName(clientID),
 	}
@@ -97,7 +97,7 @@ func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 
 // NewDAOByTableName creates an instance of DAO that will provide access to the table
 func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic("Cannot create DAO without tableName") }
+	if tableName == "" { panic(errors.New("Cannot create ${goPublicName(dao.table.entity.name)}.DAO without tableName")) }
 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
 		Name: tableName,
 	}
@@ -415,7 +415,7 @@ func (d DAOImpl)ReadBy${indexShortName}Unsafe($args) (out []$structName) {
 		
 		val body = (
 			if(entity.fields.exists(_.tpe.isInstanceOf[StructTypeInfo])) 
-				List("panic(\"struct fields are not supported in " + structName + ".CreateOrUpdate/allParams\")", "return")
+				List("panic(errors.New(\"struct fields are not supported in " + structName + ".CreateOrUpdate/allParams\"))", "return")
 			else
 				lines(s"""params = map[string]*dynamodb.AttributeValue{}""") ++
 				(entity.fields ::: entity.virtualFields).filterNot(_.tpe.isInstanceOf[StructTypeInfo]).zipWithIndex.map{
@@ -435,7 +435,7 @@ func (d DAOImpl)ReadBy${indexShortName}Unsafe($args) (out []$structName) {
 		val body = 			
 		(entity.fields ::: entity.virtualFields).zipWithIndex.map{
 			case (fld@Field(_, _ : StructTypeInfo, _, _), _) => 
-				"panic(\"struct fields are not supported in " + structName + s".CreateOrUpdate/updateExpression " + fieldName(fld) + "\")"
+				"panic(errors.New(\"struct fields are not supported in " + structName + s".CreateOrUpdate/updateExpression " + fieldName(fld) + "\"))"
 			case (fld, i) => 
 				val changed = isFieldChangedTemplate(fld, structVarName, "old")
 				val dbExpr = dbExprParam(fld)
