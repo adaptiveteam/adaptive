@@ -14,8 +14,8 @@ import (
 )
 
 type AdaptiveCommunity struct  {
-	ID string `json:"id"`
 	PlatformID common.PlatformID `json:"platform_id"`
+	ID string `json:"id"`
 	// ChannelID is a channel identifier. TODO: rename db field `channel` to `channel_id`
 	ChannelID string `json:"channel"`
 	Active bool `json:"active"`
@@ -29,8 +29,8 @@ type AdaptiveCommunity struct  {
 // CollectEmptyFields returns entity field names that are empty.
 // It also returns the boolean ok-flag if the list is empty.
 func (adaptiveCommunity AdaptiveCommunity)CollectEmptyFields() (emptyFields []string, ok bool) {
-	if adaptiveCommunity.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if adaptiveCommunity.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
+	if adaptiveCommunity.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if adaptiveCommunity.ChannelID == "" { emptyFields = append(emptyFields, "ChannelID")}
 	if adaptiveCommunity.RequestedBy == "" { emptyFields = append(emptyFields, "RequestedBy")}
 	ok = len(emptyFields) == 0
@@ -45,14 +45,14 @@ func (adaptiveCommunity AdaptiveCommunity) ToJSON() (string, error) {
 type DAO interface {
 	Create(adaptiveCommunity AdaptiveCommunity) error
 	CreateUnsafe(adaptiveCommunity AdaptiveCommunity)
-	Read(id string) (adaptiveCommunity AdaptiveCommunity, err error)
-	ReadUnsafe(id string) (adaptiveCommunity AdaptiveCommunity)
-	ReadOrEmpty(id string) (adaptiveCommunity []AdaptiveCommunity, err error)
-	ReadOrEmptyUnsafe(id string) (adaptiveCommunity []AdaptiveCommunity)
+	Read(platformID common.PlatformID, id string) (adaptiveCommunity AdaptiveCommunity, err error)
+	ReadUnsafe(platformID common.PlatformID, id string) (adaptiveCommunity AdaptiveCommunity)
+	ReadOrEmpty(platformID common.PlatformID, id string) (adaptiveCommunity []AdaptiveCommunity, err error)
+	ReadOrEmptyUnsafe(platformID common.PlatformID, id string) (adaptiveCommunity []AdaptiveCommunity)
 	CreateOrUpdate(adaptiveCommunity AdaptiveCommunity) error
 	CreateOrUpdateUnsafe(adaptiveCommunity AdaptiveCommunity)
-	Delete(id string) error
-	DeleteUnsafe(id string)
+	Delete(platformID common.PlatformID, id string) error
+	DeleteUnsafe(platformID common.PlatformID, id string)
 	ReadByChannel(channelID string) (adaptiveCommunity []AdaptiveCommunity, err error)
 	ReadByChannelUnsafe(channelID string) (adaptiveCommunity []AdaptiveCommunity)
 	ReadByPlatformID(platformID common.PlatformID) (adaptiveCommunity []AdaptiveCommunity, err error)
@@ -102,16 +102,16 @@ func (d DAOImpl) Create(adaptiveCommunity AdaptiveCommunity) (err error) {
 // CreateUnsafe saves the AdaptiveCommunity.
 func (d DAOImpl) CreateUnsafe(adaptiveCommunity AdaptiveCommunity) {
 	err2 := d.Create(adaptiveCommunity)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", adaptiveCommunity.ID, d.Name))
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create platformID==%s, id==%s in %s\n", adaptiveCommunity.PlatformID, adaptiveCommunity.ID, d.Name))
 }
 
 
 // Read reads AdaptiveCommunity
-func (d DAOImpl) Read(id string) (out AdaptiveCommunity, err error) {
+func (d DAOImpl) Read(platformID common.PlatformID, id string) (out AdaptiveCommunity, err error) {
 	var outs []AdaptiveCommunity
-	outs, err = d.ReadOrEmpty(id)
+	outs, err = d.ReadOrEmpty(platformID, id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found platformID==%s, id==%s in %s\n", platformID, id, d.Name)
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -121,24 +121,24 @@ func (d DAOImpl) Read(id string) (out AdaptiveCommunity, err error) {
 
 
 // ReadUnsafe reads the AdaptiveCommunity. Panics in case of any errors
-func (d DAOImpl) ReadUnsafe(id string) AdaptiveCommunity {
-	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadUnsafe(platformID common.PlatformID, id string) AdaptiveCommunity {
+	out, err2 := d.Read(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 	return out
 }
 
 
 // ReadOrEmpty reads AdaptiveCommunity
-func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveCommunity, err error) {
+func (d DAOImpl) ReadOrEmpty(platformID common.PlatformID, id string) (out []AdaptiveCommunity, err error) {
 	var outOrEmpty AdaptiveCommunity
-	ids := idParams(id)
+	ids := idParams(platformID, id)
 	var found bool
 	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
 	if found {
-		if outOrEmpty.ID == id {
+		if outOrEmpty.PlatformID == platformID && outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
 		} else {
-			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+			err = fmt.Errorf("Requested ids: platformID==%s, id==%s are different from the found ones: platformID==%s, id==%s", platformID, id, outOrEmpty.PlatformID, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
 	err = errors.Wrapf(err, "AdaptiveCommunity DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -147,9 +147,9 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveCommunity, err error) {
 
 
 // ReadOrEmptyUnsafe reads the AdaptiveCommunity. Panics in case of any errors
-func (d DAOImpl) ReadOrEmptyUnsafe(id string) []AdaptiveCommunity {
-	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadOrEmptyUnsafe(platformID common.PlatformID, id string) []AdaptiveCommunity {
+	out, err2 := d.ReadOrEmpty(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 	return out
 }
 
@@ -160,8 +160,8 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunity AdaptiveCommunity) (err error)
 	if adaptiveCommunity.CreatedAt == "" { adaptiveCommunity.CreatedAt = adaptiveCommunity.ModifiedAt }
 	
 	var olds []AdaptiveCommunity
-	olds, err = d.ReadOrEmpty(adaptiveCommunity.ID)
-	err = errors.Wrapf(err, "AdaptiveCommunity DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", adaptiveCommunity.ID)
+	olds, err = d.ReadOrEmpty(adaptiveCommunity.PlatformID, adaptiveCommunity.ID)
+	err = errors.Wrapf(err, "AdaptiveCommunity DAO.CreateOrUpdate(id = platformID==%s, id==%s) couldn't ReadOrEmpty", adaptiveCommunity.PlatformID, adaptiveCommunity.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(adaptiveCommunity)
@@ -172,7 +172,7 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunity AdaptiveCommunity) (err error)
 				old := olds[0]
 				adaptiveCommunity.ModifiedAt = core.CurrentRFCTimestamp()
 
-				key := idParams(old.ID)
+				key := idParams(old.PlatformID, old.ID)
 				expr, exprAttributes, names := updateExpression(adaptiveCommunity, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
@@ -203,15 +203,15 @@ func (d DAOImpl) CreateOrUpdateUnsafe(adaptiveCommunity AdaptiveCommunity) {
 
 
 // Delete removes AdaptiveCommunity from db
-func (d DAOImpl)Delete(id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id))
+func (d DAOImpl)Delete(platformID common.PlatformID, id string) error {
+	return d.Dynamo.DeleteEntry(d.Name, idParams(platformID, id))
 }
 
 
 // DeleteUnsafe deletes AdaptiveCommunity and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(id string) {
-	err2 := d.Delete(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+func (d DAOImpl)DeleteUnsafe(platformID common.PlatformID, id string) {
+	err2 := d.Delete(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 }
 
 
@@ -256,16 +256,17 @@ func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []Adap
 	return
 }
 
-func idParams(id string) map[string]*dynamodb.AttributeValue {
+func idParams(platformID common.PlatformID, id string) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue {
+		"platform_id": common.DynS(string(platformID)),
 		"id": common.DynS(id),
 	}
 	return params
 }
 func allParams(adaptiveCommunity AdaptiveCommunity, old AdaptiveCommunity) (params map[string]*dynamodb.AttributeValue) {
 	params = map[string]*dynamodb.AttributeValue{}
-	if adaptiveCommunity.ID != old.ID { params[":a0"] = common.DynS(adaptiveCommunity.ID) }
-	if adaptiveCommunity.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(adaptiveCommunity.PlatformID)) }
+	if adaptiveCommunity.PlatformID != old.PlatformID { params[":a0"] = common.DynS(string(adaptiveCommunity.PlatformID)) }
+	if adaptiveCommunity.ID != old.ID { params[":a1"] = common.DynS(adaptiveCommunity.ID) }
 	if adaptiveCommunity.ChannelID != old.ChannelID { params[":a2"] = common.DynS(adaptiveCommunity.ChannelID) }
 	if adaptiveCommunity.Active != old.Active { params[":a3"] = common.DynBOOL(adaptiveCommunity.Active) }
 	if adaptiveCommunity.RequestedBy != old.RequestedBy { params[":a4"] = common.DynS(adaptiveCommunity.RequestedBy) }
@@ -277,8 +278,8 @@ func updateExpression(adaptiveCommunity AdaptiveCommunity, old AdaptiveCommunity
 	var updateParts []string
 	params = map[string]*dynamodb.AttributeValue{}
 	names := map[string]*string{}
-	if adaptiveCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(adaptiveCommunity.ID);  }
-	if adaptiveCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(adaptiveCommunity.PlatformID));  }
+	if adaptiveCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a0"); params[":a0"] = common.DynS(string(adaptiveCommunity.PlatformID));  }
+	if adaptiveCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a1"); params[":a1"] = common.DynS(adaptiveCommunity.ID);  }
 	if adaptiveCommunity.ChannelID != old.ChannelID { updateParts = append(updateParts, "channel = :a2"); params[":a2"] = common.DynS(adaptiveCommunity.ChannelID);  }
 	if adaptiveCommunity.Active != old.Active { updateParts = append(updateParts, "active = :a3"); params[":a3"] = common.DynBOOL(adaptiveCommunity.Active);  }
 	if adaptiveCommunity.RequestedBy != old.RequestedBy { updateParts = append(updateParts, "requested_by = :a4"); params[":a4"] = common.DynS(adaptiveCommunity.RequestedBy);  }

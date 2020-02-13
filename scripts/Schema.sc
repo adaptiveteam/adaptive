@@ -343,9 +343,8 @@ val AdaptiveCommunityUserPackage = defaultPackage(AdaptiveCommunityUserTable, im
 // val channelField = "Channel".camel :: string
 val AdaptiveCommunity = Entity(
     "AdaptiveCommunity".camel, 
-    List(idField),
+    List(platformIdField, idField),
     List(
-        platformIdField,
         channelIdFieldWithOldDbName, // TODO: rename db field to channel_id
         "Active".camel :: boolean,
         "RequestedBy".camel :: string

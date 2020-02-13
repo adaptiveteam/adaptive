@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosCommunity "github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -35,6 +36,10 @@ func CommunityById(communityId string, platformId models.PlatformID, communities
 	err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemFromTable(communitiesTable, params, &comm)
 	core.ErrorHandler(err2, "CommunityById", fmt.Sprintf("Could not find %s in %s table", communityId, communitiesTable))
 	return comm
+}
+
+func CommunityDAO(conn daosCommon.DynamoDBConnection, communitiesTable string) daosCommunity.DAO {
+	return daosCommunity.NewDAOByTableName(conn.Dynamo, "CommunityDAO", communitiesTable)
 }
 
 func SubscribedCommunities(channel string, communitiesTable, channelIndex string) (
