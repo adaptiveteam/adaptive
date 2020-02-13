@@ -104,6 +104,11 @@ func publish(msg models.PlatformSimpleNotification) {
 }
 
 func helloMessage(userID, channelID string, platformID models.PlatformID) {
+	conn := daosCommon.DynamoDBConnection{
+		Dynamo: d,
+		ClientID: clientID,
+		PlatformID: platformID,
+	}
 	keyParams := map[string]*dynamodb.AttributeValue{
 		"id": daosCommon.DynS(userID),
 	}
@@ -135,8 +140,9 @@ func helloMessage(userID, channelID string, platformID models.PlatformID) {
 		// }
 	} else {
 		// get the admin community
-		adminComm := community.CommunityById(string(community.Admin), platformID, userCommunitiesTable)
-		if adminComm.ID == "" {
+		dao := community.CommunityDAO(conn, userCommunitiesTable)
+		adminComms := dao.ReadOrEmptyUnsafe(platformID, string(community.Admin))
+		if len(adminComms) == 0 {
 			// if no admin community, post message to the user about that
 			message := "Please ask your Slack administrator to finish setting up Adaptive by creating an Adaptive Admin private channel and then invite Adaptive to that channel."
 			publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: message})
