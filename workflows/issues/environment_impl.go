@@ -40,6 +40,9 @@ type DynamoDBConnection = daosCommon.DynamoDBConnection
 
 func CreateWorkflowImpl(logger alog.AdaptiveLogger) func(conn DynamoDBConnection) workflowImpl {
 	return func(conn DynamoDBConnection) workflowImpl {
+		if conn.ClientID == "" {
+			panic(errors.New("CreateWorkflowImpl: clientID == ''"))
+		}
 		return workflowImpl{
 			WorkflowContext:    wfCommon.WorkflowContext{
 				AdaptiveLogger: logger,

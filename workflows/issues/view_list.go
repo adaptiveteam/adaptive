@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/pkg/errors"
 	"log"
 	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
@@ -86,6 +87,11 @@ func (w workflowImpl) OnViewListOfQueryIssues(issueType IssueType,
 func (w workflowImpl) OnViewListOfQueryIssuesWithTypeInContext(issueQueryFactory IssueQueryFactory, 
 	queryItemPluralTitle func (IssueType) ui.PlainText) wf.Handler {
 	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+		if w.DynamoDBConnection.ClientID == "" {
+			err = errors.New("OnViewListOfQueryIssuesWithTypeInContext: clientID == ''")
+			return
+		}
+	
 		issueType := getIssueTypeFromContext(ctx)
 		var issues []Issue
 		issues, err = issueQueryFactory(ctx)(w.DynamoDBConnection)
