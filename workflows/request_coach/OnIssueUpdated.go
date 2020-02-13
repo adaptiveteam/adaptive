@@ -6,10 +6,14 @@ import (
 	common "github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	engCommon "github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	engIssues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
+	issues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
+	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	issues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
+	utilsIssues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	"github.com/pkg/errors"
+
 	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	// "github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
@@ -31,19 +35,22 @@ func (w workflowImpl) OnIssueUpdated() wf.Handler {
 			WithField("dialogSituation", dialogSituation).
 			WithField("Handler", "OnIssueUpdated")
 		log.Info("Start")
-		var issue issues.Issue
-		issue, err = issues.Read(issueType, issueID)(w.DynamoDBConnection)
+		isShowingProgress := dialogSituation == utilsIssues.ProgressUpdateContext
+		ctx.SetFlag(exchange.IsShowingProgressKey, isShowingProgress)
+		var newAndOldIssues issues.NewAndOldIssues
+		newAndOldIssues, err = wfCommon.WorkflowContext(w).GetNewAndOldIssues(ctx)
 		if err != nil {
 			return
 		}
+		issue := newAndOldIssues.NewIssue
 		var notificationText ui.RichText
 		switch dialogSituation {
-		case issues.UpdateContext:
+		case utilsIssues.UpdateContext:
 			notificationText = ui.Sprintf("%s has updated the below %s. "+
 				"You might want to provide some valuable feedback on this update.",
 				engCommon.TaggedUser(issue.UserObjective.UserID),
 				issue.GetIssueType().Template())
-		case issues.ProgressUpdateContext:
+		case utilsIssues.ProgressUpdateContext:
 			notificationText = ui.Sprintf("%s has updated progress on the below %s. "+
 				"You might want to provide some valuable feedback on this update.",
 				engCommon.TaggedUser(issue.UserObjective.UserID),
@@ -53,16 +60,14 @@ func (w workflowImpl) OnIssueUpdated() wf.Handler {
 		}
 		// TODO: show progress/show details
 		if notificationText != "" {
-			out = out.WithInteractiveMessage(wf.InteractiveMessage{
-				PassiveMessage: wf.PassiveMessage{
-					AttachmentText: notificationText,
-					Fields:         shortViewFields(issue),
-				},
-				InteractiveElements: []wf.InteractiveElement{
-					wf.Button(ConfirmedEvent, "Provide feedback"),
-					wf.Button(RejectedEvent, "Dismiss"),
-				},
-			})
+			viewState := engIssues.ViewState{IsShowingProgress: isShowingProgress}
+			view := engIssues.GetInteractiveMessage(newAndOldIssues, viewState)
+			view.AttachmentText = notificationText
+			view.InteractiveElements = append(view.InteractiveElements, 
+				wf.Button(ConfirmedEvent, "Provide feedback"),
+				wf.Button(RejectedEvent, "Dismiss"),
+			)
+			out = out.WithInteractiveMessage(view)
 		}
 		out = out.WithNextState(FormShownState)
 		return
@@ -81,12 +86,12 @@ func (w workflowImpl) OnProvideFeedback() wf.Handler {
 			WithField("Handler", "OnProvideFeedback")
 		log.Info("Start")
 		var issue issues.Issue
-		issue, err = issues.Read(issueType, issueID)(w.DynamoDBConnection)
+		issue, err = utilsIssues.Read(issueType, issueID)(w.DynamoDBConnection)
 		if err != nil {
 			return
 		}
 		switch dialogSituation {
-		case issues.ProgressUpdateContext:
+		case utilsIssues.ProgressUpdateContext:
 			survey := utils.AttachmentSurvey(
 				string("Feedback on the recent changes"),
 				progressCommentSurveyElements(ui.PlainText(issue.UserObjective.Name),
@@ -156,54 +161,51 @@ func (w workflowImpl) OnCommentsSubmitted() wf.Handler {
 		log.Info("Start")
 		// var newAndOldIssues NewAndOldIssues
 		ctx.SetFlag(exchange.IsShowingProgressKey, true) // enable show progress. This will make sure that progress is prefetched
-		// newAndOldIssues, err = w.getNewAndOldIssues(ctx)
-		// ctx.RuntimeData = runtimeData(newAndOldIssues)
-		// uo := newAndOldIssues.NewIssue.UserObjective
-		// var progress userObjectiveProgress.UserObjectiveProgress
-		// progress, err = extractObjectiveProgressFromContext(ctx, uo)
-		// if err != nil {
-		// 	return
-		// }
-		// isProgressAvailableForToday := false
-		// if len(newAndOldIssues.NewIssue.Progress) > 0 {
-		// 	isProgressAvailableForToday = newAndOldIssues.NewIssue.Progress[0].CreatedOn == progress.CreatedOn
-		// }
-		// err = UserObjectiveProgressSave(progress)(w.DynamoDBConnection)
-		// if err != nil {
-		// 	return
-		// }
-		// err = w.prefetch(ctx, &newAndOldIssues.NewIssue)
-		// if err != nil {
-		// 	return
-		// }
-		// ctx.RuntimeData = runtimeData(newAndOldIssues)
-		// // attachs := viewProgressAttachment(mc,
-		// // 	ui.PlainText(Sprintf("This is your reported progress for the below %s", typLabel)),
-		// // 	"",
-		// // 	comments,
-		// // 	statusColor, item, models.Update)
-		// // publish(models.PlatformSimpleNotification{UserId: dialog.User.ID, Channel: dialog.Channel.ID, Ts: msgState.ThreadTs, Attachments: attachs})
-		// itype := newAndOldIssues.NewIssue.GetIssueType()
-		// tc := getTypeClass(itype)
-		// if err == nil {
-		// 	ctx.SetFlag(isShowingProgressKey, true)
-
-		// 	eventDescription := ObjectiveProgressCreatedUpdatedStatusTemplate(isProgressAvailableForToday, ctx.Request.User.ID)
-		// 	out, err = w.onNewOrUpdatedItemAvailable(ctx, tc, newAndOldIssues, ProgressUpdateContext,
-		// 		eventDescription, true)
-		// 	// if err == nil {
-		// 	// 	out.ImmediateEvent = "ProgressFormShown"
-		// 	// }
-		// } else {
-		// 	w.AdaptiveLogger.WithError(err).Error("OnProgressFormSubmitted error")
-		// 	out.Interaction = wf.SimpleResponses(
-		// 		platform.Post(platform.ConversationID(ctx.Request.User.ID),
-		// 			platform.MessageContent{Message: ui.Sprintf("Couldn't save the entered %s progress", tc.IssueTypeName())},
-		// 		),
-		// 	)
-		// 	err = nil // we want to show error interaction
-		// }
-		// out.RuntimeData = runtimeData(newAndOldIssues)
+		var newAndOldIssues issues.NewAndOldIssues
+		newAndOldIssues, err = wfCommon.WorkflowContext(w).GetNewAndOldIssues(ctx)
+		if err != nil {
+			return
+		}
+		if len(newAndOldIssues.NewIssue.Progress) > 0 {
+			p := newAndOldIssues.NewIssue.Progress[0]
+			p.PartnerID = ctx.Request.User.ID
+			p.PartnerReportedProgress = ctx.Request.Submission[ObjectiveStatusColor]
+			p.PartnerComments = ctx.Request.Submission[ObjectiveProgressComments]
+			dao := utilsIssues.UserObjectiveProgressDAO()(w.DynamoDBConnection)
+			err = dao.CreateOrUpdate(p)
+		}
 		return
 	}
+}
+
+func (w workflowImpl) OnDetails(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+	ctx.ToggleFlag(exchange.IsShowingDetailsKey)
+	return w.standardView(ctx)
+}
+
+func (w workflowImpl) OnProgressShow(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+	ctx.ToggleFlag(exchange.IsShowingProgressKey)
+	return w.standardView(ctx)
+}
+
+func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+	w.AdaptiveLogger.Info("standardView")
+	var newAndOldIssues NewAndOldIssues
+	newAndOldIssues, err = wfCommon.WorkflowContext(w).GetNewAndOldIssues(ctx)
+	if err != nil {
+		return
+	}
+	viewState := issues.ViewState{
+		IsShowingDetails:  exchange.IsShowingDetails(ctx),
+		IsShowingProgress: exchange.IsShowingProgress(ctx),
+		IsWritable:        true,
+	}
+	view := issues.GetInteractiveMessage(newAndOldIssues, viewState)
+
+	view.OverrideOriginal = true
+	out.Interaction = wf.Interaction{
+		Messages: []wf.InteractiveMessage{view},
+	}
+	err = errors.Wrap(err, "{standardView}")
+	return
 }
