@@ -65,13 +65,15 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 		Template: wf.Template{
 			Init: InitState, // initial state is "init". This is used when the user first triggers the workflow
 			FSA: map[struct {wf.State; wf.Event}]wf.Handler{
-				{State: InitState, Event: ""}:                             w.OnCoachRequested(),
-				{State: InitState, Event: exchange.IssueUpdatedEvent}:     w.OnIssueUpdated(),
-				{State: FormShownState, Event: ConfirmedEvent}:            wf.SimpleHandler(w.OnConfirmed(), wf.DoneState),
-				{State: FormShownState, Event: RejectedEvent}:             wf.SimpleHandler(w.OnRejected(), wf.DoneState),
-				{State: UpdateShownState, Event: ConfirmedEvent}:          wf.SimpleHandler(w.OnProvideFeedback(), DialogShownState),
-				{State: UpdateShownState, Event: RejectedEvent}:           wf.SimpleHandler(w.OnDismiss(), wf.DoneState),
-				{State: DialogShownState, Event: wf.DialogSubmittedEvent}: wf.SimpleHandler(w.OnCommentsSubmitted(), wf.DoneState),
+				{State: InitState, Event: ""}:                                 w.OnCoachRequested(),
+				{State: InitState, Event: exchange.IssueUpdatedEvent}:         wf.SimpleHandler(w.OnIssueUpdated(), UpdateShownState),
+				{State: FormShownState, Event: ConfirmedEvent}:                wf.SimpleHandler(w.OnConfirmed(), wf.DoneState),
+				{State: FormShownState, Event: RejectedEvent}:                 wf.SimpleHandler(w.OnRejected(), wf.DoneState),
+				{State: UpdateShownState, Event: ConfirmedEvent}:              wf.SimpleHandler(w.OnProvideFeedback(), DialogShownState),
+				{State: UpdateShownState, Event: RejectedEvent}:               wf.SimpleHandler(w.OnDismiss(), wf.DoneState),
+				{State: UpdateShownState, Event: engIssues.DetailsEvent}:      wf.SimpleHandler(w.OnDetails, UpdateShownState),
+				{State: UpdateShownState, Event: engIssues.ProgressShowEvent}: wf.SimpleHandler(w.OnProgressShow, UpdateShownState),
+				{State: DialogShownState, Event: wf.DialogSubmittedEvent}:     wf.SimpleHandler(w.OnCommentsSubmitted(), wf.DoneState),
 				
 			},
 			Parser: wf.Parser,
