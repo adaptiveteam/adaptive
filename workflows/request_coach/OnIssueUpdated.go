@@ -55,7 +55,7 @@ func (w workflowImpl) OnProvideFeedback() wf.Handler {
 		switch dialogSituation {
 		case utilsIssues.ProgressUpdateContext:
 			survey := utils.AttachmentSurvey(
-				string("Feedback on the recent changes"),
+				string("Feedback on the changes"),
 				progressCommentSurveyElements(ui.PlainText(issue.UserObjective.Name),
 					issue.UserObjective.CreatedDate))
 
