@@ -123,7 +123,9 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 				{State: InitState, Event: exchange.PromptStaleIssuesEvent(IDO)}:        wf.SimpleHandler(w.OnPromptStaleIssues(IDO), PromptShownState),
 				{State: InitState, Event: exchange.PromptStaleIssuesEvent(SObjective)}: wf.SimpleHandler(w.OnPromptStaleIssues(SObjective), PromptShownState),
 				{State: InitState, Event: exchange.PromptStaleIssuesEvent(Initiative)}: wf.SimpleHandler(w.OnPromptStaleIssues(Initiative), PromptShownState),
-
+				
+				{State: InitState, Event: exchange.IssueFeedbackOnUpdatesEvent}:        w.OnFeedbackOnUpdates(),
+				
 				{State: CommunitySelectingState, Event: CommunitySelectedEvent}: wf.SimpleHandler(w.OnCommunitySelected, FormShownState),
 
 				{State: FormShownState, Event: wf.SurveySubmitted}: wf.SimpleHandler(w.OnDialogSubmitted, MessagePostedState),

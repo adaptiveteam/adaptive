@@ -73,10 +73,10 @@ func (w workflowImpl) OnProgressIntermediate(ctx wf.EventHandlingContext) (out w
 	if err != nil {
 		return
 	}
-	err = w.prefetch(ctx, &newAndOldIssues.NewIssue)
-	if err != nil {
-		return
-	}
+	// err = w.prefetch(ctx, &newAndOldIssues.NewIssue)
+	// if err != nil {
+	// 	return
+	// }
 	comments := ui.PlainText("")
 	var status models.ObjectiveStatusColor
 	objectiveProgress := newAndOldIssues.NewIssue.Progress
@@ -329,3 +329,17 @@ const (
 	ReviewUserProgressSelect   = "review_user_progress_select"
 	UberCoach                  = "uber_coach"
 )
+// OnFeedbackOnUpdates - handler when coach has provided feedback on the issue.
+func (w workflowImpl) OnFeedbackOnUpdates()wf.Handler {
+	return func (ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+		var newAndOldIssues NewAndOldIssues
+		newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
+		if err != nil {
+			return
+		}
+		ctx.RuntimeData = runtimeData(newAndOldIssues)
+		out, err = w.standardView(ctx)
+		out.Messages[0].Text = ui.Sprintf("<@%s> has provided some feedback on the below %s", newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner, newAndOldIssues.NewIssue.GetIssueType().Template())
+		return
+	}
+}

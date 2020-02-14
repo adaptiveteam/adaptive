@@ -8,10 +8,10 @@ import (
 	engIssues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	issues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
-	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	utilsIssues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
 	"github.com/pkg/errors"
 
 	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
@@ -135,6 +135,17 @@ func (w workflowImpl) OnCommentsSubmitted() wf.Handler {
 			p.PartnerComments = ctx.Request.Submission[ObjectiveProgressComments]
 			dao := utilsIssues.UserObjectiveProgressDAO()(w.DynamoDBConnection)
 			err = dao.CreateOrUpdate(p)
+			out.KeepOriginal = false
+			out = out.
+				WithInteractiveMessage(wf.InteractiveMessage{
+					PassiveMessage: wf.PassiveMessage{
+						Text:             "Thank you for providing the feedback",
+						OverrideOriginal: true,
+					},
+				}).
+				WithPostponedEvent(
+					exchange.NotifyOwnerAboutFeedbackOnUpdatesForIssue(newAndOldIssues.NewIssue),
+				)
 		}
 		return
 	}
@@ -190,14 +201,14 @@ func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOut
 			IsShowingProgress: exchange.IsShowingProgress(ctx),
 			IsWritable:        false,
 		}
-	
+
 		view := engIssues.GetInteractiveMessage(newAndOldIssues, viewState)
 		view.AttachmentText = notificationText
 		view.OverrideOriginal = true
 
-		view.InteractiveElements = append(view.InteractiveElements, 
+		view.InteractiveElements = append(view.InteractiveElements,
 			wf.Button(ConfirmedEvent, "Provide feedback"),
-			wf.Button(RejectedEvent, "Dismiss"),
+			// wf.Button(RejectedEvent, "Dismiss"),
 		)
 		out = out.WithInteractiveMessage(view)
 	}
