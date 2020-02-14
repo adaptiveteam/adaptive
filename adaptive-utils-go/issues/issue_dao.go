@@ -577,6 +577,7 @@ func Prefetch(issueRef *Issue, isShowingProgress bool) func (DynamoDBConnection)
 		if isShowingProgress {
 			// 	objectiveProgress := LatestProgressUpdateByObjectiveID(issue.UserObjective.ID)
 			issueRef.PrefetchedData.Progress, err = IssueProgressReadAll(issueRef.UserObjective.ID, 0)(DynamoDBConnection)
+			log.Printf("Prefetch: len(Progress)==%d", len(issueRef.PrefetchedData.Progress))
 			if err != nil { return }
 		}
 		return PrefetchIssueWithoutProgress(issueRef)(DynamoDBConnection)
