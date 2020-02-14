@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/pkg/errors"
 	"strconv"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"strings"
@@ -62,7 +63,7 @@ func ParseActionPath(a string) ActionPath {
 		core.ErrorHandler(err, "ActionPath", "ParseActionPath")
 		return ActionPath{Path: p, Values: v}
 	default:
-		panic("Couldn't parse ActionPath " + a)
+		panic(errors.New("Couldn't parse ActionPath " + a))
 	}
 }
 

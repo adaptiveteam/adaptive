@@ -1,6 +1,9 @@
 package adaptive_utils_go
 
-import "os"
+import (
+	"github.com/pkg/errors"
+	"os"
+)
 
 
 var (
@@ -18,7 +21,7 @@ func NonEmptyMap(env func(string)string) func(string)string {
 	return func(key string)string {
 		value := env(key)
 		if value == "" {
-			panic("Key " + key + " is not defined")
+			panic(errors.New("Key " + key + " is not defined"))
 		}
 		return value
 	}

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/pkg/errors"
 	"github.com/nlopes/slack"
 	"github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/daos/common"
@@ -43,7 +44,7 @@ type UserToken struct {
 func (ut UserToken) PlatformIDUnsafe() common.PlatformID {
 	platformID := ut.ClientPlatformRequest.PlatformID
 	if platformID == "" {
-		panic("Platform ID is empty")
+		panic(errors.New("Platform ID is empty"))
 	}
 	return platformID
 }

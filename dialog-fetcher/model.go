@@ -1,6 +1,7 @@
 package fetch_dialog
 
 import (
+	"github.com/pkg/errors"
 	"github.com/adaptiveteam/adaptive/daos/contextAliasEntry"
 	"github.com/adaptiveteam/adaptive/daos/dialogEntry"
 )
@@ -28,7 +29,7 @@ func NewDialogEntry(
 		buildBranch == "" ||
 		cultivationBranch == "" ||
 		masterBranch == "" {
-		panic("cannot have empty initialization values")
+		panic(errors.New("cannot have empty initialization values"))
 	}
 	rv.Context = context
 	rv.Subject = subject

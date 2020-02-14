@@ -1,6 +1,7 @@
 package objectives
 
 import (
+	"github.com/pkg/errors"
 	// "fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -55,7 +56,7 @@ func nonEmpty(env func(string) string) func(string) string {
 	return func(key string) string {
 		value := env(key)
 		if value == "" {
-			panic("Key " + key + " is not defined")
+			panic(errors.New("Key " + key + " is not defined"))
 		}
 		return value
 	}

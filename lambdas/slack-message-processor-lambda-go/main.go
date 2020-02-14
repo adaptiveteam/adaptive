@@ -334,7 +334,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 				case slack.InteractionTypeDialogCancellation:
 					eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
 				default:
-					panic("Unknown type of Slack message: " + eventsAPIEvent.Type)
+					panic(errors.New("Unknown type of Slack message: " + eventsAPIEvent.Type))
 				}
 				fmt.Printf("parsed eventsAPIEvent.Data =%v\n", reflect.TypeOf(eventsAPIEvent.Data))
 
