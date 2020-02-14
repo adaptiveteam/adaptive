@@ -96,6 +96,9 @@ func (w workflowImpl) OnDetails(ctx wf.EventHandlingContext) (out wf.EventOutput
 }
 
 func (w workflowImpl) OnProgressShow(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+	oldFlag := ctx.GetFlag(isShowingProgressKey)
 	ctx.ToggleFlag(isShowingProgressKey)
+	newFlag := ctx.GetFlag(isShowingProgressKey)
+	w.AdaptiveLogger.Infof("OnProgressShow: flag %v -> %v", oldFlag, newFlag)
 	return w.standardView(ctx)
 }
