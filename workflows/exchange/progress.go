@@ -11,7 +11,7 @@ func NotifyAboutUpdatesForIssue(newAndOldIssues NewAndOldIssues, dialogSituation
 	evt = wf.PostponeEventForAnotherUser{
 		ActionPath: wf.ExternalActionPathWithData(
 			RequestCoachPath,
-			"init",
+			InitState,
 			IssueUpdatedEvent,
 			map[string]string{
 				IssueIDKey:   newAndOldIssues.NewIssue.GetIssueID(),

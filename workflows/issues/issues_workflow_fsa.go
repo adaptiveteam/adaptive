@@ -53,7 +53,7 @@ func ViewListOfAdvocacyIssuesByTypeEvent(itype IssueType) wf.Event {
 	return eventByType("ViewListOfAdvocacyIssuesByTypeEvent", itype)
 }
 
-const MessagePostedState wf.State = "MessagePostedState"
+const MessagePostedState wf.State = exchange.MessagePostedState
 const (
 	EditEvent                 wf.Event = "EditEvent"
 	AddAnotherEvent           wf.Event = "AddAnotherEvent"
@@ -124,7 +124,7 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 				{State: InitState, Event: exchange.PromptStaleIssuesEvent(SObjective)}: wf.SimpleHandler(w.OnPromptStaleIssues(SObjective), PromptShownState),
 				{State: InitState, Event: exchange.PromptStaleIssuesEvent(Initiative)}: wf.SimpleHandler(w.OnPromptStaleIssues(Initiative), PromptShownState),
 				
-				{State: InitState, Event: exchange.IssueFeedbackOnUpdatesEvent}:        w.OnFeedbackOnUpdates(),
+				{State: InitState, Event: exchange.IssueFeedbackOnUpdatesEvent}:        wf.SimpleHandler(w.OnFeedbackOnUpdates(), MessagePostedState),
 				
 				{State: CommunitySelectingState, Event: CommunitySelectedEvent}: wf.SimpleHandler(w.OnCommunitySelected, FormShownState),
 

@@ -8,6 +8,8 @@ import (
 const IssuesNamespace = "issues"
 var IssuesPath = CommunityPath.Append(IssuesNamespace)
 const InitState wf.State = "init"
+const MessagePostedState wf.State = "MessagePostedState"
+
 // EventByType constructs an event name by issue type
 func EventByType(name string, itype IssueType) wf.Event {
 	return wf.Event(name + "(" + string(itype) + ")")
