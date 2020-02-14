@@ -130,14 +130,12 @@ module "slack_message_processor_error_alarm" {
   statistic = "SampleCount"
 }
 
-resource "aws_iam_policy_attachment" "slack_message_processor_lambda_holidays_additional_policy_attachment" {
-  name       = "${local.client_id}_${module.slack_message_processor_lambda.function_name}_holidays"
-  roles      = [module.slack_message_processor_lambda.role_name]
+resource "aws_iam_role_policy_attachment" "slack_message_processor_lambda_holidays_additional_policy_attachment" {
+  role       = module.slack_message_processor_lambda.role_name
   policy_arn = aws_iam_policy.holidays_additional_policy.arn
 }
 
-resource "aws_iam_policy_attachment" "slack_message_processor_lambda_read_all_tables" {
-  name       = "${local.client_id}_${module.slack_message_processor_lambda.function_name}_read_all_tables"
-  roles      = [module.slack_message_processor_lambda.role_name]
+resource "aws_iam_role_policy_attachment" "slack_message_processor_lambda_read_all_tables" {
+  role       = module.slack_message_processor_lambda.role_name
   policy_arn = aws_iam_policy.read_all_tables.arn
 }
