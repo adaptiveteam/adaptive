@@ -31,7 +31,7 @@ func (w WorkflowContext)GetNewAndOldIssues(ctx wf.EventHandlingContext) (newAndO
 	log.Info("getNewAndOldIssues")
 	if ctx.RuntimeData == nil {
 		isShowingProgress := ctx.GetFlag(exchange.IsShowingProgressKey)
-		log.Infof("runtime data is empty. Reading from database. isShowingProgress=%v", isShowingProgress)
+		log.Infof("GetNewAndOldIssues: runtime data is empty. Reading from database. isShowingProgress=%v", isShowingProgress)
 		newAndOldIssues, err = issuesUtils.ReadNewAndOldIssuesAndPrefetch(itype, issueID, isShowingProgress)(w.DynamoDBConnection)
 		if err != nil { 
 			err = errors.Wrapf(err, "getNewAndOldIssues/w.IssueDAO.ReadNewAndOldIssuesAndPrefetch")
