@@ -338,8 +338,15 @@ func (w workflowImpl) OnFeedbackOnUpdates()wf.Handler {
 			return
 		}
 		ctx.RuntimeData = runtimeData(newAndOldIssues)
-		out, err = w.standardView(ctx)
-		out.Messages[0].Text = ui.Sprintf("<@%s> has provided some feedback on the below %s", newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner, newAndOldIssues.NewIssue.GetIssueType().Template())
+		var outView wf.EventOutput
+		outView, err = w.standardView(ctx)
+		out = out.
+			WithInteractiveMessage(wf.InteractiveMessage{
+				PassiveMessage: wf.PassiveMessage{
+					Text: ui.Sprintf("<@%s> has provided some feedback on the below %s", newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner, newAndOldIssues.NewIssue.GetIssueType().Template()),
+				},
+			}).
+			WithInteractiveMessage(outView.Messages...)
 		return
 	}
 }

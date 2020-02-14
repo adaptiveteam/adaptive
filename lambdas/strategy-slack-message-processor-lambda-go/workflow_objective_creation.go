@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-const itemIDKey = exchange.ItemIDKey
+const itemIDKey = exchange.IssueIDKey
 const capCommIDKey = exchange.CapCommIDKey
 const isShowingDetailsKey = exchange.IsShowingDetailsKey
 const isShowingProgressKey = exchange.IsShowingProgressKey

@@ -35,6 +35,7 @@ func NotifyOwnerAboutFeedbackOnUpdatesForIssue(issue Issue) (evt wf.PostponeEven
 			map[string]string{
 				IssueIDKey:   issue.GetIssueID(),
 				IssueTypeKey: string(issue.GetIssueType()),
+				IsShowingProgressKey: "true", // we want to show progress in this update
 			},
 			false, // IsOriginalPermanent
 		),
