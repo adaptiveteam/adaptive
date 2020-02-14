@@ -106,7 +106,12 @@ func getCommentsFromProgress(objectiveProgress []userObjectiveProgress.UserObjec
 // }
 
 func getObjectiveProgressComment(op userObjectiveProgress.UserObjectiveProgress) ui.RichText {
-	return ui.Sprintf("[%s] %s (%s)", models.ObjectiveStatusColorLabels[op.StatusColor], op.Comments, op.CreatedOn)
+	res := ui.Sprintf("[%s] %s (%s)", models.ObjectiveStatusColorLabels[op.StatusColor], op.Comments, op.CreatedOn)
+
+	if op.PartnerComments != "" {
+		res = res + ui.Sprintf("\nPartner: %s", op.PartnerComments)
+	}
+	return res
 }
 
 func userObjectiveProgressField(progress []userObjectiveProgress.UserObjectiveProgress) (field ebm.AttachmentField) {
