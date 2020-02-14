@@ -11,11 +11,11 @@ import (
 )
 
 const issueIDKey = exchange.IssueIDKey
-const capCommIDKey = "cid"
+const capCommIDKey = exchange.CapCommIDKey
 const initCommIDKey = "icid"
 const issueTypeKey = exchange.IssueTypeKey
-const isShowingDetailsKey = "isd"
-const isShowingProgressKey = "isp"
+const isShowingDetailsKey = exchange.IsShowingDetailsKey
+const isShowingProgressKey = exchange.IsShowingProgressKey
 const dialogSituationIDKey = "sid"
 
 const Namespace = exchange.IssuesNamespace
