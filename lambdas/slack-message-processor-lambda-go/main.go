@@ -235,22 +235,19 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 				helloMessage(userID, channelID, models.PlatformID(ahe.ApiAppId))
 			}
 		} else {
-			requestBody := request.Body
-			if strings.HasPrefix(requestBody, "payload=%7B%22") {
-				requestBody, err = url.QueryUnescape(requestBody)
-				err = errors.Wrap(err, "Could not unescape gateway request")
-				if err != nil {
-					return
+			var requestPayload string
+			requestPayload, err = getRequestPayload(request.Body)
+			if err == nil {
+				var eventsAPIEvent slackevents.EventsAPIEvent
+				eventsAPIEvent, err = slackevents.ParseEvent(
+					json.RawMessage(requestPayload),
+					slackevents.OptionNoVerifyToken(),
+				)
+				err = errors.Wrap(err, "Could not parse eventsAPIEvent")
+				if err == nil {
+					response, err = routeEventsAPIEvent(eventsAPIEvent, requestPayload)
 				}
 			}
-			requestPayload := strings.Replace(requestBody, "payload=", "", -1)
-			var eventsAPIEvent slackevents.EventsAPIEvent
-			eventsAPIEvent, err = slackevents.ParseEvent(
-				json.RawMessage(requestPayload),
-				slackevents.OptionNoVerifyToken(),
-			)
-			core.ErrorHandler(err, namespace, "Could not parse eventsAPIEvent")
-			response, err = routeEventsAPIEvent(eventsAPIEvent, requestPayload)
 		}
 	}
 	err = errors.Wrap(err, "HandleRequest")
@@ -258,7 +255,16 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 		logger.WithLambdaContext(ctx).WithError(err).Error("HandleRequest error")
 	}
 	err = nil
-	logger.WithLambdaContext(ctx).Println("HandleRequest: normal termination")
+	logger.WithLambdaContext(ctx).Println("HandleRequest: normal termination. Returing `err=nil`")
+	return
+}
+
+func getRequestPayload(requestBody string) (requestPayload string, err error) {
+	if strings.HasPrefix(requestBody, "payload=%7B%22") {
+		requestBody, err = url.QueryUnescape(requestBody)
+		err = errors.Wrap(err, "Could not unescape gateway request")
+	}
+	requestPayload = strings.Replace(requestBody, "payload=", "", -1)
 	return
 }
 
