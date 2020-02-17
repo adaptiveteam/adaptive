@@ -87,9 +87,3 @@ resource "aws_iam_policy" "holidays_additional_policy" {
   name   = "${var.client_id}_holidays_additional_policy"
   policy = data.aws_iam_policy_document.holidays_policy.json
 }
-
-resource "aws_iam_policy_attachment" "holidays_additional_policy_attachment" {
-  name       = "${local.client_id}_${module.slack_message_processor_lambda.function_name}_holidays"
-  roles      = [module.slack_message_processor_lambda.role_name]
-  policy_arn = aws_iam_policy.holidays_additional_policy.arn
-}

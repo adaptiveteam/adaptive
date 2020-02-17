@@ -21,7 +21,7 @@ func AttachActionElementOptions(elems []models.KvPair) []ebm.AttachmentActionEle
 // AttachmentSurvey creates a survey instance
 func AttachmentSurvey(title string, elems []ebm.AttachmentActionTextElement) ebm.AttachmentActionSurvey {
 	return ebm.AttachmentActionSurvey{
-		Title:       title,
+		Title:       core.ClipString(title, 24, "..."),
 		SubmitLabel: models.SubmitLabel,
 		Elements:    elems,
 	}

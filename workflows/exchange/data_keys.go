@@ -9,10 +9,10 @@ const IssueIDKey = "iid"
 const IssueTypeKey = "itype"
 const DialogSituationKey = "dsit"
 
-const ItemIDKey = "itemID"
-const CapCommIDKey = "capCommID"
-const IsShowingDetailsKey = "isShowingDetails"
-const IsShowingProgressKey = "isShowingProgress"
+// const ItemIDKey = "itemID"
+const CapCommIDKey = "cid"//"capCommID"
+const IsShowingDetailsKey = "isd"
+const IsShowingProgressKey = "isp"
 
 func GetIssueID(ctx wf.EventHandlingContext) string {
 	return ctx.Data[IssueIDKey]

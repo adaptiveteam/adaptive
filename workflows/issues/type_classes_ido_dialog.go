@@ -159,13 +159,7 @@ func (IDOImpl) ExtractFromContext(ctx wf.EventHandlingContext, id string, update
 func (i IDOImpl) View(w workflowImpl, isShowingDetails, isShowingProgress bool,
 	newAndOldIssues NewAndOldIssues,
 ) (fields []ebm.AttachmentField) {
-	view := engIssues.GetView(IDO)
-	fields = view.GetMainFields(newAndOldIssues)
-	if isShowingDetails {
-		fields = append(fields, view.GetDetailsFields(newAndOldIssues)...)
-	}
-	if isShowingProgress {
-		fields = append(fields, view.GetProgressFields(newAndOldIssues)...)
-	}
+	viewState := engIssues.ViewState{IsShowingDetails: isShowingDetails, IsShowingProgress: isShowingProgress}
+	fields = engIssues.OrdinaryViewFields(newAndOldIssues, viewState)
 	return
 }

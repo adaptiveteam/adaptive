@@ -22,9 +22,9 @@ type IssueTypeClass interface {
 	// View that represents issue information. If the issue is changed,
 	// the view will contain the difference.
 	// Progress list might be empty.
-	View(w workflowImpl, isShowingDetails, isShowingProgress bool,
-		newAndOldIssues NewAndOldIssues,
-	) (fields []ebm.AttachmentField)
+	// View(w workflowImpl, isShowingDetails, isShowingProgress bool,
+	// 	newAndOldIssues NewAndOldIssues,
+	// ) (fields []ebm.AttachmentField)
 	// ObjectiveToFields - TODO rename to ShortViewForStrategy
 	// ObjectiveToFields(w workflowImpl, newAndOldIssues NewAndOldIssues) (fields []ebm.AttachmentField)
 	// TODO: check other contexts.

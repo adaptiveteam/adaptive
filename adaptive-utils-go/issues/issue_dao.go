@@ -544,13 +544,17 @@ func SetCompleted(issueID string) func (conn DynamoDBConnection) (err error) {
 }
 
 // ReadNewAndOldIssuesAndPrefetch loads issue and prefetches all dictionaries
-// NB! Only the new issue is loadede and prefetched!
+// NB! Only the new issue is loaded and prefetched!
 func ReadNewAndOldIssuesAndPrefetch(issueType IssueType, issueID string, isShowingProgress bool) func (DynamoDBConnection)(newAndOldIssues NewAndOldIssues, err error) {
 	return func (DynamoDBConnection DynamoDBConnection)(newAndOldIssues NewAndOldIssues, err error) {
 		newAndOldIssues.NewIssue, err = Read(issueType, issueID)(DynamoDBConnection)
 		if err != nil { 
 			err = errors.Wrapf(err, "ReadNewAndOldIssuesAndPrefetch/Read")
 			return 
+		}
+		if newAndOldIssues.NewIssue.GetIssueID() == "" {
+			err = errors.New("newAndOldIssues.NewIssue.GetIssueID = ''")
+			return  
 		}
 		if newAndOldIssues.NewIssue.GetIssueID() != issueID {
 			err = errors.Errorf(" newAndOldIssues.NewIssue.UserObjective.ID = %s != issueID = %s",  newAndOldIssues.NewIssue.GetIssueID(), issueID)
@@ -562,7 +566,7 @@ func ReadNewAndOldIssuesAndPrefetch(issueType IssueType, issueID string, isShowi
 			return 
 		}
 		newAndOldIssues.OldIssue = newAndOldIssues.NewIssue // we don't have the previous version of the entity
-		err = errors.Wrap(err, "{ReadNewAndOldIssues}")
+		err = errors.Wrap(err, "{ReadNewAndOldIssuesAndPrefetch}")
 		return
 	}
 }
@@ -573,6 +577,7 @@ func Prefetch(issueRef *Issue, isShowingProgress bool) func (DynamoDBConnection)
 		if isShowingProgress {
 			// 	objectiveProgress := LatestProgressUpdateByObjectiveID(issue.UserObjective.ID)
 			issueRef.PrefetchedData.Progress, err = IssueProgressReadAll(issueRef.UserObjective.ID, 0)(DynamoDBConnection)
+			log.Printf("Prefetch: len(Progress)==%d", len(issueRef.PrefetchedData.Progress))
 			if err != nil { return }
 		}
 		return PrefetchIssueWithoutProgress(issueRef)(DynamoDBConnection)

@@ -2,6 +2,7 @@ package workflow
 
 import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 )
 // EventOutput contains the result of event handling
 type EventOutput struct {
@@ -54,5 +55,11 @@ func (eo EventOutput) WithInteractiveMessage(messages ... InteractiveMessage) (o
 func (eo EventOutput) WithSurvey(aaSurvey ebm.AttachmentActionSurvey) (out EventOutput) {
 	out = eo
 	out.Interaction.OptionalSurvey = append(out.Interaction.OptionalSurvey, Survey{AttachmentActionSurvey: aaSurvey})
+	return
+}
+// WithResponse - appends a Response to output
+func (eo EventOutput) WithResponse(responses ... platform.Response) (out EventOutput) {
+	out = eo
+	out.Responses = append(eo.Responses, responses...)
 	return
 }

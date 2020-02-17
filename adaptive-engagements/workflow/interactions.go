@@ -212,6 +212,17 @@ func Button(event Event, label ui.PlainText) InteractiveElement {
 		Button: MenuOption(event, label),
 	}
 }
+// AckButton is a button with confirmation.
+func AckButton(event Event, label ui.PlainText) InteractiveElement {
+	return InteractiveElement{
+		InteractiveElementType: ButtonElementType,
+		Button: SimpleAction{
+			Label: label,
+			Event: event,
+			RequiresConfirmation: true,
+		},
+	}
+}
 // DataSelector is an interactive element
 func DataSelector(event Event, options ... SelectorOption) InteractiveElement {
 	return InteractiveElement{

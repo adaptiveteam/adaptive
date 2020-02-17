@@ -47,6 +47,9 @@ var logger = alog.LambdaLogger(logrus.InfoLevel)
 // It modifies NamespacePayload4.CallbackID according to 
 // the workflow namespace and event.
 func EnterWorkflow(workflow WorkflowInfo, np models.NamespacePayload4, conn common.DynamoDBConnection, event wf.Event) error {
+	if conn.ClientID == "" {
+		return errors.New("EnterWorkflow: clientID == ''")
+	}
 	initEvent := wf.ExternalActionPathWithData(workflow.Prefix.Append(workflow.Name), workflow.Init, event, map[string]string{}, false)
 	logger.Infof("Starting workflow %s with path %s", workflow.Name, initEvent.Encode())
 	np.InteractionCallback.CallbackID = initEvent.Encode()

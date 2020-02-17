@@ -28,7 +28,7 @@ func (w workflowImpl) OnProgressCancel(ctx wf.EventHandlingContext) (out wf.Even
 	log := w.AdaptiveLogger.WithField("issueID", issueID)
 	log.Info("OnProgressCancel")
 	var newAndOldIssues NewAndOldIssues
-	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
+	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
 	err = errors.Wrapf(err, "OnProgressCancel getNewAndOldIssues")
 	if err != nil {
 		return
@@ -69,14 +69,14 @@ func (w workflowImpl) OnProgressIntermediate(ctx wf.EventHandlingContext) (out w
 	issueID := ctx.Data[issueIDKey]
 	w.AdaptiveLogger.WithField("issueID", issueID).Info("OnProgressIntermediate")
 	var newAndOldIssues NewAndOldIssues
-	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
+	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
 	if err != nil {
 		return
 	}
-	err = w.prefetch(ctx, &newAndOldIssues.NewIssue)
-	if err != nil {
-		return
-	}
+	// err = w.prefetch(ctx, &newAndOldIssues.NewIssue)
+	// if err != nil {
+	// 	return
+	// }
 	comments := ui.PlainText("")
 	var status models.ObjectiveStatusColor
 	objectiveProgress := newAndOldIssues.NewIssue.Progress
@@ -101,7 +101,7 @@ func (w workflowImpl) OnProgressCloseout(ctx wf.EventHandlingContext) (out wf.Ev
 	issueID := ctx.Data[issueIDKey]
 	w.AdaptiveLogger.WithField("issueID", issueID).Info("OnProgressCloseout")
 	var newAndOldIssues NewAndOldIssues
-	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
+	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
 	uo := newAndOldIssues.NewIssue.UserObjective
 	itype := getIssueTypeFromContext(ctx)
 	tc := getTypeClass(itype)
@@ -139,7 +139,7 @@ func (w workflowImpl) OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out 
 	w.AdaptiveLogger.WithField("issueID", issueID).Info("OnProgressFormSubmitted")
 	var newAndOldIssues NewAndOldIssues
 	ctx.SetFlag(isShowingProgressKey, true) // enable show progress. This will make sure that progress is prefetched
-	newAndOldIssues, err = w.getNewAndOldIssues(ctx)
+	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
 	ctx.RuntimeData = runtimeData(newAndOldIssues)
 	uo := newAndOldIssues.NewIssue.UserObjective
 	var progress userObjectiveProgress.UserObjectiveProgress
@@ -329,3 +329,24 @@ const (
 	ReviewUserProgressSelect   = "review_user_progress_select"
 	UberCoach                  = "uber_coach"
 )
+// OnFeedbackOnUpdates - handler when coach has provided feedback on the issue.
+func (w workflowImpl) OnFeedbackOnUpdates()wf.Handler {
+	return func (ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+		var newAndOldIssues NewAndOldIssues
+		newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
+		if err != nil {
+			return
+		}
+		ctx.RuntimeData = runtimeData(newAndOldIssues)
+		var outView wf.EventOutput
+		outView, err = w.standardView(ctx)
+		out = out.
+			WithInteractiveMessage(wf.InteractiveMessage{
+				PassiveMessage: wf.PassiveMessage{
+					Text: ui.Sprintf("<@%s> has provided some feedback on the below %s", newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner, newAndOldIssues.NewIssue.GetIssueType().Template()),
+				},
+			}).
+			WithInteractiveMessage(outView.Messages...)
+		return
+	}
+}
