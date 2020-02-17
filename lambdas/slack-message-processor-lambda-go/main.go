@@ -215,25 +215,13 @@ func invokeLambdaWithAppID(appID models.PlatformID, eventsAPIEvent string) func(
 func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (response events.APIGatewayProxyResponse, err error) {
 	// IMPORTANT: It should always return this with the empty body. Else actions won't work.
 	response = events.APIGatewayProxyResponse{StatusCode: 200}
-	defer func() {
-		logger1 := logger.WithLambdaContext(ctx).WithField("0", 0)
-		if err != nil {
-			logger1 = logger1.WithError(err)
-		}
-		err2 := recover()
-		if err2 != nil {
-			logger1.Errorf("recovered: %+v", err2)
-		} else {
-			logger1.Infof("No panic termination")
-		}
-		err = nil
-	}()
+	defer core.RecoverAsLogError("HandleRequest.Recover")
 	logger = logger.WithLambdaContext(ctx)
 	byt, _ := json.Marshal(request)
 	logger.WithField("payload", string(byt)).Infof("Incoming gateway request")
 
 	if request.Body != "" {
-		// TODO: Remove this condition once this PR is merged: https://github.com/nlopes/slack/pull/551
+		// TODO: Refactor this condition. The problem is that slackevents.EventsAPIEvent doesn't have ApiAppId which is required (as PlatformID)
 		if strings.Contains(request.Body, AppHomeOpened) {
 			var ahe SlackAppHomeEvent
 			err = json.Unmarshal([]byte(request.Body), &ahe)
@@ -266,6 +254,9 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 			logger.Infof("EVENT %v", eventsAPIEvent.Type)
 
 			switch eventsAPIEvent.Type {
+			case slackevents.AppHomeOpened:
+				appHomeOpened := eventsAPIEvent.Data.(*slackevents.AppHomeOpenedEvent)
+				helloMessage(appHomeOpened.User, appHomeOpened.Channel, "<UNKNOWN-PlatformID>")
 			case slackevents.URLVerification:
 				urlVerification := eventsAPIEvent.Data.(*slackevents.EventsAPIURLVerificationEvent)
 				return GwOk(urlVerification.Challenge, nil)
@@ -371,86 +362,8 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 							if action.Name == "menu_list" {
 								selected := action.SelectedOptions[0]
 								menuOption := selected.Value
-								switch menuOption {
-								case user.AskForEngagements:
-									engage := models.UserEngageWithCheckValues{
-										UserEngage: models.UserEngage{
-											UserId: userID, IsNew: true, Update: true, OnDemand: true,
-											ThreadTs: message.MessageTs, PlatformID: platformID,
-										},
-										CheckValues: checkValues(message.User.ID),
-									}
-									invokeLambdaUnsafe(engScriptingLambda, engage)
-									deleteMessage(message)
-								case user.UpdateSettings:
-									forwardToNamespace("settings")
-								case coaching.GiveFeedback, coaching.RequestFeedback, user.GenerateReport,
-									user.FetchReport, coaching.ViewCoachees, coaching.ViewAdvocates:
-									invokeLambdaWithNamespace("feedback")
-								case objectives.CreateIDO, objectives.CreateIDONow, 
-									user.StaleIDOsForMe,
-									coaching.SelectCoachee, coaching.ReviewCoacheeProgressSelect,
-									strategy.ViewCommunityAdvocateObjectives:
-									forwardToNamespace("objectives")
-								case coaching.RequestCoach, user.CurrentQuarterSchedule, user.NextQuarterSchedule,
-									coaching.GenerateReportHR, coaching.FetchReportHR:
-									forwardToNamespace("community")
-								case strategy.CreateStrategyObjective, strategy.CreateFinancialObjective,
-									strategy.CreateCustomerObjective, strategy.ViewStrategyObjectives,
-									strategy.ViewAdvocacyObjectives,
-									user.ViewObjectives,
-									user.StaleObjectivesForMe:
-									forwardToNamespace("objectives")
-									// invokeLambdaWithNamespace("strategy")
-								case strategy.CreateInitiative, 
-									strategy.ViewCapabilityCommunityInitiatives,
-									strategy.ViewAdvocacyInitiatives, 
-									strategy.ViewInitiativeCommunityInitiatives,
-									user.StaleInitiativesForMe:
-									forwardToNamespace("objectives")
-								case strategy.ViewCapabilityCommunityObjectives, 
-									strategy.CreateVision, strategy.ViewVision, strategy.ViewEditVision,
-									strategy.CreateCapabilityCommunity, strategy.ViewCapabilityCommunities,
-									strategy.AssociateStrategyObjectiveToCapabilityCommunity,
-									strategy.CreateInitiativeCommunity,
-									strategy.AssociateInitiativeWithInitiativeCommunity:
-									// forwardToNamespace("strategy")
-									invokeLambdaWithNamespace("strategy")
-								case SayHelloMenuItem:
-									forwardToNamespace(HelloWorldNamespace)
-								case 
-									holidays.HolidaysListMenuItem, 
-									holidays.HolidaysSimpleListMenuItem, 
-									holidays.HolidaysCreateNewMenuItem:
-									
-									holidaysLambda.LambdaRouting.HandleNamespacePayload4(ctx, np)
-									// forwardToNamespace(HolidaysNamespace)
-								case values.AdaptiveValuesListMenuItem, 
-									values.AdaptiveValuesSimpleListMenuItem,
-									values.AdaptiveValuesCreateNewMenuItem:
-									competencies.HandleNamespacePayload4(np)
-									// forwardToNamespace(AdaptiveValuesNamespace)
-								case "StrategyPerformanceReport":
-									var buf *bytes.Buffer
-									var reportname string
-									buf, reportname, err = onStrategyPerformanceReport(ReadRDSConfigFromEnv(), platformID)
-									if err == nil {
-										err = sendReportToUser(platformID, userID, reportname, buf)
-									}
-									deleteMessage(message)
-									err = errors.Wrap(err, "StrategyPerformanceReport")
-								case "IDOPerformanceReport":
-									var buf *bytes.Buffer
-									var reportname string
-									buf, reportname, err = onIDOPerformanceReport(ReadRDSConfigFromEnv(), userID)
-									if err == nil {
-										err = sendReportToUser(platformID, userID, reportname, buf)
-									}
-									deleteMessage(message)
-									err = errors.Wrap(err, "IDOPerformanceReport")
-								default:
-									logger.Infof("Unknown/unhandled menu option '%s'", menuOption)
-								}
+								err = routeMenuOption(eventsAPIEvent, requestPayload, message, platformID,
+									menuOption)
 							} else if action.Name == "cancel" {
 								deleteMessage(message)
 							}
@@ -466,7 +379,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 					} else if strings.Contains(callbackID, "community") {
 						forwardToNamespace("community")
 					} else if strings.Contains(callbackID, "holidays") {
-						holidaysLambda.LambdaRouting.HandleNamespacePayload4(ctx, np)
+						holidaysLambda.LambdaRouting.HandleNamespacePayload4(np)
 						// forwardToNamespace(HolidaysNamespace)
 					} else if strings.Contains(callbackID, "adaptive_values") {
 						forwardToNamespace(AdaptiveValuesNamespace)
@@ -483,6 +396,115 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	logger.WithLambdaContext(ctx).Println("HandleRequest: normal termination")
 	return
 }
+
+func routeMenuOption(
+	eventsAPIEvent slackevents.EventsAPIEvent, 
+	requestPayload string,
+	message slack.InteractionCallback,
+	platformID models.PlatformID,
+	menuOption string,
+) (err error) {
+	slackRequest := models.EventsAPIEvent(requestPayload)
+	userID := getUserID(eventsAPIEvent)
+	// callbackID := getCallbackID(eventsAPIEvent)
+	// fmt.Printf("userID=%v,callbackID=%v\n", userID, callbackID)
+	// u := userDAO.ReadUnsafe(userID)
+	// apiAppID := u.PlatformID
+	// platformID := u.PlatformID
+	np := models.NamespacePayload4{
+		ID:        core.Uuid(),
+		Namespace: namespace,
+		PlatformRequest: models.PlatformRequest{
+			PlatformID:   platformID,
+			SlackRequest: slackRequest,
+		},
+	}	
+	forwardToNamespace := forwardToNamespaceWithAppID(platformID, requestPayload)
+	invokeLambdaWithNamespace := invokeLambdaWithAppID(platformID, requestPayload)
+	switch menuOption {
+	case user.AskForEngagements:
+		engage := models.UserEngageWithCheckValues{
+			UserEngage: models.UserEngage{
+				UserId: userID, IsNew: true, Update: true, OnDemand: true,
+				ThreadTs: message.MessageTs, PlatformID: platformID,
+			},
+			CheckValues: checkValues(message.User.ID),
+		}
+		invokeLambdaUnsafe(engScriptingLambda, engage)
+		deleteMessage(message)
+	case user.UpdateSettings:
+		forwardToNamespace("settings")
+	case coaching.GiveFeedback, coaching.RequestFeedback, user.GenerateReport,
+		user.FetchReport, coaching.ViewCoachees, coaching.ViewAdvocates:
+		invokeLambdaWithNamespace("feedback")
+	case objectives.CreateIDO, objectives.CreateIDONow, 
+		user.StaleIDOsForMe,
+		coaching.SelectCoachee, coaching.ReviewCoacheeProgressSelect,
+		strategy.ViewCommunityAdvocateObjectives:
+		forwardToNamespace("objectives")
+	case coaching.RequestCoach, user.CurrentQuarterSchedule, user.NextQuarterSchedule,
+		coaching.GenerateReportHR, coaching.FetchReportHR:
+		forwardToNamespace("community")
+	case strategy.CreateStrategyObjective, strategy.CreateFinancialObjective,
+		strategy.CreateCustomerObjective, strategy.ViewStrategyObjectives,
+		strategy.ViewAdvocacyObjectives,
+		user.ViewObjectives,
+		user.StaleObjectivesForMe:
+		forwardToNamespace("objectives")
+		// invokeLambdaWithNamespace("strategy")
+	case strategy.CreateInitiative, 
+		strategy.ViewCapabilityCommunityInitiatives,
+		strategy.ViewAdvocacyInitiatives, 
+		strategy.ViewInitiativeCommunityInitiatives,
+		user.StaleInitiativesForMe:
+		forwardToNamespace("objectives")
+	case strategy.ViewCapabilityCommunityObjectives, 
+		strategy.CreateVision, strategy.ViewVision, strategy.ViewEditVision,
+		strategy.CreateCapabilityCommunity, strategy.ViewCapabilityCommunities,
+		strategy.AssociateStrategyObjectiveToCapabilityCommunity,
+		strategy.CreateInitiativeCommunity,
+		strategy.AssociateInitiativeWithInitiativeCommunity:
+		// forwardToNamespace("strategy")
+		invokeLambdaWithNamespace("strategy")
+	case SayHelloMenuItem:
+		forwardToNamespace(HelloWorldNamespace)
+	case 
+		holidays.HolidaysListMenuItem, 
+		holidays.HolidaysSimpleListMenuItem, 
+		holidays.HolidaysCreateNewMenuItem:
+		
+		holidaysLambda.LambdaRouting.HandleNamespacePayload4(np)
+		// forwardToNamespace(HolidaysNamespace)
+	case values.AdaptiveValuesListMenuItem, 
+		values.AdaptiveValuesSimpleListMenuItem,
+		values.AdaptiveValuesCreateNewMenuItem:
+		competencies.HandleNamespacePayload4(np)
+		// forwardToNamespace(AdaptiveValuesNamespace)
+	case "StrategyPerformanceReport":
+		var buf *bytes.Buffer
+		var reportname string
+		buf, reportname, err = onStrategyPerformanceReport(ReadRDSConfigFromEnv(), platformID)
+		if err == nil {
+			err = sendReportToUser(platformID, userID, reportname, buf)
+		}
+		deleteMessage(message)
+		err = errors.Wrap(err, "StrategyPerformanceReport")
+	case "IDOPerformanceReport":
+		var buf *bytes.Buffer
+		var reportname string
+		buf, reportname, err = onIDOPerformanceReport(ReadRDSConfigFromEnv(), userID)
+		if err == nil {
+			err = sendReportToUser(platformID, userID, reportname, buf)
+		}
+		deleteMessage(message)
+		err = errors.Wrap(err, "IDOPerformanceReport")
+	default:
+		logger.Infof("Unknown/unhandled menu option '%s'", menuOption)
+	}
+
+	return
+}
+
 func deleteMessage(request slack.InteractionCallback) {
 	publish(models.PlatformSimpleNotification{
 		UserId:  request.User.ID,
