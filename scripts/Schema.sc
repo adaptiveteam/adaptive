@@ -159,6 +159,7 @@ val coacheeQuarterYearField = spacedName("coachee quarter year") :: string
 val coacheeField = "coachee".camel :: string
 val quarterField = "quarter".camel :: int
 val yearField = "year".camel :: int
+// TODO: Remove CoachingRelationship as it is not being used
 val coachingRelationship = Entity("CoachingRelationship".camel,
         List(
 //            platformIdField,
@@ -252,12 +253,13 @@ val ebmImport = ImportClause(Some("ebm"), "github.com/adaptiveteam/adaptive/enga
 // 
 val UserEngagement = Entity(
     "UserEngagement".camel,
-    List(idField \\ "A unique id to identify the engagement"),
+    List(
+        userIdField, // GetItem requires all primary key attributes
+        idField \\ "A unique id to identify the engagement"),
     List(
         platformIdField \\ 
             "PlatformID is the identifier of the platform." \\ 
             "It's used to get platform token required to send message to Slack/Teams.",
-        userIdField,
         targetIdField,
         ("Namespace".camel :: string) \\ "Namespace for the engagement",
         ("CheckIdentifier".camel :: optionString) \\ "Check identifier for the engagement",
@@ -366,12 +368,12 @@ val AdaptiveCommunityTable = Table(AdaptiveCommunity,
 val AdaptiveCommunityPackage = defaultPackage(AdaptiveCommunityTable, allEntitySpecificImports(AdaptiveCommunity))
 
 
-
+val attrKeyField = ("AttrKey".camel::string) \\ "Key of the setting"
 val UserAttribute = Entity(
     "UserAttribute".camel, 
     List(
         userIdField,
-        ("AttrKey".camel::string) \\ "Key of the setting"
+        attrKeyField
     ),
     List(
         ("AttrValue".camel::string) \\ "Value of the setting",
@@ -382,7 +384,7 @@ val UserAttribute = Entity(
 ) \\ "UserAttribute encapsulates key-value setting for a user"
 
 val UserAttributeTable = Table(UserAttribute, 
-    Index(userIdField, None),
+    Index(userIdField, Some(attrKeyField)), // GetItem requires all primary key attributes
     List()
 )
 
@@ -582,9 +584,11 @@ val createdByField = "CreatedBy".camel :: string
 val advocateField = "Advocate".camel :: string
 val StrategyObjective = Entity(
     "StrategyObjective".camel, 
-    List(idField \\ "hash"),
     List(
-        platformIdField \\ "range key",
+        platformIdField \\ "range key",// GetItem requires all primary key attributes
+        idField \\ "hash"),
+    
+    List(
         nameField,
         descriptionField,
         "AsMeasuredBy".camel :: string,
@@ -667,9 +671,11 @@ val initiativeCommunityIDField = "InitiativeCommunityID".camel :: string
 
 val StrategyInitiative = Entity(
     "StrategyInitiative".camel, 
-    List(idField),
     List(
-        platformIdField,
+        platformIdField,// GetItem requires all primary key attributes
+        idField
+        ),
+    List(
         nameField,
         descriptionField,
         "DefinitionOfVictory".camel :: string,
@@ -696,9 +702,11 @@ val StrategyInitiativePackage = defaultPackage(StrategyInitiativeTable, allEntit
 
 val VisionMission = Entity(
     "VisionMission".camel, 
-    List(idField),
     List(
-        platformIdField,
+        platformIdField // GetItem requires all primary key attributes
+        ),
+    List(
+        idField, // TODO: remove id field
         "Mission".camel :: string,
         "Vision".camel :: string,
         advocateField,
@@ -747,9 +755,11 @@ val StrategyCommunityPackage = Package(StrategyCommunity.name,
 
 val CapabilityCommunity = Entity(
     "CapabilityCommunity".camel, 
-    List(idField),
     List(
-        platformIdField,
+        platformIdField,// GetItem requires all primary key attributes
+        idField
+        ),
+    List(
         nameField,
         descriptionField,
         advocateField,
@@ -772,9 +782,8 @@ val CapabilityCommunityPackage = Package(CapabilityCommunity.name,
 
 val StrategyInitiativeCommunity = Entity(
     "StrategyInitiativeCommunity".camel, 
-    List(idField),
+    List(idField, platformIdField), // GetItem requires all primary key attributes
     List(
-        platformIdField,
         nameField,
         descriptionField,
         advocateField,
@@ -836,7 +845,8 @@ val ContextAliasEntry = Entity(
     "A context alias is a way to alias  a piece of context without spelling out" \\
     "the context path.  If the path changes you can still safely use the alias."
 
-val ContextAliasEntryTable = Table(ContextAliasEntry, Index(applicationAliasField, None), List())
+val ContextAliasEntryTable = Table(ContextAliasEntry, 
+    Index(applicationAliasField, None), List())
 
 val ContextAliasEntryPackage = defaultPackage(ContextAliasEntryTable, imports)
 
