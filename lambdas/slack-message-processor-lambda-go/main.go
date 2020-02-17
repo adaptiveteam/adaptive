@@ -250,42 +250,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 				slackevents.OptionNoVerifyToken(),
 			)
 			core.ErrorHandler(err, namespace, "Could not parse eventsAPIEvent")
-			logger.Infof("EVENT %v", eventsAPIEvent.Type)
-
-			switch eventsAPIEvent.Type {
-			case slackevents.AppHomeOpened:
-				appHomeOpened := eventsAPIEvent.Data.(*slackevents.AppHomeOpenedEvent)
-				helloMessage(appHomeOpened.User, appHomeOpened.Channel, "<UNKNOWN-PlatformID>")
-			case slackevents.URLVerification:
-				urlVerification := eventsAPIEvent.Data.(*slackevents.EventsAPIURLVerificationEvent)
-				return GwOk(urlVerification.Challenge, nil)
-			case slackevents.CallbackEvent:
-				callbackEvent := eventsAPIEvent.Data.(*slackevents.EventsAPICallbackEvent)
-				response = events.APIGatewayProxyResponse{StatusCode: 200}
-				err = routeCallbackEvent(eventsAPIEvent, requestPayload, *callbackEvent)
-			default:
-				logger.Infof("Handling event of type %v", eventsAPIEvent.Type)
-				// workaround for slackevents.ParseEvent
-				switch slack.InteractionType(eventsAPIEvent.Type) {
-				case slack.InteractionTypeInteractionMessage:
-					eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
-				case slack.InteractionTypeDialogSubmission:
-					eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
-				case slack.InteractionTypeDialogCancellation:
-					eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
-				default:
-					panic(errors.New("Unknown type of Slack message: " + eventsAPIEvent.Type))
-				}
-				fmt.Printf("parsed eventsAPIEvent.Data =%v\n", reflect.TypeOf(eventsAPIEvent.Data))
-
-				objMap := parseMapUnsafe(requestPayload)
-				if _, ok := objMap["callback_id"]; ok {
-					userID := getUserID(eventsAPIEvent)
-					callbackID := getCallbackID(eventsAPIEvent)
-					fmt.Printf("userID=%v,callbackID=%v\n", userID, callbackID)
-					err = routeByCallbackID(eventsAPIEvent, requestPayload, userID, callbackID)
-				}
-			}
+			response, err = routeEventsAPIEvent(eventsAPIEvent, requestPayload)
 		}
 	}
 	err = errors.Wrap(err, "HandleRequest")
@@ -294,6 +259,48 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	}
 	err = nil
 	logger.WithLambdaContext(ctx).Println("HandleRequest: normal termination")
+	return
+}
+
+func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
+	requestPayload string,
+) (response events.APIGatewayProxyResponse, err error)  {
+	logger.Infof("EVENT %v", eventsAPIEvent.Type)
+
+	switch eventsAPIEvent.Type {
+	case slackevents.AppHomeOpened:
+		appHomeOpened := eventsAPIEvent.Data.(*slackevents.AppHomeOpenedEvent)
+		helloMessage(appHomeOpened.User, appHomeOpened.Channel, "<UNKNOWN-PlatformID>")
+	case slackevents.URLVerification:
+		urlVerification := eventsAPIEvent.Data.(*slackevents.EventsAPIURLVerificationEvent)
+		response, err = GwOk(urlVerification.Challenge, nil)
+	case slackevents.CallbackEvent:
+		callbackEvent := eventsAPIEvent.Data.(*slackevents.EventsAPICallbackEvent)
+		response = events.APIGatewayProxyResponse{StatusCode: 200}
+		err = routeCallbackEvent(eventsAPIEvent, requestPayload, *callbackEvent)
+	default:
+		logger.Infof("Handling event of type %v", eventsAPIEvent.Type)
+		// workaround for slackevents.ParseEvent
+		switch slack.InteractionType(eventsAPIEvent.Type) {
+		case slack.InteractionTypeInteractionMessage:
+			eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
+		case slack.InteractionTypeDialogSubmission:
+			eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
+		case slack.InteractionTypeDialogCancellation:
+			eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
+		default:
+			panic(errors.New("Unknown type of Slack message: " + eventsAPIEvent.Type))
+		}
+		fmt.Printf("parsed eventsAPIEvent.Data =%v\n", reflect.TypeOf(eventsAPIEvent.Data))
+
+		objMap := parseMapUnsafe(requestPayload)
+		if _, ok := objMap["callback_id"]; ok {
+			userID := getUserID(eventsAPIEvent)
+			callbackID := getCallbackID(eventsAPIEvent)
+			fmt.Printf("userID=%v,callbackID=%v\n", userID, callbackID)
+			err = routeByCallbackID(eventsAPIEvent, requestPayload, userID, callbackID)
+		}
+	}
 	return
 }
 
