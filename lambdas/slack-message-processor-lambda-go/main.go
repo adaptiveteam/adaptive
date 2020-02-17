@@ -250,7 +250,6 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 				slackevents.OptionNoVerifyToken(),
 			)
 			core.ErrorHandler(err, namespace, "Could not parse eventsAPIEvent")
-			slackRequest := models.EventsAPIEvent(requestPayload)
 			logger.Infof("EVENT %v", eventsAPIEvent.Type)
 
 			switch eventsAPIEvent.Type {
@@ -336,54 +335,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 					userID := getUserID(eventsAPIEvent)
 					callbackID := getCallbackID(eventsAPIEvent)
 					fmt.Printf("userID=%v,callbackID=%v\n", userID, callbackID)
-					u := userDAO.ReadUnsafe(userID)
-					apiAppID := u.PlatformID
-					platformID := u.PlatformID
-					np := models.NamespacePayload4{
-						ID:        core.Uuid(),
-						Namespace: namespace,
-						PlatformRequest: models.PlatformRequest{
-							PlatformID:   apiAppID,
-							SlackRequest: slackRequest,
-						},
-					}	
-					forwardToNamespace := forwardToNamespaceWithAppID(apiAppID, requestPayload)
-					invokeLambdaWithNamespace := invokeLambdaWithAppID(apiAppID, requestPayload)
-
-					if strings.Contains(callbackID, "init_message") {
-						if eventsAPIEvent.Type == string(slack.InteractionTypeInteractionMessage) {
-							var message slack.InteractionCallback
-							message, err = utils.ParseAsInteractionMsg(requestPayload)
-							err = errors.Wrap(err, "Could not parse to interaction type message")
-							if err != nil {
-								return
-							}
-							action := message.ActionCallback.AttachmentActions[0]
-							if action.Name == "menu_list" {
-								selected := action.SelectedOptions[0]
-								menuOption := selected.Value
-								err = routeMenuOption(eventsAPIEvent, requestPayload, message, platformID,
-									menuOption)
-							} else if action.Name == "cancel" {
-								deleteMessage(message)
-							}
-						}
-					} else if strings.Contains(callbackID, "feedback") {
-						invokeLambdaWithNamespace("feedback")
-					} else if strings.Contains(callbackID, "user_settings") {
-						forwardToNamespace("settings")
-					} else if strings.Contains(callbackID, "objectives") {
-						forwardToNamespace("objectives")
-					} else if strings.Contains(callbackID, "strategy") {
-						invokeLambdaWithNamespace("strategy")
-					} else if strings.Contains(callbackID, "community") {
-						forwardToNamespace("community")
-					} else if strings.Contains(callbackID, "holidays") {
-						holidaysLambda.LambdaRouting.HandleNamespacePayload4(np)
-						// forwardToNamespace(HolidaysNamespace)
-					} else if strings.Contains(callbackID, "adaptive_values") {
-						forwardToNamespace(AdaptiveValuesNamespace)
-					}
+					err = routeByCallbackID(eventsAPIEvent, requestPayload, userID, callbackID)
 				}
 			}
 		}
@@ -394,6 +346,63 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	}
 	err = nil
 	logger.WithLambdaContext(ctx).Println("HandleRequest: normal termination")
+	return
+}
+
+func routeByCallbackID(
+	eventsAPIEvent slackevents.EventsAPIEvent,
+	requestPayload string,
+	userID, callbackID string,
+) (err error) {
+	slackRequest := models.EventsAPIEvent(requestPayload)
+	u := userDAO.ReadUnsafe(userID)
+	apiAppID := u.PlatformID
+	platformID := u.PlatformID
+	np := models.NamespacePayload4{
+		ID:        core.Uuid(),
+		Namespace: namespace,
+		PlatformRequest: models.PlatformRequest{
+			PlatformID:   apiAppID,
+			SlackRequest: slackRequest,
+		},
+	}	
+	forwardToNamespace := forwardToNamespaceWithAppID(apiAppID, requestPayload)
+	invokeLambdaWithNamespace := invokeLambdaWithAppID(apiAppID, requestPayload)
+
+	if strings.Contains(callbackID, "init_message") {
+		if eventsAPIEvent.Type == string(slack.InteractionTypeInteractionMessage) {
+			var message slack.InteractionCallback
+			message, err = utils.ParseAsInteractionMsg(requestPayload)
+			err = errors.Wrap(err, "Could not parse to interaction type message")
+			if err != nil {
+				return
+			}
+			action := message.ActionCallback.AttachmentActions[0]
+			if action.Name == "menu_list" {
+				selected := action.SelectedOptions[0]
+				menuOption := selected.Value
+				err = routeMenuOption(eventsAPIEvent, requestPayload, message, platformID,
+					menuOption)
+			} else if action.Name == "cancel" {
+				deleteMessage(message)
+			}
+		}
+	} else if strings.Contains(callbackID, "feedback") {
+		invokeLambdaWithNamespace("feedback")
+	} else if strings.Contains(callbackID, "user_settings") {
+		forwardToNamespace("settings")
+	} else if strings.Contains(callbackID, "objectives") {
+		forwardToNamespace("objectives")
+	} else if strings.Contains(callbackID, "strategy") {
+		invokeLambdaWithNamespace("strategy")
+	} else if strings.Contains(callbackID, "community") {
+		forwardToNamespace("community")
+	} else if strings.Contains(callbackID, "holidays") {
+		holidaysLambda.LambdaRouting.HandleNamespacePayload4(np)
+		// forwardToNamespace(HolidaysNamespace)
+	} else if strings.Contains(callbackID, "adaptive_values") {
+		forwardToNamespace(AdaptiveValuesNamespace)
+	}
 	return
 }
 
