@@ -16,14 +16,14 @@ import (
 
 // UserEngagement encapsulates an engagement we want to provide to a user
 type UserEngagement struct  {
+	// UserID is the ID of the user to send an engagement to
+	// This usually corresponds to the platform user id
+	UserID string `json:"user_id"`
 	// A unique id to identify the engagement
 	ID string `json:"id"`
 	// PlatformID is the identifier of the platform.
 	// It's used to get platform token required to send message to Slack/Teams.
 	PlatformID common.PlatformID `json:"platform_id"`
-	// UserID is the ID of the user to send an engagement to
-	// This usually corresponds to the platform user id
-	UserID string `json:"user_id"`
 	// TargetID is the ID of the user for whom this is related to
 	TargetID string `json:"target_id"`
 	// Namespace for the engagement
@@ -64,9 +64,9 @@ type UserEngagement struct  {
 // CollectEmptyFields returns entity field names that are empty.
 // It also returns the boolean ok-flag if the list is empty.
 func (userEngagement UserEngagement)CollectEmptyFields() (emptyFields []string, ok bool) {
+	if userEngagement.UserID == "" { emptyFields = append(emptyFields, "UserID")}
 	if userEngagement.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if userEngagement.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
-	if userEngagement.UserID == "" { emptyFields = append(emptyFields, "UserID")}
 	if userEngagement.TargetID == "" { emptyFields = append(emptyFields, "TargetID")}
 	if userEngagement.Namespace == "" { emptyFields = append(emptyFields, "Namespace")}
 	if userEngagement.Script == "" { emptyFields = append(emptyFields, "Script")}
@@ -84,14 +84,14 @@ func (userEngagement UserEngagement) ToJSON() (string, error) {
 type DAO interface {
 	Create(userEngagement UserEngagement) error
 	CreateUnsafe(userEngagement UserEngagement)
-	Read(id string) (userEngagement UserEngagement, err error)
-	ReadUnsafe(id string) (userEngagement UserEngagement)
-	ReadOrEmpty(id string) (userEngagement []UserEngagement, err error)
-	ReadOrEmptyUnsafe(id string) (userEngagement []UserEngagement)
+	Read(userID string, id string) (userEngagement UserEngagement, err error)
+	ReadUnsafe(userID string, id string) (userEngagement UserEngagement)
+	ReadOrEmpty(userID string, id string) (userEngagement []UserEngagement, err error)
+	ReadOrEmptyUnsafe(userID string, id string) (userEngagement []UserEngagement)
 	CreateOrUpdate(userEngagement UserEngagement) error
 	CreateOrUpdateUnsafe(userEngagement UserEngagement)
-	Delete(id string) error
-	DeleteUnsafe(id string)
+	Delete(userID string, id string) error
+	DeleteUnsafe(userID string, id string)
 	ReadByUserIDAnswered(userID string, answered int) (userEngagement []UserEngagement, err error)
 	ReadByUserIDAnsweredUnsafe(userID string, answered int) (userEngagement []UserEngagement)
 }
@@ -139,16 +139,16 @@ func (d DAOImpl) Create(userEngagement UserEngagement) (err error) {
 // CreateUnsafe saves the UserEngagement.
 func (d DAOImpl) CreateUnsafe(userEngagement UserEngagement) {
 	err2 := d.Create(userEngagement)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", userEngagement.ID, d.Name))
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create userID==%s, id==%s in %s\n", userEngagement.UserID, userEngagement.ID, d.Name))
 }
 
 
 // Read reads UserEngagement
-func (d DAOImpl) Read(id string) (out UserEngagement, err error) {
+func (d DAOImpl) Read(userID string, id string) (out UserEngagement, err error) {
 	var outs []UserEngagement
-	outs, err = d.ReadOrEmpty(id)
+	outs, err = d.ReadOrEmpty(userID, id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found userID==%s, id==%s in %s\n", userID, id, d.Name)
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -158,24 +158,24 @@ func (d DAOImpl) Read(id string) (out UserEngagement, err error) {
 
 
 // ReadUnsafe reads the UserEngagement. Panics in case of any errors
-func (d DAOImpl) ReadUnsafe(id string) UserEngagement {
-	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadUnsafe(userID string, id string) UserEngagement {
+	out, err2 := d.Read(userID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading userID==%s, id==%s in %s\n", userID, id, d.Name))
 	return out
 }
 
 
 // ReadOrEmpty reads UserEngagement
-func (d DAOImpl) ReadOrEmpty(id string) (out []UserEngagement, err error) {
+func (d DAOImpl) ReadOrEmpty(userID string, id string) (out []UserEngagement, err error) {
 	var outOrEmpty UserEngagement
-	ids := idParams(id)
+	ids := idParams(userID, id)
 	var found bool
 	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
 	if found {
-		if outOrEmpty.ID == id {
+		if outOrEmpty.UserID == userID && outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
 		} else {
-			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+			err = fmt.Errorf("Requested ids: userID==%s, id==%s are different from the found ones: userID==%s, id==%s", userID, id, outOrEmpty.UserID, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
 	err = errors.Wrapf(err, "UserEngagement DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -184,9 +184,9 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserEngagement, err error) {
 
 
 // ReadOrEmptyUnsafe reads the UserEngagement. Panics in case of any errors
-func (d DAOImpl) ReadOrEmptyUnsafe(id string) []UserEngagement {
-	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadOrEmptyUnsafe(userID string, id string) []UserEngagement {
+	out, err2 := d.ReadOrEmpty(userID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading userID==%s, id==%s in %s\n", userID, id, d.Name))
 	return out
 }
 
@@ -197,8 +197,8 @@ func (d DAOImpl) CreateOrUpdate(userEngagement UserEngagement) (err error) {
 	if userEngagement.CreatedAt == "" { userEngagement.CreatedAt = userEngagement.ModifiedAt }
 	
 	var olds []UserEngagement
-	olds, err = d.ReadOrEmpty(userEngagement.ID)
-	err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", userEngagement.ID)
+	olds, err = d.ReadOrEmpty(userEngagement.UserID, userEngagement.ID)
+	err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate(id = userID==%s, id==%s) couldn't ReadOrEmpty", userEngagement.UserID, userEngagement.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userEngagement)
@@ -209,7 +209,7 @@ func (d DAOImpl) CreateOrUpdate(userEngagement UserEngagement) (err error) {
 				old := olds[0]
 				userEngagement.ModifiedAt = core.CurrentRFCTimestamp()
 
-				key := idParams(old.ID)
+				key := idParams(old.UserID, old.ID)
 				expr, exprAttributes, names := updateExpression(userEngagement, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
@@ -240,15 +240,15 @@ func (d DAOImpl) CreateOrUpdateUnsafe(userEngagement UserEngagement) {
 
 
 // Delete removes UserEngagement from db
-func (d DAOImpl)Delete(id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id))
+func (d DAOImpl)Delete(userID string, id string) error {
+	return d.Dynamo.DeleteEntry(d.Name, idParams(userID, id))
 }
 
 
 // DeleteUnsafe deletes UserEngagement and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(id string) {
-	err2 := d.Delete(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+func (d DAOImpl)DeleteUnsafe(userID string, id string) {
+	err2 := d.Delete(userID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete userID==%s, id==%s in %s\n", userID, id, d.Name))
 }
 
 
@@ -273,8 +273,9 @@ func (d DAOImpl)ReadByUserIDAnsweredUnsafe(userID string, answered int) (out []U
 	return
 }
 
-func idParams(id string) map[string]*dynamodb.AttributeValue {
+func idParams(userID string, id string) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue {
+		"user_id": common.DynS(userID),
 		"id": common.DynS(id),
 	}
 	return params
@@ -287,9 +288,9 @@ func updateExpression(userEngagement UserEngagement, old UserEngagement) (expr s
 	var updateParts []string
 	params = map[string]*dynamodb.AttributeValue{}
 	names := map[string]*string{}
-	if userEngagement.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(userEngagement.ID);  }
-	if userEngagement.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(userEngagement.PlatformID));  }
-	if userEngagement.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a2"); params[":a2"] = common.DynS(userEngagement.UserID);  }
+	if userEngagement.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a0"); params[":a0"] = common.DynS(userEngagement.UserID);  }
+	if userEngagement.ID != old.ID { updateParts = append(updateParts, "id = :a1"); params[":a1"] = common.DynS(userEngagement.ID);  }
+	if userEngagement.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a2"); params[":a2"] = common.DynS(string(userEngagement.PlatformID));  }
 	if userEngagement.TargetID != old.TargetID { updateParts = append(updateParts, "target_id = :a3"); params[":a3"] = common.DynS(userEngagement.TargetID);  }
 	if userEngagement.Namespace != old.Namespace { updateParts = append(updateParts, "namespace = :a4"); params[":a4"] = common.DynS(userEngagement.Namespace);  }
 	if userEngagement.CheckIdentifier != old.CheckIdentifier { updateParts = append(updateParts, "check_identifier = :a5"); params[":a5"] = common.DynS(userEngagement.CheckIdentifier);  }

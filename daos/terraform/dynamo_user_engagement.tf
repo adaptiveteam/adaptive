@@ -9,11 +9,11 @@ resource "aws_dynamodb_table" "user_engagement_dynamodb_table"  {
 		enabled = true
 	}
 	attribute {
-	    name = "id"
+	    name = "user_id"
 	    type = "S"
 	}
 	attribute {
-	    name = "user_id"
+	    name = "id"
 	    type = "S"
 	}
 	attribute {

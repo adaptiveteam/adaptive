@@ -49,14 +49,14 @@ func (strategyInitiativeCommunity StrategyInitiativeCommunity) ToJSON() (string,
 type DAO interface {
 	Create(strategyInitiativeCommunity StrategyInitiativeCommunity) error
 	CreateUnsafe(strategyInitiativeCommunity StrategyInitiativeCommunity)
-	Read(id string) (strategyInitiativeCommunity StrategyInitiativeCommunity, err error)
-	ReadUnsafe(id string) (strategyInitiativeCommunity StrategyInitiativeCommunity)
-	ReadOrEmpty(id string) (strategyInitiativeCommunity []StrategyInitiativeCommunity, err error)
-	ReadOrEmptyUnsafe(id string) (strategyInitiativeCommunity []StrategyInitiativeCommunity)
+	Read(id string, platformID common.PlatformID) (strategyInitiativeCommunity StrategyInitiativeCommunity, err error)
+	ReadUnsafe(id string, platformID common.PlatformID) (strategyInitiativeCommunity StrategyInitiativeCommunity)
+	ReadOrEmpty(id string, platformID common.PlatformID) (strategyInitiativeCommunity []StrategyInitiativeCommunity, err error)
+	ReadOrEmptyUnsafe(id string, platformID common.PlatformID) (strategyInitiativeCommunity []StrategyInitiativeCommunity)
 	CreateOrUpdate(strategyInitiativeCommunity StrategyInitiativeCommunity) error
 	CreateOrUpdateUnsafe(strategyInitiativeCommunity StrategyInitiativeCommunity)
-	Delete(id string) error
-	DeleteUnsafe(id string)
+	Delete(id string, platformID common.PlatformID) error
+	DeleteUnsafe(id string, platformID common.PlatformID)
 	ReadByPlatformID(platformID common.PlatformID) (strategyInitiativeCommunity []StrategyInitiativeCommunity, err error)
 	ReadByPlatformIDUnsafe(platformID common.PlatformID) (strategyInitiativeCommunity []StrategyInitiativeCommunity)
 }
@@ -104,16 +104,16 @@ func (d DAOImpl) Create(strategyInitiativeCommunity StrategyInitiativeCommunity)
 // CreateUnsafe saves the StrategyInitiativeCommunity.
 func (d DAOImpl) CreateUnsafe(strategyInitiativeCommunity StrategyInitiativeCommunity) {
 	err2 := d.Create(strategyInitiativeCommunity)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", strategyInitiativeCommunity.ID, d.Name))
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s, platformID==%s in %s\n", strategyInitiativeCommunity.ID, strategyInitiativeCommunity.PlatformID, d.Name))
 }
 
 
 // Read reads StrategyInitiativeCommunity
-func (d DAOImpl) Read(id string) (out StrategyInitiativeCommunity, err error) {
+func (d DAOImpl) Read(id string, platformID common.PlatformID) (out StrategyInitiativeCommunity, err error) {
 	var outs []StrategyInitiativeCommunity
-	outs, err = d.ReadOrEmpty(id)
+	outs, err = d.ReadOrEmpty(id, platformID)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found id==%s, platformID==%s in %s\n", id, platformID, d.Name)
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -123,24 +123,24 @@ func (d DAOImpl) Read(id string) (out StrategyInitiativeCommunity, err error) {
 
 
 // ReadUnsafe reads the StrategyInitiativeCommunity. Panics in case of any errors
-func (d DAOImpl) ReadUnsafe(id string) StrategyInitiativeCommunity {
-	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadUnsafe(id string, platformID common.PlatformID) StrategyInitiativeCommunity {
+	out, err2 := d.Read(id, platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s, platformID==%s in %s\n", id, platformID, d.Name))
 	return out
 }
 
 
 // ReadOrEmpty reads StrategyInitiativeCommunity
-func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyInitiativeCommunity, err error) {
+func (d DAOImpl) ReadOrEmpty(id string, platformID common.PlatformID) (out []StrategyInitiativeCommunity, err error) {
 	var outOrEmpty StrategyInitiativeCommunity
-	ids := idParams(id)
+	ids := idParams(id, platformID)
 	var found bool
 	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
 	if found {
-		if outOrEmpty.ID == id {
+		if outOrEmpty.ID == id && outOrEmpty.PlatformID == platformID {
 			out = append(out, outOrEmpty)
 		} else {
-			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+			err = fmt.Errorf("Requested ids: id==%s, platformID==%s are different from the found ones: id==%s, platformID==%s", id, platformID, outOrEmpty.ID, outOrEmpty.PlatformID) // unexpected error: found ids != ids
 		}
 	}
 	err = errors.Wrapf(err, "StrategyInitiativeCommunity DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -149,9 +149,9 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyInitiativeCommunity, err 
 
 
 // ReadOrEmptyUnsafe reads the StrategyInitiativeCommunity. Panics in case of any errors
-func (d DAOImpl) ReadOrEmptyUnsafe(id string) []StrategyInitiativeCommunity {
-	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadOrEmptyUnsafe(id string, platformID common.PlatformID) []StrategyInitiativeCommunity {
+	out, err2 := d.ReadOrEmpty(id, platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s, platformID==%s in %s\n", id, platformID, d.Name))
 	return out
 }
 
@@ -162,8 +162,8 @@ func (d DAOImpl) CreateOrUpdate(strategyInitiativeCommunity StrategyInitiativeCo
 	if strategyInitiativeCommunity.CreatedAt == "" { strategyInitiativeCommunity.CreatedAt = strategyInitiativeCommunity.ModifiedAt }
 	
 	var olds []StrategyInitiativeCommunity
-	olds, err = d.ReadOrEmpty(strategyInitiativeCommunity.ID)
-	err = errors.Wrapf(err, "StrategyInitiativeCommunity DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", strategyInitiativeCommunity.ID)
+	olds, err = d.ReadOrEmpty(strategyInitiativeCommunity.ID, strategyInitiativeCommunity.PlatformID)
+	err = errors.Wrapf(err, "StrategyInitiativeCommunity DAO.CreateOrUpdate(id = id==%s, platformID==%s) couldn't ReadOrEmpty", strategyInitiativeCommunity.ID, strategyInitiativeCommunity.PlatformID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(strategyInitiativeCommunity)
@@ -174,7 +174,7 @@ func (d DAOImpl) CreateOrUpdate(strategyInitiativeCommunity StrategyInitiativeCo
 				old := olds[0]
 				strategyInitiativeCommunity.ModifiedAt = core.CurrentRFCTimestamp()
 
-				key := idParams(old.ID)
+				key := idParams(old.ID, old.PlatformID)
 				expr, exprAttributes, names := updateExpression(strategyInitiativeCommunity, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
@@ -205,15 +205,15 @@ func (d DAOImpl) CreateOrUpdateUnsafe(strategyInitiativeCommunity StrategyInitia
 
 
 // Delete removes StrategyInitiativeCommunity from db
-func (d DAOImpl)Delete(id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id))
+func (d DAOImpl)Delete(id string, platformID common.PlatformID) error {
+	return d.Dynamo.DeleteEntry(d.Name, idParams(id, platformID))
 }
 
 
 // DeleteUnsafe deletes StrategyInitiativeCommunity and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(id string) {
-	err2 := d.Delete(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+func (d DAOImpl)DeleteUnsafe(id string, platformID common.PlatformID) {
+	err2 := d.Delete(id, platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s, platformID==%s in %s\n", id, platformID, d.Name))
 }
 
 
@@ -237,9 +237,10 @@ func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []Stra
 	return
 }
 
-func idParams(id string) map[string]*dynamodb.AttributeValue {
+func idParams(id string, platformID common.PlatformID) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue {
 		"id": common.DynS(id),
+		"platform_id": common.DynS(string(platformID)),
 	}
 	return params
 }
