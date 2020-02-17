@@ -1,16 +1,15 @@
 package lambda
 
-import "encoding/json"
+import (
+	"encoding/json"
+	// "github.com/nlopes/slack"
+	"github.com/nlopes/slack/slackevents"
+)
 
-type AppHomeOpenedEvent struct {
-	Type           string      `json:"type"`
-	User           string      `json:"user"`
-	Channel        string      `json:"channel"`
-	EventTimeStamp json.Number `json:"event_ts"`
-}
+type AppHomeOpenedEvent = slackevents.AppHomeOpenedEvent
 
 const (
-	AppHomeOpened = "app_home_opened"
+	AppHomeOpened = slackevents.AppHomeOpened
 )
 
 type SlackAppHomeEvent struct {
