@@ -14,8 +14,8 @@ import (
 )
 
 type VisionMission struct  {
-	ID string `json:"id"`
 	PlatformID common.PlatformID `json:"platform_id"`
+	ID string `json:"id"`
 	Mission string `json:"mission"`
 	Vision string `json:"vision"`
 	Advocate string `json:"advocate"`
@@ -29,8 +29,8 @@ type VisionMission struct  {
 // CollectEmptyFields returns entity field names that are empty.
 // It also returns the boolean ok-flag if the list is empty.
 func (visionMission VisionMission)CollectEmptyFields() (emptyFields []string, ok bool) {
-	if visionMission.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if visionMission.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
+	if visionMission.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if visionMission.Mission == "" { emptyFields = append(emptyFields, "Mission")}
 	if visionMission.Vision == "" { emptyFields = append(emptyFields, "Vision")}
 	if visionMission.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
@@ -47,14 +47,14 @@ func (visionMission VisionMission) ToJSON() (string, error) {
 type DAO interface {
 	Create(visionMission VisionMission) error
 	CreateUnsafe(visionMission VisionMission)
-	Read(id string) (visionMission VisionMission, err error)
-	ReadUnsafe(id string) (visionMission VisionMission)
-	ReadOrEmpty(id string) (visionMission []VisionMission, err error)
-	ReadOrEmptyUnsafe(id string) (visionMission []VisionMission)
+	Read(platformID common.PlatformID) (visionMission VisionMission, err error)
+	ReadUnsafe(platformID common.PlatformID) (visionMission VisionMission)
+	ReadOrEmpty(platformID common.PlatformID) (visionMission []VisionMission, err error)
+	ReadOrEmptyUnsafe(platformID common.PlatformID) (visionMission []VisionMission)
 	CreateOrUpdate(visionMission VisionMission) error
 	CreateOrUpdateUnsafe(visionMission VisionMission)
-	Delete(id string) error
-	DeleteUnsafe(id string)
+	Delete(platformID common.PlatformID) error
+	DeleteUnsafe(platformID common.PlatformID)
 }
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
@@ -100,16 +100,16 @@ func (d DAOImpl) Create(visionMission VisionMission) (err error) {
 // CreateUnsafe saves the VisionMission.
 func (d DAOImpl) CreateUnsafe(visionMission VisionMission) {
 	err2 := d.Create(visionMission)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", visionMission.ID, d.Name))
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create platformID==%s in %s\n", visionMission.PlatformID, d.Name))
 }
 
 
 // Read reads VisionMission
-func (d DAOImpl) Read(id string) (out VisionMission, err error) {
+func (d DAOImpl) Read(platformID common.PlatformID) (out VisionMission, err error) {
 	var outs []VisionMission
-	outs, err = d.ReadOrEmpty(id)
+	outs, err = d.ReadOrEmpty(platformID)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found platformID==%s in %s\n", platformID, d.Name)
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -119,24 +119,24 @@ func (d DAOImpl) Read(id string) (out VisionMission, err error) {
 
 
 // ReadUnsafe reads the VisionMission. Panics in case of any errors
-func (d DAOImpl) ReadUnsafe(id string) VisionMission {
-	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadUnsafe(platformID common.PlatformID) VisionMission {
+	out, err2 := d.Read(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading platformID==%s in %s\n", platformID, d.Name))
 	return out
 }
 
 
 // ReadOrEmpty reads VisionMission
-func (d DAOImpl) ReadOrEmpty(id string) (out []VisionMission, err error) {
+func (d DAOImpl) ReadOrEmpty(platformID common.PlatformID) (out []VisionMission, err error) {
 	var outOrEmpty VisionMission
-	ids := idParams(id)
+	ids := idParams(platformID)
 	var found bool
 	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
 	if found {
-		if outOrEmpty.ID == id {
+		if outOrEmpty.PlatformID == platformID {
 			out = append(out, outOrEmpty)
 		} else {
-			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+			err = fmt.Errorf("Requested ids: platformID==%s are different from the found ones: platformID==%s", platformID, outOrEmpty.PlatformID) // unexpected error: found ids != ids
 		}
 	}
 	err = errors.Wrapf(err, "VisionMission DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -145,9 +145,9 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []VisionMission, err error) {
 
 
 // ReadOrEmptyUnsafe reads the VisionMission. Panics in case of any errors
-func (d DAOImpl) ReadOrEmptyUnsafe(id string) []VisionMission {
-	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadOrEmptyUnsafe(platformID common.PlatformID) []VisionMission {
+	out, err2 := d.ReadOrEmpty(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading platformID==%s in %s\n", platformID, d.Name))
 	return out
 }
 
@@ -158,8 +158,8 @@ func (d DAOImpl) CreateOrUpdate(visionMission VisionMission) (err error) {
 	if visionMission.CreatedAt == "" { visionMission.CreatedAt = visionMission.ModifiedAt }
 	
 	var olds []VisionMission
-	olds, err = d.ReadOrEmpty(visionMission.ID)
-	err = errors.Wrapf(err, "VisionMission DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", visionMission.ID)
+	olds, err = d.ReadOrEmpty(visionMission.PlatformID)
+	err = errors.Wrapf(err, "VisionMission DAO.CreateOrUpdate(id = platformID==%s) couldn't ReadOrEmpty", visionMission.PlatformID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(visionMission)
@@ -170,7 +170,7 @@ func (d DAOImpl) CreateOrUpdate(visionMission VisionMission) (err error) {
 				old := olds[0]
 				visionMission.ModifiedAt = core.CurrentRFCTimestamp()
 
-				key := idParams(old.ID)
+				key := idParams(old.PlatformID)
 				expr, exprAttributes, names := updateExpression(visionMission, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
@@ -201,27 +201,27 @@ func (d DAOImpl) CreateOrUpdateUnsafe(visionMission VisionMission) {
 
 
 // Delete removes VisionMission from db
-func (d DAOImpl)Delete(id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id))
+func (d DAOImpl)Delete(platformID common.PlatformID) error {
+	return d.Dynamo.DeleteEntry(d.Name, idParams(platformID))
 }
 
 
 // DeleteUnsafe deletes VisionMission and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(id string) {
-	err2 := d.Delete(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+func (d DAOImpl)DeleteUnsafe(platformID common.PlatformID) {
+	err2 := d.Delete(platformID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete platformID==%s in %s\n", platformID, d.Name))
 }
 
-func idParams(id string) map[string]*dynamodb.AttributeValue {
+func idParams(platformID common.PlatformID) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue {
-		"id": common.DynS(id),
+		"platform_id": common.DynS(string(platformID)),
 	}
 	return params
 }
 func allParams(visionMission VisionMission, old VisionMission) (params map[string]*dynamodb.AttributeValue) {
 	params = map[string]*dynamodb.AttributeValue{}
-	if visionMission.ID != old.ID { params[":a0"] = common.DynS(visionMission.ID) }
-	if visionMission.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(visionMission.PlatformID)) }
+	if visionMission.PlatformID != old.PlatformID { params[":a0"] = common.DynS(string(visionMission.PlatformID)) }
+	if visionMission.ID != old.ID { params[":a1"] = common.DynS(visionMission.ID) }
 	if visionMission.Mission != old.Mission { params[":a2"] = common.DynS(visionMission.Mission) }
 	if visionMission.Vision != old.Vision { params[":a3"] = common.DynS(visionMission.Vision) }
 	if visionMission.Advocate != old.Advocate { params[":a4"] = common.DynS(visionMission.Advocate) }
@@ -234,8 +234,8 @@ func updateExpression(visionMission VisionMission, old VisionMission) (expr stri
 	var updateParts []string
 	params = map[string]*dynamodb.AttributeValue{}
 	names := map[string]*string{}
-	if visionMission.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(visionMission.ID);  }
-	if visionMission.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(visionMission.PlatformID));  }
+	if visionMission.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a0"); params[":a0"] = common.DynS(string(visionMission.PlatformID));  }
+	if visionMission.ID != old.ID { updateParts = append(updateParts, "id = :a1"); params[":a1"] = common.DynS(visionMission.ID);  }
 	if visionMission.Mission != old.Mission { updateParts = append(updateParts, "mission = :a2"); params[":a2"] = common.DynS(visionMission.Mission);  }
 	if visionMission.Vision != old.Vision { updateParts = append(updateParts, "vision = :a3"); params[":a3"] = common.DynS(visionMission.Vision);  }
 	if visionMission.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a4"); params[":a4"] = common.DynS(visionMission.Advocate);  }

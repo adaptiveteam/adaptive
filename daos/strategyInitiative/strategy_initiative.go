@@ -14,8 +14,8 @@ import (
 )
 
 type StrategyInitiative struct  {
-	ID string `json:"id"`
 	PlatformID common.PlatformID `json:"platform_id"`
+	ID string `json:"id"`
 	Name string `json:"name"`
 	Description string `json:"description"`
 	DefinitionOfVictory string `json:"definition_of_victory"`
@@ -35,8 +35,8 @@ type StrategyInitiative struct  {
 // CollectEmptyFields returns entity field names that are empty.
 // It also returns the boolean ok-flag if the list is empty.
 func (strategyInitiative StrategyInitiative)CollectEmptyFields() (emptyFields []string, ok bool) {
-	if strategyInitiative.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if strategyInitiative.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
+	if strategyInitiative.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if strategyInitiative.Name == "" { emptyFields = append(emptyFields, "Name")}
 	if strategyInitiative.Description == "" { emptyFields = append(emptyFields, "Description")}
 	if strategyInitiative.DefinitionOfVictory == "" { emptyFields = append(emptyFields, "DefinitionOfVictory")}
@@ -59,14 +59,14 @@ func (strategyInitiative StrategyInitiative) ToJSON() (string, error) {
 type DAO interface {
 	Create(strategyInitiative StrategyInitiative) error
 	CreateUnsafe(strategyInitiative StrategyInitiative)
-	Read(id string) (strategyInitiative StrategyInitiative, err error)
-	ReadUnsafe(id string) (strategyInitiative StrategyInitiative)
-	ReadOrEmpty(id string) (strategyInitiative []StrategyInitiative, err error)
-	ReadOrEmptyUnsafe(id string) (strategyInitiative []StrategyInitiative)
+	Read(platformID common.PlatformID, id string) (strategyInitiative StrategyInitiative, err error)
+	ReadUnsafe(platformID common.PlatformID, id string) (strategyInitiative StrategyInitiative)
+	ReadOrEmpty(platformID common.PlatformID, id string) (strategyInitiative []StrategyInitiative, err error)
+	ReadOrEmptyUnsafe(platformID common.PlatformID, id string) (strategyInitiative []StrategyInitiative)
 	CreateOrUpdate(strategyInitiative StrategyInitiative) error
 	CreateOrUpdateUnsafe(strategyInitiative StrategyInitiative)
-	Delete(id string) error
-	DeleteUnsafe(id string)
+	Delete(platformID common.PlatformID, id string) error
+	DeleteUnsafe(platformID common.PlatformID, id string)
 	ReadByPlatformID(platformID common.PlatformID) (strategyInitiative []StrategyInitiative, err error)
 	ReadByPlatformIDUnsafe(platformID common.PlatformID) (strategyInitiative []StrategyInitiative)
 	ReadByInitiativeCommunityID(initiativeCommunityID string) (strategyInitiative []StrategyInitiative, err error)
@@ -116,16 +116,16 @@ func (d DAOImpl) Create(strategyInitiative StrategyInitiative) (err error) {
 // CreateUnsafe saves the StrategyInitiative.
 func (d DAOImpl) CreateUnsafe(strategyInitiative StrategyInitiative) {
 	err2 := d.Create(strategyInitiative)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", strategyInitiative.ID, d.Name))
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create platformID==%s, id==%s in %s\n", strategyInitiative.PlatformID, strategyInitiative.ID, d.Name))
 }
 
 
 // Read reads StrategyInitiative
-func (d DAOImpl) Read(id string) (out StrategyInitiative, err error) {
+func (d DAOImpl) Read(platformID common.PlatformID, id string) (out StrategyInitiative, err error) {
 	var outs []StrategyInitiative
-	outs, err = d.ReadOrEmpty(id)
+	outs, err = d.ReadOrEmpty(platformID, id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found platformID==%s, id==%s in %s\n", platformID, id, d.Name)
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -135,24 +135,24 @@ func (d DAOImpl) Read(id string) (out StrategyInitiative, err error) {
 
 
 // ReadUnsafe reads the StrategyInitiative. Panics in case of any errors
-func (d DAOImpl) ReadUnsafe(id string) StrategyInitiative {
-	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadUnsafe(platformID common.PlatformID, id string) StrategyInitiative {
+	out, err2 := d.Read(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 	return out
 }
 
 
 // ReadOrEmpty reads StrategyInitiative
-func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyInitiative, err error) {
+func (d DAOImpl) ReadOrEmpty(platformID common.PlatformID, id string) (out []StrategyInitiative, err error) {
 	var outOrEmpty StrategyInitiative
-	ids := idParams(id)
+	ids := idParams(platformID, id)
 	var found bool
 	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
 	if found {
-		if outOrEmpty.ID == id {
+		if outOrEmpty.PlatformID == platformID && outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
 		} else {
-			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+			err = fmt.Errorf("Requested ids: platformID==%s, id==%s are different from the found ones: platformID==%s, id==%s", platformID, id, outOrEmpty.PlatformID, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
 	err = errors.Wrapf(err, "StrategyInitiative DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -161,9 +161,9 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyInitiative, err error) {
 
 
 // ReadOrEmptyUnsafe reads the StrategyInitiative. Panics in case of any errors
-func (d DAOImpl) ReadOrEmptyUnsafe(id string) []StrategyInitiative {
-	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadOrEmptyUnsafe(platformID common.PlatformID, id string) []StrategyInitiative {
+	out, err2 := d.ReadOrEmpty(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 	return out
 }
 
@@ -174,8 +174,8 @@ func (d DAOImpl) CreateOrUpdate(strategyInitiative StrategyInitiative) (err erro
 	if strategyInitiative.CreatedAt == "" { strategyInitiative.CreatedAt = strategyInitiative.ModifiedAt }
 	
 	var olds []StrategyInitiative
-	olds, err = d.ReadOrEmpty(strategyInitiative.ID)
-	err = errors.Wrapf(err, "StrategyInitiative DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", strategyInitiative.ID)
+	olds, err = d.ReadOrEmpty(strategyInitiative.PlatformID, strategyInitiative.ID)
+	err = errors.Wrapf(err, "StrategyInitiative DAO.CreateOrUpdate(id = platformID==%s, id==%s) couldn't ReadOrEmpty", strategyInitiative.PlatformID, strategyInitiative.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(strategyInitiative)
@@ -186,7 +186,7 @@ func (d DAOImpl) CreateOrUpdate(strategyInitiative StrategyInitiative) (err erro
 				old := olds[0]
 				strategyInitiative.ModifiedAt = core.CurrentRFCTimestamp()
 
-				key := idParams(old.ID)
+				key := idParams(old.PlatformID, old.ID)
 				expr, exprAttributes, names := updateExpression(strategyInitiative, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
@@ -217,15 +217,15 @@ func (d DAOImpl) CreateOrUpdateUnsafe(strategyInitiative StrategyInitiative) {
 
 
 // Delete removes StrategyInitiative from db
-func (d DAOImpl)Delete(id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id))
+func (d DAOImpl)Delete(platformID common.PlatformID, id string) error {
+	return d.Dynamo.DeleteEntry(d.Name, idParams(platformID, id))
 }
 
 
 // DeleteUnsafe deletes StrategyInitiative and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(id string) {
-	err2 := d.Delete(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+func (d DAOImpl)DeleteUnsafe(platformID common.PlatformID, id string) {
+	err2 := d.Delete(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 }
 
 
@@ -270,16 +270,17 @@ func (d DAOImpl)ReadByInitiativeCommunityIDUnsafe(initiativeCommunityID string) 
 	return
 }
 
-func idParams(id string) map[string]*dynamodb.AttributeValue {
+func idParams(platformID common.PlatformID, id string) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue {
+		"platform_id": common.DynS(string(platformID)),
 		"id": common.DynS(id),
 	}
 	return params
 }
 func allParams(strategyInitiative StrategyInitiative, old StrategyInitiative) (params map[string]*dynamodb.AttributeValue) {
 	params = map[string]*dynamodb.AttributeValue{}
-	if strategyInitiative.ID != old.ID { params[":a0"] = common.DynS(strategyInitiative.ID) }
-	if strategyInitiative.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(strategyInitiative.PlatformID)) }
+	if strategyInitiative.PlatformID != old.PlatformID { params[":a0"] = common.DynS(string(strategyInitiative.PlatformID)) }
+	if strategyInitiative.ID != old.ID { params[":a1"] = common.DynS(strategyInitiative.ID) }
 	if strategyInitiative.Name != old.Name { params[":a2"] = common.DynS(strategyInitiative.Name) }
 	if strategyInitiative.Description != old.Description { params[":a3"] = common.DynS(strategyInitiative.Description) }
 	if strategyInitiative.DefinitionOfVictory != old.DefinitionOfVictory { params[":a4"] = common.DynS(strategyInitiative.DefinitionOfVictory) }
@@ -298,8 +299,8 @@ func updateExpression(strategyInitiative StrategyInitiative, old StrategyInitiat
 	var updateParts []string
 	params = map[string]*dynamodb.AttributeValue{}
 	names := map[string]*string{}
-	if strategyInitiative.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(strategyInitiative.ID);  }
-	if strategyInitiative.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(strategyInitiative.PlatformID));  }
+	if strategyInitiative.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a0"); params[":a0"] = common.DynS(string(strategyInitiative.PlatformID));  }
+	if strategyInitiative.ID != old.ID { updateParts = append(updateParts, "id = :a1"); params[":a1"] = common.DynS(strategyInitiative.ID);  }
 	if strategyInitiative.Name != old.Name { updateParts = append(updateParts, "#name = :a2"); params[":a2"] = common.DynS(strategyInitiative.Name); fldName := "name"; names["#name"] = &fldName }
 	if strategyInitiative.Description != old.Description { updateParts = append(updateParts, "description = :a3"); params[":a3"] = common.DynS(strategyInitiative.Description);  }
 	if strategyInitiative.DefinitionOfVictory != old.DefinitionOfVictory { updateParts = append(updateParts, "definition_of_victory = :a4"); params[":a4"] = common.DynS(strategyInitiative.DefinitionOfVictory);  }

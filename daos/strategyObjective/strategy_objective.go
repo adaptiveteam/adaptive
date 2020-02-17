@@ -16,10 +16,10 @@ import (
 type StrategyObjectiveType string
 
 type StrategyObjective struct  {
-	// hash
-	ID string `json:"id"`
 	// range key
 	PlatformID common.PlatformID `json:"platform_id"`
+	// hash
+	ID string `json:"id"`
 	Name string `json:"name"`
 	Description string `json:"description"`
 	AsMeasuredBy string `json:"as_measured_by"`
@@ -39,8 +39,8 @@ type StrategyObjective struct  {
 // CollectEmptyFields returns entity field names that are empty.
 // It also returns the boolean ok-flag if the list is empty.
 func (strategyObjective StrategyObjective)CollectEmptyFields() (emptyFields []string, ok bool) {
-	if strategyObjective.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if strategyObjective.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
+	if strategyObjective.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if strategyObjective.Name == "" { emptyFields = append(emptyFields, "Name")}
 	if strategyObjective.Description == "" { emptyFields = append(emptyFields, "Description")}
 	if strategyObjective.AsMeasuredBy == "" { emptyFields = append(emptyFields, "AsMeasuredBy")}
@@ -61,14 +61,14 @@ func (strategyObjective StrategyObjective) ToJSON() (string, error) {
 type DAO interface {
 	Create(strategyObjective StrategyObjective) error
 	CreateUnsafe(strategyObjective StrategyObjective)
-	Read(id string) (strategyObjective StrategyObjective, err error)
-	ReadUnsafe(id string) (strategyObjective StrategyObjective)
-	ReadOrEmpty(id string) (strategyObjective []StrategyObjective, err error)
-	ReadOrEmptyUnsafe(id string) (strategyObjective []StrategyObjective)
+	Read(platformID common.PlatformID, id string) (strategyObjective StrategyObjective, err error)
+	ReadUnsafe(platformID common.PlatformID, id string) (strategyObjective StrategyObjective)
+	ReadOrEmpty(platformID common.PlatformID, id string) (strategyObjective []StrategyObjective, err error)
+	ReadOrEmptyUnsafe(platformID common.PlatformID, id string) (strategyObjective []StrategyObjective)
 	CreateOrUpdate(strategyObjective StrategyObjective) error
 	CreateOrUpdateUnsafe(strategyObjective StrategyObjective)
-	Delete(id string) error
-	DeleteUnsafe(id string)
+	Delete(platformID common.PlatformID, id string) error
+	DeleteUnsafe(platformID common.PlatformID, id string)
 	ReadByPlatformID(platformID common.PlatformID) (strategyObjective []StrategyObjective, err error)
 	ReadByPlatformIDUnsafe(platformID common.PlatformID) (strategyObjective []StrategyObjective)
 	ReadByCapabilityCommunityID(capabilityCommunityIDs []string) (strategyObjective []StrategyObjective, err error)
@@ -118,16 +118,16 @@ func (d DAOImpl) Create(strategyObjective StrategyObjective) (err error) {
 // CreateUnsafe saves the StrategyObjective.
 func (d DAOImpl) CreateUnsafe(strategyObjective StrategyObjective) {
 	err2 := d.Create(strategyObjective)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", strategyObjective.ID, d.Name))
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create platformID==%s, id==%s in %s\n", strategyObjective.PlatformID, strategyObjective.ID, d.Name))
 }
 
 
 // Read reads StrategyObjective
-func (d DAOImpl) Read(id string) (out StrategyObjective, err error) {
+func (d DAOImpl) Read(platformID common.PlatformID, id string) (out StrategyObjective, err error) {
 	var outs []StrategyObjective
-	outs, err = d.ReadOrEmpty(id)
+	outs, err = d.ReadOrEmpty(platformID, id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found platformID==%s, id==%s in %s\n", platformID, id, d.Name)
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -137,24 +137,24 @@ func (d DAOImpl) Read(id string) (out StrategyObjective, err error) {
 
 
 // ReadUnsafe reads the StrategyObjective. Panics in case of any errors
-func (d DAOImpl) ReadUnsafe(id string) StrategyObjective {
-	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadUnsafe(platformID common.PlatformID, id string) StrategyObjective {
+	out, err2 := d.Read(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 	return out
 }
 
 
 // ReadOrEmpty reads StrategyObjective
-func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyObjective, err error) {
+func (d DAOImpl) ReadOrEmpty(platformID common.PlatformID, id string) (out []StrategyObjective, err error) {
 	var outOrEmpty StrategyObjective
-	ids := idParams(id)
+	ids := idParams(platformID, id)
 	var found bool
 	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
 	if found {
-		if outOrEmpty.ID == id {
+		if outOrEmpty.PlatformID == platformID && outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
 		} else {
-			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+			err = fmt.Errorf("Requested ids: platformID==%s, id==%s are different from the found ones: platformID==%s, id==%s", platformID, id, outOrEmpty.PlatformID, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
 	err = errors.Wrapf(err, "StrategyObjective DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -163,9 +163,9 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []StrategyObjective, err error) {
 
 
 // ReadOrEmptyUnsafe reads the StrategyObjective. Panics in case of any errors
-func (d DAOImpl) ReadOrEmptyUnsafe(id string) []StrategyObjective {
-	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadOrEmptyUnsafe(platformID common.PlatformID, id string) []StrategyObjective {
+	out, err2 := d.ReadOrEmpty(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 	return out
 }
 
@@ -176,8 +176,8 @@ func (d DAOImpl) CreateOrUpdate(strategyObjective StrategyObjective) (err error)
 	if strategyObjective.CreatedAt == "" { strategyObjective.CreatedAt = strategyObjective.ModifiedAt }
 	
 	var olds []StrategyObjective
-	olds, err = d.ReadOrEmpty(strategyObjective.ID)
-	err = errors.Wrapf(err, "StrategyObjective DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", strategyObjective.ID)
+	olds, err = d.ReadOrEmpty(strategyObjective.PlatformID, strategyObjective.ID)
+	err = errors.Wrapf(err, "StrategyObjective DAO.CreateOrUpdate(id = platformID==%s, id==%s) couldn't ReadOrEmpty", strategyObjective.PlatformID, strategyObjective.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(strategyObjective)
@@ -188,7 +188,7 @@ func (d DAOImpl) CreateOrUpdate(strategyObjective StrategyObjective) (err error)
 				old := olds[0]
 				strategyObjective.ModifiedAt = core.CurrentRFCTimestamp()
 
-				key := idParams(old.ID)
+				key := idParams(old.PlatformID, old.ID)
 				expr, exprAttributes, names := updateExpression(strategyObjective, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
@@ -219,15 +219,15 @@ func (d DAOImpl) CreateOrUpdateUnsafe(strategyObjective StrategyObjective) {
 
 
 // Delete removes StrategyObjective from db
-func (d DAOImpl)Delete(id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id))
+func (d DAOImpl)Delete(platformID common.PlatformID, id string) error {
+	return d.Dynamo.DeleteEntry(d.Name, idParams(platformID, id))
 }
 
 
 // DeleteUnsafe deletes StrategyObjective and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(id string) {
-	err2 := d.Delete(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+func (d DAOImpl)DeleteUnsafe(platformID common.PlatformID, id string) {
+	err2 := d.Delete(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 }
 
 
@@ -272,16 +272,17 @@ func (d DAOImpl)ReadByCapabilityCommunityIDUnsafe(capabilityCommunityIDs []strin
 	return
 }
 
-func idParams(id string) map[string]*dynamodb.AttributeValue {
+func idParams(platformID common.PlatformID, id string) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue {
+		"platform_id": common.DynS(string(platformID)),
 		"id": common.DynS(id),
 	}
 	return params
 }
 func allParams(strategyObjective StrategyObjective, old StrategyObjective) (params map[string]*dynamodb.AttributeValue) {
 	params = map[string]*dynamodb.AttributeValue{}
-	if strategyObjective.ID != old.ID { params[":a0"] = common.DynS(strategyObjective.ID) }
-	if strategyObjective.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(strategyObjective.PlatformID)) }
+	if strategyObjective.PlatformID != old.PlatformID { params[":a0"] = common.DynS(string(strategyObjective.PlatformID)) }
+	if strategyObjective.ID != old.ID { params[":a1"] = common.DynS(strategyObjective.ID) }
 	if strategyObjective.Name != old.Name { params[":a2"] = common.DynS(strategyObjective.Name) }
 	if strategyObjective.Description != old.Description { params[":a3"] = common.DynS(strategyObjective.Description) }
 	if strategyObjective.AsMeasuredBy != old.AsMeasuredBy { params[":a4"] = common.DynS(strategyObjective.AsMeasuredBy) }
@@ -299,8 +300,8 @@ func updateExpression(strategyObjective StrategyObjective, old StrategyObjective
 	var updateParts []string
 	params = map[string]*dynamodb.AttributeValue{}
 	names := map[string]*string{}
-	if strategyObjective.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(strategyObjective.ID);  }
-	if strategyObjective.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(strategyObjective.PlatformID));  }
+	if strategyObjective.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a0"); params[":a0"] = common.DynS(string(strategyObjective.PlatformID));  }
+	if strategyObjective.ID != old.ID { updateParts = append(updateParts, "id = :a1"); params[":a1"] = common.DynS(strategyObjective.ID);  }
 	if strategyObjective.Name != old.Name { updateParts = append(updateParts, "#name = :a2"); params[":a2"] = common.DynS(strategyObjective.Name); fldName := "name"; names["#name"] = &fldName }
 	if strategyObjective.Description != old.Description { updateParts = append(updateParts, "description = :a3"); params[":a3"] = common.DynS(strategyObjective.Description);  }
 	if strategyObjective.AsMeasuredBy != old.AsMeasuredBy { updateParts = append(updateParts, "as_measured_by = :a4"); params[":a4"] = common.DynS(strategyObjective.AsMeasuredBy);  }
