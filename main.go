@@ -18,6 +18,7 @@ import (
 	userSetup "github.com/adaptiveteam/adaptive/lambdas/user-setup-lambda-go"
 	strategySlackMessageProcessor "github.com/adaptiveteam/adaptive/lambdas/strategy-slack-message-processor-lambda-go"
 	holidays "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
+	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
 	ls "github.com/aws/aws-lambda-go/lambda"
 )
 
@@ -52,6 +53,8 @@ func main() {
 		ls.Start(strategySlackMessageProcessor.HandleRequest)
 	case "holidays":
 		holidays.LambdaRouting.StartHandler()
+	case "competencies":
+		ls.Start(competencies.HandleRequest)
 	default:
 		log.Printf("Unknown role %s", role)
 	}
