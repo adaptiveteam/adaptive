@@ -92,19 +92,25 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 		} else {
 			np := models.UnmarshalNamespacePayload4JSONUnsafe(record.SNS.Message)
 			if np.Namespace == AdaptiveValuesNamespace {
-				platformID := np.PlatformID
-				switch np.SlackRequest.Type {
-				case models.InteractionSlackRequestType:
-					dispatchSlackInteractionCallback(np.SlackRequest.InteractionCallback, platformID)
-				case models.DialogSubmissionSlackRequestType:
-					dispatchSlackDialogSubmissionCallback(np.SlackRequest.InteractionCallback, np.SlackRequest.DialogSubmissionCallback, platformID)
-				default:
-					panic(fmt.Sprintf("Unknown request of type %s: %v\n", np.SlackRequest.Type, np))
-				}
+				err = HandleNamespacePayload4(np)
 			}
 		}
 	}
-	return nil // we do not have handlable errors. Only panics
+	return // we do not have handlable errors. Only panics
+}
+// HandleNamespacePayload4 - handle all logic
+func HandleNamespacePayload4(np models.NamespacePayload4) (err error) {
+	defer core.RecoverToErrorVar("Competencies", &err)
+	platformID := np.PlatformID
+	switch np.SlackRequest.Type {
+	case models.InteractionSlackRequestType:
+		dispatchSlackInteractionCallback(np.SlackRequest.InteractionCallback, platformID)
+	case models.DialogSubmissionSlackRequestType:
+		dispatchSlackDialogSubmissionCallback(np.SlackRequest.InteractionCallback, np.SlackRequest.DialogSubmissionCallback, platformID)
+	default:
+		err = errors.Errorf("Unknown request of type %s: %v\n", np.SlackRequest.Type, np)
+	}
+	return
 }
 
 // noMessageOverrideTs is a predefined constant that allows to skip original message overriding

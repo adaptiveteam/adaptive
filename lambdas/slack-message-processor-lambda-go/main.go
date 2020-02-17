@@ -26,6 +26,8 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	holidaysLambda "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
+	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
@@ -423,8 +425,11 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 									
 									holidaysLambda.LambdaRouting.HandleNamespacePayload4(ctx, np)
 									// forwardToNamespace(HolidaysNamespace)
-								case values.AdaptiveValuesListMenuItem, values.AdaptiveValuesSimpleListMenuItem, values.AdaptiveValuesCreateNewMenuItem:
-									forwardToNamespace(AdaptiveValuesNamespace)
+								case values.AdaptiveValuesListMenuItem, 
+									values.AdaptiveValuesSimpleListMenuItem,
+									values.AdaptiveValuesCreateNewMenuItem:
+									competencies.HandleNamespacePayload4(np)
+									// forwardToNamespace(AdaptiveValuesNamespace)
 								case "StrategyPerformanceReport":
 									var buf *bytes.Buffer
 									var reportname string
