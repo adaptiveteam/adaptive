@@ -27,6 +27,8 @@ module "slack_message_processor_lambda" {
   environment_variables = merge(local.environment_variables, {
     LAMBDA_ROLE   = "slack-message-processor"
     LOG_NAMESPACE = "slack-message-processor"
+    SLACK_CLIENT_ID = var.SLACK_CLIENT_ID
+    SLACK_CLIENT_SECRET = var.SLACK_CLIENT_SECRET
   })
 
   // Attach extra policy
