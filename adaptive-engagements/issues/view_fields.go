@@ -109,7 +109,12 @@ func getObjectiveProgressComment(op userObjectiveProgress.UserObjectiveProgress)
 	res := ui.Sprintf("[%s] %s (%s)", models.ObjectiveStatusColorLabels[op.StatusColor], op.Comments, op.CreatedOn)
 
 	if op.PartnerComments != "" {
-		res = res + ui.Sprintf("\nPartner: %s", op.PartnerComments)
+		partnerStatusLabel := ui.RichText("")
+		partnerStatus := models.ObjectiveStatusColor(op.PartnerReportedProgress)
+		if partnerStatus != op.StatusColor {
+			partnerStatusLabel = ui.Sprintf("[`%s`] ", models.ObjectiveStatusColorLabels[partnerStatus])
+		}
+		res = res + ui.Sprintf("\nPartner: %s%s", partnerStatusLabel, op.PartnerComments)
 	}
 	return res
 }

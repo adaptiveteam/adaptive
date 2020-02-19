@@ -47,19 +47,31 @@ func (w workflowImpl) OnProvideFeedback() wf.Handler {
 			WithField("dialogSituation", dialogSituation).
 			WithField("Handler", "OnProvideFeedback")
 		log.Info("Start")
-		var issue issues.Issue
-		issue, err = utilsIssues.Read(issueType, issueID)(w.DynamoDBConnection)
+		ctx.SetFlag(exchange.IsShowingProgressKey, true) // enable show progress. This will make sure that progress is prefetched
+		var newAndOldIssues issues.NewAndOldIssues
+		newAndOldIssues, err = wfCommon.WorkflowContext(w).GetNewAndOldIssues(ctx)
 		if err != nil {
 			return
 		}
+		issue := newAndOldIssues.NewIssue
+		var oldPartnerReportedProgress string
+		var oldPartnerComments ui.PlainText
+		if len(issue.Progress) > 0 {
+			p := newAndOldIssues.NewIssue.Progress[0]
+			oldPartnerReportedProgress = p.PartnerReportedProgress
+			oldPartnerComments = ui.PlainText(p.PartnerComments)
+		}
 		switch dialogSituation {
 		case utilsIssues.ProgressUpdateContext:
-			survey := utils.AttachmentSurvey(
+			out = out.WithSurvey(utils.AttachmentSurvey(
 				string("Feedback on the changes"),
-				progressCommentSurveyElements(ui.PlainText(issue.UserObjective.Name),
-					issue.UserObjective.CreatedDate))
-
-			out = out.WithSurvey(survey)
+				progressCommentSurveyElements(
+					ui.PlainText(issue.UserObjective.Name),
+					issue.UserObjective.CreatedDate,
+					oldPartnerReportedProgress,
+					oldPartnerComments,
+				),
+			))
 		default:
 			// no text
 		}
@@ -81,7 +93,11 @@ func (w workflowImpl) OnDismiss() wf.Handler {
 		return
 	}
 }
-func progressCommentSurveyElements(objName ui.PlainText, startDate string) []ebm.AttachmentActionTextElement {
+
+func progressCommentSurveyElements(objName ui.PlainText, startDate string,
+	oldPartnerReportedProgress string,
+	oldPartnerComments ui.PlainText,
+) []ebm.AttachmentActionTextElement {
 	nameConstrained := engIssues.ObjectiveCommentsTitle(objName)
 	today := core.ISODateLayout.Format(time.Now())
 	elapsedDays := common.DurationDays(startDate, today, core.ISODateLayout, "progressCommentSurveyElements")
@@ -91,8 +107,9 @@ func progressCommentSurveyElements(objName ui.PlainText, startDate string) []ebm
 			Name:     ObjectiveStatusColor,
 			ElemType: models.MenuSelectType,
 			Options:  utils.AttachActionElementOptions(models.ObjectiveStatusColorKeyValues),
+			Value:    oldPartnerReportedProgress,
 		},
-		ebm.NewTextArea(ObjectiveProgressComments, nameConstrained, ObjectiveProgressCommentsPlaceholder, ""),
+		ebm.NewTextArea(ObjectiveProgressComments, nameConstrained, ObjectiveProgressCommentsPlaceholder, oldPartnerComments),
 	}
 
 }
@@ -135,6 +152,10 @@ func (w workflowImpl) OnCommentsSubmitted() wf.Handler {
 			p.PartnerComments = ctx.Request.Submission[ObjectiveProgressComments]
 			dao := utilsIssues.UserObjectiveProgressDAO()(w.DynamoDBConnection)
 			err = dao.CreateOrUpdate(p)
+			if err != nil {
+				return
+			}
+			out, err = w.standardView(ctx)
 			out.KeepOriginal = false
 			out = out.
 				WithInteractiveMessage(wf.InteractiveMessage{
@@ -206,8 +227,15 @@ func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOut
 		view.AttachmentText = notificationText
 		view.OverrideOriginal = true
 
-		view.InteractiveElements = append(view.InteractiveElements,
-			wf.Button(ConfirmedEvent, "Provide feedback"),
+		var feedbackButtonCaption ui.PlainText
+		if newAndOldIssues.NewIssue.PrefetchedData.Progress[0].PartnerComments == "" {
+			feedbackButtonCaption = "Provide feedback"
+		} else {
+			feedbackButtonCaption = "Update feedback"
+		}
+		view.InteractiveElements = append(
+			view.InteractiveElements,
+			wf.Button(ConfirmedEvent, feedbackButtonCaption),
 			// wf.Button(RejectedEvent, "Dismiss"),
 		)
 		out = out.WithInteractiveMessage(view)

@@ -14,8 +14,8 @@ import (
 )
 
 type CapabilityCommunity struct  {
-	ID string `json:"id"`
 	PlatformID common.PlatformID `json:"platform_id"`
+	ID string `json:"id"`
 	Name string `json:"name"`
 	Description string `json:"description"`
 	Advocate string `json:"advocate"`
@@ -29,8 +29,8 @@ type CapabilityCommunity struct  {
 // CollectEmptyFields returns entity field names that are empty.
 // It also returns the boolean ok-flag if the list is empty.
 func (capabilityCommunity CapabilityCommunity)CollectEmptyFields() (emptyFields []string, ok bool) {
-	if capabilityCommunity.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if capabilityCommunity.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
+	if capabilityCommunity.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if capabilityCommunity.Name == "" { emptyFields = append(emptyFields, "Name")}
 	if capabilityCommunity.Description == "" { emptyFields = append(emptyFields, "Description")}
 	if capabilityCommunity.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
@@ -47,14 +47,14 @@ func (capabilityCommunity CapabilityCommunity) ToJSON() (string, error) {
 type DAO interface {
 	Create(capabilityCommunity CapabilityCommunity) error
 	CreateUnsafe(capabilityCommunity CapabilityCommunity)
-	Read(id string) (capabilityCommunity CapabilityCommunity, err error)
-	ReadUnsafe(id string) (capabilityCommunity CapabilityCommunity)
-	ReadOrEmpty(id string) (capabilityCommunity []CapabilityCommunity, err error)
-	ReadOrEmptyUnsafe(id string) (capabilityCommunity []CapabilityCommunity)
+	Read(platformID common.PlatformID, id string) (capabilityCommunity CapabilityCommunity, err error)
+	ReadUnsafe(platformID common.PlatformID, id string) (capabilityCommunity CapabilityCommunity)
+	ReadOrEmpty(platformID common.PlatformID, id string) (capabilityCommunity []CapabilityCommunity, err error)
+	ReadOrEmptyUnsafe(platformID common.PlatformID, id string) (capabilityCommunity []CapabilityCommunity)
 	CreateOrUpdate(capabilityCommunity CapabilityCommunity) error
 	CreateOrUpdateUnsafe(capabilityCommunity CapabilityCommunity)
-	Delete(id string) error
-	DeleteUnsafe(id string)
+	Delete(platformID common.PlatformID, id string) error
+	DeleteUnsafe(platformID common.PlatformID, id string)
 	ReadByPlatformID(platformID common.PlatformID) (capabilityCommunity []CapabilityCommunity, err error)
 	ReadByPlatformIDUnsafe(platformID common.PlatformID) (capabilityCommunity []CapabilityCommunity)
 }
@@ -102,16 +102,16 @@ func (d DAOImpl) Create(capabilityCommunity CapabilityCommunity) (err error) {
 // CreateUnsafe saves the CapabilityCommunity.
 func (d DAOImpl) CreateUnsafe(capabilityCommunity CapabilityCommunity) {
 	err2 := d.Create(capabilityCommunity)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", capabilityCommunity.ID, d.Name))
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create platformID==%s, id==%s in %s\n", capabilityCommunity.PlatformID, capabilityCommunity.ID, d.Name))
 }
 
 
 // Read reads CapabilityCommunity
-func (d DAOImpl) Read(id string) (out CapabilityCommunity, err error) {
+func (d DAOImpl) Read(platformID common.PlatformID, id string) (out CapabilityCommunity, err error) {
 	var outs []CapabilityCommunity
-	outs, err = d.ReadOrEmpty(id)
+	outs, err = d.ReadOrEmpty(platformID, id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found platformID==%s, id==%s in %s\n", platformID, id, d.Name)
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -121,24 +121,24 @@ func (d DAOImpl) Read(id string) (out CapabilityCommunity, err error) {
 
 
 // ReadUnsafe reads the CapabilityCommunity. Panics in case of any errors
-func (d DAOImpl) ReadUnsafe(id string) CapabilityCommunity {
-	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadUnsafe(platformID common.PlatformID, id string) CapabilityCommunity {
+	out, err2 := d.Read(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 	return out
 }
 
 
 // ReadOrEmpty reads CapabilityCommunity
-func (d DAOImpl) ReadOrEmpty(id string) (out []CapabilityCommunity, err error) {
+func (d DAOImpl) ReadOrEmpty(platformID common.PlatformID, id string) (out []CapabilityCommunity, err error) {
 	var outOrEmpty CapabilityCommunity
-	ids := idParams(id)
+	ids := idParams(platformID, id)
 	var found bool
 	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
 	if found {
-		if outOrEmpty.ID == id {
+		if outOrEmpty.PlatformID == platformID && outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
 		} else {
-			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
+			err = fmt.Errorf("Requested ids: platformID==%s, id==%s are different from the found ones: platformID==%s, id==%s", platformID, id, outOrEmpty.PlatformID, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
 	err = errors.Wrapf(err, "CapabilityCommunity DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
@@ -147,9 +147,9 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []CapabilityCommunity, err error) {
 
 
 // ReadOrEmptyUnsafe reads the CapabilityCommunity. Panics in case of any errors
-func (d DAOImpl) ReadOrEmptyUnsafe(id string) []CapabilityCommunity {
-	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+func (d DAOImpl) ReadOrEmptyUnsafe(platformID common.PlatformID, id string) []CapabilityCommunity {
+	out, err2 := d.ReadOrEmpty(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 	return out
 }
 
@@ -160,8 +160,8 @@ func (d DAOImpl) CreateOrUpdate(capabilityCommunity CapabilityCommunity) (err er
 	if capabilityCommunity.CreatedAt == "" { capabilityCommunity.CreatedAt = capabilityCommunity.ModifiedAt }
 	
 	var olds []CapabilityCommunity
-	olds, err = d.ReadOrEmpty(capabilityCommunity.ID)
-	err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate(id = id==%s) couldn't ReadOrEmpty", capabilityCommunity.ID)
+	olds, err = d.ReadOrEmpty(capabilityCommunity.PlatformID, capabilityCommunity.ID)
+	err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate(id = platformID==%s, id==%s) couldn't ReadOrEmpty", capabilityCommunity.PlatformID, capabilityCommunity.ID)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(capabilityCommunity)
@@ -172,7 +172,7 @@ func (d DAOImpl) CreateOrUpdate(capabilityCommunity CapabilityCommunity) (err er
 				old := olds[0]
 				capabilityCommunity.ModifiedAt = core.CurrentRFCTimestamp()
 
-				key := idParams(old.ID)
+				key := idParams(old.PlatformID, old.ID)
 				expr, exprAttributes, names := updateExpression(capabilityCommunity, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
@@ -203,15 +203,15 @@ func (d DAOImpl) CreateOrUpdateUnsafe(capabilityCommunity CapabilityCommunity) {
 
 
 // Delete removes CapabilityCommunity from db
-func (d DAOImpl)Delete(id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id))
+func (d DAOImpl)Delete(platformID common.PlatformID, id string) error {
+	return d.Dynamo.DeleteEntry(d.Name, idParams(platformID, id))
 }
 
 
 // DeleteUnsafe deletes CapabilityCommunity and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(id string) {
-	err2 := d.Delete(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+func (d DAOImpl)DeleteUnsafe(platformID common.PlatformID, id string) {
+	err2 := d.Delete(platformID, id)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete platformID==%s, id==%s in %s\n", platformID, id, d.Name))
 }
 
 
@@ -235,16 +235,17 @@ func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []Capa
 	return
 }
 
-func idParams(id string) map[string]*dynamodb.AttributeValue {
+func idParams(platformID common.PlatformID, id string) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue {
+		"platform_id": common.DynS(string(platformID)),
 		"id": common.DynS(id),
 	}
 	return params
 }
 func allParams(capabilityCommunity CapabilityCommunity, old CapabilityCommunity) (params map[string]*dynamodb.AttributeValue) {
 	params = map[string]*dynamodb.AttributeValue{}
-	if capabilityCommunity.ID != old.ID { params[":a0"] = common.DynS(capabilityCommunity.ID) }
-	if capabilityCommunity.PlatformID != old.PlatformID { params[":a1"] = common.DynS(string(capabilityCommunity.PlatformID)) }
+	if capabilityCommunity.PlatformID != old.PlatformID { params[":a0"] = common.DynS(string(capabilityCommunity.PlatformID)) }
+	if capabilityCommunity.ID != old.ID { params[":a1"] = common.DynS(capabilityCommunity.ID) }
 	if capabilityCommunity.Name != old.Name { params[":a2"] = common.DynS(capabilityCommunity.Name) }
 	if capabilityCommunity.Description != old.Description { params[":a3"] = common.DynS(capabilityCommunity.Description) }
 	if capabilityCommunity.Advocate != old.Advocate { params[":a4"] = common.DynS(capabilityCommunity.Advocate) }
@@ -257,8 +258,8 @@ func updateExpression(capabilityCommunity CapabilityCommunity, old CapabilityCom
 	var updateParts []string
 	params = map[string]*dynamodb.AttributeValue{}
 	names := map[string]*string{}
-	if capabilityCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a0"); params[":a0"] = common.DynS(capabilityCommunity.ID);  }
-	if capabilityCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a1"); params[":a1"] = common.DynS(string(capabilityCommunity.PlatformID));  }
+	if capabilityCommunity.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a0"); params[":a0"] = common.DynS(string(capabilityCommunity.PlatformID));  }
+	if capabilityCommunity.ID != old.ID { updateParts = append(updateParts, "id = :a1"); params[":a1"] = common.DynS(capabilityCommunity.ID);  }
 	if capabilityCommunity.Name != old.Name { updateParts = append(updateParts, "#name = :a2"); params[":a2"] = common.DynS(capabilityCommunity.Name); fldName := "name"; names["#name"] = &fldName }
 	if capabilityCommunity.Description != old.Description { updateParts = append(updateParts, "description = :a3"); params[":a3"] = common.DynS(capabilityCommunity.Description);  }
 	if capabilityCommunity.Advocate != old.Advocate { updateParts = append(updateParts, "advocate = :a4"); params[":a4"] = common.DynS(capabilityCommunity.Advocate);  }

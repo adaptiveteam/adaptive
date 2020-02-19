@@ -9,11 +9,11 @@ resource "aws_dynamodb_table" "strategy_initiative_dynamodb_table"  {
 		enabled = true
 	}
 	attribute {
-	    name = "id"
+	    name = "platform_id"
 	    type = "S"
 	}
 	attribute {
-	    name = "platform_id"
+	    name = "id"
 	    type = "S"
 	}
 	attribute {

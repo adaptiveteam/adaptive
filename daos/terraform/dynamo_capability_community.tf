@@ -9,11 +9,11 @@ resource "aws_dynamodb_table" "capability_community_dynamodb_table"  {
 		enabled = true
 	}
 	attribute {
-	    name = "id"
+	    name = "platform_id"
 	    type = "S"
 	}
 	attribute {
-	    name = "platform_id"
+	    name = "id"
 	    type = "S"
 	}
 	global_secondary_index {
