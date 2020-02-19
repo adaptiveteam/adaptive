@@ -73,7 +73,7 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 				{State: UpdateShownState, Event: RejectedEvent}:               wf.SimpleHandler(w.OnDismiss(), wf.DoneState),
 				{State: UpdateShownState, Event: engIssues.DetailsEvent}:      wf.SimpleHandler(w.OnDetails, UpdateShownState),
 				{State: UpdateShownState, Event: engIssues.ProgressShowEvent}: wf.SimpleHandler(w.OnProgressShow, UpdateShownState),
-				{State: DialogShownState, Event: wf.DialogSubmittedEvent}:     wf.SimpleHandler(w.OnCommentsSubmitted(), wf.DoneState),
+				{State: DialogShownState, Event: wf.DialogSubmittedEvent}:     wf.SimpleHandler(w.OnCommentsSubmitted(), UpdateShownState),
 				
 			},
 			Parser: wf.Parser,
