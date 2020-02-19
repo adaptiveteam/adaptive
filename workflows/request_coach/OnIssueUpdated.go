@@ -160,13 +160,14 @@ func (w workflowImpl) OnCommentsSubmitted() wf.Handler {
 			out = out.
 				WithInteractiveMessage(wf.InteractiveMessage{
 					PassiveMessage: wf.PassiveMessage{
-						Text:             "Thank you for providing the feedback",
-						OverrideOriginal: true,
+						Text:             ui.Sprintf("Thank you for providing the feedback. I'll send your comments to <@%s>", newAndOldIssues.NewIssue.UserID),
+						OverrideOriginal: false, // we don't want to override the same message again. `view` will override the original message.
 					},
 				}).
 				WithPostponedEvent(
 					exchange.NotifyOwnerAboutFeedbackOnUpdatesForIssue(newAndOldIssues.NewIssue),
 				)
+			// w.AdaptiveLogger.Infof("len(InteractiveMessages)=%d", len(out.Messages))
 		}
 		return
 	}
