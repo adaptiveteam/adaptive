@@ -88,6 +88,7 @@ func HandleRedirectURLGetRequest(request events.APIGatewayProxyRequest) (err err
 	logger.
 		WithField("Path", request.Path).
 		WithField("Body", request.Body).
+		WithField("HTTPMethod", request.HTTPMethod).
 		WithField("PathParameters", request.PathParameters).
 		WithField("QueryStringParameters", request.QueryStringParameters).
 		Infof("HandleRedirectURLGetRequest")
@@ -95,7 +96,9 @@ func HandleRedirectURLGetRequest(request events.APIGatewayProxyRequest) (err err
 	code := CODE(request.QueryStringParameters["code"])
 	var token oauth2.Token
 	token, err = ExchangeCodeForAuthenticationToken(conf, code)
-	fmt.Printf("Obtained token: %s...", token.AccessToken[:15])
+	if len(token.AccessToken) > 8 {
+		fmt.Printf("Obtained token: %s...", token.AccessToken[:8])
+	}
 	// token. - save to DB
 	return
 }

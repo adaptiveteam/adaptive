@@ -219,6 +219,12 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	logger = logger.WithLambdaContext(ctx)
 	if request.HTTPMethod == "GET" {
 		err = HandleRedirectURLGetRequest(request)
+		if err == nil {
+			response.StatusCode = 308 // Permanent Redirect
+			response.Headers = map[string]string{
+				"Location": "https://adaptiveteam.github.io/",
+			}
+		}
 	} else {
 		byt, _ := json.Marshal(request)
 		logger.WithField("payload", string(byt)).Infof("Incoming gateway request")
@@ -259,7 +265,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 		logger.WithLambdaContext(ctx).WithError(err).Error("HandleRequest error")
 	}
 	err = nil
-	logger.WithLambdaContext(ctx).Println("HandleRequest: normal termination. Returing `err=nil`")
+	logger.WithLambdaContext(ctx).Println("HandleRequest: normal termination. Returning `err=nil`")
 	return
 }
 
