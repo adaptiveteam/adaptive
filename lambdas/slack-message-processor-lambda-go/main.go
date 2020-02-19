@@ -217,35 +217,39 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	response = events.APIGatewayProxyResponse{StatusCode: 200}
 	defer core.RecoverAsLogError("HandleRequest.Recover")
 	logger = logger.WithLambdaContext(ctx)
-	byt, _ := json.Marshal(request)
-	logger.WithField("payload", string(byt)).Infof("Incoming gateway request")
+	if request.HTTPMethod == "GET" {
+		err = HandleRedirectURLGetRequest(request)
+	} else {
+		byt, _ := json.Marshal(request)
+		logger.WithField("payload", string(byt)).Infof("Incoming gateway request")
 
-	if request.Body != "" {
-		// TODO: Refactor this condition. The problem is that slackevents.EventsAPIEvent doesn't have ApiAppId which is required (as PlatformID)
-		if strings.Contains(request.Body, AppHomeOpened) {
-			var ahe SlackAppHomeEvent
-			err = json.Unmarshal([]byte(request.Body), &ahe)
-			err = errors.Wrap(err, "Could not parse payload to AppHomeOpened")
-			if err != nil {
-				return
-			}
-			if ahe.Event.Type == AppHomeOpened {
-				userID := ahe.Event.User
-				channelID := ahe.Event.Channel
-				helloMessage(userID, channelID, models.PlatformID(ahe.ApiAppId))
-			}
-		} else {
-			var requestPayload string
-			requestPayload, err = getRequestPayload(request.Body)
-			if err == nil {
-				var eventsAPIEvent slackevents.EventsAPIEvent
-				eventsAPIEvent, err = slackevents.ParseEvent(
-					json.RawMessage(requestPayload),
-					slackevents.OptionNoVerifyToken(),
-				)
-				err = errors.Wrap(err, "Could not parse eventsAPIEvent")
+		if request.Body != "" {
+			// TODO: Refactor this condition. The problem is that slackevents.EventsAPIEvent doesn't have ApiAppId which is required (as PlatformID)
+			if strings.Contains(request.Body, AppHomeOpened) {
+				var ahe SlackAppHomeEvent
+				err = json.Unmarshal([]byte(request.Body), &ahe)
+				err = errors.Wrap(err, "Could not parse payload to AppHomeOpened")
+				if err != nil {
+					return
+				}
+				if ahe.Event.Type == AppHomeOpened {
+					userID := ahe.Event.User
+					channelID := ahe.Event.Channel
+					helloMessage(userID, channelID, models.PlatformID(ahe.ApiAppId))
+				}
+			} else {
+				var requestPayload string
+				requestPayload, err = getRequestPayload(request.Body)
 				if err == nil {
-					response, err = routeEventsAPIEvent(eventsAPIEvent, requestPayload)
+					var eventsAPIEvent slackevents.EventsAPIEvent
+					eventsAPIEvent, err = slackevents.ParseEvent(
+						json.RawMessage(requestPayload),
+						slackevents.OptionNoVerifyToken(),
+					)
+					err = errors.Wrap(err, "Could not parse eventsAPIEvent")
+					if err == nil {
+						response, err = routeEventsAPIEvent(eventsAPIEvent, requestPayload)
+					}
 				}
 			}
 		}
@@ -346,6 +350,10 @@ func routeCallbackEvent(
 			log.Println("Received warmup message ...")
 		} else if slackText == "hello" || slackText == "hi" {
 			helloMessage(slackMsg.User, slackMsg.Channel, apiAppID)
+		} else if strings.Contains(slackText, "generate") ||
+		strings.Contains(slackText, "add to slack") || 
+		strings.Contains(slackText, "addtoslack") {
+			GenerateAddToSlackURL(slackMsg.User, slackMsg.Channel, apiAppID)
 		} else if slackMsg != nil {
 			log.Println("### callback event: " + requestPayload)
 			// It's not a response to an engagement, but a query
