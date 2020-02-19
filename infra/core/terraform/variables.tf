@@ -89,7 +89,7 @@ variable "gateway_stage" {
 
 variable "gateway_http_method" {
   description = "HTTP method for the gateway"
-  default = "ANY" // We accept GET and POST. GET is used for OAuth redirect url
+  default = "POST" // We accept GET and POST. GET is used for OAuth redirect url
 }
 
 variable "gateway_global_cloudwatch_role" {
@@ -294,4 +294,11 @@ variable "RDS_PORT" {
 }
 variable "RDS_DB_NAME" {
   default = "test_report"
+}
+
+variable "SLACK_CLIENT_ID" {
+  default = ""
+}
+variable "SLACK_CLIENT_SECRET" {
+    default = ""
 }
