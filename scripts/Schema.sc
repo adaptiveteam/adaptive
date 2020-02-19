@@ -850,6 +850,14 @@ val ContextAliasEntryTable = Table(ContextAliasEntry,
 
 val ContextAliasEntryPackage = defaultPackage(ContextAliasEntryTable, imports)
 
+// OAuth token
+val OAuthState = Entity(
+    spacedName("OAuth state"),
+    List(idField),
+    List(
+        "Token".camel :: optionString
+    )
+)
 val packages = List(
     commonPackage,
 
