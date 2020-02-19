@@ -12,17 +12,35 @@ resource "aws_api_gateway_resource" "proxy" {
   rest_api_id = aws_api_gateway_rest_api.api.id
 }
 
-resource "aws_api_gateway_method" "request_method" {
+resource "aws_api_gateway_method" "POST_request_method" {
   authorization = "NONE"
-  http_method   = var.method
+  http_method   = "POST"
   resource_id   = aws_api_gateway_resource.proxy.id
   rest_api_id   = aws_api_gateway_rest_api.api.id
 }
 
-resource "aws_api_gateway_integration" "request_method_integration" {
+resource "aws_api_gateway_method" "GET_request_method" {
+  authorization = "NONE"
+  http_method   = "GET"
+  resource_id   = aws_api_gateway_resource.proxy.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+}
+
+resource "aws_api_gateway_integration" "POST_request_method_integration" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.proxy.id
-  http_method = aws_api_gateway_method.request_method.http_method
+  http_method = aws_api_gateway_method.POST_request_method.http_method
+  type        = "AWS_PROXY"
+  uri         = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${var.lambda_arn}/invocations"
+
+  # AWS lambdas can only be invoked with the POST method
+  integration_http_method = "POST"
+}
+
+resource "aws_api_gateway_integration" "GET_request_method_integration" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.proxy.id
+  http_method = aws_api_gateway_method.GET_request_method.http_method
   type        = "AWS_PROXY"
   uri         = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${var.lambda_arn}/invocations"
 
@@ -36,7 +54,8 @@ resource "aws_api_gateway_deployment" "deployment" {
   stage_description = "Deployment"
   description       = "Deployment at ${timestamp()}"
   depends_on        = [
-    aws_api_gateway_integration.request_method_integration,
+    aws_api_gateway_integration.POST_request_method_integration,
+    aws_api_gateway_integration.GET_request_method_integration,
     aws_api_gateway_integration_response.response_method_integration
   ]
 }
@@ -45,7 +64,7 @@ resource "aws_api_gateway_deployment" "deployment" {
 resource "aws_api_gateway_method_response" "response_method" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.proxy.id
-  http_method = aws_api_gateway_integration.request_method_integration.http_method
+  http_method = aws_api_gateway_integration.POST_request_method_integration.http_method
   status_code = "200"
 
   response_models = {
@@ -64,10 +83,10 @@ resource "aws_api_gateway_integration_response" "response_method_integration" {
   }
 }
 
-resource "aws_api_gateway_method_settings" "settings" {
+resource "aws_api_gateway_method_settings" "settings_POST" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   stage_name  = var.stage
-  method_path = "${aws_api_gateway_resource.proxy.path_part}/${aws_api_gateway_method.request_method.http_method}"
+  method_path = "${aws_api_gateway_resource.proxy.path_part}/${aws_api_gateway_method.POST_request_method.http_method}"
 
   settings {
     metrics_enabled = true
@@ -77,11 +96,33 @@ resource "aws_api_gateway_method_settings" "settings" {
   depends_on = [aws_api_gateway_deployment.deployment]
 }
 
-resource "aws_lambda_permission" "allow_api_gateway" {
+resource "aws_api_gateway_method_settings" "settings_GET" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  stage_name  = var.stage
+  method_path = "${aws_api_gateway_resource.proxy.path_part}/${aws_api_gateway_method.GET_request_method.http_method}"
+
+  settings {
+    metrics_enabled = true
+    logging_level   = "INFO"
+  }
+
+  depends_on = [aws_api_gateway_deployment.deployment]
+}
+
+resource "aws_lambda_permission" "allow_api_gateway_POST" {
   function_name = var.lambda_arn
-  statement_id  = "${aws_api_gateway_rest_api.api.name}-AllowExecutionFromApiGateway"
+  statement_id  = "${aws_api_gateway_rest_api.api.name}-AllowExecutionFromApiGatewayPOST"
   action        = "lambda:InvokeFunction"
   principal     = "apigateway.amazonaws.com"
   source_arn    = "arn:aws:execute-api:${var.region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.api.id}/*/${var.method}${aws_api_gateway_resource.proxy.path}"
+  depends_on    = [aws_api_gateway_rest_api.api, aws_api_gateway_resource.proxy]
+}
+
+resource "aws_lambda_permission" "allow_api_gateway_GET" {
+  function_name = var.lambda_arn
+  statement_id  = "${aws_api_gateway_rest_api.api.name}-AllowExecutionFromApiGatewayGET"
+  action        = "lambda:InvokeFunction"
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "arn:aws:execute-api:${var.region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.api.id}/*/GET${aws_api_gateway_resource.proxy.path}"
   depends_on    = [aws_api_gateway_rest_api.api, aws_api_gateway_resource.proxy]
 }
