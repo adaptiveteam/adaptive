@@ -302,3 +302,6 @@ variable "SLACK_CLIENT_ID" {
 variable "SLACK_CLIENT_SECRET" {
     default = ""
 }
+variable "SLACK_SIGNING_SECRET" {
+    default = ""
+}

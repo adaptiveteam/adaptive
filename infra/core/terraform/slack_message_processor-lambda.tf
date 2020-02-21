@@ -29,6 +29,7 @@ module "slack_message_processor_lambda" {
     LOG_NAMESPACE = "slack-message-processor"
     SLACK_CLIENT_ID = var.SLACK_CLIENT_ID
     SLACK_CLIENT_SECRET = var.SLACK_CLIENT_SECRET
+    SLACK_SIGNING_SECRET = var.SLACK_SIGNING_SECRET
   })
 
   // Attach extra policy
