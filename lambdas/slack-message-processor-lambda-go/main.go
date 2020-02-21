@@ -104,13 +104,14 @@ func publish(msg models.PlatformSimpleNotification) {
 	_, err := sns.Publish(msg, platformNotificationTopic)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not publish message to %s topic", platformNotificationTopic))
 }
-
-func helloMessage(userID, channelID string, platformID models.PlatformID) {
-	conn := daosCommon.DynamoDBConnection{
+func globalConnection(platformID models.PlatformID) daosCommon.DynamoDBConnection {
+	return daosCommon.DynamoDBConnection{
 		Dynamo: d,
 		ClientID: clientID,
 		PlatformID: platformID,
 	}
+}
+func helloMessage(userID, channelID string, platformID models.PlatformID) {
 	keyParams := map[string]*dynamodb.AttributeValue{
 		"id": daosCommon.DynS(userID),
 	}
@@ -142,7 +143,7 @@ func helloMessage(userID, channelID string, platformID models.PlatformID) {
 		// }
 	} else {
 		// get the admin community
-		dao := community.CommunityDAO(conn, userCommunitiesTable)
+		dao := community.CommunityDAO(globalConnection(platformID), userCommunitiesTable)
 		adminComms := dao.ReadOrEmptyUnsafe(platformID, string(community.Admin))
 		if len(adminComms) == 0 {
 			// if no admin community, post message to the user about that
@@ -218,12 +219,16 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	defer core.RecoverAsLogError("HandleRequest.Recover")
 	logger = logger.WithLambdaContext(ctx)
 	if request.HTTPMethod == "GET" {
-		err = HandleRedirectURLGetRequest(request)
+		err = HandleRedirectURLGetRequest(globalConnection("UNKNOWN-PLATFORM-ID"), request)
 		if err == nil {
 			response.StatusCode = 308 // Permanent Redirect
 			response.Headers = map[string]string{
 				"Location": "https://adaptiveteam.github.io/",
 			}
+		} else {
+			response.StatusCode = 500 // Server error
+			response.Body = "Server error. See log for details"
+
 		}
 	} else {
 		byt, _ := json.Marshal(request)
@@ -241,7 +246,8 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 				if ahe.Event.Type == AppHomeOpened {
 					userID := ahe.Event.User
 					channelID := ahe.Event.Channel
-					helloMessage(userID, channelID, models.PlatformID(ahe.ApiAppId))
+					// teamID := ahe.TeamID
+					helloMessage(userID, channelID, models.PlatformID(ahe.ApiAppID))
 				}
 			} else {
 				var requestPayload string
@@ -252,6 +258,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 						json.RawMessage(requestPayload),
 						slackevents.OptionNoVerifyToken(),
 					)
+					// eventsAPIEvent.
 					err = errors.Wrap(err, "Could not parse eventsAPIEvent")
 					if err == nil {
 						response, err = routeEventsAPIEvent(eventsAPIEvent, requestPayload)
