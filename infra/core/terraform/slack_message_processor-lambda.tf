@@ -147,3 +147,8 @@ resource "aws_iam_role_policy_attachment" "slack_message_processor_lambda_compet
   role       = module.slack_message_processor_lambda.role_name
   policy_arn = aws_iam_policy.competencies_additional_policy.arn
 }
+
+resource "aws_iam_role_policy_attachment" "slack_message_processor_lambda_slack_team_write_policy_attachment" {
+  role       = module.slack_message_processor_lambda.role_name
+  policy_arn = aws_iam_policy.slack_team_write.arn
+}
