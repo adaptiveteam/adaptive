@@ -14,10 +14,10 @@ const (
 
 type SlackAppHomeEvent struct {
 	Token     string             `json:"token"`
-	TeamId    string             `json:"team_id"`
-	ApiAppId  string             `json:"api_app_id"`
+	TeamID    string             `json:"team_id"`
+	ApiAppID  string             `json:"api_app_id"`
 	Event     AppHomeOpenedEvent `json:"event"`
 	Type      string             `json:"type"`
-	EventId   string             `json:"event_id"`
+	EventID   string             `json:"event_id"`
 	EventTime json.Number        `json:"event_time"`
 }
