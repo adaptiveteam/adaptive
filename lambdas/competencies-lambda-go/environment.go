@@ -2,17 +2,18 @@ package competencies
 
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	evalues "github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	// plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 
-	"github.com/nlopes/slack"
+	// "github.com/nlopes/slack"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
 
 )
@@ -41,8 +42,6 @@ var (
 		IsInteractiveDebugEnabled: false,
 	}
 
-	platformTokenDao = plat.NewDAOFromSchema(d, namespace, schema)
-	platformAdapter  = mapper.SlackAdapter2(platformTokenDao)
 	userDAO          = utilsUser.NewDAOFromSchema(d, namespace, schema)
 	// community
 	communityUsersTable              = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
@@ -52,11 +51,16 @@ var (
 	communityUserDAO = communityUser.NewDAOFromSchema(d, namespace, schema)
 )
 
-func platformDAO(platformID models.PlatformID) evalues.PlatformDAO {
-	return adaptiveValuesTableDao.ForPlatformID(string(platformID))
+func platformDAO(teamID models.TeamID) evalues.PlatformDAO {
+	
+	return adaptiveValuesTableDao.ForPlatformID(teamID.ToString())
 }
 
-func slackAPI(platformID models.PlatformID) *slack.Client {
-	token := platformTokenDao.GetPlatformTokenUnsafe(platformID)
-	return slack.New(token)
+func slackAPI(teamID models.TeamID) mapper.PlatformAPI {
+	conn:= daosCommon.DynamoDBConnection{
+		Dynamo: d,
+		ClientID: clientID,
+		PlatformID: teamID.ToPlatformID(),
+	}
+	return mapper.SlackAdapterForTeamID(conn)
 }

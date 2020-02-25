@@ -1,13 +1,17 @@
 package competencies
 
 import (
-	"github.com/pkg/errors"
 	"context"
 	"fmt"
-	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"log"
 	"sort"
 	"strings"
+
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
+	"github.com/pkg/errors"
+
+	"time"
 
 	evalues "github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -19,7 +23,6 @@ import (
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/nlopes/slack"
-	"time"
 )
 
 const (
@@ -41,12 +44,13 @@ var (
 )
 
 type SlackConversationKind string
+
 const (
 	InThread SlackConversationKind = "in-thread"
 	InChat   SlackConversationKind = "in-chat"
 )
 const (
-	ModifyListAdaptiveValueAction    = "modify-list-adaptive-value"
+	ModifyListAdaptiveValueAction = "modify-list-adaptive-value"
 )
 
 func EditAdaptiveValueAction(slackConversationKind SlackConversationKind) string {
@@ -98,15 +102,16 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 	}
 	return // we do not have handlable errors. Only panics
 }
+
 // HandleNamespacePayload4 - handle all logic
 func HandleNamespacePayload4(np models.NamespacePayload4) (err error) {
 	defer core.RecoverToErrorVar("Competencies", &err)
-	platformID := np.PlatformID
+	teamID := np.TeamID
 	switch np.SlackRequest.Type {
 	case models.InteractionSlackRequestType:
-		dispatchSlackInteractionCallback(np.SlackRequest.InteractionCallback, platformID)
+		dispatchSlackInteractionCallback(np.SlackRequest.InteractionCallback, teamID)
 	case models.DialogSubmissionSlackRequestType:
-		dispatchSlackDialogSubmissionCallback(np.SlackRequest.InteractionCallback, np.SlackRequest.DialogSubmissionCallback, platformID)
+		dispatchSlackDialogSubmissionCallback(np.SlackRequest.InteractionCallback, np.SlackRequest.DialogSubmissionCallback, teamID)
 	default:
 		err = errors.Errorf("Unknown request of type %s: %v\n", np.SlackRequest.Type, np)
 	}
@@ -116,7 +121,7 @@ func HandleNamespacePayload4(np models.NamespacePayload4) (err error) {
 // noMessageOverrideTs is a predefined constant that allows to skip original message overriding
 const noMessageOverrideTs = ""
 
-func dispatchSlackInteractionCallback(request slack.InteractionCallback, platformID models.PlatformID) {
+func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID models.TeamID) {
 	// defer deleteOriginalEng(request.User.ID, request.Channel.ID, request.MessageTs)
 	// defer platform.RecoverGracefully(request)
 
@@ -129,13 +134,13 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, platfor
 		selectedOption := action.SelectedOptions[0].Value
 		switch selectedOption {
 		case AdaptiveValuesListMenuItem:
-			notes = detailedListMenuItemFunc(request, platformID)
+			notes = detailedListMenuItemFunc(request, teamID)
 			// notes = append(notes, clearRequestMessage(request)...) // do not clear original message. It'll be replaced with invite to thread.
 		case AdaptiveValuesSimpleListMenuItem:
-			notes = listMenuItemFunc(request, platformID)
+			notes = listMenuItemFunc(request, teamID)
 			notes = append(notes, clearRequestMessage(request)...) // clear original message
 		case AdaptiveValuesCreateNewMenuItem:
-			notes = createNewAdaptiveValueMenuItemAndClearOriginalMessageAfterwards(request, platformID)
+			notes = createNewAdaptiveValueMenuItemAndClearOriginalMessageAfterwards(request, teamID)
 			//			notes = append(notes, clearRequestMessage(request)) // we don't clear original message immediately. Only on dialog submission
 		default:
 			panic(errors.New("Unknown competencies command " + selectedOption))
@@ -146,15 +151,15 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, platfor
 	case DeleteAdaptiveValueAction(InChat):
 		notes = onDeleteButtonClicked(request, action.Value)
 	case EditAdaptiveValueAction(InThread):
-		notes = onEditButtonClicked(request, platformID, action.Value, InThread)
+		notes = onEditButtonClicked(request, teamID, action.Value, InThread)
 	case EditAdaptiveValueAction(InChat):
-		notes = onEditButtonClicked(request, platformID, action.Value, InChat)
+		notes = onEditButtonClicked(request, teamID, action.Value, InChat)
 	case CreateAdaptiveValueAction(InThread):
-		notes = onCreateAction(request, platformID, noMessageOverrideTs, InThread)
+		notes = onCreateAction(request, teamID, noMessageOverrideTs, InThread)
 	case CreateAdaptiveValueAction(InChat):
-		notes = onCreateAction(request, platformID, noMessageOverrideTs, InChat)
+		notes = onCreateAction(request, teamID, noMessageOverrideTs, InChat)
 	case ModifyListAdaptiveValueAction:
-		notes = detailedListMenuItemFunc(request, platformID)
+		notes = detailedListMenuItemFunc(request, teamID)
 	default:
 		platform.Debug(request, "unknown action "+action.Name)
 	}
@@ -162,19 +167,19 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, platfor
 }
 
 func dispatchSlackDialogSubmissionCallback(request slack.InteractionCallback,
-	dialog slack.DialogSubmissionCallback, platformID models.PlatformID) {
+	dialog slack.DialogSubmissionCallback, teamID models.TeamID) {
 	platform.Debug(request, "Got filled form")
 	mc := utils.MessageCallbackParseUnsafe(request.CallbackID, AdaptiveValuesNamespace)
 	notes := responses()
 	switch mc.Action {
 	case SubmitNewAdaptiveValueAction(InThread):
-		notes = onSubmitNewButtonClicked(request, dialog, platformID, InThread)
+		notes = onSubmitNewButtonClicked(request, dialog, teamID, InThread)
 	case SubmitNewAdaptiveValueAction(InChat):
-		notes = onSubmitNewButtonClicked(request, dialog, platformID, InChat)
+		notes = onSubmitNewButtonClicked(request, dialog, teamID, InChat)
 	case SubmitUpdatedAdaptiveValueAction(InThread):
-		notes = onSubmitUpdatedButtonClicked(request, dialog, platformID, InThread)
+		notes = onSubmitUpdatedButtonClicked(request, dialog, teamID, InThread)
 	case SubmitUpdatedAdaptiveValueAction(InChat):
-		notes = onSubmitUpdatedButtonClicked(request, dialog, platformID, InChat)
+		notes = onSubmitUpdatedButtonClicked(request, dialog, teamID, InChat)
 	default:
 		platform.Debug(request, "Couldn't handle dialog submission "+request.CallbackID)
 	}
@@ -182,9 +187,9 @@ func dispatchSlackDialogSubmissionCallback(request slack.InteractionCallback,
 }
 
 // listMenuItemFunc renders the list of adaptiveValues directly in chat.
-func listMenuItemFunc(request slack.InteractionCallback, platformID models.PlatformID) []models.PlatformSimpleNotification {
+func listMenuItemFunc(request slack.InteractionCallback, teamID models.TeamID) []models.PlatformSimpleNotification {
 	platform.Debug(request, "Listing adaptive values 2 ...")
-	adaptiveValues := platformDAO(platformID).AllUnsafe()
+	adaptiveValues := adaptiveValuesTableDao.ForPlatformID(teamID.ToString()).AllUnsafe()
 	sort.Slice(adaptiveValues, func(i, j int) bool {
 		return adaptiveValues[i].Name < adaptiveValues[j].Name
 	})
@@ -294,9 +299,9 @@ func adaptiveValueEditChatMessage(request slack.InteractionCallback, slackConver
 }
 
 // detailedListMenuItemFunc sends the list of adaptiveValues to thread
-func detailedListMenuItemFunc(request slack.InteractionCallback, platformID models.PlatformID) []models.PlatformSimpleNotification {
+func detailedListMenuItemFunc(request slack.InteractionCallback, teamID models.TeamID) []models.PlatformSimpleNotification {
 	platform.Debug(request, "Listing competencies...")
-	adaptiveValues := platformDAO(platformID).AllUnsafe()
+	adaptiveValues := platformDAO(teamID).AllUnsafe()
 	sort.Slice(adaptiveValues, func(i, j int) bool {
 		return adaptiveValues[i].Name < adaptiveValues[j].Name
 	})
@@ -318,38 +323,48 @@ func detailedListMenuItemFunc(request slack.InteractionCallback, platformID mode
 	return threadMessages
 }
 
-func convertFormToAdaptiveValue(request slack.InteractionCallback, platformID models.PlatformID, form map[string]string) models.AdaptiveValue {
+func convertFormToAdaptiveValue(request slack.InteractionCallback, teamID models.TeamID, form map[string]string) models.AdaptiveValue {
 	return models.AdaptiveValue{
 		ID:          core.Uuid(),
 		Name:        form["Name"],
 		Description: form["Description"],
 		ValueType:   form["ValueType"],
-		PlatformID:  platformID,
+		PlatformID:  teamID.ToPlatformID(),
 	}
 }
 
-func createNewAdaptiveValueMenuItemAndClearOriginalMessageAfterwards(request slack.InteractionCallback, platformID models.PlatformID) []models.PlatformSimpleNotification {
+func createNewAdaptiveValueMenuItemAndClearOriginalMessageAfterwards(request slack.InteractionCallback, teamID models.TeamID) []models.PlatformSimpleNotification {
 	tsToOverride := request.MessageTs // we can reuse this message id to override menu if needed
-	return onCreateAction(request, platformID, tsToOverride, InChat)
+	return onCreateAction(request, teamID, tsToOverride, InChat)
 }
 
-func onCreateAction(request slack.InteractionCallback, platformID models.PlatformID, ts string, slackConversationKind SlackConversationKind) (resp []models.PlatformSimpleNotification) {
+func onCreateAction(request slack.InteractionCallback, teamID models.TeamID, ts string, slackConversationKind SlackConversationKind) (resp []models.PlatformSimpleNotification) {
 	resp, ok := ensureUserHasWriteAccessToValues(request)
 	if ok {
 		mc := callbackID(request.User.ID, SubmitNewAdaptiveValueAction(slackConversationKind))
 		survey := utils.AttachmentSurvey(valueSurveyLabel, evalues.EditAdaptiveValueForm(&newAdaptiveValueTemplate))
-
-		dialog, err := utils.ConvertSurveyToSlackDialog(survey, request.TriggerID, mc.ToCallbackID(), ts)
-		if err == nil {
+		survey2 := ebm.AttachmentActionSurvey2{
+			TriggerID: request.TriggerID,
+			CallbackID: mc.ToCallbackID(),
+			AttachmentActionSurvey: survey,
+			State: ts,
+		}
+		// dialog, err := utils.ConvertSurveyToSlackDialog(survey, request.TriggerID, mc.ToCallbackID(), ts)
+		// if err == nil {
 			// Open a survey associated with the engagement
-			err := slackAPI(platformID).OpenDialog(request.TriggerID, dialog)
+			conn:= daosCommon.DynamoDBConnection{
+				Dynamo: d,
+				ClientID: clientID,
+				PlatformID: teamID.ToPlatformID(),
+			}
+			err2 := mapper.SlackAdapterForTeamID(conn).ShowDialog(survey2) //request.TriggerID, dialog)
 			platform.Debug(request, "onCreateAction: OpenDialog - done")
 			platform.ErrorHandler(request,
 				fmt.Sprintf("Could not open dialog from %s survey", request.CallbackID),
-				err,
+				err2,
 			)
 			resp = responses()
-		}
+		// }
 	}
 	return
 }
@@ -378,21 +393,21 @@ func conversationContext(request slack.InteractionCallback, msgID mapper.Message
 }
 
 func onSubmitNewButtonClicked(
-	request slack.InteractionCallback, 
-	dialog slack.DialogSubmissionCallback, 
-	platformID models.PlatformID,
+	request slack.InteractionCallback,
+	dialog slack.DialogSubmissionCallback,
+	teamID models.TeamID,
 	slackConversationKind SlackConversationKind,
 ) (resp []models.PlatformSimpleNotification) {
 	resp, ok := ensureUserHasWriteAccessToValues(request)
 	if ok {
 		platform.Debug(request, "Creating adaptiveValue "+dialog.Submission["Name"])
-		adaptiveValue := convertFormToAdaptiveValue(request, platformID, dialog.Submission)
-		platformDAO(platformID).Create(adaptiveValue)
+		adaptiveValue := convertFormToAdaptiveValue(request, teamID, dialog.Submission)
+		platformDAO(teamID).Create(adaptiveValue)
 		platform.Debug(request, "Created adaptiveValue "+adaptiveValue.Name)
 
 		convID := conversationID(request)
-		platform.Debug(request, "platformID = "+string(platformID))
-		slackAdapter := platformAdapter.ForPlatformID(platformID)
+		platform.Debug(request, "teamID = "+teamID.ToString())
+		slackAdapter := slackAPI(teamID)
 
 		clearMessageOptionalTs := dialog.State
 		if clearMessageOptionalTs != "" {
@@ -426,7 +441,7 @@ func onDeleteButtonClicked(request slack.InteractionCallback, id string) (resp [
 	return
 }
 
-// func getOverrideMessageTs(request slack.InteractionCallback, 
+// func getOverrideMessageTs(request slack.InteractionCallback,
 // 	slackConversationKind SlackConversationKind,
 // ) (overrideMessageTs string) {
 // 	switch(slackConversationKind){
@@ -439,8 +454,8 @@ func onDeleteButtonClicked(request slack.InteractionCallback, id string) (resp [
 // }
 
 func onEditButtonClicked(
-	request slack.InteractionCallback, 
-	platformID models.PlatformID, 
+	request slack.InteractionCallback,
+	teamID models.TeamID,
 	id string,
 	slackConversationKind SlackConversationKind,
 ) (resp []models.PlatformSimpleNotification) {
@@ -451,23 +466,21 @@ func onEditButtonClicked(
 		platform.Debug(request, "Found adaptiveValue: "+adaptiveValue.Name)
 		mc := callbackID(request.User.ID, SubmitUpdatedAdaptiveValueAction(slackConversationKind))
 		mc.Target = id
-		api := slackAPI(platformID)
 
 		survey := utils.AttachmentSurvey(valueSurveyLabel, evalues.EditAdaptiveValueForm(&adaptiveValue))
+		survey2 := ebm.AttachmentActionSurvey2{
+			TriggerID: request.TriggerID,
+			CallbackID: mc.ToCallbackID(),
+			AttachmentActionSurvey: survey,
+			State: request.MessageTs,
+		}
 
-		// overrideMessageOptionalTs := getOverrideMessageTs(request, slackConversationKind)
-		dialogState := request.MessageTs
-		dialog, err := utils.ConvertSurveyToSlackDialog(survey, request.TriggerID, mc.ToCallbackID(), dialogState)
-		platform.ErrorHandler(request,
-			fmt.Sprintf("Could not convert survey to dialog"),
-			err,
-		)
 		// Open a survey associated with the engagement
-		err = api.OpenDialog(request.TriggerID, dialog)
+		err2 := slackAPI(teamID).ShowDialog(survey2)
 		platform.Debug(request, "onEditButtonClicked: OpenDialog - done")
 		platform.ErrorHandler(request,
 			fmt.Sprintf("Could not open dialog from %s survey", request.CallbackID),
-			err,
+			err2,
 		)
 		resp = responses()
 	}
@@ -476,42 +489,51 @@ func onEditButtonClicked(
 	return
 }
 
+func globalConnection(teamID models.TeamID) daosCommon.DynamoDBConnection {
+	return daosCommon.DynamoDBConnection{
+		Dynamo: d,
+		ClientID: clientID,
+		PlatformID: teamID.ToPlatformID(),
+	}
+}
+
 func onSubmitUpdatedButtonClicked(
 	request slack.InteractionCallback,
-	dialog slack.DialogSubmissionCallback, 
-	platformID models.PlatformID, 
+	dialog slack.DialogSubmissionCallback,
+	teamID models.TeamID,
 	slackConversationKind SlackConversationKind,
 ) (resp []models.PlatformSimpleNotification) {
 	resp, ok := ensureUserHasWriteAccessToValues(request)
 	if ok {
 		platform.Debug(request, "Updating adaptiveValue "+dialog.Submission["Name"])
 		mc := utils.MessageCallbackParseUnsafe(request.CallbackID, AdaptiveValuesNamespace)
-		adaptiveValue := convertFormToAdaptiveValue(request, platformID, dialog.Submission)
+		adaptiveValue := convertFormToAdaptiveValue(request, teamID, dialog.Submission)
 		adaptiveValue.ID = mc.Target // we saved id in Target
 		err := adaptiveValuesTableDao.Update(adaptiveValue)
 		platform.ErrorHandler(request, "Updating adaptiveValue", err)
 		platform.Debug(request, "Updated adaptiveValue "+dialog.Submission["Name"])
-		slackAdapter := platformAdapter.ForPlatformID(platformID)
+		conn := globalConnection(teamID)
+		slackAdapter := mapper.SlackAdapterForTeamID(conn)
 		convID := conversationID(request)
 		messageForThread := plat.Message("", adaptiveValueInlineViewAttachment(request, adaptiveValue, InThread))
 		messageForChatSpace := plat.Message("", adaptiveValueInlineViewAttachment(request, adaptiveValue, InChat))
 		overrideMessageOptionalTs := dialog.State
 		oldMsgID := plat.TargetMessageID{Ts: overrideMessageOptionalTs, ConversationID: convID}
 		var msg plat.Response
-		// we always post to the chat-space regardless of whether we started in the thread 
+		// we always post to the chat-space regardless of whether we started in the thread
 		// the analysis will be posted to the new thread near this message.
-		switch(slackConversationKind){
+		switch slackConversationKind {
 		case InThread: // if we were in thread, we create new message in chat space with a separate new thread
 			msg = plat.Post(convID, messageForChatSpace)
 			// we also override the old message in the thread
 			slackAdapter.PostAsync(plat.Override(oldMsgID, messageForThread))
-		case InChat:   // if we were in chat, we override the old message and use it's id for analysis thread
+		case InChat: // if we were in chat, we override the old message and use it's id for analysis thread
 			msg = plat.Override(oldMsgID, messageForChatSpace)
 		}
 		// Anyway, we are posting to the chat space (probably overriding the old message)
 		messageID := slackAdapter.PostAsync(msg)
 
-		// If we are in thread, we also post the updated message into the thread, 
+		// If we are in thread, we also post the updated message into the thread,
 		// overriding the message
 		analysisInput := utils.TextAnalysisInput{
 			Text:                       adaptiveValue.Description,
@@ -524,7 +546,7 @@ func onSubmitUpdatedButtonClicked(
 	return
 }
 
-func ensureUserHasWriteAccessToValues(request slack.InteractionCallback, ) (resp []models.PlatformSimpleNotification, ok bool) {
+func ensureUserHasWriteAccessToValues(request slack.InteractionCallback) (resp []models.PlatformSimpleNotification, ok bool) {
 	ok = DoesUserHaveWriteAccessToCompetencies(request.User.ID)
 	if ok {
 		log.Printf("Write access allowed %s", request.User.ID)
