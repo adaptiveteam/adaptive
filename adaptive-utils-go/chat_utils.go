@@ -18,21 +18,21 @@ type UserProfileLambda struct {
 	ProfileLambdaName string
 }
 
-// UserTokenSync gets token associated with a user by invoking profile lambda
-// It performs synchronous request to the remote lambda.
-func (u UserProfileLambda) UserTokenSync(userID string) (ut models.UserToken, err error) {
-	return u.UserTokenAdvSync(userID, "")
-}
+// // UserTokenSync gets token associated with a user by invoking profile lambda
+// // It performs synchronous request to the remote lambda.
+// func (u UserProfileLambda) UserTokenSync(userID string) (ut models.UserToken, err error) {
+// 	return u.UserTokenAdvSync(userID, "")
+// }
 
 // UserTokenAdvSync gets token associated with a user by invoking profile lambda
 // It performs synchronous request to the remote lambda.
-func (u UserProfileLambda) UserTokenAdvSync(userID string, platformID models.PlatformID) (ut models.UserToken, err error) {
+func (u UserProfileLambda) UserTokenAdvSync(userID string, teamID models.TeamID) (ut models.UserToken, err error) {
 	ut = models.UserToken{}
 	if u.ProfileLambdaName == "" {
 		err = errors.New("UserProfileLambda#ProfileLambdaName: Invalid argument, it should not be empty")
 	} else {
 		l := awsutils.NewLambda(u.Region, "", u.Namespace)
-		userEngBytes, err := json.Marshal(models.UserEngage{UserId: userID, PlatformID: platformID})
+		userEngBytes, err := json.Marshal(models.UserEngage{UserID: userID, TeamID: teamID})
 		if err == nil {
 			output, err := l.InvokeFunction(u.ProfileLambdaName, userEngBytes, false)
 			if err == nil {
@@ -43,30 +43,30 @@ func (u UserProfileLambda) UserTokenAdvSync(userID string, platformID models.Pla
 	return
 }
 
-// UserTokenSyncUnsafe gets token associated with a user by invoking profile lambda
-// It performs synchronous request to the remote lambda. Panics in case of errors.
-func (u UserProfileLambda) UserTokenSyncUnsafe(userID string) (ut models.UserToken) {
-	return u.UserTokenAdvSyncUnsafe(userID, "")
-}
+// // UserTokenSyncUnsafe gets token associated with a user by invoking profile lambda
+// // It performs synchronous request to the remote lambda. Panics in case of errors.
+// func (u UserProfileLambda) UserTokenSyncUnsafe(userID string) (ut models.UserToken) {
+// 	return u.UserTokenAdvSyncUnsafe(userID, "")
+// }
 
 // UserTokenAdvSyncUnsafe gets token associated with a user by invoking profile lambda
 // It performs synchronous request to the remote lambda. Panics in case of errors.
-func (u UserProfileLambda) UserTokenAdvSyncUnsafe(userID string, platformID models.PlatformID) (ut models.UserToken) {
-	ut, err := u.UserTokenAdvSync(userID, platformID)
+func (u UserProfileLambda) UserTokenAdvSyncUnsafe(userID string, teamID models.TeamID) (ut models.UserToken) {
+	ut, err := u.UserTokenAdvSync(userID, teamID)
 	core.ErrorHandler(err, u.Namespace, "Could not retrieve user token for "+userID)
 	return
 }
 
-// UserToken gets token associated with a user by invoking profile lambda
-// deprecated. Use UserProfileLambda.UserTokenSyncUnsafe
-func UserToken(userID, profileLambda, region, namespace string) (models.UserToken, error) {
-	l := UserProfileLambda{
-		Region:            region,
-		Namespace:         namespace,
-		ProfileLambdaName: profileLambda,
-	}
-	return l.UserTokenSync(userID)
-}
+// // UserToken gets token associated with a user by invoking profile lambda
+// // Deprecated: Use UserProfileLambda.UserTokenSyncUnsafe
+// func UserToken(userID, profileLambda, region, namespace string) (models.UserToken, error) {
+// 	l := UserProfileLambda{
+// 		Region:            region,
+// 		Namespace:         namespace,
+// 		ProfileLambdaName: profileLambda,
+// 	}
+// 	return l.UserTokenSync(userID)
+// }
 
 func ChatAttachment(title, text, fallback string, callbackId string,
 	actions []ebm.AttachmentAction,
@@ -95,11 +95,11 @@ func ChatAttachment(title, text, fallback string, callbackId string,
 }
 
 func AddChatEngagement(mc models.MessageCallback, title, text, fallback, userId string, actions []ebm.AttachmentAction,
-	fields []ebm.AttachmentField, platformID models.PlatformID, urgent bool, table string,
+	fields []ebm.AttachmentField, teamID models.TeamID, urgent bool, table string,
 	d *awsutils.DynamoRequest, namespace string, timestamp int64,
 	check models.UserEngagementCheckWithValue) {
 	eng := MakeUserEngagement(mc, title, text, fallback, userId,
-		actions, fields, urgent, namespace, timestamp, check, platformID)
+		actions, fields, urgent, namespace, timestamp, check, teamID)
 	AddEng(eng, table, d, namespace)
 }
 
@@ -115,7 +115,7 @@ func MakeUserEngagement(mc models.MessageCallback,
 	fields []ebm.AttachmentField, urgent bool,
 	namespace string, timestamp int64,
 	check models.UserEngagementCheckWithValue,
-	platformID models.PlatformID) models.UserEngagement {
+	teamID models.TeamID) models.UserEngagement {
 	callbackID := mc.ToCallbackID()
 
 	attach := ChatAttachment(title, text, fallback, callbackID, actions, fields, timestamp)
@@ -130,5 +130,5 @@ func MakeUserEngagement(mc models.MessageCallback,
 		Script: string(bytes), Priority: urgency(urgent), CreatedAt: core.CurrentRFCTimestamp(),
 		CheckIdentifier: check.CheckIdentifier,
 		CheckValue: check.CheckValue,
-		PlatformID: platformID}
+		PlatformID: teamID.ToPlatformID()}
 }
