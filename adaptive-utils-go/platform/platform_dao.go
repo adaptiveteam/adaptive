@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"log"
 	"github.com/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/ReneKroon/ttlcache"
@@ -83,11 +84,13 @@ func GetToken(teamID models.TeamID) func (common.DynamoDBConnection) (string, er
 		}
 		if token == "" {
 			if teamID.TeamID != "" {
+				log.Printf("Reading SlackTeam %s\n", teamID.TeamID)
 				dao := slackTeam.NewDAO(conn.Dynamo, "GetToken", conn.ClientID)
 				var teams [] slackTeam.SlackTeam
 				teams, err = dao.ReadOrEmpty(teamID.TeamID)
 				if err != nil {
-					return
+					log.Printf("Failed to read SlackTeam %s: %v\n", teamID.TeamID, err)
+					err = nil
 				}
 				if len(teams) > 0 {
 					token = teams[0].AccessToken
@@ -95,10 +98,12 @@ func GetToken(teamID models.TeamID) func (common.DynamoDBConnection) (string, er
 			}
 			if token == "" {
 				if teamID.AppID != "" {
-					dao := clientPlatformToken.NewDAO(conn.Dynamo, "GetToken2", conn.ClientID)
+					log.Printf("Reading by AppID %s\n", teamID.AppID)
+					dao := clientPlatformToken.NewDAOByTableName(conn.Dynamo, "GetToken2", models.ClientPlatformTokenTableSchemaForClientID(conn.ClientID).Name)
 					var teams [] clientPlatformToken.ClientPlatformToken
 					teams, err = dao.ReadOrEmpty(teamID.AppID)
 					if err != nil {
+						log.Printf("Failed to read ClientPlatformToken %s: %v\n", teamID.AppID, err)
 						return
 					}
 					if len(teams) > 0 {
@@ -130,7 +135,10 @@ func GetTokenForUser(dynamo *awsutils.DynamoRequest, clientID string, userID str
 }
 // GetTeamIDForUser -
 func GetTeamIDForUser(dynamo *awsutils.DynamoRequest, clientID string, userID string) (teamID models.TeamID, err error) {
-	dao := user.NewDAO(dynamo, "GetTeamIDForUser", clientID)
+	dao := user.DAOFromConnectionGen(common.DynamoDBConnectionGen{
+		Dynamo: dynamo,
+		TableNamePrefix: clientID,
+	})
 	var user models.User
 	user, err = dao.Read(userID)
 	if err == nil {
