@@ -1,13 +1,13 @@
 package models
 
 import (
-	"github.com/pkg/errors"
-	"github.com/nlopes/slack"
 	"github.com/adaptiveteam/adaptive/daos/user"
-	"github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/nlopes/slack"
+	"github.com/pkg/errors"
 )
 
 type User = user.User
+
 // type User struct {
 // 	UserProfile
 // 	// Platform of the user
@@ -40,13 +40,13 @@ type UserToken struct {
 	ClientPlatformRequest
 }
 
-// PlatformIDUnsafe extracts PlatformID and ensures that it's nonempty.
-func (ut UserToken) PlatformIDUnsafe() common.PlatformID {
-	platformID := ut.ClientPlatformRequest.PlatformID
-	if platformID == "" {
-		panic(errors.New("Platform ID is empty"))
+// TeamIDUnsafe extracts TeamID and ensures that it's nonempty.
+func (ut UserToken) TeamIDUnsafe() TeamID {
+	teamID := ut.ClientPlatformRequest.TeamID
+	if teamID.IsEmpty() {
+		panic(errors.New("Team ID is empty"))
 	}
-	return platformID
+	return teamID
 }
 
 // SlackAPI returns Slack client for the given platform token
