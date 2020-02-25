@@ -110,12 +110,12 @@ func selectFromIssuesWhereTypeAndUserIDIDO(userID string, completed int) func (c
 	}
 }
 
-func platformIndexExpr(index string, platformID models.PlatformID) awsutils.DynamoIndexExpression {
+func platformIndexExpr(index string, teamID models.TeamID) awsutils.DynamoIndexExpression {
 	return awsutils.DynamoIndexExpression{
 		IndexName: index,
 		Condition: "platform_id = :p",
 		Attributes: map[string]interface{}{
-			":p": string(platformID),
+			":p": teamID.ToString(),
 		},
 	}
 }
@@ -127,7 +127,7 @@ func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) 
 		var allObjs []models.StrategyObjective
 		err = conn.Dynamo.QueryTableWithIndex(
 			strategyObjectiveTableName(conn.ClientID),
-			platformIndexExpr(strategyObjectivesPlatformIndex, conn.PlatformID),
+			platformIndexExpr(strategyObjectivesPlatformIndex, models.ParseTeamID(conn.PlatformID)),
 			map[string]string{}, true, -1, &allObjs)
 		log.Printf("AllStrategyObjectives: len(allObjs)=%d\n", len(allObjs))
 
@@ -205,7 +205,7 @@ func UserObjectiveFromStrategyObjective(so models.StrategyObjective) func (conn 
 			commID = ""
 			log.Printf("UserObjectiveFromStrategyObjective: CapabilityCommunityIDs is empty")
 		}
-		vision := strategy.StrategyVision(conn.PlatformID, visionMissionTableName(conn.ClientID))
+		vision := strategy.StrategyVision(models.ParseTeamID(conn.PlatformID), visionMissionTableName(conn.ClientID))
 		// We are using _ here because `:` will create issues with callback
 		id := so.ID // core.IfThenElse(commID != core.EmptyString, fmt.Sprintf("%s_%s", so.ID, commID), so.ID).(string)
 		// log.Printf("UserObjectiveFromStrategyObjective: id=%s; so.ID=%s, commID=%s, so=%v\n",  id, so.ID, commID, so)
@@ -289,7 +289,7 @@ func removeDuplicates(issues []Issue)(res [] Issue) {
 func IssuesFromAllStrategyInitiatives() func (conn DynamoDBConnection) (res []Issue, err error) {
 	return func (conn DynamoDBConnection) (res []Issue, err error) {
 		defer core.RecoverToErrorVar("AllStrategyInitiatives", &err)
-		inits := strategy.AllOpenStrategyInitiatives(conn.PlatformID,
+		inits := strategy.AllOpenStrategyInitiatives(models.ParseTeamID(conn.PlatformID),
 			strategyInitiativeTableName(conn.ClientID),
 			strategyInitiativesPlatformIndex,
 			userObjectiveTableName(conn.ClientID))
@@ -333,7 +333,7 @@ func IssuesFromInitiativeCommunityInitiatives(userID string) func (conn DynamoDB
 	return func (conn DynamoDBConnection) (res []Issue, err error) {
 		defer core.RecoverToErrorVar("IssuesFromInitiativeCommunityInitiatives", &err)
 		var inits []models.StrategyInitiative
-		inits = strategy.AllOpenStrategyInitiatives(conn.PlatformID, 
+		inits = strategy.AllOpenStrategyInitiatives(models.ParseTeamID(conn.PlatformID), 
 			strategyInitiativeTableName(conn.ClientID), strategyInitiativesPlatformIndex,
 			userObjectiveTableName(conn.ClientID))
 		res, err = IssuesFromGivenStrategyInitiatives(inits)(conn)
@@ -347,7 +347,7 @@ func IssueFromStrategyInitiative(si models.StrategyInitiative) func (conn common
 	return func (conn common.DynamoDBConnection) (issue Issue, err error) {
 		advocate := ""
 		if si.CapabilityObjective != "" {
-			capObj := strategy.StrategyObjectiveByID(conn.PlatformID, si.CapabilityObjective, 
+			capObj := strategy.StrategyObjectiveByID(models.ParseTeamID(conn.PlatformID), si.CapabilityObjective, 
 				strategyObjectiveTableName(conn.ClientID))
 			advocate = capObj.Advocate
 		}
@@ -376,7 +376,7 @@ func IssueFromStrategyInitiative(si models.StrategyInitiative) func (conn common
 func StrategyInitiativeRead(id string) func (conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
 	return func (conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
 		defer core.RecoverToErrorVar("StrategyInitiativeRead", &err)
-		res = strategy.StrategyInitiativeByID(conn.PlatformID, id, strategyInitiativeTableName(conn.ClientID))
+		res = strategy.StrategyInitiativeByID(models.ParseTeamID(conn.PlatformID), id, strategyInitiativeTableName(conn.ClientID))
 		if res.ID != id {
 			err = fmt.Errorf("couldn't find StrategyInitiativeByID(id=%s). Instead got ID=%s", id, res.ID)
 		}
@@ -402,7 +402,7 @@ func StrategyObjectiveRead(id string) func (conn DynamoDBConnection) (res models
 		}
 
 		log.Printf("StrategyObjectiveDynamoDBConnection) Read: reading id2=%s\n", id2)
-		res = strategy.StrategyObjectiveByID(conn.PlatformID, id2, strategyObjectiveTableName(conn.ClientID))
+		res = strategy.StrategyObjectiveByID(models.ParseTeamID(conn.PlatformID), id2, strategyObjectiveTableName(conn.ClientID))
 		if res.ID != id2 {
 			err = fmt.Errorf("couldn't find StrategyObjectiveByID(id2=%s, id=%s). Instead got ID=%s", id2, id, res.ID)
 		}
@@ -621,11 +621,11 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func (DynamoDBConnection)(err
 			// if len(splits) == 2 {
 			// 	soID := splits[0]
 			// 	capCommID := splits[1]
-			// 	issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveDAO.Read(platformID, soID)
+			// 	issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveDAO.Read(teamID, soID)
 			// 	if err != nil { return }
-			// 	issueRef.PrefetchedData.AlignedCapabilityCommunity, err = CapabilityCommunityDAO.Read(platformID, capCommID)
+			// 	issueRef.PrefetchedData.AlignedCapabilityCommunity, err = CapabilityCommunityDAO.Read(teamID, capCommID)
 			// } else {
-			// 	issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveDAO.Read(platformID, issueRef.UserObjective.ID)
+			// 	issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveDAO.Read(teamID, issueRef.UserObjective.ID)
 			// }
 		case Initiative:
 			initCommID := issueRef.StrategyInitiative.InitiativeCommunityID
@@ -662,7 +662,7 @@ func PrefetchManyIssuesWithoutProgress(issues []Issue) func (DynamoDBConnection)
 func CapabilityCommunityRead(id string) func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
 	return func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
 		defer core.RecoverToErrorVar("CapabilityCommunityRead", &err)
-		res = strategy.CapabilityCommunityByID(conn.PlatformID, id, models.CapabilityCommunitiesTableName(conn.ClientID))
+		res = strategy.CapabilityCommunityByID(models.ParseTeamID(conn.PlatformID), id, models.CapabilityCommunitiesTableName(conn.ClientID))
 		if res.ID != id {
 			err = fmt.Errorf("couldn't find CapabilityCommunityByID(id=%s). Instead got ID=%s", id, res.ID)
 		}
