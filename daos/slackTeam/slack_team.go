@@ -14,7 +14,7 @@ import (
 )
 
 type SlackTeam struct  {
-	TeamID string `json:"team_id"`
+	TeamID common.PlatformID `json:"team_id"`
 	AccessToken string `json:"access_token,omitempty"`
 	TeamName string `json:"team_name,omitempty"`
 	// UserID is the ID of the user to send an engagement to
@@ -44,14 +44,14 @@ func (slackTeam SlackTeam) ToJSON() (string, error) {
 type DAO interface {
 	Create(slackTeam SlackTeam) error
 	CreateUnsafe(slackTeam SlackTeam)
-	Read(teamID string) (slackTeam SlackTeam, err error)
-	ReadUnsafe(teamID string) (slackTeam SlackTeam)
-	ReadOrEmpty(teamID string) (slackTeam []SlackTeam, err error)
-	ReadOrEmptyUnsafe(teamID string) (slackTeam []SlackTeam)
+	Read(teamID common.PlatformID) (slackTeam SlackTeam, err error)
+	ReadUnsafe(teamID common.PlatformID) (slackTeam SlackTeam)
+	ReadOrEmpty(teamID common.PlatformID) (slackTeam []SlackTeam, err error)
+	ReadOrEmptyUnsafe(teamID common.PlatformID) (slackTeam []SlackTeam)
 	CreateOrUpdate(slackTeam SlackTeam) error
 	CreateOrUpdateUnsafe(slackTeam SlackTeam)
-	Delete(teamID string) error
-	DeleteUnsafe(teamID string)
+	Delete(teamID common.PlatformID) error
+	DeleteUnsafe(teamID common.PlatformID)
 }
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
@@ -102,7 +102,7 @@ func (d DAOImpl) CreateUnsafe(slackTeam SlackTeam) {
 
 
 // Read reads SlackTeam
-func (d DAOImpl) Read(teamID string) (out SlackTeam, err error) {
+func (d DAOImpl) Read(teamID common.PlatformID) (out SlackTeam, err error) {
 	var outs []SlackTeam
 	outs, err = d.ReadOrEmpty(teamID)
 	if err == nil && len(outs) == 0 {
@@ -116,7 +116,7 @@ func (d DAOImpl) Read(teamID string) (out SlackTeam, err error) {
 
 
 // ReadUnsafe reads the SlackTeam. Panics in case of any errors
-func (d DAOImpl) ReadUnsafe(teamID string) SlackTeam {
+func (d DAOImpl) ReadUnsafe(teamID common.PlatformID) SlackTeam {
 	out, err2 := d.Read(teamID)
 	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading teamID==%s in %s\n", teamID, d.Name))
 	return out
@@ -124,7 +124,7 @@ func (d DAOImpl) ReadUnsafe(teamID string) SlackTeam {
 
 
 // ReadOrEmpty reads SlackTeam
-func (d DAOImpl) ReadOrEmpty(teamID string) (out []SlackTeam, err error) {
+func (d DAOImpl) ReadOrEmpty(teamID common.PlatformID) (out []SlackTeam, err error) {
 	var outOrEmpty SlackTeam
 	ids := idParams(teamID)
 	var found bool
@@ -142,7 +142,7 @@ func (d DAOImpl) ReadOrEmpty(teamID string) (out []SlackTeam, err error) {
 
 
 // ReadOrEmptyUnsafe reads the SlackTeam. Panics in case of any errors
-func (d DAOImpl) ReadOrEmptyUnsafe(teamID string) []SlackTeam {
+func (d DAOImpl) ReadOrEmptyUnsafe(teamID common.PlatformID) []SlackTeam {
 	out, err2 := d.ReadOrEmpty(teamID)
 	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading teamID==%s in %s\n", teamID, d.Name))
 	return out
@@ -198,26 +198,26 @@ func (d DAOImpl) CreateOrUpdateUnsafe(slackTeam SlackTeam) {
 
 
 // Delete removes SlackTeam from db
-func (d DAOImpl)Delete(teamID string) error {
+func (d DAOImpl)Delete(teamID common.PlatformID) error {
 	return d.Dynamo.DeleteEntry(d.Name, idParams(teamID))
 }
 
 
 // DeleteUnsafe deletes SlackTeam and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(teamID string) {
+func (d DAOImpl)DeleteUnsafe(teamID common.PlatformID) {
 	err2 := d.Delete(teamID)
 	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete teamID==%s in %s\n", teamID, d.Name))
 }
 
-func idParams(teamID string) map[string]*dynamodb.AttributeValue {
+func idParams(teamID common.PlatformID) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue {
-		"team_id": common.DynS(teamID),
+		"team_id": common.DynS(string(teamID)),
 	}
 	return params
 }
 func allParams(slackTeam SlackTeam, old SlackTeam) (params map[string]*dynamodb.AttributeValue) {
 	params = map[string]*dynamodb.AttributeValue{}
-	if slackTeam.TeamID != old.TeamID { params[":a0"] = common.DynS(slackTeam.TeamID) }
+	if slackTeam.TeamID != old.TeamID { params[":a0"] = common.DynS(string(slackTeam.TeamID)) }
 	if slackTeam.AccessToken != old.AccessToken { params[":a1"] = common.DynS(slackTeam.AccessToken) }
 	if slackTeam.TeamName != old.TeamName { params[":a2"] = common.DynS(slackTeam.TeamName) }
 	if slackTeam.UserID != old.UserID { params[":a3"] = common.DynS(slackTeam.UserID) }
@@ -230,7 +230,7 @@ func updateExpression(slackTeam SlackTeam, old SlackTeam) (expr string, params m
 	var updateParts []string
 	params = map[string]*dynamodb.AttributeValue{}
 	names := map[string]*string{}
-	if slackTeam.TeamID != old.TeamID { updateParts = append(updateParts, "team_id = :a0"); params[":a0"] = common.DynS(slackTeam.TeamID);  }
+	if slackTeam.TeamID != old.TeamID { updateParts = append(updateParts, "team_id = :a0"); params[":a0"] = common.DynS(string(slackTeam.TeamID));  }
 	if slackTeam.AccessToken != old.AccessToken { updateParts = append(updateParts, "access_token = :a1"); params[":a1"] = common.DynS(slackTeam.AccessToken);  }
 	if slackTeam.TeamName != old.TeamName { updateParts = append(updateParts, "team_name = :a2"); params[":a2"] = common.DynS(slackTeam.TeamName);  }
 	if slackTeam.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a3"); params[":a3"] = common.DynS(slackTeam.UserID);  }
