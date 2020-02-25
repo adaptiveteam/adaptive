@@ -37,7 +37,7 @@ func TestRequestParsing(t *testing.T) {
 				ID:        id,
 				Namespace: "adaptive-channel",
 				PlatformRequest: models.PlatformRequest{
-					PlatformID:   models.PlatformID(apiAppID),
+					PlatformID:   models.TeamID(apiAppID),
 					SlackRequest: models.EventsAPIEvent(requestPayload),
 				},
 			}

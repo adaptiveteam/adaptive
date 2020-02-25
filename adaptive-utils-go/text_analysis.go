@@ -52,7 +52,7 @@ func sortedMapImprovementIDString(m map[nlp.ImprovementID]string) (op []models.K
 	return op
 }
 
-// // deprecated. It seems that it's not used outside.
+// // Deprecated: It seems that it's not used outside.
 // func TextRecommendations(text, context, dialogTableName, namespace string) (int, string) {
 // 	d := awsutils.NewDynamo(NonEmptyEnv("AWS_REGION"), "", namespace)
 // 	dialogFetcherDao := dialogFetcher.NewDAO(d, dialogTableName)
@@ -101,7 +101,7 @@ func RenderRecommendations(recs map[nlp.ImprovementID]string) (res ui.RichText) 
 }
 
 // ColorStatusByRecommendationsLength returns color based on the number of recommendations
-// deprecated. Use ColorStatusByRecommendations
+// Deprecated: Use ColorStatusByRecommendations
 func ColorStatusByRecommendationsLength(len int) (color string) {
 	color = defaultColor
 	if col, ok := colorMap[len]; ok {
@@ -209,7 +209,7 @@ func (conversationContext ConversationContext) UpdateOriginalMessageInUserChanne
 
 // ECAnalysis performs analysis and posts recommendations to the same thread
 // ECAnalysis breaks SRP. Uses environment variables internally.
-// deprecated. Use AnalyzeText and PresentTextAnalysisResults instead.
+// Deprecated: Use AnalyzeText and PresentTextAnalysisResults instead.
 func ECAnalysis(originalText, context, label, dialogTableName string, callbackId, userId, channelId, ts, threadTs string, updatedAttachs []ebm.Attachment, s *awsutils.SnsRequest, notificationTopic, namespace string) {
 	// Do analysis on the text
 	// Once we receive the analysis from Meaning Cloud on the user's feedback, we post that result to the original message's thread
