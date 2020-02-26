@@ -79,8 +79,8 @@ func StaleIDOsExist(userID string, date business_time.Date) (res bool) {
 // CompanyVisionExists Does the company vision exist?
 func CompanyVisionExists(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("CompanyVisionExists")
-	platformID := strategy.UserIDToPlatformID(userDAO)(userID)
-	return strategy.StrategyVision(platformID, visionTable) != nil
+	teamID := strategy.UserIDToTeamID(userDAO)(userID)
+	return strategy.StrategyVision(teamID, visionTable) != nil
 }
 
 // InStrategyCommunity Is the user in the strategy community
@@ -170,8 +170,8 @@ func InCapabilityCommunity(userID string, _ business_time.Date) (res bool) {
 // CapabilityCommunityExists Does there exist a capabilility community?
 func CapabilityCommunityExists(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("CapabilityCommunityExists")
-	platformID := strategy.UserIDToPlatformID(userDAO)(userID)
-	capComms := strategy.AllCapabilityCommunities(platformID, capabilityCommunitiesTable,
+	teamID := strategy.UserIDToTeamID(userDAO)(userID)
+	capComms := strategy.AllCapabilityCommunities(teamID, capabilityCommunitiesTable,
 		capabilityCommunitiesPlatformIndex, strategyCommunitiesTable)
 	log.Println("Checked CapabilityCommunityExists: ", len(capComms))
 	return len(capComms) > 0
@@ -180,8 +180,8 @@ func CapabilityCommunityExists(userID string, _ business_time.Date) (res bool) {
 // MultipleCapabilityCommunitiesExists Is there more than one capability community?
 func MultipleCapabilityCommunitiesExists(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("MultipleCapabilityCommunitiesExists")
-	platformID := strategy.UserIDToPlatformID(userDAO)(userID)
-	capComms := strategy.AllCapabilityCommunities(platformID, capabilityCommunitiesTable,
+	teamID := strategy.UserIDToTeamID(userDAO)(userID)
+	capComms := strategy.AllCapabilityCommunities(teamID, capabilityCommunitiesTable,
 		capabilityCommunitiesPlatformIndex, strategyCommunitiesTable)
 	log.Println("Checked MultipleCapabilityCommunitiesExists: ", len(capComms))
 	return len(capComms) > 1
@@ -192,9 +192,9 @@ func MultipleCapabilityCommunitiesExists(userID string, _ business_time.Date) (r
 // InitiativeCommunityExists Are there any Initiative Communities?
 func InitiativeCommunityExists(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("InitiativeCommunityExists")
-	platformID := strategy.UserIDToPlatformID(userDAO)(userID)
+	teamID := strategy.UserIDToTeamID(userDAO)(userID)
 
-	communities, err2 := strategy.StrategyCommunitiesDAOReadByPlatformID(platformID, strategyCommunitiesTable)
+	communities, err2 := strategy.StrategyCommunitiesDAOReadByPlatformID(teamID, strategyCommunitiesTable)
 	if err2 != nil {
 		log.Printf("Failed InitiativeCommunityExists: %+v\n", err2)
 	}
@@ -220,8 +220,8 @@ func InitiativesExistInMyCapabilityCommunities(userID string, _ business_time.Da
 	var inits []models.StrategyInitiative
 	if community.IsUserInCommunity(userID, communityUsersTable, communityUsersUserCommunityIndex, community.Strategy) {
 		// User is in strategy community, return all the Initiatives
-		platformID := strategy.UserIDToPlatformID(userDAO)(userID)
-		inits = strategy.AllOpenStrategyInitiatives(platformID, initiativesTable, initiativesPlatformIndex,
+		teamID := strategy.UserIDToTeamID(userDAO)(userID)
+		inits = strategy.AllOpenStrategyInitiatives(teamID, initiativesTable, initiativesPlatformIndex,
 			userObjectivesTable)
 	} else {
 		inits = strategy.UserCapabilityCommunityInitiatives(userID, strategyObjectivesTableName, strategyObjectivesPlatformIndex,
@@ -281,9 +281,9 @@ func InitiativesDueInAQuarter(userID string, date business_time.Date) (res bool)
 // capability community that the user is in.
 func InitiativeCommunityExistsForMe(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("InitiativeCommunityExistsForMe")
-	platformID := strategy.UserIDToPlatformID(userDAO)(userID)
+	teamID := strategy.UserIDToTeamID(userDAO)(userID)
 	initComms := strategy.UserStrategyInitiativeCommunities(userID, communityUsersTable, communityUsersUserCommunityIndex,
-		communityUsersUserIndex, initiativeCommunitiesTableName, initiativeCommunitiesPlatformIndex, strategyCommunitiesTable, platformID)
+		communityUsersUserIndex, initiativeCommunitiesTableName, initiativeCommunitiesPlatformIndex, strategyCommunitiesTable, teamID)
 	log.Println("Checked InitiativeCommunityExistsForMe: ", len(initComms))
 	return len(initComms) > 0
 }
@@ -295,8 +295,8 @@ func InitiativeCommunityExistsForMe(userID string, _ business_time.Date) (res bo
 // TeamValuesExist Team values exist
 func TeamValuesExist(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("TeamValuesExist")
-	platformID := UserIDToPlatformID(userDAO)(userID)
-	vals := values.PlatformValues(platformID)
+	teamID := UserIDToTeamID(userDAO)(userID)
+	vals := values.PlatformValues(teamID)
 	return len(vals) > 0
 }
 
@@ -311,8 +311,8 @@ func InCompetenciesCommunity(userID string, _ business_time.Date) (res bool) {
 // HolidaysExist Holidays exist
 func HolidaysExist(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("HolidaysExist")
-	platformID := UserIDToPlatformID(userDAO)(userID)
-	vals := adHocHolidaysTableDao.ForPlatformID(platformID).AllUnsafe()
+	teamID := UserIDToTeamID(userDAO)(userID)
+	vals := adHocHolidaysTableDao.ForPlatformID(teamID).AllUnsafe()
 	return len(vals) > 0
 }
 
@@ -354,7 +354,7 @@ func UndeliveredEngagementsOrPostponedEventsExistForMe(userID string, date busin
 func ReportExists(userID string, dat business_time.Date) (res bool) {
 	defer RecoverToLog("ReportExists")
 	key, err := coaching.UserReportIDForPreviousQuarter(models.UserEngage{
-		UserId:   userID,
+		UserID:   userID,
 		Date:     dat.DateToString(string(core_utils_go.ISODateLayout)),
 		OnDemand: false,
 	})

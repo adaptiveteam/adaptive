@@ -1,6 +1,7 @@
 package adaptive_checks
 
 import (
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	eholidays "github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -58,7 +59,7 @@ var (
 	clientID  = utils.NonEmptyEnv("CLIENT_ID")
 	schema    = models.SchemaForClientID(clientID)
 	userDAO   = utilsUser.NewDAOFromSchema(d, namespace, schema)
-	// deprecated. We should change this to just client ID as soon as we rename table
+	// Deprecated: We should change this to just client ID as soon as we rename table
 	// coachingRelationshipsTable        = utils.NonEmptyEnv("COACHING_RELATIONSHIPS_TABLE_NAME")
 	// coachingRelationshipDAO = coachingRelationship.NewDAO(d, namespace, clientID)
 	userObjectiveDAO = userObjective.NewDAOByTableName(d, namespace, userObjectivesTable)
@@ -67,10 +68,18 @@ var (
 	adHocHolidaysTableDao = eholidays.NewDAO(&dns, schema.Holidays.Name, schema.Holidays.PlatformDateIndex)
 )
 
-// UserIDToPlatformID converts userID to platformID using
+// UserIDToPlatformID converts userID to teamID using
 // globally available variables.
-func UserIDToPlatformID(userDAO utilsUser.DAO) func(string) models.PlatformID {
-	return func(userID string) (platformID models.PlatformID) {
+func UserIDToPlatformID(userDAO utilsUser.DAO) func(string) daosCommon.PlatformID {
+	return func(userID string) (daosCommon.PlatformID) {
 		return userDAO.ReadUnsafe(userID).PlatformID
+	}
+}
+
+// UserIDToTeamID converts userID to teamID using
+// globally available variables.
+func UserIDToTeamID(userDAO utilsUser.DAO) func(string) models.TeamID {
+	return func(userID string) (teamID models.TeamID) {
+		return models.ParseTeamID(userDAO.ReadUnsafe(userID).PlatformID)
 	}
 }
