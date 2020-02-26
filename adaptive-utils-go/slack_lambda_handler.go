@@ -45,7 +45,7 @@ func (l LambdaHandler)HandleRequest(ctx context.Context, e events.SNSEvent) erro
 }
 
 // HandleNamespacePayload4 receives lambda json event
-func (l LambdaHandler)HandleNamespacePayload4(ctx context.Context, np models.NamespacePayload4) error {
+func (l LambdaHandler)HandleNamespacePayload4(np models.NamespacePayload4) error {
 	fmt.Println("adaptiveValues/main.go/HandleRequest entered")
 	if np.Namespace == l.Namespace {
 		switch np.PlatformRequest.Type {

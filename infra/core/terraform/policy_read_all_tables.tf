@@ -27,7 +27,7 @@ data "aws_iam_policy_document" "read_all_tables" {
       aws_dynamodb_table.initiative_communities.arn,
       aws_dynamodb_table.capability_communities.arn,
       aws_dynamodb_table.postponed_event_dynamodb_table.arn,
- 
+      aws_dynamodb_table.slack_team_dynamodb_table.arn,
     ]
   }
   statement {
@@ -49,6 +49,7 @@ data "aws_iam_policy_document" "read_all_tables" {
       "${aws_dynamodb_table.strategy_initiatives.arn}/index/*",
       "${aws_dynamodb_table.strategy_objectives.arn}/index/*",
       "${aws_dynamodb_table.strategy_initiatives.arn}/index/*",
+      "${aws_dynamodb_table.slack_team_dynamodb_table.arn}/index/*",
     ]
   }
 }

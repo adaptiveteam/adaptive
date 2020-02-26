@@ -850,6 +850,27 @@ val ContextAliasEntryTable = Table(ContextAliasEntry,
 
 val ContextAliasEntryPackage = defaultPackage(ContextAliasEntryTable, imports)
 
+val teamIdField = "TeamID".camel :: string
+// SlackTeam contains the information about Slack team that 
+// we obtain during OAuth2 authorization
+val SlackTeam = Entity(
+    "SlackTeam".camel,//spacedName("OAuth state"),
+    List(teamIdField),
+    List(
+        "AccessToken".camel :: optionString,
+        "TeamName".camel :: optionString,
+        userIdField,
+        "EnterpriseID".camel :: optionString,
+    ),
+    Nil, List(CreatedModifiedTimesTrait)
+)
+val SlackTeamTable = Table(SlackTeam,
+    Index(teamIdField, None), 
+    List()
+)
+
+val SlackTeamPackage = defaultPackage(SlackTeamTable, imports)
+
 val packages = List(
     commonPackage,
 
@@ -874,7 +895,8 @@ val packages = List(
     DialogEntryPackage,
     ContextAliasEntryPackage,
     ObjectiveTypeDictionaryPackage,
-    PostponedEventPackage
+    PostponedEventPackage,
+    SlackTeamPackage
     )
 val daosProject = GoProjectFolder("daos", packages)
 
@@ -899,7 +921,8 @@ val coreTerraformProject = TerraformProjectFolder("daos/terraform", List(
     DialogEntryTable,
     ContextAliasEntryTable,
     ObjectiveTypeDictionaryTable,
-    PostponedEventTable
+    PostponedEventTable,
+    SlackTeamTable
     ))
 
 val workspace: Workspace = List(daosProject, coreTerraformProject)
