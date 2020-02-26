@@ -15,9 +15,9 @@ import (
 	"github.com/nlopes/slack"
 )
 
-func onStrategyPerformanceReport(RDSConfig RDSConfig, platformID models.PlatformID) (buf *bytes.Buffer, reportname string, err error) {
+func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf *bytes.Buffer, reportname string, err error) {
 	defer recoverToErrorVar("onStrategyPerformanceReport", &err)
-	customerID := string(platformID)
+	customerID := teamID.ToString()
 	db := utilities.SqlOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
 	defer utilities.CloseUnsafe(db)
 	var file *excelize.File
@@ -76,13 +76,13 @@ func uploadReportToS3(buf *bytes.Buffer, name string) (err error) {
 }
 
 func sendReportToUser(
-	platformID models.PlatformID,
+	teamID models.TeamID,
 	userID,
 	name string,
 	buf *bytes.Buffer,
 ) (err error) {
 	defer recoverToErrorVar("sendReportToUser", &err)
-	token := platformTokenDAO.GetPlatformTokenUnsafe(platformID)
+	token := platformTokenDAO.GetPlatformTokenUnsafe(teamID)
 	api := slack.New(token)
 
 	params := slack.FileUploadParameters{

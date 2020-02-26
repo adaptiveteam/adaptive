@@ -1,24 +1,29 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
 	"strings"
+
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
+	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 
 	"github.com/aws/aws-lambda-go/events"
 	"golang.org/x/net/context"
+
 	// oauth2 "github.com/adaptiveteam/adaptive/lambdas/slack-message-processor-lambda-go/oauth2-reimpl"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/endpoints"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/slackTeam"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/endpoints"
 )
 
 type CODE string
+
 const StateValue = "BE9DE56F"
 
 var (
@@ -49,7 +54,7 @@ func SlackOAuthConfig(clientID, clientSecret string) oauth2.Config {
 		// 	AuthURL:     endpoints.Slack.AuthURL,
 		// 	TokenURL:    endpoints.Slack.TokenURL,
 		// },
-		Endpoint:     endpoints.Slack,
+		Endpoint: endpoints.Slack,
 	}
 }
 
@@ -82,15 +87,17 @@ func ExchangeCodeForAuthenticationToken(conf oauth2.Config, code CODE) (token oa
 	return
 }
 
-// GenerateAddToSlackURL - handle Slack platform request to 
-func GenerateAddToSlackURL(userID, channelID string, platformID models.PlatformID) {
-	slackAdapter := platformAdapter.ForPlatformID(platformID)
+// GenerateAddToSlackURL - handle Slack platform request to
+func GenerateAddToSlackURL(userID, channelID string, teamID models.TeamID) {
+	conn := globalConnection(teamID.ToPlatformID())
+	slackAdapter := mapper.SlackAdapterForTeamID(conn)
 	url := generateAuthorizationURL(GlobalSlackOAuthConfig())
-	slackAdapter.PostSyncUnsafe(platform.Post(platform.ConversationID(userID), 
+	slackAdapter.PostSyncUnsafe(platform.Post(platform.ConversationID(userID),
 		platform.Message(ui.Sprintf(
 			"Send the following link to a user wishing to add Adaptive to their Slack workspace: %s", url)),
 	))
 }
+
 /*
 {
     "ok": true,
@@ -130,7 +137,7 @@ Instead Slack sends:
         "configuration_url": "https://adaptive--team.slack.com/services/BUBQGHEQ7",
         "url": "https://hooks.slack.com/services/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"
 	}
-	
+
 		//    "user_id": "UJ0SX0G9X",
     // "team_id": "TCUFJTB45",
     // "enterprise_id": null,
@@ -184,13 +191,13 @@ func HandleRedirectURLGetRequest(conn common.DynamoDBConnection, request events.
 		enterpriseID = token.Extra("enterprise_id").(string)
 	}
 	team := slackTeam.SlackTeam{
-		TeamID: token.Extra("team_id").(string),
-		AccessToken: token.AccessToken,
-		UserID: token.Extra("user_id").(string),
-		TeamName: token.Extra("team_name").(string),
+		TeamID:       common.PlatformID(token.Extra("team_id").(string)),
+		AccessToken:  token.AccessToken,
+		UserID:       token.Extra("user_id").(string),
+		TeamName:     token.Extra("team_name").(string),
 		EnterpriseID: enterpriseID,
 	}
 	dao := slackTeam.NewDAO(conn.Dynamo, "HandleRedirectURLGetRequest", conn.ClientID)
-	err = dao.Create(team)
+	err = dao.CreateOrUpdate(team)
 	return
 }
