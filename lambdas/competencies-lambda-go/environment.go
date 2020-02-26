@@ -51,11 +51,6 @@ var (
 	communityUserDAO = communityUser.NewDAOFromSchema(d, namespace, schema)
 )
 
-func platformDAO(teamID models.TeamID) evalues.PlatformDAO {
-	
-	return adaptiveValuesTableDao.ForPlatformID(teamID.ToString())
-}
-
 func slackAPI(teamID models.TeamID) mapper.PlatformAPI {
 	conn:= daosCommon.DynamoDBConnection{
 		Dynamo: d,

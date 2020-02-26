@@ -189,7 +189,7 @@ func dispatchSlackDialogSubmissionCallback(request slack.InteractionCallback,
 // listMenuItemFunc renders the list of adaptiveValues directly in chat.
 func listMenuItemFunc(request slack.InteractionCallback, teamID models.TeamID) []models.PlatformSimpleNotification {
 	platform.Debug(request, "Listing adaptive values 2 ...")
-	adaptiveValues := adaptiveValuesTableDao.ForPlatformID(teamID.ToString()).AllUnsafe()
+	adaptiveValues := adaptiveValuesTableDao.ForPlatformID(teamID.ToPlatformID()).AllUnsafe()
 	sort.Slice(adaptiveValues, func(i, j int) bool {
 		return adaptiveValues[i].Name < adaptiveValues[j].Name
 	})
@@ -301,7 +301,8 @@ func adaptiveValueEditChatMessage(request slack.InteractionCallback, slackConver
 // detailedListMenuItemFunc sends the list of adaptiveValues to thread
 func detailedListMenuItemFunc(request slack.InteractionCallback, teamID models.TeamID) []models.PlatformSimpleNotification {
 	platform.Debug(request, "Listing competencies...")
-	adaptiveValues := platformDAO(teamID).AllUnsafe()
+	adaptiveValues := adaptiveValuesTableDao.ForPlatformID(teamID.ToPlatformID()).
+		AllUnsafe()
 	sort.Slice(adaptiveValues, func(i, j int) bool {
 		return adaptiveValues[i].Name < adaptiveValues[j].Name
 	})
@@ -402,7 +403,7 @@ func onSubmitNewButtonClicked(
 	if ok {
 		platform.Debug(request, "Creating adaptiveValue "+dialog.Submission["Name"])
 		adaptiveValue := convertFormToAdaptiveValue(request, teamID, dialog.Submission)
-		platformDAO(teamID).Create(adaptiveValue)
+		adaptiveValuesTableDao.ForPlatformID(teamID.ToPlatformID()).Create(adaptiveValue)
 		platform.Debug(request, "Created adaptiveValue "+adaptiveValue.Name)
 
 		convID := conversationID(request)
