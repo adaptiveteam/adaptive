@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 )
-// deprecated. Uses global connections. Instead, connect in lambda and use those connections.
+// Deprecated: Uses global connections. Instead, connect in lambda and use those connections.
 func GetImprovements(text string, lc LanguageCode) (improvements []ImprovementID, errList []error) {
 	ensureGlobalConnectionsAreOpen()
 	return globalConnections.GetImprovements(text, lc)
