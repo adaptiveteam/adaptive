@@ -1,7 +1,6 @@
 package lambda
 
 import (
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
 	"strings"
 
@@ -89,7 +88,7 @@ func ExchangeCodeForAuthenticationToken(conf oauth2.Config, code CODE) (token oa
 
 // GenerateAddToSlackURL - handle Slack platform request to
 func GenerateAddToSlackURL(userID, channelID string, teamID models.TeamID) {
-	conn := globalConnection(teamID.ToPlatformID())
+	conn := globalConnection(teamID)
 	slackAdapter := mapper.SlackAdapterForTeamID(conn)
 	url := generateAuthorizationURL(GlobalSlackOAuthConfig())
 	slackAdapter.PostSyncUnsafe(platform.Post(platform.ConversationID(userID),
