@@ -59,7 +59,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 					if request.CallbackID == "init_message" {
 						selected := action.SelectedOptions[0]
 						text := selected.Value
-						engage := models.UserEngage{UserId: userID, IsNew: true, Update: true, OnDemand: true, ThreadTs: request.MessageTs}
+						engage := models.UserEngage{UserID: userID, IsNew: true, Update: true, OnDemand: true, ThreadTs: request.MessageTs}
 						switch text {
 						case user.UpdateSettings:
 							// For a new user, we post all the engagements for settings
@@ -99,7 +99,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							if mc.Topic == userSetup.UserSettingsUpdateTopic {
 								switch strings.TrimPrefix(action.Name, fmt.Sprintf("%s:", mc.Action)) {
 								case string(models.Update):
-									userEngage := models.UserEngage{UserId: userID, IsNew: true, Update: false}
+									userEngage := models.UserEngage{UserID: userID, IsNew: true, Update: false}
 									handleUserSetupRequestUnsafe(userEngage)
 								case string(models.Cancel):
 								}
