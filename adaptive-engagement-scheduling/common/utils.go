@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+
 	acfn "github.com/adaptiveteam/adaptive/adaptive-check-function-names"
 	ac "github.com/adaptiveteam/adaptive/adaptive-checks"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
@@ -11,8 +14,8 @@ import (
 	aug "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	"github.com/adaptiveteam/adaptive/checks"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
@@ -43,13 +46,13 @@ var (
 		acfn.UserSettingsExist: func(userID string, date business_time.Date) (rv bool) {
 			return true
 		},
-		acfn.HolidaysExist:                    ac.HolidaysExist,
-		acfn.CoacheesExist:                    ac.CoacheesExist,
-		acfn.AdvocatesExist:                   ac.AdvocatesExist,
-		acfn.CollaborationReportExists:        ac.ReportExists,
-		acfn.UndeliveredEngagementsExistForMe: ac.UndeliveredEngagementsExistForMe,
+		acfn.HolidaysExist:                                     ac.HolidaysExist,
+		acfn.CoacheesExist:                                     ac.CoacheesExist,
+		acfn.AdvocatesExist:                                    ac.AdvocatesExist,
+		acfn.CollaborationReportExists:                         ac.ReportExists,
+		acfn.UndeliveredEngagementsExistForMe:                  ac.UndeliveredEngagementsExistForMe,
 		acfn.UndeliveredEngagementsOrPostponedEventsExistForMe: ac.UndeliveredEngagementsOrPostponedEventsExistForMe,
-		acfn.CanBeNudgedForIDO:                ac.CanBeNudgedForIDOCreation,
+		acfn.CanBeNudgedForIDO:                                 ac.CanBeNudgedForIDOCreation,
 
 		// Strategy component existence independent of the user
 		acfn.TeamValuesExist:     ac.TeamValuesExist,
@@ -104,23 +107,26 @@ func Publish(msg aug.PlatformSimpleNotification) {
 	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not pusblish message to %s topic", PlatformNotificationTopic))
 }
 
-func communityChannel(userID string, community community.AdaptiveCommunity) string {
-	ut := UserToken(userID)
-	// Querying for admin community
-	params := map[string]*dynamodb.AttributeValue{
-		"id": daosCommon.DynS(string(community)),
-		"platform_id": daosCommon.DynS(string(ut.ClientPlatformRequest.PlatformID)),
+func globalConnection(teamID models.TeamID) daosCommon.DynamoDBConnection {
+	return daosCommon.DynamoDBConnection{
+		Dynamo:     D,
+		ClientID:   ClientID,
+		PlatformID: teamID.ToPlatformID(),
 	}
-	var comm aug.AdaptiveCommunity
-	err := D.GetItemFromTable(CommunitiesTable, params, &comm)
-	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not query %s table", CommunitiesTable))
-	return comm.ChannelID
 }
 
-func UserToken(userID string) aug.UserToken {
-	ut, err := utils.UserToken(userID, UserProfileLambda, Region, Namespace)
-	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not query for user token "+userID))
-	return ut
+func communityChannel(userID string, community community.AdaptiveCommunity) string {
+	teamID, err2 := platform.GetTeamIDForUser(D, ClientID, userID)
+	core.ErrorHandler(err2, Namespace, fmt.Sprintf("Could not get TeamID for userID %s", userID))
+	// Querying for admin community
+	params := map[string]*dynamodb.AttributeValue{
+		"id":          daosCommon.DynS(string(community)),
+		"platform_id": daosCommon.DynS(string(teamID.ToString())),
+	}
+	var comm aug.AdaptiveCommunity
+	err3 := D.GetItemFromTable(CommunitiesTable, params, &comm)
+	core.ErrorHandler(err3, Namespace, fmt.Sprintf("Could not query %s table", CommunitiesTable))
+	return comm.ChannelID
 }
 
 // UserDN renders user id as Slack markup for displaying user name.
