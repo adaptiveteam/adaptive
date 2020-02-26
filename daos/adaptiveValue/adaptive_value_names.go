@@ -10,3 +10,8 @@ const (
 	ValueType FieldName = "value_type"
 	Description FieldName = "description"
 )
+
+type IndexName string
+const (
+	PlatformIDIndex IndexName = "PlatformIDIndex"
+)

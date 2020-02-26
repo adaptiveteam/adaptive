@@ -17,3 +17,9 @@ const (
 	CreatedBy FieldName = "created_by"
 	ModifiedBy FieldName = "modified_by"
 )
+
+type IndexName string
+const (
+	PlatformIDIndex IndexName = "PlatformIDIndex"
+	InitiativeCommunityIDIndex IndexName = "InitiativeCommunityIDIndex"
+)

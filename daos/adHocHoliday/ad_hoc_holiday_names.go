@@ -11,3 +11,8 @@ const (
 	Description FieldName = "description"
 	ScopeCommunities FieldName = "scope_communities"
 )
+
+type IndexName string
+const (
+	PlatformIDDateIndex IndexName = "PlatformIDDateIndex"
+)

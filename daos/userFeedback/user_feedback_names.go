@@ -15,3 +15,9 @@ const (
 	MsgTimestamp FieldName = "msg_timestamp"
 	PlatformID FieldName = "platform_id"
 )
+
+type IndexName string
+const (
+	QuarterYearSourceIndex IndexName = "QuarterYearSourceIndex"
+	QuarterYearTargetIndex IndexName = "QuarterYearTargetIndex"
+)

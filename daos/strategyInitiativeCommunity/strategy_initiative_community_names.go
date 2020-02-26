@@ -12,3 +12,8 @@ const (
 	CapabilityCommunityID FieldName = "capability_community_id"
 	CreatedBy FieldName = "created_by"
 )
+
+type IndexName string
+const (
+	PlatformIDIndex IndexName = "PlatformIDIndex"
+)

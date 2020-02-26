@@ -17,3 +17,8 @@ const (
 	MasterBranch FieldName = "master_branch"
 	BuildID FieldName = "build_id"
 )
+
+type IndexName string
+const (
+	ContextSubjectIndex IndexName = "ContextSubjectIndex"
+)

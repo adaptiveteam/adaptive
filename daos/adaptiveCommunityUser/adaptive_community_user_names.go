@@ -9,3 +9,11 @@ const (
 	PlatformID FieldName = "platform_id"
 	CommunityID FieldName = "community_id"
 )
+
+type IndexName string
+const (
+	ChannelIDIndex IndexName = "ChannelIDIndex"
+	UserIDCommunityIDIndex IndexName = "UserIDCommunityIDIndex"
+	UserIDIndex IndexName = "UserIDIndex"
+	PlatformIDCommunityIDIndex IndexName = "PlatformIDCommunityIDIndex"
+)

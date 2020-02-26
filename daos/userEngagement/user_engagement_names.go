@@ -22,3 +22,8 @@ const (
 	PostedAt FieldName = "posted_at"
 	RescheduledFrom FieldName = "rescheduled_from"
 )
+
+type IndexName string
+const (
+	UserIDAnsweredIndex IndexName = "UserIDAnsweredIndex"
+)

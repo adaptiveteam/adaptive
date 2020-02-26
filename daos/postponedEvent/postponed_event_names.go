@@ -10,3 +10,9 @@ const (
 	ActionPath FieldName = "action_path"
 	ValidThrough FieldName = "valid_through"
 )
+
+type IndexName string
+const (
+	PlatformIDUserIDIndex IndexName = "PlatformIDUserIDIndex"
+	UserIDIndex IndexName = "UserIDIndex"
+)

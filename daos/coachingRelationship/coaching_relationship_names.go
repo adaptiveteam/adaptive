@@ -12,3 +12,10 @@ const (
 	CoachRequested FieldName = "coach_requested"
 	CoacheeRequested FieldName = "coachee_requested"
 )
+
+type IndexName string
+const (
+	CoachQuarterYearIndex IndexName = "CoachQuarterYearIndex"
+	QuarterYearIndex IndexName = "QuarterYearIndex"
+	CoacheeQuarterYearIndex IndexName = "CoacheeQuarterYearIndex"
+)

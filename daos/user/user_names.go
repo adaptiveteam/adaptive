@@ -18,3 +18,10 @@ const (
 	IsAdmin FieldName = "is_admin"
 	IsShared FieldName = "is_shared"
 )
+
+type IndexName string
+const (
+	PlatformIDIndex IndexName = "PlatformIDIndex"
+	PlatformIDTimezoneOffsetIndex IndexName = "PlatformIDTimezoneOffsetIndex"
+	PlatformIDAdaptiveScheduledTimeInUTCIndex IndexName = "PlatformIDAdaptiveScheduledTimeInUTCIndex"
+)

@@ -10,3 +10,9 @@ const (
 	Active FieldName = "active"
 	RequestedBy FieldName = "requested_by"
 )
+
+type IndexName string
+const (
+	ChannelIndex IndexName = "ChannelIndex"
+	PlatformIDIndex IndexName = "PlatformIDIndex"
+)
