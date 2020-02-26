@@ -15,7 +15,7 @@ var (
 	userTable = utils.NonEmptyEnv("USER_TABLE_NAME")
 	confTable = utils.NonEmptyEnv("CLIENT_CONFIG_TABLE_NAME")
 
-	clientID                  = utils.NonEmptyEnv("CLIENT_ID")
+	clientID  = utils.NonEmptyEnv("CLIENT_ID")
 
 	schema           = models.SchemaForClientID(clientID)
 
