@@ -9,7 +9,7 @@ import (
 
 // EventHandlingContext is the context for handlers. Contains all relevant information
 type EventHandlingContext struct {
-	PlatformID models.PlatformID
+	TeamID models.TeamID
 	Request slack.InteractionCallback
 	Instance
 	EventData
