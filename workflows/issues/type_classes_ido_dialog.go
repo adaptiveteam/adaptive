@@ -30,7 +30,8 @@ func (IDOImpl) CreateDialog(w workflowImpl, ctx wf.EventHandlingContext, issue I
 	coaches := convertKvPairToPlainTextOption(allMembers)
 
 	var initiativesObjectiveAndCompetencies []ebm.AttachmentActionElementOptionGroup
-	initiativesObjectiveAndCompetencies, err = LoadAndFormatInitiativesObjectiveAndCompetencies(w, ctx.Request.User.ID, ctx.PlatformID, issue.UserObjective)
+	initiativesObjectiveAndCompetencies, err = LoadAndFormatInitiativesObjectiveAndCompetencies(w, ctx.Request.User.ID, 
+		ctx.TeamID, issue.UserObjective)
 	survey = IDOObjectiveSurvey(issue.UserObjective, coaches, dates, initiativesObjectiveAndCompetencies)
 	return
 }
@@ -38,21 +39,21 @@ func (IDOImpl) CreateDialog(w workflowImpl, ctx wf.EventHandlingContext, issue I
 // LoadAndFormatInitiativesObjectiveAndCompetencies loads InitiativesObjectiveAndCompetencies
 func LoadAndFormatInitiativesObjectiveAndCompetencies(w workflowImpl,
 	userID string,
-	platformID models.PlatformID,
+	teamID models.TeamID,
 	item userObjective.UserObjective) (initiativesObjectiveAndCompetencies []ebm.AttachmentActionElementOptionGroup, err error) {
 	var competencies []adaptiveValue.AdaptiveValue
 	competencies, err = CompetencyReadAll()(w.DynamoDBConnection)
 	if err == nil {
 		var initiativesForUser []models.StrategyInitiative
 		var capabilityObjectives []models.StrategyObjective
-		initiativesForUser, capabilityObjectives, err = LoadInitsAndObjectives(w, userID, platformID)
+		initiativesForUser, capabilityObjectives, err = LoadInitsAndObjectives(w, userID, teamID)
 		if err == nil {
 			i := formatInitiativesAsGroup(initiativesForUser)
 			initiativesObjectiveAndCompetencies = append(initiativesObjectiveAndCompetencies, i...)
 			o := formatObjectivesGroup(capabilityObjectives)
 			initiativesObjectiveAndCompetencies = append(initiativesObjectiveAndCompetencies, o...)
 			c := formatCompetenciesAsOptionGroup(competencies)
-			w.AdaptiveLogger.Infof("Retrieved competencies for %s platform: %v", platformID, c)
+			w.AdaptiveLogger.Infof("Retrieved competencies for %s platform: %v", teamID, c)
 			initiativesObjectiveAndCompetencies = append(initiativesObjectiveAndCompetencies, c...)
 		}
 	}
@@ -88,7 +89,7 @@ func convertKvPairToPlainTextOption(pairs []models.KvPair) (out []ebm.Attachment
 func LoadInitsAndObjectives(
 	w workflowImpl,
 	userID string,
-	platformID models.PlatformID) (
+	teamID models.TeamID) (
 	initiativesForUser []models.StrategyInitiative,
 	capabilityObjectives []models.StrategyObjective,
 	err error) {
@@ -141,7 +142,7 @@ func (IDOImpl) ExtractFromContext(ctx wf.EventHandlingContext, id string, update
 		StrategyAlignmentEntityID:   alignmentID,
 		StrategyAlignmentEntityType: alignment,
 		ExpectedEndDate:             endDate,
-		PlatformID:                  ctx.PlatformID,
+		PlatformID:                  ctx.TeamID.ToPlatformID(),
 	}
 	if updated {
 		newIssue.UserObjective.Year = oldIssue.UserObjective.Year
