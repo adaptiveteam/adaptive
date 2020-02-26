@@ -73,14 +73,19 @@ def daoModule(table: Table, imports: Imports): Module =
 
 def fieldToStringBasedEnumItem(field: Field): StringBasedEnumItem = 
   StringBasedEnumItem(field.name, snakeCaseName(field.dbName))
+def indexToStringBasedEnumItem(index: Index): StringBasedEnumItem = 
+  StringBasedEnumItem(index.name, goPublicName(index.name))
 
 def fieldNamesModule(table: Table, imports: Imports): Module = 
   Module(Filename(table.entity.name ++ "Names".camel, ".go"), 
     List(GoModulePart(
       List(),//imports.importClauses,
       List(
-        StringBasedEnum("FieldName".camel, table.entity.fields.map(fieldToStringBasedEnumItem))
-      )
+        List(StringBasedEnum("FieldName".camel, table.entity.fields.map(fieldToStringBasedEnumItem))),
+        table.indices.headOption.toList.map(_ => 
+          StringBasedEnum("IndexName".camel, table.indices.map(indexToStringBasedEnumItem))
+        )
+      ).flatten
     ))
   )
 
