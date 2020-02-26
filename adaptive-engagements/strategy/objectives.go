@@ -33,14 +33,14 @@ type DynamoTableWithIndex struct {
 }
 
 // StrategyCommunitiesDAOReadByPlatformID is a copy of daos/StrategyCommunity.go/DAO/ReadByPlatformID
-func StrategyCommunitiesDAOReadByPlatformID(platformID models.PlatformID, strategyCommunityTableName string) (out []StrategyCommunity, err error) {
+func StrategyCommunitiesDAOReadByPlatformID(teamID models.TeamID, strategyCommunityTableName string) (out []StrategyCommunity, err error) {
 	var instances []StrategyCommunity
 	err = common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(strategyCommunityTableName,
 		awsutils.DynamoIndexExpression{
 			IndexName: "PlatformIDIndex",
 			Condition: "platform_id = :a0",
 			Attributes: map[string]interface{}{
-				":a0": platformID,
+				":a0": teamID,
 			},
 		}, map[string]string{}, true, -1, &instances)
 	out = instances
@@ -136,10 +136,10 @@ func UserCommunityObjectives(userID string, strategyObjectivesTable, strategyObj
 	userObjectivesTable string,
 	communityUsersTable, communityUsersUserIndex string) []models.StrategyObjective {
 	var op []models.StrategyObjective
-	platformID := UserIDToPlatformID(userDAO())(userID)
+	teamID := UserIDToTeamID(userDAO())(userID)
 
 	// Get all capability communities for a user
-	capObjs := AllOpenStrategyObjectives(platformID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
+	capObjs := AllOpenStrategyObjectives(teamID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
 		userObjectivesTable)
 	capComms, _ := UserCapabilityInitiativeCommunities(userID, communityUsersTable, communityUsersUserIndex)
 	var added []string
