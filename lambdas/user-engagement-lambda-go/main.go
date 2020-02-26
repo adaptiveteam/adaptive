@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"context"
 	"encoding/json"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
@@ -18,16 +19,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func postToUser(userId string, eng models.UserEngagement, namespace string) (err error) {
+func postToUser(userID string, eng models.UserEngagement, namespace string) (err error) {
 	var postMsg ebm.Message
 	err = json.Unmarshal([]byte(eng.Script), &postMsg)
 	if err == nil {
 		slackEng := SlackEngagement{Message: postMsg}
 		options := slackEng.MsgOptions()
-		ut, err := utils.UserToken(userId, profileLambda, region, namespace)
+		var token string
+		token, err = platform.GetTokenForUser(d, clientID, userID)
 		if err == nil {
-			api := slack.New(ut.PlatformToken)
-			_, _, err = api.PostMessage(userId, options...)
+			api := slack.New(token)
+			_, _, err = api.PostMessage(userID, options...)
 		}
 	}
 	return err
@@ -54,8 +56,8 @@ var (
 	communityUsersUserIndex    = utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX")
 	communityUsersChannelIndex = "ChannelIDIndex"
 	engagementTable            = utils.NonEmptyEnv("USER_ENGAGEMENTS_TABLE_NAME")
-	d                          = awsutils.NewDynamo(utils.NonEmptyEnv("AWS_REGION"), "", namespace)
-
+	d                          = awsutils.NewDynamo(region, "", namespace)
+	clientID                   = utils.NonEmptyEnv("CLIENT_ID")
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 )
 
