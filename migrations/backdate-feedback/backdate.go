@@ -16,10 +16,10 @@ func main() {
 	newValue := "4:2019"
 	feedback, err2 := readAllFeedbackForQuarterYear(oldValue, config)
 	core.ErrorHandler(err2, config.namespace, "readAllFeedbackForQuarterYear")
-	log.Printf("Backdating all feedback for platform id %s (%s -> %s)\n", config.platformID, oldValue, newValue)
+	log.Printf("Backdating all feedback for platform id %s (%s -> %s)\n", config.teamID, oldValue, newValue)
 	res := []models.UserFeedback{}
 	for _, f := range feedback {
-		if f.PlatformID == config.platformID {
+		if f.PlatformID == config.teamID {
 			f.QuarterYear = newValue
 			res = append(res, f)
 		}
