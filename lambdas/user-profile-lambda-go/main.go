@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"context"
 	"fmt"
 
@@ -28,12 +29,12 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 		return
 	}
 	teamID := engage.TeamID
-	profile, teamIDFromDB, err := readUserProfile(engage.UserID)
+	profile, teamIDFromDB, found, err := readUserProfile(engage.UserID)
 	if err != nil {
 		err = wrapError(err, "Couldn't read user profile for "+engage.UserID)
 		return
 	}
-	if profile.Id == "" {
+	if !found {
 		log.Printf("Cache missing for %s: %v\n", engage.UserID, err)
 		profile, err = refreshUserCache(engage.UserID, teamID)
 		if err != nil {
@@ -60,10 +61,14 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 	return
 }
 
-func readUserProfile(userID string) (profile models.UserProfile, teamID models.TeamID, err error) {
-	user, err := userDao.Read(userID)
-	profile = convertUserToProfile(user)
-	teamID = models.ParseTeamID(user.PlatformID)
+func readUserProfile(userID string) (profile models.UserProfile, teamID models.TeamID, found bool, err error) {
+	var users []models.User
+	users, err = userDao.ReadOrEmpty(userID)
+	found = len(users)>0
+	if found {
+		profile = convertUserToProfile(users[0])
+		teamID = models.ParseTeamID(users[0].PlatformID)
+	}
 	return
 }
 
@@ -89,9 +94,9 @@ func refreshUserCache(userID string, teamID models.TeamID) (profile models.UserP
 	if teamID.IsEmpty() {
 		panic(errors.New("refreshUserCache: teamID is empty when querying " + userID))
 	}
-	platform, err := platformTokenDao.Read(teamID)
+	token, err := platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
 	if err == nil {
-		api := slack.New(platform.PlatformToken)
+		api := slack.New(token)
 		user, err2 := api.GetUserInfo(userID)
 		err = err2
 		mUser := utilsUser.ConvertSlackUserToUser(*user, teamID)
