@@ -20,10 +20,10 @@ const (
 
 // This engagement is to closeout an objective
 func ObjectiveCloseoutEng(table string, mc models.MessageCallback, coach, title, text, fallback, learnLink string, urgent bool,
-	dns common.DynamoNamespace, check models.UserEngagementCheckWithValue, platformID models.PlatformID) {
+	dns common.DynamoNamespace, check models.UserEngagementCheckWithValue, teamID models.TeamID) {
 	// Setting action to closeout
 	utils.AddChatEngagement(*mc.WithAction(string(Closeout)), title, text, fallback, coach, closeoutAttachmentActions(mc, learnLink),
-		[]ebm.AttachmentField{}, platformID, urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(), check)
+		[]ebm.AttachmentField{}, teamID, urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(), check)
 }
 
 func closeoutAttachmentActions(mc models.MessageCallback, learnTrailPath string) []ebm.AttachmentAction {

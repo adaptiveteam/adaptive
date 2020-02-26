@@ -14,10 +14,10 @@ const (
 )
 
 func CreateStrategyEntityEng(table string, mc models.MessageCallback, title, fallback string, urgent bool,
-	check models.UserEngagementCheckWithValue, platformID models.PlatformID) {
+	check models.UserEngagementCheckWithValue, teamID models.TeamID) {
 	actions := []ebm.AttachmentAction{
 		*models.DialogAttachAction(mc, models.Now, CreateNowActionLabel),
 	}
 	utils.AddChatEngagement(mc, title, core.EmptyString, fallback, mc.Source, actions, []ebm.AttachmentField{},
-		platformID, urgent, table, common.DeprecatedGetGlobalDns().Dynamo, common.DeprecatedGetGlobalDns().Namespace, time.Now().Unix(), check)
+		teamID, urgent, table, common.DeprecatedGetGlobalDns().Dynamo, common.DeprecatedGetGlobalDns().Namespace, time.Now().Unix(), check)
 }
