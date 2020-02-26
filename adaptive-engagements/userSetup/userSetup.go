@@ -132,12 +132,12 @@ func callback(userID, topic, action string) models.MessageCallback {
 func HandleUserSetupRequest(platform utils.Platform, engDao userEngagement.DAO, event models.UserEngage, usersTable string) (string, error) {
 	if event.IsNew {
 		// For a new user, we post all the engagements for settings
-		meetingTime(platform, event.UserId, usersTable)
+		meetingTime(platform, event.UserID, usersTable)
 	} else {
 		if event.Update {
 			// Checking if existing user wants to update settings
-			settingsUpdateMessage(engDao, "", callback(event.UserId, UserSettingsUpdateTopic, user.AskForEngagements),
-				event.UserId, event.ThreadTs, platform)
+			settingsUpdateMessage(engDao, "", callback(event.UserID, UserSettingsUpdateTopic, user.AskForEngagements),
+				event.UserID, event.ThreadTs, platform)
 		}
 	}
 	return "ok", nil
