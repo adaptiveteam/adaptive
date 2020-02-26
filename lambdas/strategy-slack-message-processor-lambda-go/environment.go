@@ -3,7 +3,10 @@ package lambda
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 )
 
 var (
@@ -47,4 +50,13 @@ var (
 	s        = awsutils.NewSNS(region, "", namespace)
 	dns      = common.DynamoNamespace{Dynamo: d, Namespace: namespace}
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
+	connGen  = daosCommon.DynamoDBConnectionGen{
+		Dynamo:     d,
+		TableNamePrefix:   clientID,
+	}
 )
+
+func slackAPI(teamID models.TeamID) mapper.PlatformAPI {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	return mapper.SlackAdapterForTeamID(conn)
+}

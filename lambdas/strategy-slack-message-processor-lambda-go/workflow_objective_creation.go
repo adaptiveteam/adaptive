@@ -3,21 +3,24 @@ package lambda
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	aug "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
-	"github.com/thoas/go-funk"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
-	"github.com/adaptiveteam/adaptive/workflows/exchange"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	aug "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	// daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
+	"github.com/thoas/go-funk"
+
 	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"log"
 	"time"
@@ -34,21 +37,20 @@ var CreateObjectiveWorkflow = wf.NamedTemplate{
 
 const InitState wf.State = "init"
 const (
-	DefaultEvent wf.Event = ""
-	ViewObjectivesEvent wf.Event = "ViewObjectivesEvent"
+	DefaultEvent          wf.Event = ""
+	ViewObjectivesEvent   wf.Event = "ViewObjectivesEvent"
 	ViewMyObjectivesEvent wf.Event = "ViewMyObjectivesEvent"
 )
 const MessagePostedState wf.State = "MessagePostedState"
 const (
-	MessageIDAvailableEvent wf.Event = "MessageIDAvailableEvent"
-	EditEvent wf.Event = "EditEvent"
-	AddAnotherEvent wf.Event = "AddAnotherEvent"
-	DetailsEvent wf.Event = "DetailsEvent"
-	CancelEvent wf.Event = "CancelEvent"
-	ProgressShowEvent wf.Event = "ProgressShowEvent"
+	MessageIDAvailableEvent   wf.Event = "MessageIDAvailableEvent"
+	EditEvent                 wf.Event = "EditEvent"
+	AddAnotherEvent           wf.Event = "AddAnotherEvent"
+	DetailsEvent              wf.Event = "DetailsEvent"
+	CancelEvent               wf.Event = "CancelEvent"
+	ProgressShowEvent         wf.Event = "ProgressShowEvent"
 	ProgressIntermediateEvent wf.Event = "ProgressIntermediateEvent"
-	ProgressCloseoutEvent wf.Event = "ProgressCloseoutEvent"
-
+	ProgressCloseoutEvent     wf.Event = "ProgressCloseoutEvent"
 )
 const FormShownState wf.State = "FormShownState"
 const ProgressFormShownState wf.State = "ProgressFormShownState"
@@ -67,7 +69,7 @@ func CreateObjectiveWorkflow_Workflow() wf.Template {
 	return wf.Template{
 		Init: InitState, // initial state is "init". This is used when the user first triggers the workflow
 		FSA: map[struct {
-			wf.State;
+			wf.State
 			wf.Event
 		}]wf.Handler{
 			{State: InitState, Event: DefaultEvent}:                         CreateObjectiveWorkflow_OnInit(true),
@@ -75,26 +77,26 @@ func CreateObjectiveWorkflow_Workflow() wf.Template {
 			{State: FormShownState, Event: wf.SurveySubmitted}:              wf.SimpleHandler(CreateObjectiveWorkflow_OnDialogSubmitted, MessagePostedState),
 			{State: MessagePostedState, Event: MessageIDAvailableEvent}:     wf.SimpleHandler(CreateObjectiveWorkflow_OnFieldsShown, MessagePostedState), // returning to the same state for other events to trigger
 			// the following events are for buttons. Will be invoked not immediately
-			{State: MessagePostedState, Event: EditEvent}:                   wf.SimpleHandler(CreateObjectiveWorkflow_OnEdit, FormShownState),
-			{State: MessagePostedState, Event: DetailsEvent}:                wf.SimpleHandler(CreateObjectiveWorkflow_OnDetails, MessagePostedState),
-			{State: MessagePostedState, Event: CancelEvent}:                 wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressCancel, DoneState),
-			{State: MessagePostedState, Event: ProgressShowEvent}:           wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressShow, MessagePostedState),
-			{State: MessagePostedState, Event: ProgressIntermediateEvent}:   wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressIntermediate, ProgressFormShownState),
-			{State: MessagePostedState, Event: ProgressCloseoutEvent}:       wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressCloseout, MessagePostedState),
+			{State: MessagePostedState, Event: EditEvent}:                 wf.SimpleHandler(CreateObjectiveWorkflow_OnEdit, FormShownState),
+			{State: MessagePostedState, Event: DetailsEvent}:              wf.SimpleHandler(CreateObjectiveWorkflow_OnDetails, MessagePostedState),
+			{State: MessagePostedState, Event: CancelEvent}:               wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressCancel, DoneState),
+			{State: MessagePostedState, Event: ProgressShowEvent}:         wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressShow, MessagePostedState),
+			{State: MessagePostedState, Event: ProgressIntermediateEvent}: wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressIntermediate, ProgressFormShownState),
+			{State: MessagePostedState, Event: ProgressCloseoutEvent}:     wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressCloseout, MessagePostedState),
 			// {State: MessagePostedState, Event: "delete"}: wf.SimpleHandler(CreateObjectiveWorkflow_OnDelete, DoneState),
-			{State: MessagePostedState, Event: AddAnotherEvent}:             CreateObjectiveWorkflow_OnInit(false),
-			{State: ProgressFormShownState, Event: wf.SurveySubmitted}:      wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressFormSubmitted, MessagePostedState),
-			{State: ProgressFormShownState, Event: wf.SurveyCancelled}:      wf.SimpleHandler(CreateObjectiveWorkflow_OnDialogCancelled, DoneState), // NB! we handle on cancel using the same method
-			{State: FormShownState, Event: wf.SurveyCancelled}:              wf.SimpleHandler(CreateObjectiveWorkflow_OnDialogCancelled, DoneState),
-			{State: InitState, Event: ViewObjectivesEvent}:                  wf.SimpleHandler(CreateObjectiveWorkflow_OnViewObjectives(unfiltered), ObjectiveShownState),
-			{State: InitState, Event: ViewMyObjectivesEvent}:                wf.SimpleHandler(CreateObjectiveWorkflow_OnViewObjectives(filterUserAdvocate), ObjectiveShownState),
-			{State: ObjectiveShownState, Event: EditEvent}:                  wf.SimpleHandler(CreateObjectiveWorkflow_OnEdit, FormShownState),
-			{State: ObjectiveShownState, Event: DetailsEvent}:               wf.SimpleHandler(CreateObjectiveWorkflow_OnDetails, MessagePostedState),
-			{State: ObjectiveShownState, Event: CancelEvent}:                wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressCancel, DoneState),
-			{State: ObjectiveShownState, Event: ProgressShowEvent}:          wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressShow, MessagePostedState),
-			{State: ObjectiveShownState, Event: ProgressIntermediateEvent}:  wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressIntermediate, ProgressFormShownState),
-			{State: ObjectiveShownState, Event: ProgressCloseoutEvent}:      wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressCloseout, MessagePostedState),
-			{State: ObjectiveShownState, Event: AddAnotherEvent}:            CreateObjectiveWorkflow_OnInit(false),
+			{State: MessagePostedState, Event: AddAnotherEvent}:            CreateObjectiveWorkflow_OnInit(false),
+			{State: ProgressFormShownState, Event: wf.SurveySubmitted}:     wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressFormSubmitted, MessagePostedState),
+			{State: ProgressFormShownState, Event: wf.SurveyCancelled}:     wf.SimpleHandler(CreateObjectiveWorkflow_OnDialogCancelled, DoneState), // NB! we handle on cancel using the same method
+			{State: FormShownState, Event: wf.SurveyCancelled}:             wf.SimpleHandler(CreateObjectiveWorkflow_OnDialogCancelled, DoneState),
+			{State: InitState, Event: ViewObjectivesEvent}:                 wf.SimpleHandler(CreateObjectiveWorkflow_OnViewObjectives(unfiltered), ObjectiveShownState),
+			{State: InitState, Event: ViewMyObjectivesEvent}:               wf.SimpleHandler(CreateObjectiveWorkflow_OnViewObjectives(filterUserAdvocate), ObjectiveShownState),
+			{State: ObjectiveShownState, Event: EditEvent}:                 wf.SimpleHandler(CreateObjectiveWorkflow_OnEdit, FormShownState),
+			{State: ObjectiveShownState, Event: DetailsEvent}:              wf.SimpleHandler(CreateObjectiveWorkflow_OnDetails, MessagePostedState),
+			{State: ObjectiveShownState, Event: CancelEvent}:               wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressCancel, DoneState),
+			{State: ObjectiveShownState, Event: ProgressShowEvent}:         wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressShow, MessagePostedState),
+			{State: ObjectiveShownState, Event: ProgressIntermediateEvent}: wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressIntermediate, ProgressFormShownState),
+			{State: ObjectiveShownState, Event: ProgressCloseoutEvent}:     wf.SimpleHandler(CreateObjectiveWorkflow_OnProgressCloseout, MessagePostedState),
+			{State: ObjectiveShownState, Event: AddAnotherEvent}:           CreateObjectiveWorkflow_OnInit(false),
 		},
 		Parser: wf.Parser,
 	}
@@ -106,22 +108,22 @@ func CreateObjectiveWorkflow_OnInit(isFromMainMenu bool) func(ctx wf.EventHandli
 		reply := simpleReply(ctx)
 		if isMemberInCommunity(ctx.Request.User.ID, community.Strategy) {
 			// check if the user is in strategy community
-			adaptiveAssociatedCapComms := SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(ctx.PlatformID)
+			adaptiveAssociatedCapComms := SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(ctx.TeamID)
 
-			logger.Infof("Adaptive associated Capability Communities for platform %s: %v", ctx.PlatformID, adaptiveAssociatedCapComms)
+			logger.Infof("Adaptive associated Capability Communities for platform %s: %v", ctx.TeamID, adaptiveAssociatedCapComms)
 			switch len(adaptiveAssociatedCapComms) {
 			case 0:
 				out = reply("There are no Adaptive associated Objective Communities. " +
-						"If you have already created a Objective Community, " +
-						"please ask the coordinator to create a *_private_* channel, " +
-						"invite Adaptive and associate with the community.")
+					"If you have already created a Objective Community, " +
+					"please ask the coordinator to create a *_private_* channel, " +
+					"invite Adaptive and associate with the community.")
 			case 1: // we already know the community. No need to ask.
 				capCommID := adaptiveAssociatedCapComms[0].ID
 				out, err = CreateObjectiveWorkflow_ShowDialog(capCommID, models.StrategyObjective{})(ctx)
 				out.NextState = FormShownState
 			default:
 				out.NextState = CommunitySelectingState
-				opts := mapCapabilityCommunitiesToOptions(adaptiveAssociatedCapComms, models.PlatformID(ctx.PlatformID))
+				opts := mapCapabilityCommunitiesToOptions(adaptiveAssociatedCapComms, models.TeamID(ctx.TeamID))
 				// Enable a user to create an objective if user is in strategy community and there are capability communities
 				out.Interaction = wf.Buttons(
 					"Select a capability community. You can assign the objective to other communities later but you need at least one for now.",
@@ -130,7 +132,7 @@ func CreateObjectiveWorkflow_OnInit(isFromMainMenu bool) func(ctx wf.EventHandli
 		} else {
 			// send a message that user is not authorized to create objectives
 			out = reply("You are not part of the Adaptive Strategy Community or an Objective Community, " +
-					"you will not be able to create Capability Objectives.")
+				"you will not be able to create Capability Objectives.")
 		}
 		out.KeepOriginal = !isFromMainMenu
 		return
@@ -148,18 +150,19 @@ func CreateObjectiveWorkflow_OnCommunitySelected(ctx wf.EventHandlingContext) (o
 	return
 }
 
-func simpleReply(ctx wf.EventHandlingContext) func (text ui.RichText) wf.EventOutput {
-	return func (text ui.RichText) (out wf.EventOutput) {
+func simpleReply(ctx wf.EventHandlingContext) func(text ui.RichText) wf.EventOutput {
+	return func(text ui.RichText) (out wf.EventOutput) {
 		out.NextState = DoneState
 		// send a message that user is not authorized to create objectives
 		out.Interaction = wf.SimpleResponses(platform.Post(platform.ConversationID(ctx.Request.User.ID),
 			platform.MessageContent{Message: text}))
-		return 
-}}
+		return
+	}
+}
 
-func mapCapabilityCommunitiesToOptions(comms []strategy.CapabilityCommunity, platformID models.PlatformID) (opts []wf.SelectorOption) {
+func mapCapabilityCommunitiesToOptions(comms []strategy.CapabilityCommunity, teamID models.TeamID) (opts []wf.SelectorOption) {
 	for _, each := range comms {
-		eachComm := strategy.CapabilityCommunityByID(platformID, each.ID, capabilityCommunitiesTable)
+		eachComm := strategy.CapabilityCommunityByID(teamID, each.ID, capabilityCommunitiesTable)
 		opts = append(opts, wf.SelectorOption{Label: ui.PlainText(eachComm.Name), Value: eachComm.ID})
 	}
 	return
@@ -167,7 +170,7 @@ func mapCapabilityCommunitiesToOptions(comms []strategy.CapabilityCommunity, pla
 
 func CreateObjectiveWorkflow_ShowDialog(capCommID string, item models.StrategyObjective) func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-		types, advocates, dates := LoadObjectiveDialogDictionaries(ctx.PlatformID, capCommID, item)
+		types, advocates, dates := LoadObjectiveDialogDictionaries(ctx.TeamID, capCommID, item)
 		out.Interaction = wf.OpenSurvey(ObjectiveSurvey(item, types, advocates, dates))
 		out.KeepOriginal = false                              // we have already deleted the message.
 		out.Data = map[string]string{capCommIDKey: capCommID} // we'll need it when creating the objective
@@ -182,7 +185,7 @@ func convertKvPairToPlainTextOption(pairs []models.KvPair) (out []ebm.Attachment
 	return
 }
 
-func objectiveToFields(newSo, oldSo *models.StrategyObjective, platformID models.PlatformID) (kvs []ebm.AttachmentField) {
+func objectiveToFields(newSo, oldSo *models.StrategyObjective, teamID models.TeamID) (kvs []ebm.AttachmentField) {
 	if oldSo == nil {
 		oldSo = newSo
 	}
@@ -210,12 +213,12 @@ func attachmentFieldNewOld(label ui.PlainText, prop func(models.UserObjective) u
 
 func attachmentField(label ui.PlainText, value ui.PlainText) ebm.AttachmentField {
 	return ebm.AttachmentField{
-		Title: string(label), 
+		Title: string(label),
 		Value: string(value),
 	}
 }
 
-func objectiveToFieldsDetails(newIssue, oldIssue models.UserObjective, platformID models.PlatformID) (fields []ebm.AttachmentField) {
+func objectiveToFieldsDetails(newIssue, oldIssue models.UserObjective, teamID models.TeamID) (fields []ebm.AttachmentField) {
 	// For ViewMore action, we only need the latest comment
 	fields = []ebm.AttachmentField{
 		attachmentFieldNewOld(AccountabilityPartnerLabel, getAccountabilityPartner, newIssue, oldIssue),
@@ -245,13 +248,13 @@ func getLatestComments(item models.UserObjective) (status ui.PlainText) {
 }
 
 func readUserDisplayName(userID string) (displayName ui.PlainText) {
-	accountabilityPartner, err := utils.UserToken(userID, userProfileLambda, region, namespace)
+	user, err2 := userDAO.Read(userID)
 
-	if err == nil {
-		displayName = ui.PlainText(accountabilityPartner.DisplayName)
+	if err2 == nil {
+		displayName = ui.PlainText(user.DisplayName)
 	} else {
 		displayName = "Unknown"
-		logger.Infof("Couldn't find AccountabilityPartner @" + userID)
+		logger.Errorf("Couldn't find AccountabilityPartner @%s: %v", userID, err2)
 	}
 	return
 }
@@ -313,25 +316,25 @@ func EditStatusTemplate(updated bool) (text ui.RichText) {
 	return
 }
 
-func readItem(platformID models.PlatformID, itemID string) models.StrategyObjective {
-	return strategy.StrategyObjectiveByID(platformID, itemID, strategyObjectivesTable)
+func readItem(teamID models.TeamID, itemID string) models.StrategyObjective {
+	return strategy.StrategyObjectiveByID(teamID, itemID, strategyObjectivesTable)
 }
 
-func saveItem(platformID models.PlatformID, item models.StrategyObjective, capCommID string) (err error) {
+func saveItem(teamID models.TeamID, item models.StrategyObjective, capCommID string) (err error) {
 	err = d.PutTableEntry(item, strategyObjectivesTable)
 	if err == nil {
-		uObj := UserObjectiveFromStrategyObjective(&item, capCommID, platformID)
+		uObj := UserObjectiveFromStrategyObjective(&item, capCommID, teamID)
 		err = d.PutTableEntry(uObj, userObjectivesTable)
 	}
 	return
 }
 
-func runtimeData(d interface{}) *interface{} {return &d}
+func runtimeData(d interface{}) *interface{} { return &d }
 
 func getItemAndOldItem(ctx wf.EventHandlingContext) (item models.StrategyObjective, oldItem models.StrategyObjective, updated bool, err error) {
 	item, updated, err = extractTypedObjectiveFromContext(ctx)
 	if updated {
-		oldItem = readItem(ctx.PlatformID, item.ID)
+		oldItem = readItem(ctx.TeamID, item.ID)
 		item.ID = oldItem.ID
 		item.CreatedBy = oldItem.CreatedBy
 		item.CreatedAt = oldItem.CreatedAt
@@ -354,7 +357,7 @@ func CreateObjectiveWorkflow_OnDialogSubmitted(ctx wf.EventHandlingContext) (out
 	var oldItem models.StrategyObjective
 	var updated bool
 	item, oldItem, updated, err = getItemAndOldItem(ctx)
-	err = saveItem(ctx.PlatformID, item, capCommID)
+	err = saveItem(ctx.TeamID, item, capCommID)
 	if err == nil {
 		out = onNewItemAvailable(ctx, item, oldItem, updated, capCommID)
 	} else {
@@ -364,13 +367,13 @@ func CreateObjectiveWorkflow_OnDialogSubmitted(ctx wf.EventHandlingContext) (out
 	}
 	out.KeepOriginal = true
 	out.RuntimeData = runtimeData(oldItem) // keeping the old item so that we'll be able to show it again after analysis.
-	
+
 	return
 }
 
 func onNewItemAvailable(ctx wf.EventHandlingContext, item models.StrategyObjective, oldItem models.StrategyObjective, updated bool, capCommID string) (out wf.EventOutput) {
-	newIssue := UserObjectiveFromStrategyObjective(&item, item.CapabilityCommunityIDs[0], ctx.PlatformID)
-	oldIssue := UserObjectiveFromStrategyObjective(&oldItem, oldItem.CapabilityCommunityIDs[0], ctx.PlatformID)
+	newIssue := UserObjectiveFromStrategyObjective(&item, item.CapabilityCommunityIDs[0], ctx.TeamID)
+	oldIssue := UserObjectiveFromStrategyObjective(&oldItem, oldItem.CapabilityCommunityIDs[0], ctx.TeamID)
 
 	view := viewObjectiveWritable(ctx, item, oldItem, *newIssue, *oldIssue)
 	view.OverrideOriginal = updated
@@ -388,16 +391,16 @@ func onNewItemAvailable(ctx wf.EventHandlingContext, item models.StrategyObjecti
 	out.Responses = append(out.Responses, notification)
 	return
 }
-func viewObjectiveWritable(ctx wf.EventHandlingContext, 
-	newItem models.StrategyObjective, 
+func viewObjectiveWritable(ctx wf.EventHandlingContext,
+	newItem models.StrategyObjective,
 	oldItem models.StrategyObjective,
 	newIssue models.UserObjective,
 	oldIssue models.UserObjective) wf.InteractiveMessage {
 	isShowingDetails := ctx.GetFlag(isShowingDetailsKey)
 	isShowingProgress := ctx.GetFlag(isShowingProgressKey)
-	fields := objectiveToFields(&newItem, &oldItem, ctx.PlatformID)
+	fields := objectiveToFields(&newItem, &oldItem, ctx.TeamID)
 	if isShowingDetails {
-		fields = append(fields, objectiveToFieldsDetails(newIssue, oldIssue, ctx.PlatformID)...)
+		fields = append(fields, objectiveToFieldsDetails(newIssue, oldIssue, ctx.TeamID)...)
 	}
 	if isShowingProgress {
 		fields = append(fields, userObjectiveProgressField(newIssue))
@@ -456,14 +459,14 @@ func viewObjectiveReadonly(ctx wf.EventHandlingContext, item models.StrategyObje
 		Message: "",
 		Attachments: []ebm.Attachment{
 			{
-				Fields: objectiveToFields(&item, &oldItem, ctx.PlatformID),
+				Fields: objectiveToFields(&item, &oldItem, ctx.TeamID),
 			},
 		},
 	}
 }
 
 func findStrategyCommunityConversation(ctx wf.EventHandlingContext) platform.ConversationID {
-	comm := CommunityById("strategy", ctx.PlatformID)
+	comm := CommunityById("strategy", ctx.TeamID)
 	return platform.ConversationID(comm.ChannelID)
 }
 
@@ -489,15 +492,15 @@ func CreateObjectiveWorkflow_OnFieldsShown(ctx wf.EventHandlingContext) (out wf.
 	messageID := channelizeID(toMapperMessageID(ctx.TargetMessageID))
 
 	itemID := ctx.Data[itemIDKey]
-	item := strategy.StrategyObjectiveByID(ctx.PlatformID, itemID, strategyObjectivesTable)
+	item := strategy.StrategyObjectiveByID(ctx.TeamID, itemID, strategyObjectivesTable)
 	oldItem := item
-	newIssue := UserObjectiveFromStrategyObjective(&item, item.CapabilityCommunityIDs[0], ctx.PlatformID)
+	newIssue := UserObjectiveFromStrategyObjective(&item, item.CapabilityCommunityIDs[0], ctx.TeamID)
 	if ctx.RuntimeData == nil {
 		logger.Infof("runtime data is empty")
 	} else {
 		oldItem = (*ctx.RuntimeData).(models.StrategyObjective)
 	}
-	oldIssue := UserObjectiveFromStrategyObjective(&oldItem, oldItem.CapabilityCommunityIDs[0], ctx.PlatformID)
+	oldIssue := UserObjectiveFromStrategyObjective(&oldItem, oldItem.CapabilityCommunityIDs[0], ctx.TeamID)
 	// item, err := strategyObjectiveDAO.Read(itemID)
 	if err == nil {
 		viewItem := viewObjectiveWritable(ctx, item, oldItem, *newIssue, *oldIssue)
@@ -530,14 +533,14 @@ func extractTypedObjectiveFromContext(ctx wf.EventHandlingContext) (item models.
 	item.Advocate = ctx.Request.DialogSubmissionCallback.Submission[SObjectiveAdvocate]
 	item.ExpectedEndDate = ctx.Request.DialogSubmissionCallback.Submission[SObjectiveEndDate]
 
-	item.PlatformID = ctx.PlatformID
+	item.PlatformID = ctx.TeamID.ToPlatformID()
 	return
 }
 
 func CreateObjectiveWorkflow_OnDialogCancelled(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	logger.Infof("CreateObjectiveWorkflow_OnDialogCancelled")
 	// out.Interaction = wf.SimpleResponses(
-	// 	platform.Post(platform.ConversationID(ctx.Request.User.ID), 
+	// 	platform.Post(platform.ConversationID(ctx.Request.User.ID),
 	// 		platform.MessageContent{Message: "Dialog cancelled"},
 	// 	),
 	// )
@@ -545,8 +548,8 @@ func CreateObjectiveWorkflow_OnDialogCancelled(ctx wf.EventHandlingContext) (out
 }
 
 // LoadObjectiveDialogDictionaries loads dictionaries that are needed for objective dialog
-func LoadObjectiveDialogDictionaries(platformID models.PlatformID, capCommID string, item models.StrategyObjective) (types, advocates, dates []ebm.AttachmentActionElementPlainTextOption) {
-	allMembers := communityMembersIncludingStrategyMembers(fmt.Sprintf("%s:%s", community.Capability, capCommID), platformID)
+func LoadObjectiveDialogDictionaries(teamID models.TeamID, capCommID string, item models.StrategyObjective) (types, advocates, dates []ebm.AttachmentActionElementPlainTextOption) {
+	allMembers := communityMembersIncludingStrategyMembers(fmt.Sprintf("%s:%s", community.Capability, capCommID), teamID)
 	allDates := objectives.StrategyObjectiveDatesWithIndefiniteOption(namespace, item.ExpectedEndDate)
 	advocates = convertKvPairToPlainTextOption(allMembers)
 	dates = convertKvPairToPlainTextOption(allDates)
@@ -581,7 +584,7 @@ func CreateObjectiveWorkflow_OnEdit(ctx wf.EventHandlingContext) (out wf.EventOu
 
 	itemID := ctx.Data[itemIDKey]
 	logger.Infof("CreateObjectiveWorkflow_OnEdit itemID:%s", itemID)
-	item := strategy.StrategyObjectiveByID(ctx.PlatformID, itemID, strategyObjectivesTable)
+	item := strategy.StrategyObjectiveByID(ctx.TeamID, itemID, strategyObjectivesTable)
 	bytes, _ := json.Marshal(item)
 	logger.Infof("CreateObjectiveWorkflow_OnEdit item:%v", string(bytes))
 	if len(item.CapabilityCommunityIDs) < 1 {
@@ -593,9 +596,9 @@ func CreateObjectiveWorkflow_OnEdit(ctx wf.EventHandlingContext) (out wf.EventOu
 	return
 }
 
-type ObjectivePredicate = func (models.StrategyObjective) bool
+type ObjectivePredicate = func(models.StrategyObjective) bool
 
-type ObjectivePredicateFactory = func (wf.EventHandlingContext) func (models.StrategyObjective) bool
+type ObjectivePredicateFactory = func(wf.EventHandlingContext) func(models.StrategyObjective) bool
 
 // funk.Filter is used instead of the following function.
 // func filterObjectives(objs []models.StrategyObjective, predicate ObjectivePredicate) (filtered []models.StrategyObjective) {
@@ -607,21 +610,21 @@ type ObjectivePredicateFactory = func (wf.EventHandlingContext) func (models.Str
 // 	return
 // }
 
-func CreateObjectiveWorkflow_OnViewObjectives(objectivesFilter ObjectivePredicateFactory) func (ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-	return func (ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+func CreateObjectiveWorkflow_OnViewObjectives(objectivesFilter ObjectivePredicateFactory) func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 		logger.Infof("CreateObjectiveWorkflow_OnViewObjectives")
-			// userID := ctx.Request.User.ID
+		// userID := ctx.Request.User.ID
 		out.Data = ctx.Data
 		out.KeepOriginal = true // we want to override it, so, not to delete
 		// Times in AWS are in UTC
-		items := strategy.AllOpenStrategyObjectives(ctx.PlatformID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
+		items := strategy.AllOpenStrategyObjectives(ctx.TeamID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
 			userObjectivesTable)
 		logger.Infof("CreateObjectiveWorkflow_OnViewObjectives items.len %d", len(items))
 		filteredItems := funk.Filter(items, objectivesFilter(ctx)).([]models.StrategyObjective)
 		logger.Infof("CreateObjectiveWorkflow_OnViewObjectives filteredItems.len %d", len(filteredItems))
 		threadMessages := wf.InteractiveMessages()
 		for _, item := range filteredItems {
-			newIssue := UserObjectiveFromStrategyObjective(&item, item.CapabilityCommunityIDs[0], ctx.PlatformID)
+			newIssue := UserObjectiveFromStrategyObjective(&item, item.CapabilityCommunityIDs[0], ctx.TeamID)
 			view := viewObjectiveWritable(ctx, item, item, *newIssue, *newIssue)
 			view.DataOverride = wf.Data{itemIDKey: item.ID}
 			threadMessages = append(threadMessages, view)
@@ -634,25 +637,29 @@ func CreateObjectiveWorkflow_OnViewObjectives(objectivesFilter ObjectivePredicat
 		}
 		out.Interaction.Messages = wf.InteractiveMessages(wf.InteractiveMessage{
 			PassiveMessage: wf.PassiveMessage{
-				Text: msg,
+				Text:             msg,
 				OverrideOriginal: true,
 			},
-			Thread:         threadMessages,
+			Thread: threadMessages,
 		})
 		return
 	}
 }
 
-func filterUserAdvocate(ctx wf.EventHandlingContext) ObjectivePredicate { return func(item models.StrategyObjective) bool {
-	return item.Advocate == ctx.Request.User.ID
-}}
+func filterUserAdvocate(ctx wf.EventHandlingContext) ObjectivePredicate {
+	return func(item models.StrategyObjective) bool {
+		return item.Advocate == ctx.Request.User.ID
+	}
+}
 
-func unfiltered(wf.EventHandlingContext) ObjectivePredicate { return func(models.StrategyObjective) bool {
-	return true
-}}
+func unfiltered(wf.EventHandlingContext) ObjectivePredicate {
+	return func(models.StrategyObjective) bool {
+		return true
+	}
+}
 
 func standardView(ctx wf.EventHandlingContext, item models.StrategyObjective) (out wf.EventOutput, err error) {
-	newIssue := UserObjectiveFromStrategyObjective(&item, item.CapabilityCommunityIDs[0], ctx.PlatformID)
+	newIssue := UserObjectiveFromStrategyObjective(&item, item.CapabilityCommunityIDs[0], ctx.TeamID)
 	view := viewObjectiveWritable(ctx, item, item, *newIssue, *newIssue)
 	view.OverrideOriginal = true
 	out.Interaction = wf.Interaction{
@@ -667,7 +674,7 @@ func CreateObjectiveWorkflow_OnDetails(ctx wf.EventHandlingContext) (out wf.Even
 	itemID := ctx.Data[itemIDKey]
 	logger.Infof("CreateObjectiveWorkflow_OnDetails itemID:%s", itemID)
 	ctx.ToggleFlag(isShowingDetailsKey)
-	item := readItem(ctx.PlatformID, itemID)
+	item := readItem(ctx.TeamID, itemID)
 	return standardView(ctx, item)
 }
 
@@ -687,10 +694,10 @@ func getIssueID(so models.StrategyObjective) (id string) {
 func CreateObjectiveWorkflow_OnProgressCancel(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	itemID := ctx.Data[itemIDKey]
 	logger.Infof("CreateIDOWorkflow_OnProgressCancel itemID:%s", itemID)
-	item := readItem(ctx.PlatformID, itemID)
+	item := readItem(ctx.TeamID, itemID)
 	issueID := getIssueID(item)
 	issue := userObjectiveByID(issueID)
-	//issue.Cancelled  
+	//issue.Cancelled
 	SetObjectiveField(issue, "cancelled", 1)
 	out.Interaction = wf.Interaction{
 		Messages: wf.InteractiveMessages(wf.InteractiveMessage{
@@ -714,9 +721,9 @@ func CreateObjectiveWorkflow_OnProgressCancel(ctx wf.EventHandlingContext) (out 
 
 func CreateObjectiveWorkflow_OnProgressShow(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	itemID := ctx.Data[itemIDKey]
-	logger.Infof("CreateIDOWorkflow_OnProgressShow itemID:%s", itemID)	
+	logger.Infof("CreateIDOWorkflow_OnProgressShow itemID:%s", itemID)
 	ctx.ToggleFlag(isShowingProgressKey)
-	item := readItem(ctx.PlatformID, itemID)
+	item := readItem(ctx.TeamID, itemID)
 	return standardView(ctx, item)
 }
 
@@ -733,7 +740,7 @@ func CreateObjectiveWorkflow_OnProgressIntermediate(ctx wf.EventHandlingContext)
 	}
 
 	today := core.ISODateLayout.Format(time.Now())
-	item := readItem(ctx.PlatformID, itemID)
+	item := readItem(ctx.TeamID, itemID)
 	issueID := getIssueID(item)
 	issue := userObjectiveByID(issueID)
 	label := ObjectiveProgressText2(issue, today)
@@ -750,7 +757,7 @@ func CreateObjectiveWorkflow_OnProgressIntermediate(ctx wf.EventHandlingContext)
 func CreateObjectiveWorkflow_OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	itemID := ctx.Data[itemIDKey]
 	logger.Infof("CreateIDOWorkflow_OnProgressFormSubmitted itemID:%s", itemID)
-	item := readItem(ctx.PlatformID, itemID)
+	item := readItem(ctx.TeamID, itemID)
 	issueID := getIssueID(item)
 	issue := userObjectiveByID(issueID)
 	progress, err := extractObjectiveProgressFromContext(ctx, issue)
@@ -781,20 +788,20 @@ func CreateObjectiveWorkflow_OnProgressFormSubmitted(ctx wf.EventHandlingContext
 			progress.StatusColor, issue, models.Update)
 
 		// Posting update view to the coachee
-		slackAdapter := platformAdapter.ForPlatformID(ctx.PlatformID)
+		slackAdapter := slackAPI(ctx.TeamID)
 		messageID, _ := slackAdapter.PostSync(
 			platform.Post(platform.ConversationID(ctx.Request.User.ID), platform.Message("", attachs...)),
 		)
 
 		// Post an engagement to the coach about this update
 		// Add an engagement for partner to review the progress. Coach is retrieved directly from objective
-		PartnerReviewUserObjectiveProgressEngagement(ctx.PlatformID, mc, issue.AccountabilityPartner,
+		PartnerReviewUserObjectiveProgressEngagement(ctx.TeamID, mc, issue.AccountabilityPartner,
 			progress.CreatedOn, ui.PlainText(progress.Comments), progress.StatusColor, issue, false)
 
 		msgState := MsgState{
 			//Ts:          messageID.Ts,
-			ThreadTs:    messageID.Ts,
-			Id: item.ID,
+			ThreadTs: messageID.Ts,
+			Id:       item.ID,
 		}
 		// setting the message state to be used by legacy code
 		msgStateBytes, _ := json.Marshal(msgState)
@@ -834,9 +841,9 @@ func percentTimeLapsed(today, start, end string) (percent int) {
 		percent = 0
 	} else {
 		d2 := common.DurationDays(start, end, core.ISODateLayout, namespace)
-		percent = int(float32(d1) / float32(d2) * float32(100))	
+		percent = int(float32(d1) / float32(d2) * float32(100))
 	}
-	return 
+	return
 }
 
 const (
@@ -968,7 +975,7 @@ func IntToString(i int) string {
 	return fmt.Sprintf("%d", i)
 }
 
-func PartnerReviewUserObjectiveProgressEngagement(platformID models.PlatformID, mc models.MessageCallback, partner string,
+func PartnerReviewUserObjectiveProgressEngagement(teamID models.TeamID, mc models.MessageCallback, partner string,
 	date string, objComments ui.PlainText, statusColor models.ObjectiveStatusColor, uObj models.UserObjective, urgent bool) {
 	mc = *mc.WithModule(namespace).WithTopic("coaching").WithAction(ReviewCoacheeProgressAsk).
 		WithTarget(fmt.Sprintf("%s_%s", uObj.ID, date)) // .WithTarget(uObj.ID)
@@ -988,8 +995,8 @@ func PartnerReviewUserObjectiveProgressEngagement(platformID models.PlatformID, 
 		*models.SimpleAttachAction(mc, models.Ignore, "Skip this"))
 
 	utils.AddChatEngagement(mc, titleString.(string), core.EmptyString, "Adaptive at your service", partner, actions,
-		progressFields(objComments, statusColor, uObj), platformID, urgent, engagementTable, d, namespace,
-		time.Now().Unix(), 	aug.UserEngagementCheckWithValue{},
+		progressFields(objComments, statusColor, uObj), teamID, urgent, engagementTable, d, namespace,
+		time.Now().Unix(), aug.UserEngagementCheckWithValue{},
 	)
 }
 
@@ -1018,7 +1025,7 @@ func CreateObjectiveWorkflow_OnProgressCloseout(ctx wf.EventHandlingContext) (ou
 	itemID := ctx.Data[itemIDKey]
 	logger.Infof("CreateObjectiveWorkflow_OnProgressCloseout itemID:%s", itemID)
 
-	item := readItem(ctx.PlatformID, itemID)
+	item := readItem(ctx.TeamID, itemID)
 	issueID := getIssueID(item)
 	issue := userObjectiveByID(issueID)
 
@@ -1042,7 +1049,7 @@ func CreateObjectiveWorkflow_OnProgressCloseout(ctx wf.EventHandlingContext) (ou
 		objectives.ObjectiveCloseoutEng(engagementTable, mc, issue.AccountabilityPartner,
 			fmt.Sprintf("<@%s> wants to close the following %s. Are you ok with that?", ctx.Request.User.ID, typLabel),
 			fmt.Sprintf("*%s*: %s \n *%s*: %s", NameLabel, item.Name, DescriptionLabel, item.Description),
-			string(closeoutLabel(item.ID)), objectiveCloseoutPath, false, dns, aug.UserEngagementCheckWithValue{}, ctx.PlatformID)
+			string(closeoutLabel(item.ID)), objectiveCloseoutPath, false, dns, aug.UserEngagementCheckWithValue{}, ctx.TeamID)
 		// Mark objective as closed
 		SetObjectiveField(issue, "completed", 1)
 
@@ -1050,7 +1057,7 @@ func CreateObjectiveWorkflow_OnProgressCloseout(ctx wf.EventHandlingContext) (ou
 		out.Interaction.Messages = wf.InteractiveMessages(wf.InteractiveMessage{
 			PassiveMessage: wf.PassiveMessage{
 				Text: ui.Sprintf("Awesome! I’ll schedule time with <@%s> to close out the %s: `%s`",
-				issue.AccountabilityPartner, typLabel, item.Name),
+					issue.AccountabilityPartner, typLabel, item.Name),
 			},
 		})
 
@@ -1061,7 +1068,6 @@ func CreateObjectiveWorkflow_OnProgressCloseout(ctx wf.EventHandlingContext) (ou
 	return
 }
 
-
 func progressLabel(userObjID string) ui.PlainText {
 	return ui.PlainText("Responsibility Progress")
 }
@@ -1069,15 +1075,16 @@ func progressLabel(userObjID string) ui.PlainText {
 func closeoutLabel(userObjID string) ui.PlainText {
 	return ui.PlainText("Responsibility Closeout")
 }
-var objectiveCloseoutPath            = ""// utils.NonEmptyEnv("USER_OBJECTIVES_CLOSEOUT_LEARN_MORE_PATH")
+
+var objectiveCloseoutPath = "" // utils.NonEmptyEnv("USER_OBJECTIVES_CLOSEOUT_LEARN_MORE_PATH")
 
 // func CreateObjectiveWorkflow_OnDelete(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 // 	itemID := ctx.Data[itemIDKey]
 // 	logger.Infof("CreateObjectiveWorkflow_OnDelete itemID:%s", itemID)
-// 	commParams := idAndPlatformIDParams(itemID, ctx.PlatformID)
+// 	commParams := idAndPlatformIDParams(itemID, ctx.TeamID)
 // 	err = d.DeleteEntry(strategyObjectivesTable, commParams)
 
-// 	out.Interaction = wf.Interaction{ 
+// 	out.Interaction = wf.Interaction{
 // 		Messages: []wf.InteractiveMessage{
 // 			{
 // 				PassiveMessage: wf.PassiveMessage{
@@ -1107,7 +1114,7 @@ const (
 	ProgressStatusLabel     ui.PlainText = "Current Status"
 	ObjectiveProgressLabel  ui.PlainText = "Objective Progress"
 	PerceptionOfStatusLabel ui.PlainText = "Your perception of status"
-	PerceptionOfStatusName = "perception_of_status"
+	PerceptionOfStatusName               = "perception_of_status"
 
 	CommentsName                  = "Comments"
 	CommentsLabel    ui.PlainText = "Comments"
@@ -1119,14 +1126,11 @@ const (
 	ReviewCoacheeProgressAsk = "review_coachee_progress_ask"
 	ReviewCoachComments      = "review_coach_comments"
 
-
 	ObjectiveProgressChangeCommentsActionLabel ui.PlainText = "Change my comments"
 
 	ObjectiveProgressChangeCommentsDialogTitle ui.PlainText = "Individual Objectives" // NB! this title might be irrelevant
 
-
 )
-
 
 func objectiveTypeLabel(userObj models.UserObjective) string {
 	var prefix string
@@ -1143,7 +1147,6 @@ func objectiveTypeLabel(userObj models.UserObjective) string {
 	}
 	return prefix
 }
-
 
 const (
 	IDODescriptionContext    = "dialog/ido/language-coaching/description"
