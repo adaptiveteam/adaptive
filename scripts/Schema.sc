@@ -137,7 +137,7 @@ val user = Entity(
             (underscoredName("adaptive_scheduled_time") :: optionTimestamp) \\ "in 24 hr format, localtime",
             adaptiveScheduledTimeInUtcField,
             platformIdField,
-            spacedName("platform org") :: string,
+            "PlatformOrg".camel :: optionString,
             spacedName("is admin") :: boolean,
             // spacedName("deleted") :: boolean,
             spacedName("is shared") :: boolean

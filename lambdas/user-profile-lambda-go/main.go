@@ -90,7 +90,8 @@ func wrapError(err error, name string) error {
 
 func refreshUserCache(userID string, platformID models.PlatformID) (profile models.UserProfile, err error) {
 	if platformID == "" {
-		panic(errors.New("refreshUserCache: platformID is empty when querying " + userID))
+		err = errors.New("refreshUserCache: teamID is empty when querying " + userID)
+		return
 	}
 	platform, err := platformTokenDao.Read(platformID)
 	if err == nil {
