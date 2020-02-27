@@ -5,19 +5,21 @@ import (
 	"context"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	// daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
-	// core "github.com/adaptiveteam/adaptive/core-utils-go"
+	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/nlopes/slack"
 	"log"
 )
 
 func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models.UserToken, err error) {
+	defer core.RecoverToErrorVar("profile-lambda", &err)
 	defer func() {
-		if err2 := recover(); err2 != nil {
-			err = fmt.Errorf("error in user-profile-lambda %v", err2)
+		if err != nil {
+			log.Printf("Error in user-profile-lambda:%v\n", err)
 		}
 	}()
-	fmt.Printf("HandleRequest UserID='%s', PlatformID='%s'\n", engage.UserId, engage.PlatformID)
+	log.Printf("HandleRequest UserID='%s', PlatformID='%s'\n", engage.UserId, engage.PlatformID)
 	uToken = models.UserToken{}
 	// this is used for keeping this lambda warm
 	// we send a request with an empty user every 30 min
@@ -25,12 +27,12 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 		return
 	}
 	platformID := engage.PlatformID
-	profile, platformIDFromDB, err := readUserProfile(engage.UserId)
-	if err != nil {
+	profile, platformIDFromDB, found, err2 := readUserProfile(engage.UserId)
+	if err2 != nil {
 		err = wrapError(err, "Couldn't read user profile for "+engage.UserId)
 		return
 	}
-	if profile.Id == "" {
+	if !found {
 		log.Printf("Cache missing for %s: %v\n", engage.UserId, err)
 		profile, err = refreshUserCache(engage.UserId, platformID)
 		if err != nil {
@@ -42,9 +44,9 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 	if platformID == "" {
 		platformID = platformIDFromDB
 	}
-	platform, err2 := platformTokenDao.Read(platformID)
-	if err2 != nil {
-		err = wrapError(err2, "Couldn't query table "+confTable)
+	platform, err3 := platformTokenDao.Read(platformID)
+	if err3 != nil {
+		err = wrapError(err3, "Couldn't query table "+confTable)
 		return
 	}
 	uToken = models.UserToken{
@@ -57,10 +59,14 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 	return
 }
 
-func readUserProfile(userID string) (profile models.UserProfile, platformID models.PlatformID, err error) {
-	user, err := userDao.Read(userID)
-	profile = convertUserToProfile(user)
-	platformID = user.PlatformID
+func readUserProfile(userID string) (profile models.UserProfile, platformID models.PlatformID, found bool, err error) {
+	var users []models.User
+	users, err = userDao.ReadOrEmpty(userID)
+	found = len(users)>0
+	if found {
+		profile = convertUserToProfile(users[0])
+		platformID = users[0].PlatformID
+	}
 	return
 }
 
