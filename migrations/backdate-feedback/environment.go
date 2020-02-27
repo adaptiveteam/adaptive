@@ -2,7 +2,7 @@ package main
 
 import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	daosCommon"github.com/adaptiveteam/adaptive/daos/common"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 )
 
@@ -10,7 +10,7 @@ type Config struct {
 	namespace  string
 	region     string
 	clientID   string
-	teamID models.TeamID
+	platformID daosCommon.PlatformID
 
 	d         *awsutils.DynamoRequest
 }
@@ -22,7 +22,7 @@ func readConfigFromEnvVars() (config Config) {
 		namespace : namespace,
 		region    : region,
 		clientID  : utils.NonEmptyEnv("ADAPTIVE_CLIENT_ID"),
-		teamID: models.TeamID(utils.NonEmptyEnv("PLATFORM_ID")),
+		platformID: daosCommon.PlatformID(utils.NonEmptyEnv("PLATFORM_ID")),
 		d         : awsutils.NewDynamo(region, "", namespace),
 	}
 }
