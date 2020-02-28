@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	// daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
@@ -46,18 +45,15 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 	if teamID.IsEmpty() {
 		teamID = teamIDFromDB
 	}
-	platform, found, err3 := platformTokenDao.Read(teamID) // TODO: read team-based token
+	token, err3 := platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
 	if err3 != nil {
 		err = wrapError(err3, "Couldn't query table "+confTable)
 		return
 	}
-	if !found {
-		err = fmt.Errorf("not found teamID=%s", teamID)
-	}
 	uToken = models.UserToken{
 		UserProfile:           profile,
-		ClientPlatform:        models.ClientPlatform{PlatformName: platform.PlatformName, PlatformToken: platform.PlatformToken},
-		ClientPlatformRequest: models.ClientPlatformRequest{TeamID: models.ParseTeamID(platform.PlatformID), Org: platform.Org},
+		ClientPlatform:        models.ClientPlatform{PlatformName: models.SlackPlatform, PlatformToken: token},
+		ClientPlatformRequest: models.ClientPlatformRequest{TeamID: teamID, Org: ""},
 	}
 	uToken.ClientPlatformRequest.TeamID = teamID
 
