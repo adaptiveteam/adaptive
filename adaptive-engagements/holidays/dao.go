@@ -19,7 +19,7 @@ type DAO interface {
 	AddAdHocHoliday(holiday models.AdHocHoliday) error
 
 	Create(holiday models.AdHocHoliday) error
-	Read(holidayID string) (models.AdHocHoliday, error)
+	Read(holidayID string) (models.AdHocHoliday, bool, error)
 	ReadUnsafe(holidayID string) models.AdHocHoliday
 	Update(holiday models.AdHocHoliday) error
 	Delete(holidayID string) error
@@ -96,21 +96,23 @@ func (d DAOImpl) AddAdHocHoliday(holiday models.AdHocHoliday) error {
 }
 
 // Read reads the ad-hoc holiday
-func (d DAOImpl) Read(holidayID string) (models.AdHocHoliday, error) {
+func (d DAOImpl) Read(holidayID string) (out models.AdHocHoliday, found bool, err error) {
 	params := map[string]*dynamodb.AttributeValue{
 		"id": daosCommon.DynS(holidayID),
 	}
-	var out models.AdHocHoliday
-	err2 := d.DNS.Dynamo.GetItemFromTable(d.Table, params, &out)
+	found, err = d.DNS.Dynamo.GetItemOrEmptyFromTable(d.Table, params, &out)
 	//if len(out) < 1 { return models.AdHocHoliday{}, errors.New("NotFound AdHocHoliday#ID=" + holidayID) }
 	//if len(out) > 1 { return models.AdHocHoliday{}, errors.New("Found many AdHocHoliday#ID=" + holidayID) }
-	return out, err2
+	return
 }
 
 // ReadUnsafe reads the ad-hoc holiday. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(holidayID string) models.AdHocHoliday {
-	holiday, err := d.Read(holidayID)
-	core.ErrorHandler(err, d.DNS.Namespace, fmt.Sprintf("Could not find %s in %s", holidayID, d.Table))
+	holiday, found, err2 := d.Read(holidayID)
+	if !found {
+		panic(fmt.Errorf("Holiday %s not found", holidayID))
+	}
+	core.ErrorHandler(err2, d.DNS.Namespace, fmt.Sprintf("Could not find %s in %s", holidayID, d.Table))
 	return holiday
 }
 
