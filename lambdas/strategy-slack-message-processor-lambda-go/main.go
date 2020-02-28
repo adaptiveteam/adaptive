@@ -93,9 +93,11 @@ func communityMembers(commID string, platformID models.PlatformID) []models.KvPa
 	var users []models.KvPair
 	for _, each := range commMembers {
 		// Self user checking
-		u := userDAO.ReadUnsafe(each.UserId)
-		if u.DisplayName != "" && !u.IsAdaptiveBot {
-			users = append(users, models.KvPair{Key: u.DisplayName, Value: each.UserId})
+		us := userDAO.ReadOrEmptyUnsafe(each.UserId)
+		for _, u := range us { 
+			if u.DisplayName != "" && !u.IsAdaptiveBot {
+				users = append(users, models.KvPair{Key: u.DisplayName, Value: each.UserId})
+			}
 		}
 	}
 	logger.Infof("KvPairs from communities for %s community for %s platform: %s", commID, platformID, users)
