@@ -44,10 +44,13 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 	if platformID == "" {
 		platformID = platformIDFromDB
 	}
-	platform, err3 := platformTokenDao.Read(platformID)
+	platform, found, err3 := platformTokenDao.Read(platformID)
 	if err3 != nil {
 		err = wrapError(err3, "Couldn't query table "+confTable)
 		return
+	}
+	if !found {
+		err = fmt.Errorf("not found platformID=%s",platformID)
 	}
 	uToken = models.UserToken{
 		UserProfile:           profile,
@@ -93,11 +96,15 @@ func refreshUserCache(userID string, platformID models.PlatformID) (profile mode
 		err = errors.New("refreshUserCache: teamID is empty when querying " + userID)
 		return
 	}
-	platform, err := platformTokenDao.Read(platformID)
+	platform, found, err2 := platformTokenDao.Read(platformID)
+	err = err2
+	if !found {
+		err = fmt.Errorf("Token not found for platformID=%s", platformID)
+	}
 	if err == nil {
 		api := slack.New(platform.PlatformToken)
-		user, err2 := api.GetUserInfo(userID)
-		err = err2
+		user, err3 := api.GetUserInfo(userID)
+		err = err3
 		mUser := utilsUser.ConvertSlackUserToUser(*user, platformID)
 		err = userDao.Create(mUser)
 		profile = models.UserProfile{ //mUser.UserProfile
