@@ -22,12 +22,14 @@ require (
 	github.com/nlopes/slack v0.6.0
 	github.com/onsi/ginkgo v1.10.2
 	github.com/onsi/gomega v1.7.0
-	github.com/opencontainers/runc v0.1.1 // indirect
+	github.com/opencontainers/runc v0.1.1
 	github.com/ory/dockertest v3.3.5+incompatible
 	github.com/pkg/errors v0.9.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0
 	github.com/thoas/go-funk v0.5.0
+	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	gotest.tools v2.2.0+incompatible
 )
