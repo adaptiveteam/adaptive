@@ -82,13 +82,14 @@ all:
 test-with-localstack:
 	docker-compose up -d ;\
 	go test ${TEST_OPS} -v ./...  -coverprofile=cover.out ;\
+	go tool cover -func cover.out ;\
 	docker-compose down
 
 test:
-	go test -v ${TEST_OPS} ./...  -coverprofile=cover.out
+	go test -v ${TEST_OPS} ./...  -coverprofile=cover.out ;\
 	go tool cover -func cover.out
 test-short:
-	go test -short -v ${TEST_OPS} ./...  -coverprofile=cover.out
+	go test -short -v ${TEST_OPS} ./...  -coverprofile=cover.out ;\
 	go tool cover -func cover.out
 clean:
 	go clean
