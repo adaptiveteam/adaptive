@@ -111,7 +111,7 @@ func (SObjectiveImpl) ExtractFromContext(ctx wf.EventHandlingContext, _ string, 
 	newIssue.StrategyObjective.Targets = form[SObjectiveTargets]
 	newIssue.StrategyObjective.Advocate = form[SObjectiveAdvocate]
 	newIssue.StrategyObjective.ExpectedEndDate = form[SObjectiveEndDate]
-	newIssue.StrategyObjective.PlatformID = ctx.PlatformID
+	newIssue.StrategyObjective.PlatformID = ctx.TeamID.ToPlatformID()
 	now := core.TimestampLayout.Format(time.Now())
 	newIssue.UserObjective.ModifiedAt = now
 	if updated {
@@ -137,7 +137,7 @@ func (SObjectiveImpl) ExtractFromContext(ctx wf.EventHandlingContext, _ string, 
 	newIssue.UserObjective.UserID = newIssue.StrategyObjective.Advocate
 	newIssue.UserObjective.AccountabilityPartner = newIssue.StrategyObjective.CreatedBy
 	newIssue.UserObjective.Name = newIssue.StrategyObjective.Name
-	newIssue.UserObjective.PlatformID = ctx.PlatformID
+	newIssue.UserObjective.PlatformID = ctx.TeamID.ToPlatformID()
 	newIssue.UserObjective.CreatedAt = newIssue.StrategyObjective.CreatedAt
 	newIssue.UserObjective.CreatedDate = core.NormalizeDate(newIssue.StrategyObjective.CreatedAt)
 	newIssue.UserObjective.ObjectiveType = userObjective.StrategyDevelopmentObjective

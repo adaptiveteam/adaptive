@@ -8,14 +8,16 @@ import (
 	"time"
 )
 
+// UserPlatformToken contains authentication information for communicating
+// with a user
 type UserPlatformToken struct {
-	PlatformName  models.PlatformName
-	PlatformToken string
+	PlatformName        models.PlatformName
+	AuthenticationToken string
 }
 
 type GetUserPlatformToken func(userID string) UserPlatformToken
 
-// Initializing a local cache for key-value pairs
+// InitLocalCache Initializing a local cache for key-value pairs
 // TTL can be set globally and at the key level
 func InitLocalCache(cache *ttlcache.Cache) *ttlcache.Cache {
 	if cache == nil {

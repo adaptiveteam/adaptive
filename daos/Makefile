@@ -93,4 +93,8 @@ objectiveTypeDictionary/test.log: objectiveTypeDictionary/*.go
 postponedEvent/test.log: postponedEvent/*.go
 	pushd postponedEvent; go test -v; date > test.log; popd
 
-test-all: common/test.log user/test.log coachingRelationship/test.log userFeedback/test.log userEngagement/test.log adaptiveCommunityUser/test.log adaptiveCommunity/test.log userAttribute/test.log adHocHoliday/test.log userObjective/test.log userObjectiveProgress/test.log adaptiveValue/test.log clientPlatformToken/test.log strategyObjective/test.log strategyInitiative/test.log visionMission/test.log strategyCommunity/test.log capabilityCommunity/test.log strategyInitiativeCommunity/test.log dialogEntry/test.log contextAliasEntry/test.log objectiveTypeDictionary/test.log postponedEvent/test.log
+
+slackTeam/test.log: slackTeam/*.go
+	pushd slackTeam; go test -v; date > test.log; popd
+
+test-all: common/test.log user/test.log coachingRelationship/test.log userFeedback/test.log userEngagement/test.log adaptiveCommunityUser/test.log adaptiveCommunity/test.log userAttribute/test.log adHocHoliday/test.log userObjective/test.log userObjectiveProgress/test.log adaptiveValue/test.log clientPlatformToken/test.log strategyObjective/test.log strategyInitiative/test.log visionMission/test.log strategyCommunity/test.log capabilityCommunity/test.log strategyInitiativeCommunity/test.log dialogEntry/test.log contextAliasEntry/test.log objectiveTypeDictionary/test.log postponedEvent/test.log slackTeam/test.log

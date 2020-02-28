@@ -2,8 +2,9 @@ package core_utils_go
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 type AdaptiveUtils struct{}
@@ -67,7 +68,7 @@ func TextWrap(ip string, wrapper ...string) string {
 }
 
 // Unique returns a unique subset of the string slice provided.
-// deprecated use Distinct (it has more correct name)
+// Deprecated: use Distinct (it has more correct name)
 func Unique(input []string) []string {
 	return Distinct(input)
 }

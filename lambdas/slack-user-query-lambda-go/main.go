@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-func addSlackUser(user slack.User, event models.ClientPlatformRequest, platformID models.PlatformID) (err error) {
+func addSlackUser(user slack.User, event models.ClientPlatformRequest, teamID models.TeamID) (err error) {
 	now := core.CurrentRFCTimestamp()
 	deactivatedAt := ""
 	if user.Deleted {
@@ -26,11 +26,11 @@ func addSlackUser(user slack.User, event models.ClientPlatformRequest, platformI
 		Timezone:       user.TZ,
 		TimezoneOffset: user.TZOffset,
 		// },
-		PlatformID: event.PlatformID, 
+		PlatformID: event.TeamID.ToPlatformID(), 
 		PlatformOrg: event.Org, IsAdmin: user.IsAdmin, 
 		DeactivatedAt: deactivatedAt,
 		CreatedAt: now, IsShared: false}
-	item.IsAdaptiveBot = user.IsBot && user.Profile.ApiAppID == string(platformID)
+	item.IsAdaptiveBot = user.IsBot && user.Profile.ApiAppID == teamID.ToString()
 
 	// Check if the user already exists
 	var users []models.User
@@ -48,15 +48,15 @@ func addSlackUser(user slack.User, event models.ClientPlatformRequest, platformI
 }
 
 func syncCommunityUserAsync(commUserID string, api *slack.Client,
-	event models.ClientPlatformRequest, wg *sync.WaitGroup, ec chan error, platformID models.PlatformID) {
+	event models.ClientPlatformRequest, wg *sync.WaitGroup, ec chan error, teamID models.TeamID) {
 	defer wg.Done()
 	// Get user info from Slack
 	slackUser, err := api.GetUserInfo(commUserID)
 	if err == nil {
 		if slackUser != nil {
 			if (!slackUser.IsBot && slackUser.Name != "slackbot") ||
-				(slackUser.IsBot && slackUser.Profile.ApiAppID == string(platformID)) {
-				err = addSlackUser(*slackUser, event, platformID)
+				(slackUser.IsBot && slackUser.Profile.ApiAppID == teamID.ToString()) {
+				err = addSlackUser(*slackUser, event, teamID)
 			}
 			if err == nil {
 				logger.Infof("Updated %s's information in the table", slackUser.ID)
@@ -78,7 +78,7 @@ func collectErrors(ec chan error) (errors []error) {
 	return
 }
 
-func syncCommunityUserProfiles(users []string, api *slack.Client, event models.ClientPlatformRequest, platformID models.PlatformID) []error {
+func syncCommunityUserProfiles(users []string, api *slack.Client, event models.ClientPlatformRequest, teamID models.TeamID) []error {
 	// Set up a wait group and a channel to handle any errors
 	wg := &sync.WaitGroup{}
 	ec := make(chan error, len(users))
@@ -86,7 +86,7 @@ func syncCommunityUserProfiles(users []string, api *slack.Client, event models.C
 	for _, user := range users {
 		// Add adaptive user
 		wg.Add(1)
-		go syncCommunityUserAsync(user, api, event, wg, ec, platformID)
+		go syncCommunityUserAsync(user, api, event, wg, ec, teamID)
 	}
 
 	// Wait for all of the users to be added. 
@@ -110,8 +110,8 @@ func removeUserAsync(communityUsersIDs []string, userID string, wg *sync.WaitGro
 	}
 }
 
-func removeNonCommunityUsers(communityUserIDs []string, platformID models.PlatformID) []error {
-	allUsers := userDao.ReadByPlatformIDUnsafe(platformID)
+func removeNonCommunityUsers(communityUserIDs []string, teamID models.TeamID) []error {
+	allUsers := userDao.ReadByPlatformIDUnsafe(teamID.ToPlatformID())
 	wg := &sync.WaitGroup{}
 	ec := make(chan error, len(allUsers))
 
@@ -124,12 +124,12 @@ func removeNonCommunityUsers(communityUserIDs []string, platformID models.Platfo
 	return collectErrors(ec)
 }
 
-func platformCommunities(platformID models.PlatformID) (comms []models.AdaptiveCommunity, err error) {
+func platformCommunities(teamID models.TeamID) (comms []models.AdaptiveCommunity, err error) {
 	err = d.QueryTableWithIndex(userCommunityTable, awsutils.DynamoIndexExpression{
 		IndexName: userCommunityPlatformIndex,
 		Condition: "platform_id = :pi",
 		Attributes: map[string]interface{}{
-			":pi": platformID,
+			":pi": teamID,
 		},
 	}, map[string]string{}, true, -1, &comms)
 	return
@@ -138,19 +138,19 @@ func platformCommunities(platformID models.PlatformID) (comms []models.AdaptiveC
 func HandleRequest(ctx context.Context, event models.ClientPlatformRequest) {
 	var allCommunitiesMemberIDs []string
 	// Get all the user communities for the platform
-	platformID := event.PlatformID
-	communities, err := platformCommunities(platformID)
+	teamID := event.TeamID
+	communities, err := platformCommunities(teamID)
 	if err == nil {
 		for _, each := range communities {
 			// Get community members by querying community users table based on platform id and community id
-			members := community.CommunityMembers(communityUsersTable, each.ID, event.PlatformID, communityUsersCommunityIndex)
+			members := community.CommunityMembers(communityUsersTable, each.ID, event.TeamID, communityUsersCommunityIndex)
 			for _, member := range members {
 				allCommunitiesMemberIDs = append(allCommunitiesMemberIDs, member.UserId)
 			}
 		}
 
-		cliPlatformToken := platformTokenDao.GetPlatformTokenUnsafe(event.PlatformID)
-		logger.Infof("Retrieved token for org: %s", event.PlatformID)
+		cliPlatformToken := platformTokenDao.GetPlatformTokenUnsafe(event.TeamID)
+		logger.Infof("Retrieved token for org: %s", event.TeamID.ToString())
 
 		api := slack.New(cliPlatformToken)
 		logger.Infof("Retrieved users from Slack for %s", event.Org)
@@ -158,10 +158,10 @@ func HandleRequest(ctx context.Context, event models.ClientPlatformRequest) {
 		distinctMemberIDs := core.Distinct(allCommunitiesMemberIDs)
 		logger.Infof("Synchronizing user profiles")
 
-		errors1 := syncCommunityUserProfiles(distinctMemberIDs, api, event, platformID)
+		errors1 := syncCommunityUserProfiles(distinctMemberIDs, api, event, teamID)
 		logger.Infof("Removing non-community members from users")
 
-		errors2 := removeNonCommunityUsers(distinctMemberIDs, event.PlatformID)
+		errors2 := removeNonCommunityUsers(distinctMemberIDs, event.TeamID)
 		allErrors := append(errors1, errors2...)
 
 		// if there is an error in the error channel, just return the first one

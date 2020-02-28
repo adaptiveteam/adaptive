@@ -17,10 +17,10 @@ import (
 func createStrategySummary(
 	db *utilities.Database,
 	dao fetch_dialog.DAO,
-	platformID string,
+	teamID string,
 ) (file *excel.File, err error) {
 	file, err = workbooks.CreateStrategyWorkbook(
-		platformID,
+		teamID,
 		db,
 		dao,
 		utilities2.CreateDocumentProperties(
@@ -71,7 +71,7 @@ func TestCreateWorkbooks(t *testing.T) {
 		os.Getenv("port"),
 		os.Getenv("database"),
 	)
-	platformID := "ANT7U58AG"
+	teamID := "ANT7U58AG"
 	userIDs := map[string]string {
 		"April":"U38KRFVTQ",
 		"Morgan":"UMA5H21FZ",
@@ -85,7 +85,7 @@ func TestCreateWorkbooks(t *testing.T) {
 	var err error
 	var file *excel.File
 
-	file, err = createStrategySummary(db, dialogDAO, platformID)
+	file, err = createStrategySummary(db, dialogDAO, teamID)
 	if err != nil {
 		fmt.Println(err)
 		return

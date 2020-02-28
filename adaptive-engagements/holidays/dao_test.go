@@ -18,7 +18,8 @@ func TestDao(t *testing.T) {
 			Name:       "holiday1",
 			PlatformID: "ivan",
 		})
-		holidays := daoHolidaysTable.ForPlatformID("test").AllUnsafe()
+		teamID := models.TeamID{TeamID: "test"}
+		holidays := daoHolidaysTable.ForPlatformID(teamID).AllUnsafe()
 		for _, h := range holidays {
 			if h.Name == "holiday1" {
 				return

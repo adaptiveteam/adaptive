@@ -94,11 +94,18 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 	var responses []platform.Response
 	shouldNotifyOldCoach := !utilsUser.IsSpecialOrEmptyUserID(oldAP) && newAndOldIssues.Updated && newAP != oldAP
 	if shouldNotifyOldCoach {
-		responses = []platform.Response{platform.Post(platform.ConversationID(oldAP),
-			platform.MessageContent{
-				Message: ui.Sprintf("<@%s> has requested a different coach for the %s",
-					newAndOldIssues.NewIssue.UserObjective.UserID, newAndOldIssues.NewIssue.GetIssueType().Template()),
-			})}
+		responses = []platform.Response{
+			platform.Post(platform.ConversationID(oldAP),
+				platform.MessageContent{
+					Message: ui.Sprintf("<@%s> has requested a different accountability partner for the %s:\n%s\n%s",
+						newAndOldIssues.NewIssue.UserObjective.UserID, 
+						newAndOldIssues.NewIssue.GetIssueType().Template(),
+						newAndOldIssues.NewIssue.UserObjective.Name,
+						newAndOldIssues.NewIssue.UserObjective.Description,
+					),
+				},
+			),
+		}
 	}
 	w.AdaptiveLogger.Infof("OnDialogSubmitted: Saving %v\n", newAndOldIssues.NewIssue)
 	err = issuesUtils.Save(newAndOldIssues.NewIssue)(w.DynamoDBConnection)

@@ -25,12 +25,12 @@ func (w workflowImpl)prefetch(ctx wf.EventHandlingContext,
 		issue.PrefetchedData.Progress, err = IssueProgressReadAll(issue.UserObjective.ID, 0)(w.DynamoDBConnection)
 		if err != nil { return }
 	}
-	return w.prefetchIssueWithoutProgress(ctx.PlatformID, issue)
+	return w.prefetchIssueWithoutProgress(ctx.TeamID, issue)
 }
 
 // prefetchIssueWithoutProgress loads issue information ignoring context
 func (w workflowImpl)prefetchIssueWithoutProgress(
-	platformID models.PlatformID,
+	teamID models.TeamID,
 	issue *Issue,
 	) (err error ) {
 	
@@ -83,11 +83,11 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 		// if len(splits) == 2 {
 		// 	soID := splits[0]
 		// 	capCommID := splits[1]
-		// 	issue.PrefetchedData.AlignedCapabilityObjective, err = w.StrategyObjectiveDAO.Read(platformID, soID)
+		// 	issue.PrefetchedData.AlignedCapabilityObjective, err = w.StrategyObjectiveDAO.Read(teamID, soID)
 		// 	if err != nil { return }
-		// 	issue.PrefetchedData.AlignedCapabilityCommunity, err = w.CapabilityCommunityDAO.Read(platformID, capCommID)
+		// 	issue.PrefetchedData.AlignedCapabilityCommunity, err = w.CapabilityCommunityDAO.Read(teamID, capCommID)
 		// } else {
-		// 	issue.PrefetchedData.AlignedCapabilityObjective, err = w.StrategyObjectiveDAO.Read(platformID, issue.UserObjective.ID)
+		// 	issue.PrefetchedData.AlignedCapabilityObjective, err = w.StrategyObjectiveDAO.Read(teamID, issue.UserObjective.ID)
 		// }
 	case Initiative:
 		initCommID := issue.StrategyInitiative.InitiativeCommunityID
@@ -108,11 +108,11 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 }
 
 func (w workflowImpl)prefetchManyIssuesWithoutProgress(
-	platformID models.PlatformID,
+	teamID models.TeamID,
 	issues []Issue,
 )(prefetchedIssues []Issue, err error ) {
 	for _, issue := range issues {
-		err = w.prefetchIssueWithoutProgress(platformID, &issue)
+		err = w.prefetchIssueWithoutProgress(teamID, &issue)
 		if err != nil {
 			return
 		} 

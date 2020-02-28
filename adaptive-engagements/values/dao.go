@@ -24,10 +24,10 @@ type DAO interface {
 	Delete(adaptiveValueID string) error
 	Deactivate(adaptiveValueID string) error
 
-	ForPlatformID(platformID string) PlatformDAO
+	ForPlatformID(platformID daosCommon.PlatformID) PlatformDAO
 }
 
-// PlatformDAO is a set of utilities that work for a fixed `platformID`
+// PlatformDAO is a set of utilities that work for a fixed `teamID`
 type PlatformDAO interface {
 	All() ([]models.AdaptiveValue, error)
 	AllUnsafe() []models.AdaptiveValue
@@ -42,7 +42,7 @@ type DAOImpl struct {
 
 // PlatformDAOImpl DAO that will implement PlatformDAO interface
 type PlatformDAOImpl struct {
-	PlatformID string
+	PlatformID daosCommon.PlatformID
 	DAOImpl
 }
 
@@ -121,7 +121,7 @@ func (d DAOImpl) Deactivate(adaptiveValueID string) (err error) {
 }
 
 // UpdateGivenAttributes updates the adaptiveValue by ID
-// deprecated. This might be used if we want to update only some of the attributes
+// Deprecated: This might be used if we want to update only some of the attributes
 func (d DAOImpl) UpdateGivenAttributes(adaptiveValue models.AdaptiveValue) error {
 	exprAttributes := map[string]*dynamodb.AttributeValue{
 		":value_name": daosCommon.DynS(adaptiveValue.Name),
@@ -145,7 +145,7 @@ func (d DAOImpl) UpdateGivenAttributes(adaptiveValue models.AdaptiveValue) error
 }
 
 // ForPlatformID creates PlatformDAO that can be used for queries with PlatformID
-func (d DAOImpl) ForPlatformID(platformID string) PlatformDAO {
+func (d DAOImpl) ForPlatformID(platformID daosCommon.PlatformID) PlatformDAO {
 	return PlatformDAOImpl{
 		PlatformID: platformID,
 		DAOImpl:    d,

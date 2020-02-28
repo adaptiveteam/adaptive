@@ -11,12 +11,12 @@ import (
 )
 
 // PostponeEventHandler is a default postpone handler that will save to a database.
-func PostponeEventHandler(conn common.DynamoDBConnection) func (platformID models.PlatformID, postponeEvent PostponeEventForAnotherUser) (err error) {
+func PostponeEventHandler(conn common.DynamoDBConnection) func (teamID models.TeamID, postponeEvent PostponeEventForAnotherUser) (err error) {
 	dao := postponedEvent.NewDAO(conn.Dynamo, "PostponeEventHandler", conn.ClientID)
-	return func (platformID models.PlatformID, postponeEvent PostponeEventForAnotherUser) (err error) {
+	return func (teamID models.TeamID, postponeEvent PostponeEventForAnotherUser) (err error) {
 		evt := postponedEvent.PostponedEvent{
 			ID: core.Uuid(),
-			PlatformID: platformID,
+			PlatformID: teamID.ToPlatformID(),
 			UserID: postponeEvent.UserID,
 			ActionPath: postponeEvent.ActionPath.Encode(),
 			ValidThrough: core.TimestampLayout.Format(postponeEvent.ValidThrough),			

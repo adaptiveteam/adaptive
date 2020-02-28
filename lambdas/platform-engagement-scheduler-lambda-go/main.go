@@ -3,17 +3,19 @@ package platform_engagement_scheduler_lambda_go
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"log"
 )
 
 var (
@@ -34,7 +36,7 @@ var (
 		d:                               awsutils.NewDynamo(region, "", namespace),
 	}
 	platformTokenDao = plat.NewDAOFromSchema(config.d, namespace, schema)
-	platformAdapter  = mapper.SlackAdapter2(platformTokenDao)
+	// platformAdapter  = mapper.SlackAdapterForTeamID(platformTokenDao)
 )
 
 type Config struct {
@@ -51,7 +53,7 @@ type Config struct {
 }
 
 func communityChannel(community community.AdaptiveCommunity,
-	platformID models.PlatformID,
+	teamID models.TeamID,
 	communitiesTable string,
 	d *awsutils.DynamoRequest,
 	namespace string) (channel string, err error) {
@@ -60,7 +62,7 @@ func communityChannel(community community.AdaptiveCommunity,
 			S: aws.String(string(community)),
 		},
 		"platform_id": {
-			S: aws.String(string(platformID)),
+			S: aws.String(teamID.ToString()),
 		},
 	}
 	var comm models.AdaptiveCommunity
@@ -81,11 +83,16 @@ func HandleRequest(ctx context.Context) (err error) {
 	var clientConfigs []models.ClientPlatformToken
 	err = config.d.ScanTable(config.clientConfigTable, &clientConfigs)
 	for _, clientConfig := range clientConfigs {
-		platformID := clientConfig.PlatformID
-		slackAdapter := platformAdapter.ForPlatformID(platformID)
+		teamID := models.ParseTeamID(clientConfig.PlatformID)
+		conn := daosCommon.DynamoDBConnection{
+			Dynamo: config.d,
+			ClientID: clientID,
+			PlatformID: clientConfig.PlatformID,
+		}
+		slackAdapter := mapper.SlackAdapterForTeamID(conn)
 		// Check vision exists
-		vision := strategy.StrategyVision(platformID, config.visionTable)
-		HRChannel, err := communityChannel(community.HR, platformID, config.communitiesTable, config.d, config.namespace)
+		vision := strategy.StrategyVision(teamID, config.visionTable)
+		HRChannel, err := communityChannel(community.HR, teamID, config.communitiesTable, config.d, config.namespace)
 		if err != nil {
 			err = fmt.Errorf("error in retrieving channel for %s community", community.HR)
 		} else {
@@ -106,7 +113,7 @@ func HandleRequest(ctx context.Context) (err error) {
 
 			// get strategy objectives
 			stratObjs := strategy.AllOpenStrategyObjectives(
-				platformID,
+				teamID,
 				config.strategyObjectivesTable,
 				config.strategyObjectivesPlatformIndex,
 				config.userObjectivesTable,
@@ -116,7 +123,7 @@ func HandleRequest(ctx context.Context) (err error) {
 					Message:     ui.RichText(fmt.Sprintf("No strategy objectives are defined for the org")),
 					Attachments: nil,
 				}))
-				log.Println(fmt.Sprintf("No strategy objectives are defined for the org", ))
+				log.Println(fmt.Sprintf("No strategy objectives are defined for the org"))
 			} else {
 				slackAdapter.PostAsync(plat.Post(plat.ConversationID(HRChannel), plat.MessageContent{
 					Message:     ui.RichText(fmt.Sprintf("Strategy objectives are defined for the org")),

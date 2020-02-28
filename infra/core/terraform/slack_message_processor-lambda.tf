@@ -27,6 +27,9 @@ module "slack_message_processor_lambda" {
   environment_variables = merge(local.environment_variables, {
     LAMBDA_ROLE   = "slack-message-processor"
     LOG_NAMESPACE = "slack-message-processor"
+    SLACK_CLIENT_ID = var.SLACK_CLIENT_ID
+    SLACK_CLIENT_SECRET = var.SLACK_CLIENT_SECRET
+    SLACK_SIGNING_SECRET = var.SLACK_SIGNING_SECRET
   })
 
   // Attach extra policy
@@ -143,4 +146,9 @@ resource "aws_iam_role_policy_attachment" "slack_message_processor_lambda_read_a
 resource "aws_iam_role_policy_attachment" "slack_message_processor_lambda_competencies_additional_policy_attachment" {
   role       = module.slack_message_processor_lambda.role_name
   policy_arn = aws_iam_policy.competencies_additional_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "slack_message_processor_lambda_slack_team_write_policy_attachment" {
+  role       = module.slack_message_processor_lambda.role_name
+  policy_arn = aws_iam_policy.slack_team_write.arn
 }

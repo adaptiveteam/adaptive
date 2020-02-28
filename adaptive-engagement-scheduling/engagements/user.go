@@ -33,13 +33,26 @@ IDO Creation reminders
 ------------------------------------------------------------------------------------
 */
 
-// CheckIDOCreateReminder is meant to trigger the engagements that
+func globalConnectionGen() daosCommon.DynamoDBConnectionGen {
+	return daosCommon.DynamoDBConnectionGen{
+		Dynamo: D,
+		TableNamePrefix: ClientID,
+	}
+}
+
+func readUser(userID string) (models.User, error) {
+	conn := globalConnectionGen()
+	dao := utilsUser.DAOFromConnectionGen(conn)
+	return dao.Read(userID)
+}
+// IDOCreateReminder is meant to trigger the engagements that
 // reminds the user to create personal improvement objects in the event that they have
 // not created any.
 func IDOCreateReminder(date bt.Date, target string) {
 	log.Println(fmt.Sprintf("Checking IDOCreateReminder for user: %s", target))
-	ut := UserToken(target)
-	AddObjective(target, ut.PlatformIDUnsafe(), false, utilsUser.UserIDsToDisplayNamesUnsafe(UserDAO))
+	user, err2 := readUser(target)
+	core.ErrorHandler(err2, "IDOCreateReminder", "readUser")
+	AddObjective(target, models.ParseTeamID(user.PlatformID), false, utilsUser.UserIDsToDisplayNamesUnsafe(UserDAO))
 
 }
 
@@ -200,14 +213,14 @@ func ReminderToProvideCoachingFeedback(date bt.Date, target string) {
 		Month:  strconv.Itoa(int(month)),
 		Year:   strconv.Itoa(year),
 	}
-	platformID := strategy.UserIDToPlatformID(UserDAO)(target)
-	UserConfirmEng(EngagementTable, platformID, mc, string(text), "", false, Dns)
+	teamID := strategy.UserIDToTeamID(UserDAO)(target)
+	UserConfirmEng(EngagementTable, teamID, mc, string(text), "", false, Dns)
 }
 
 func UserSelectEngagement(mc models.MessageCallback, users, filter []string, userID string,
 	text ui.RichText, context string) {
-	platformID := UserDAO.ReadUnsafe(userID).PlatformID
-	user.UserSelectEng(userID, EngagementTable, models.PlatformID(platformID), UserDAO, mc,
+	teamID := models.ParseTeamID(UserDAO.ReadUnsafe(userID).PlatformID)
+	user.UserSelectEng(userID, EngagementTable, teamID, UserDAO, mc,
 		users, filter, string(text), context, models.UserEngagementCheckWithValue{})
 }
 
@@ -225,7 +238,7 @@ func ProduceIndividualReports(date bt.Date, target string) {
 
 // utility methods
 
-func AddObjective(userID string, platformID models.PlatformID, urgent bool, userIDsToDisplayNames common.UserIDsToDisplayNames) {
+func AddObjective(userID string, teamID models.TeamID, urgent bool, userIDsToDisplayNames common.UserIDsToDisplayNames) {
 	allObjs := objectives.AllUserObjectives(userID, UserObjectivesTable, UserObjectivesUserIDIndex,
 		models.IndividualDevelopmentObjective, 0)
 	if len(allObjs) == 0 {
@@ -236,32 +249,32 @@ func AddObjective(userID string, platformID models.PlatformID, urgent bool, user
 		// Posting engagement to user prompting to create an objective
 		// TODO: Take InitsAndObjectives from strategy once it's moved there
 		objectives.CreateObjectiveEng(EngagementTable, mc,
-			objectives.IDOCoaches(userID, platformID, CommunityUsersTable, CommunityUsersCommunityIndex, userIDsToDisplayNames),
+			objectives.IDOCoaches(userID, teamID, CommunityUsersTable, CommunityUsersCommunityIndex, userIDsToDisplayNames),
 			objectives.DevelopmentObjectiveDates(Namespace, core.EmptyString),
 			[]ebm.AttachmentActionElementOptionGroup{},
 			"You do not have any Individual Development Objectives defined. Do you want to add one?",
 			"Create Individual Development Objective", urgent, Dns, models.UserEngagementCheckWithValue{},
-			models.PlatformID(platformID))
+			models.TeamID(teamID))
 	}
 }
 
 // EngagePersonalImprovementObjectiveUpdate
 func ObjectiveProgressUpdateAsk(userID, action, message string) { // ViewObjectivesNoProgressThisWeek
 	// "There are objectives with no progress this week. Would you like to update them?"
-	platformID := strategy.UserIDToPlatformID(UserDAO)(userID)
+	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
 	year, month := core.CurrentYearMonth()
 	mc := models.MessageCallback{Module: "objectives", Source: userID, Topic: "init", Action: action,
 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-	UserConfirmEng(EngagementTable, platformID, mc, message, "Update Objectives", false, Dns)
+	UserConfirmEng(EngagementTable, teamID, mc, message, "Update Objectives", false, Dns)
 }
 
-func UserConfirmEng(table string, platformID models.PlatformID, mc models.MessageCallback, title, fallback string,
+func UserConfirmEng(table string, teamID models.TeamID, mc models.MessageCallback, title, fallback string,
 	urgent bool, dns common.DynamoNamespace) {
 	eng := utils.MakeUserEngagement(mc, title, "", fallback, mc.Source,
 		userConfirmAttachmentActions(mc),
 		[]ebm.AttachmentField{}, urgent, dns.Namespace,
 		time.Now().Unix(), models.UserEngagementCheckWithValue{},
-		platformID)
+		teamID)
 	utils.AddEng(eng, table, dns.Dynamo, dns.Namespace)
 }
 
@@ -274,8 +287,9 @@ func userConfirmAttachmentActions(mc models.MessageCallback) []ebm.AttachmentAct
 
 // EngageProduceIndividualReports
 func UserCollaborationReportAsk(userID string, date bt.Date) {
-	platformID := strategy.UserIDToPlatformID(UserDAO)(userID)
-	userEngageByt, _ := json.Marshal(models.UserEngage{UserId: userID, IsNew: false, Update: true, Date: date.DateToString(time.RFC3339)})
+	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
+	userEngageByt, _ := json.Marshal(models.UserEngage{UserID: userID, 
+		IsNew: false, Update: true, Date: date.DateToString(time.RFC3339)})
 	_, err := L.InvokeFunction(FeedbackReportLambda, userEngageByt, true)
 	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportLambda))
 
@@ -283,19 +297,19 @@ func UserCollaborationReportAsk(userID string, date bt.Date) {
 	month := date.GetMonth()
 	mc := models.MessageCallback{Module: "feedback", Source: userID, Topic: "report", Action: ViewCollaborationReport,
 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-	UserConfirmEng(EngagementTable, platformID, mc,
+	UserConfirmEng(EngagementTable, teamID, mc,
 		fmt.Sprintf("It's that time of the year to review your collabaration report. Would you like to see it?"),
 		"", false, Dns)
 }
 
 func UserCloseObjectivesAsk(userID, text string) {
 	if len(userOpenObjectives(userID)) > 0 {
-		platformID := strategy.UserIDToPlatformID(UserDAO)(userID)
+		teamID := strategy.UserIDToTeamID(UserDAO)(userID)
 		// Create an objective
 		year, month := core.CurrentYearMonth()
 		mc := models.MessageCallback{Module: "objectives", Source: userID, Topic: "init", Action: ViewOpenObjectives,
 			Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-		UserConfirmEng(EngagementTable, platformID, mc, text, "", true, Dns)
+		UserConfirmEng(EngagementTable, teamID, mc, text, "", true, Dns)
 	}
 }
 

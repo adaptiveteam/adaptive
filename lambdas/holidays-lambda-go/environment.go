@@ -4,10 +4,14 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	eholidays "github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 )
 
 var (
+	clientID                       = utils.NonEmptyEnv("CLIENT_ID")
 	platformNotificationTopic      = utils.NonEmptyEnv("PLATFORM_NOTIFICATION_TOPIC")
 	namespace                      = utils.NonEmptyEnv("LOG_NAMESPACE")
 	region                         = utils.NonEmptyEnv("AWS_REGION")
@@ -38,3 +42,16 @@ var (
 	// TODO: use DAO for the query
 	//communityUserDAO = communityUser.NewDAOFromSchema(d, namespace, schema)
 )
+
+func platformDAO(teamID models.TeamID) eholidays.PlatformDAO {
+	return adHocHolidaysTableDao.ForPlatformID(teamID)
+}
+
+func slackAPI(teamID models.TeamID) mapper.PlatformAPI {
+	conn := daosCommon.DynamoDBConnection{
+		Dynamo:     d,
+		ClientID:   clientID,
+		PlatformID: teamID.ToPlatformID(),
+	}
+	return mapper.SlackAdapterForTeamID(conn)
+}

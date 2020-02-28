@@ -13,9 +13,9 @@ import (
 type UserHasWriteAccessToIssues = func(userID string, itype IssueType) bool
 
 // SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated is an implementation of a query
-// type SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated = func(models.PlatformID) (out []strategy.CapabilityCommunity, err error)
+// type SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated = func(models.TeamID) (out []strategy.CapabilityCommunity, err error)
 // SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated -
-// type SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated = func(models.PlatformID) (out []strategy.StrategyInitiativeCommunity, err error)
+// type SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated = func(models.TeamID) (out []strategy.StrategyInitiativeCommunity, err error)
 
 type CommunityById = func(issueID string) (models.AdaptiveCommunity, error)
 type PropertyName = string
@@ -44,8 +44,8 @@ type IssueProgressDAO interface {
 
 type AdaptiveCommunityDAO interface {
 	Read(communityID community.AdaptiveCommunity) (comm models.AdaptiveCommunity, err error)
-	SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(models.PlatformID) (out []strategy.CapabilityCommunity, err error)
-	SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(models.PlatformID, string) (out []strategy.StrategyInitiativeCommunity, err error)
+	SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(models.TeamID) (out []strategy.CapabilityCommunity, err error)
+	SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(models.TeamID, string) (out []strategy.StrategyInitiativeCommunity, err error)
 	// ReadMembers( communityID community.AdaptiveCommunity) (users []models.AdaptiveCommunityUser3, err error)
 }
 
@@ -59,10 +59,10 @@ type UserDAO interface {
 
 type CompetencyDAO interface {
 	Read(id string) (adaptiveValue.AdaptiveValue, error)
-	ReadAll(platformID models.PlatformID) ([]adaptiveValue.AdaptiveValue, error)
+	ReadAll(teamID models.TeamID) ([]adaptiveValue.AdaptiveValue, error)
 }
 
-// See strategy.StrategyObjectiveByID(platformID, each, strategyObjectivesTableName)
+// See strategy.StrategyObjectiveByID(teamID, each, strategyObjectivesTableName)
 type StrategyObjectiveDAO interface {
 	Read(id string) (models.StrategyObjective, error)
 	CreateOrUpdate(so models.StrategyObjective) error
@@ -115,10 +115,10 @@ type Queries interface {
 		userID string) ([]models.StrategyObjective, error)
 	// SelectFromObjectivesWhereUserID( userID string) ([]models.StrategyObjective, error)
 	/*
-		func communityMembersIncludingStrategyMembers(commID string, platformID models.PlatformID) []models.KvPair {
+		func communityMembersIncludingStrategyMembers(commID string, teamID models.TeamID) []models.KvPair {
 			// Strategy Community members
-			strategyCommMembers := communityMembers(string(community.Strategy), platformID)
-			commMembers := communityMembers(commID, platformID)
+			strategyCommMembers := communityMembers(string(community.Strategy), teamID)
+			commMembers := communityMembers(commID, teamID)
 			return models.DistinctKvPairs(append(strategyCommMembers, commMembers...))
 		}
 	*/
@@ -127,10 +127,10 @@ type Queries interface {
 	// SelectKvPairsFromCommunityJoinUsers loads members from community, then
 	// for each member id loads UserToken and extracts display name
 	/*
-		func communityMembers(commID string, platformID models.PlatformID) []models.KvPair {
+		func communityMembers(commID string, teamID models.TeamID) []models.KvPair {
 			// Get coaching community members
-			commMembers := community.CommunityMembers(communityUsersTable, commID, string(platformID), communityUsersCommunityIndex)
-			logger.Infof("Members in %s Community for %s platform: %s", commID, platformID, commMembers)
+			commMembers := community.CommunityMembers(communityUsersTable, commID, teamID.ToString(), communityUsersCommunityIndex)
+			logger.Infof("Members in %s Community for %s platform: %s", commID, teamID, commMembers)
 			var users []models.KvPair
 			for _, each := range commMembers {
 				// Self user checking
@@ -139,7 +139,7 @@ type Queries interface {
 					users = append(users, models.KvPair{Key: ut.DisplayName, Value: each.UserId})
 				}
 			}
-			logger.Infof("KvPairs from communities for %s community for %s platform: %s", commID, platformID, users)
+			logger.Infof("KvPairs from communities for %s community for %s platform: %s", commID, teamID, users)
 			return users
 		}
 

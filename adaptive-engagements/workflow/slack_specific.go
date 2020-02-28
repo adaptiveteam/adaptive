@@ -1,6 +1,10 @@
 package workflow
 
 import (
+	// "github.com/adaptiveteam/adaptive/core-utils-go"
+	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/daos/common"
 	"encoding/json"
 
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -40,9 +44,18 @@ func SelectedValue(request slack.InteractionCallback) (value string, err error) 
 	return
 }
 
-func ConstructEnvironmentWithoutPrefix(adapter mapper.PlatformAdapter2, postpone PostponeEvent, log alog.AdaptiveLogger) Environment {
+func GetPlatformAPIImpl(conn common.DynamoDBConnection) PlatformAPIForTeamID {
+	return func (teamID models.TeamID) mapper.PlatformAPI {
+
+		// token, err2 := platform.GetToken(teamID)(conn)
+		// core_utils_go.ErrorHandler(err2, "GetPlatformAPIImpl", "GetPlatformAPIImpl")
+
+		return mapper.SlackAdapterForTeamID(conn)
+	}
+}
+func ConstructEnvironmentWithoutPrefix(conn common.DynamoDBConnection, postpone PostponeEvent, log alog.AdaptiveLogger) Environment {
 	return Environment{
-		GetPlatformAPI: adapter.ForPlatformID,
+		GetPlatformAPI: GetPlatformAPIImpl(conn),
 		LogInfof:       log.Infof,
 		PostponeEvent:  postpone,
 	}

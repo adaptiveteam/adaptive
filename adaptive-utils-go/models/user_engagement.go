@@ -26,7 +26,7 @@ type UserEngagement  = userEngagement.UserEngagement
 // 	UserEngagementCheckWithValue
 // 	// Script that should be sent to a user to start engaging.
 // 	// It's a serialized ebm.Message
-// 	// deprecated. Use `Message` directly.
+// 	// Deprecated: Use `Message` directly.
 // 	Script string `json:"script"`
 // 	// Message is the message we want to send to user.
 // 	Message ebm.Message `json:"message"`
@@ -79,12 +79,12 @@ type UserAttribute = userAttribute.UserAttribute
 
 // UserEngage encapsulates the struct that will be used to trigger engaging with the user
 type UserEngage struct {
-	// PlatformID is the
-	PlatformID PlatformID `json:"platform_id"`
-	// UserId is the Id of the user
-	UserId string `json:"user_id"`
-	// TargetId is the Id of the user who will be affected by this
-	TargetId string `json:"target_id,omitempty"`
+	// TeamID is the
+	TeamID TeamID `json:"platform_id"`
+	// UserID is the Id of the user
+	UserID string `json:"user_id"`
+	// TargetID is the Id of the user who will be affected by this
+	TargetID string `json:"target_id,omitempty"`
 	// IsNew is a flag to indicate if this is newly added user
 	IsNew bool `json:"is_new"`
 	// Flag indicating if this engaging is for updating

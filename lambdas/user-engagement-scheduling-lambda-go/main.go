@@ -22,12 +22,12 @@ var (
 	logger             = alog.LambdaLogger(logrus.InfoLevel)
 )
 
-func usersWithinScheduledPeriod(config Config, platformID string, startUTCTime, endUTCTime string) (users []models.User) {
+func usersWithinScheduledPeriod(config Config, teamID string, startUTCTime, endUTCTime string) (users []models.User) {
 	err := config.d.QueryTableWithIndex(config.usersTable, awsutils.DynamoIndexExpression{
 		IndexName: config.usersScheduledTimeIndex,
 		Condition: "platform_id = :pi AND adaptive_scheduled_time_in_utc BETWEEN :t1 AND :t2",
 		Attributes: map[string]interface{}{
-			":pi": platformID,
+			":pi": teamID,
 			":t1": startUTCTime,
 			":t2": endUTCTime,
 		},
@@ -37,12 +37,12 @@ func usersWithinScheduledPeriod(config Config, platformID string, startUTCTime, 
 	return
 }
 
-func usersWithinOffsetRange(config Config, platformID string, startOffset, endOffset int) (users []models.User) {
+func usersWithinOffsetRange(config Config, teamID string, startOffset, endOffset int) (users []models.User) {
 	err := config.d.QueryTableWithIndex(config.usersTable, awsutils.DynamoIndexExpression{
 		IndexName: config.usersZoneOffsetIndex,
 		Condition: "platform_id = :pi AND timezone_offset BETWEEN :t1 AND :t2",
 		Attributes: map[string]interface{}{
-			":pi": platformID,
+			":pi": teamID,
 			":t1": startOffset,
 			":t2": endOffset,
 		},
@@ -75,7 +75,7 @@ func HandleRequest(ctx context.Context) (err error) {
 	if err == nil {
 		for _, clientConfig := range clientConfigs {
 			// Query users for a client based on platform id
-			platformID := clientConfig.PlatformID
+			teamID := models.ParseTeamID(clientConfig.PlatformID)
 
 			now := time.Now().UTC()
 			// rounded to nearest hour quarter
@@ -91,12 +91,12 @@ func HandleRequest(ctx context.Context) (err error) {
 
 			fmt.Println(fmt.Sprintf("Invoking user schedules for %s UTC", startUTCTime.String()))
 			// Querying for users who explicitly set the time
-			usersToAsk1 := usersWithinScheduledPeriod(config, string(platformID), timeInHrMin(startUTCTime), timeInHrMin(endUTCTime))
+			usersToAsk1 := usersWithinScheduledPeriod(config, teamID.ToString(), timeInHrMin(startUTCTime), timeInHrMin(endUTCTime))
 			log.Println(fmt.Sprintf("No. of users invoked with scheduled time: %d", len(usersToAsk1)))
 			// Querying for others that have the default time and should be invoked now
 			offsetEnd := absoluteOffsetFromUTC(startUTCTime, time.Time(defaultMeetingTime))
 			offsetStart := absoluteOffsetFromUTC(endUTCTime, time.Time(defaultMeetingTime))
-			usersToAsk2 := usersWithinOffsetRange(config, string(platformID), offsetStart, offsetEnd)
+			usersToAsk2 := usersWithinOffsetRange(config, teamID.ToString(), offsetStart, offsetEnd)
 			var usersToAsk2Filtered []models.User
 			// Filtering out the users who have explicitly set scheduled time same as default time since these are part of `usersToAsk1`
 			for _, each := range usersToAsk2 {
@@ -115,20 +115,20 @@ func HandleRequest(ctx context.Context) (err error) {
 					logger.Infof("%s user belongs only to Admin Community, not invoking schedules for this user", user.ID)
 				} else if len(userCommunities) > 0 {
 					engage := models.UserEngage{
-						UserId:     user.ID,
+						UserID:     user.ID,
 						Date:       "", // current date
-						PlatformID: platformID,
+						TeamID: teamID,
 					}
-					switch platformID {
+					switch teamID.AppID {
 //					case EmbursePlatformID, GeigsenPlatformID:
-//						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, platformID, config)
+//						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, teamID, config)
 					case IvanPlatformID, StagingPlatformID:
-						emulateDates(TestDateShiftConfig, time.Now(), user.ID, platformID, config)
+						emulateDates(TestDateShiftConfig, time.Now(), user.ID, teamID, config)
 					default:
 					}
 					err = invokeScriptingLambda(engage, config)
 					if err != nil {
-						logger.WithError(err).Errorf("Could not invoke scripting lambda for %s user in %v platform", engage.UserId, platformID)
+						logger.WithError(err).Errorf("Could not invoke scripting lambda for %s user in %v platform", engage.UserID, teamID)
 					}
 				}
 			}

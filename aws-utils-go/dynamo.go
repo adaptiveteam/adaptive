@@ -74,7 +74,7 @@ func (d *DynamoRequest) DescribeTable(name string) (*DynamoTable, error) {
 	return &DynamoTable{Name: name, Arn: op.Table.TableArn}, nil
 }
 // PutTableEntry -
-// deprecated. The order of arguments in this function is not consistent with the other functions.
+// Deprecated: The order of arguments in this function is not consistent with the other functions.
 // more important table name should go first.
 func (d *DynamoRequest) PutTableEntry(item interface{}, table string) (err error) {
 	return d.PutItemIntoTable(table, item)
@@ -149,7 +149,7 @@ func (d *DynamoRequest) UpdateItemInternal(input dynamodb.UpdateItemInput) error
 }
 
 // QueryTable reads single item
-// deprecated. Use GetItemFromTable or GetItemOrEmptyFromTable
+// Deprecated: Use GetItemFromTable or GetItemOrEmptyFromTable
 func (d *DynamoRequest) QueryTable(table string, params map[string]*dynamodb.AttributeValue, out interface{}) (err error) {
 	return d.GetItemFromTable(table, params, out)
 }
