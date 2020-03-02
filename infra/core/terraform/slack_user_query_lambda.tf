@@ -33,46 +33,32 @@ module "slack_user_query_lambda" {
 
 data "aws_iam_policy_document" "slack_user_query_policy" {
   statement {
-    effect = "Allow"
-    actions = [
-      "dynamodb:PutItem",
-      "dynamodb:GetItem",
-      "dynamodb:DeleteItem",
-    ]
+    actions = ["dynamodb:*"]
     resources = [
       aws_dynamodb_table.adaptive_users_dynamodb_table.arn,
     ]
   }
 
   statement {
-    effect = "Allow"
-    actions = [
-      "lambda:InvokeFunction",
-    ]
+    actions = ["lambda:InvokeFunction"]
     resources = [
       module.user_setup_lambda.function_arn,
     ]
   }
 
   statement {
-    effect = "Allow"
-    actions = [
-      "dynamodb:GetItem",
-    ]
+    actions = ["dynamodb:GetItem"]
     resources = [
       aws_dynamodb_table.client_config_dynamodb_table.arn,
     ]
   }
 
   statement {
-    effect = "Allow"
-    actions = [
-      "dynamodb:Query",
-    ]
+    actions = ["dynamodb:Query"]
     resources = [
-      "${aws_dynamodb_table.user_communities.arn}/index/${var.user_community_platform_dynamo_index}",
-      "${aws_dynamodb_table.community_users.arn}/index/${var.dynamo_community_users_community_index}",
-      "${aws_dynamodb_table.adaptive_users_dynamodb_table.arn}/index/${var.dynamo_users_platform_index}",
+      "${aws_dynamodb_table.user_communities.arn}/index/*",
+      "${aws_dynamodb_table.community_users.arn}/index/*",
+      "${aws_dynamodb_table.adaptive_users_dynamodb_table.arn}/index/*",
     ]
   }
 }
