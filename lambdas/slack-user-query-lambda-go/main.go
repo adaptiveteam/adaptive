@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-func addSlackUser(user slack.User, event models.ClientPlatformRequest, platformID models.PlatformID) (err error) {
+func updateSlackUser(user slack.User, event models.ClientPlatformRequest, platformID models.PlatformID) (err error) {
 	now := core.CurrentRFCTimestamp()
 	deactivatedAt := ""
 	if user.Deleted {
@@ -58,7 +58,7 @@ func syncCommunityUserAsync(commUserID string, api *slack.Client,
 		if slackUser != nil {
 			if (!slackUser.IsBot && slackUser.Name != "slackbot") ||
 				(slackUser.IsBot && slackUser.Profile.ApiAppID == string(platformID)) {
-				err = addSlackUser(*slackUser, event, platformID)
+				err = updateSlackUser(*slackUser, event, platformID)
 			}
 			if err == nil {
 				logger.Infof("Updated %s's information in the table", slackUser.ID)
@@ -101,7 +101,7 @@ func syncCommunityUserProfiles(users []string, api *slack.Client, event models.C
 
 func deactivateUserAsync(userID string, wg *sync.WaitGroup, ec chan error) {
 	defer wg.Done()
-	logger.Infof("Removing %s from users", userID)
+	logger.Infof("Deactivating user %s", userID)
 	err := userDao.Deactivate(userID)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Error deactivating %s user", userID)
@@ -159,6 +159,7 @@ func obtainMemberIDsForCommunity(comm models.AdaptiveCommunity,
 	return
 }
 func addCommunityUser(comm models.AdaptiveCommunity, userID string) (err error) {
+	logger.Infof("Adding user %s to community channelID=%s", userID, comm.ChannelID)
 	acu := adaptiveCommunityUser.AdaptiveCommunityUser{
 		ChannelID: comm.ChannelID,
 		UserID: userID,
@@ -169,6 +170,7 @@ func addCommunityUser(comm models.AdaptiveCommunity, userID string) (err error) 
 	return
 }
 func removeCommunityUser(comm models.AdaptiveCommunity, userID string) (err error) {
+	logger.Infof("Removing user %s from community channelID=%s", userID, comm.ChannelID)
 	return adaptiveCommunityUserDAO.Delete(comm.ChannelID, userID)
 }
 func allUserIDs(platformID models.PlatformID)(ids []string, err error) {
