@@ -148,7 +148,11 @@ func obtainMemberIDsForCommunity(comm models.AdaptiveCommunity,
 	defer core.RecoverToErrorVar("synchronizeCommunity", &err)
 	var slackMemberIDs, dbMemberIDs []string
 	dbMemberIDs, err = readCommMemberIDs(comm.ID, platformID)
-	slackMemberIDs, err = api.GetUserGroupMembers(comm.ChannelID)
+	slackMemberIDs, _,  err = api.GetUsersInConversation(&slack.GetUsersInConversationParameters{
+		ChannelID: comm.ChannelID,
+		Cursor: "",
+		Limit: 999,
+	})//, comm.ChannelID)
 	refreshIDs = core.InAAndB   (dbMemberIDs, slackMemberIDs)
 	removeIDs  = core.InAButNotB(dbMemberIDs, slackMemberIDs)
 	addIDs     = core.InAButNotB(slackMemberIDs, dbMemberIDs)
