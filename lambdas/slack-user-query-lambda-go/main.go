@@ -20,18 +20,17 @@ func updateSlackUser(user slack.User, event models.ClientPlatformRequest, platfo
 		deactivatedAt = now
 	}
 	item := models.User{
-		// UserProfile: models.UserProfile{
 		ID:             user.ID,
 		DisplayName:    user.RealName,
 		FirstName:      user.Profile.FirstName,
 		LastName:       user.Profile.LastName,
 		Timezone:       user.TZ,
 		TimezoneOffset: user.TZOffset,
-		// },
-		PlatformID: event.PlatformID, 
-		IsAdmin: user.IsAdmin, 
-		DeactivatedAt: deactivatedAt,
-		CreatedAt: now, IsShared: false}
+		PlatformID:     event.PlatformID, 
+		IsAdmin:        user.IsAdmin, 
+		DeactivatedAt:  deactivatedAt,
+		CreatedAt:      now, 
+		IsShared:       false}
 	item.IsAdaptiveBot = user.IsBot && user.Profile.ApiAppID == string(platformID)
 
 	// Check if the user already exists
@@ -43,6 +42,7 @@ func updateSlackUser(user slack.User, event models.ClientPlatformRequest, platfo
 			// Preserving the scheduled time
 			item.AdaptiveScheduledTime = existingUser.AdaptiveScheduledTime
 			item.AdaptiveScheduledTimeInUTC = existingUser.AdaptiveScheduledTimeInUTC
+			item.CreatedAt = existingUser.CreatedAt
 		}
 		err = userDao.CreateOrUpdate(item)
 	}
@@ -158,7 +158,7 @@ func obtainMemberIDsForCommunity(comm models.AdaptiveCommunity,
 	addIDs     = core.InAButNotB(slackMemberIDs, dbMemberIDs)
 	return
 }
-func addCommunityUser(comm models.AdaptiveCommunity, userID string) (err error) {
+func createOrUpdateCommunityUser(comm models.AdaptiveCommunity, userID string) (err error) {
 	logger.Infof("Adding user %s to community channelID=%s", userID, comm.ChannelID)
 	acu := adaptiveCommunityUser.AdaptiveCommunityUser{
 		ChannelID: comm.ChannelID,
@@ -199,7 +199,7 @@ func HandleRequest(ctx context.Context, event models.ClientPlatformRequest) {
 				allRemoveIDs = append(allRemoveIDs, removeIDs ...)
 				allAddIDs = append(allAddIDs, addIDs ...)
 				for _, id := range allAddIDs {
-					err2 := addCommunityUser(comm, id)
+					err2 := createOrUpdateCommunityUser(comm, id)
 					if(err2 != nil) {
 						logger.Errorf("Couldn't add user %s to community %s: %+v", id, comm.ChannelID, err2)
 					}
