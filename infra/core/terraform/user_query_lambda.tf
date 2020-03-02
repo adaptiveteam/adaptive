@@ -26,7 +26,8 @@ module "user_query_lambda" {
   schedule             = true
   schedule_name        = "1pm_UTC_rule"
   schedule_description = "Cloudwatch event rule for 1PM UTC/ 8AM EST/ 6:30PM IST"
-  schedule_expression  = "cron(0 13 * * ? *)"
+  # schedule_expression  = "cron(0 13 * * ? *)"
+  schedule_expression  = "cron(0 * */15 * ? *)" 
 
   tags = local.default_tags
 }
