@@ -36,6 +36,7 @@ data "aws_iam_policy_document" "slack_user_query_policy" {
     actions = ["dynamodb:*"]
     resources = [
       aws_dynamodb_table.adaptive_users_dynamodb_table.arn,
+      aws_dynamodb_table.user_communities.arn,
     ]
   }
 
