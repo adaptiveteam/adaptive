@@ -170,8 +170,8 @@ func (d DAOImpl) CreateOrUpdate(capabilityCommunity CapabilityCommunity) (err er
 			emptyFields, ok := capabilityCommunity.CollectEmptyFields()
 			if ok {
 				old := olds[0]
+				capabilityCommunity.CreatedAt  = old.CreatedAt
 				capabilityCommunity.ModifiedAt = core.CurrentRFCTimestamp()
-
 				key := idParams(old.PlatformID, old.ID)
 				expr, exprAttributes, names := updateExpression(capabilityCommunity, old)
 				input := dynamodb.UpdateItemInput{
@@ -182,8 +182,10 @@ func (d DAOImpl) CreateOrUpdate(capabilityCommunity CapabilityCommunity) (err er
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-				if err == nil {
+				if  len(exprAttributes) > 0 { // if there some changes
 					err = d.Dynamo.UpdateItemInternal(input)
+				} else {
+					// WARN: no changes.
 				}
 				err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
 			} else {
