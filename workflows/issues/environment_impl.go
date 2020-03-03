@@ -234,12 +234,12 @@ func userDAO(conn DynamoDBConnection) utilsUser.DAO {
 	return utilsUser.DAOFromConnection(conn)
 }
 
-func UserRead(userID string) func(conn DynamoDBConnection) (ut models.User, err error) {
-	return func(conn DynamoDBConnection) (ut models.User, err error) {
+func UserRead(userID string) func(conn DynamoDBConnection) (users []models.User, err error) {
+	return func(conn DynamoDBConnection) (users []models.User, err error) {
 		if utilsUser.IsSpecialOrEmptyUserID(userID) {
 			err = errors.Errorf("Cannot read nonexisting userID %s", userID)
 		} else {
-			ut, err = userDAO(conn).Read(userID)
+			users, err = userDAO(conn).ReadOrEmpty(userID)
 		}
 		err = errors.Wrapf(err, "UserDynamoDBConnection) Read(userID=%s)", userID)
 		return
@@ -271,14 +271,17 @@ func IDOCoaches(userID string) func(conn DynamoDBConnection) (res []models.KvPai
 			res = append(res, requested)
 		}
 		for _, id := range userIDs {
-			var user models.User
-			user, err = userDao.Read(id)
+			var users [] models.User
+			users, err = userDao.ReadOrEmpty(id)
 			err = errors.Wrapf(err, "UserDynamoDBConnection) IDOCoaches(userID=%s)", userID)
-			if err != nil {
-				return
-			}
-			if user.ID != userID && !user.IsAdaptiveBot && user.DisplayName != "" {
-				res = append(res, models.KvPair{Key: user.DisplayName, Value: id})
+			if err == nil {
+				for _, user := range users {
+					if user.ID != userID &&
+					!user.IsAdaptiveBot &&
+					user.DisplayName != "" {
+						res = append(res, models.KvPair{Key: user.DisplayName, Value: id})
+					}
+				}
 			}
 		}
 
@@ -475,9 +478,11 @@ func SelectKvPairsFromCommunityJoinUsers(communityID community.AdaptiveCommunity
 			models.ParseTeamID(conn.PlatformID), communityUsersCommunityIndex)
 		for _, each := range commMembers {
 			// Self user checking
-			u := userDAO1.ReadUnsafe(each.UserId)
-			if u.DisplayName != "" && !u.IsAdaptiveBot {
-				members = append(members, models.KvPair{Key: u.DisplayName, Value: each.UserId})
+			us := userDAO1.ReadOrEmptyUnsafe(each.UserId)
+			for _, u := range us {
+				if u.DisplayName != "" && !u.IsAdaptiveBot {
+					members = append(members, models.KvPair{Key: u.DisplayName, Value: each.UserId})
+				}
 			}
 		}
 		return

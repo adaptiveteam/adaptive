@@ -20,7 +20,7 @@ import (
 
 // DAO - wrapper around a Dynamo DB table to work with PlatformID -> PlatformToken mapping
 type DAO interface {
-	Read(teamID models.TeamID) (models.ClientPlatformToken, error)
+	Read(teamID models.TeamID) (models.ClientPlatformToken, bool, error)
 	ReadUnsafe(teamID models.TeamID) models.ClientPlatformToken
 	GetPlatformTokenUnsafe(teamID models.TeamID) string
 }
@@ -47,19 +47,21 @@ func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema m
 }
 
 // Read reads ClientPlatformToken
-func (d DAOImpl) Read(teamID models.TeamID) (models.ClientPlatformToken, error) {
+func (d DAOImpl) Read(teamID models.TeamID) (out models.ClientPlatformToken, found bool, err error) {
 	params := map[string]*dynamodb.AttributeValue{
 		"platform_id": dynString(teamID.ToString()),
 	}
-	var out models.ClientPlatformToken
-	err := d.Dynamo.GetItemFromTable(d.Name, params, &out)
-	return out, err
+	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, params, &out)
+	return out, found, err
 }
 
 // ReadUnsafe reads the ClientPlatformToken. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(teamID models.TeamID) models.ClientPlatformToken {
-	out, err := d.Read(teamID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not find %s in %s", teamID, d.Name))
+	out, found, err2 := d.Read(teamID)
+	if !found {
+		panic(fmt.Errorf("ClientPlatformToken for teamID=%s not found", teamID.ToString()))
+	}
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not read %s in %s", teamID.ToString(), d.Name))
 	return out
 }
 

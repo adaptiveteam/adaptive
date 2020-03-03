@@ -74,8 +74,8 @@ func (d DAOImpl) Read(userID string) (out []models.AdaptiveCommunityUser3, err e
 }
 // ReadUnsafe reads data. Panics in case of errors
 func (d DAOImpl) ReadUnsafe(userID string) []models.AdaptiveCommunityUser3 {
-	out, err := d.Read(userID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not find %s in %s using index %s", userID, d.Name, d.UserIndex))
+	out, err2 := d.Read(userID)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not find %s in %s using index %s", userID, d.Name, d.UserIndex))
 	return out
 }
 // ReadCommunityUsers reads users of the channel

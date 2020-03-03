@@ -167,6 +167,7 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunityUser AdaptiveCommunityUser) (er
 			if ok {
 				old := olds[0]
 				
+				
 				key := idParams(old.ChannelID, old.UserID)
 				expr, exprAttributes, names := updateExpression(adaptiveCommunityUser, old)
 				input := dynamodb.UpdateItemInput{
@@ -177,8 +178,10 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunityUser AdaptiveCommunityUser) (er
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-				if err == nil {
+				if  len(exprAttributes) > 0 { // if there some changes
 					err = d.Dynamo.UpdateItemInternal(input)
+				} else {
+					// WARN: no changes.
 				}
 				err = errors.Wrapf(err, "AdaptiveCommunityUser DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
 			} else {
