@@ -12,14 +12,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-func CommunityMembers(table string, ID string, platformID models.PlatformID, userCommIndex string) []models.AdaptiveCommunityUser2 {
+func CommunityMembers(table string, ID string, teamID models.TeamID, userCommIndex string) []models.AdaptiveCommunityUser2 {
 	var commUsers []models.AdaptiveCommunityUser2
 	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(table, awsutils.DynamoIndexExpression{
 		IndexName: userCommIndex,
 		Condition: "platform_id = :pi AND community_id = :c",
 		Attributes: map[string]interface{}{
 			":c":  ID,
-			":pi": platformID,
+			":pi": teamID,
 		},
 	}, map[string]string{}, true, -1, &commUsers)
 	core.ErrorHandler(err, common.DeprecatedGetGlobalDns().Namespace, fmt.Sprintf("Could not query %s table on %s index",
@@ -27,10 +27,10 @@ func CommunityMembers(table string, ID string, platformID models.PlatformID, use
 	return commUsers
 }
 
-func CommunityById(communityId string, platformId models.PlatformID, communitiesTable string) models.AdaptiveCommunity {
+func CommunityById(communityId string, teamID models.TeamID, communitiesTable string) models.AdaptiveCommunity {
 	params := map[string]*dynamodb.AttributeValue{
 		"id": daosCommon.DynS(communityId),
-		"platform_id": daosCommon.DynS(string(platformId)),
+		"platform_id": daosCommon.DynS(teamID.ToString()),
 	}
 	var comm models.AdaptiveCommunity
 	err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemFromTable(communitiesTable, params, &comm)
@@ -94,26 +94,26 @@ func IsUserInCommunity(userID string, communityUsersTable, communityUsersUserCom
 }
 
 // PlatformCommunities lists all the communities based on the platform id supplied
-func PlatformCommunities(platformID models.PlatformID, communitiesTable, communityPlatformIndex string) (comms []models.AdaptiveCommunity, err error) {
+func PlatformCommunities(teamID models.TeamID, communitiesTable, communityPlatformIndex string) (comms []models.AdaptiveCommunity, err error) {
 	err = common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(communitiesTable, awsutils.DynamoIndexExpression{
 		IndexName: communityPlatformIndex,
 		Condition: "platform_id = :pi",
 		Attributes: map[string]interface{}{
-			":pi": platformID,
+			":pi": teamID,
 		},
 	}, map[string]string{}, true, -1, &comms)
 	return
 }
 
 // PlatformCommunityMembers returns distinct user ids from all the communities based on a platform id
-func PlatformCommunityMemberIDs(platformID models.PlatformID, communitiesTable, communityPlatformIndex,
+func PlatformCommunityMemberIDs(teamID models.TeamID, communitiesTable, communityPlatformIndex,
 	communityUsersTable, communityUsersCommunityIndex string) (memberIDs []string, err error) {
-	communities, err := PlatformCommunities(platformID, communitiesTable, communityPlatformIndex)
+	communities, err := PlatformCommunities(teamID, communitiesTable, communityPlatformIndex)
 	var allCommunitiesMemberIDs []string
 	if err == nil {
 		for _, each := range communities {
 			// Get community members by querying community users table based on platform id and community id
-			members := CommunityMembers(communityUsersTable, each.ID, platformID, communityUsersCommunityIndex)
+			members := CommunityMembers(communityUsersTable, each.ID, teamID, communityUsersCommunityIndex)
 			for _, member := range members {
 				allCommunitiesMemberIDs = append(allCommunitiesMemberIDs, member.UserId)
 			}

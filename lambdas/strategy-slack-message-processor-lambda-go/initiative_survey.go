@@ -98,7 +98,7 @@ func EditInitiativeSurveyElems(si *models.StrategyInitiative, advocates, dates,
 	return op
 }
 
-func EditInitiativeCommunitySurveyElems(platformID models.PlatformID, cc *strategy.StrategyInitiativeCommunity,
+func EditInitiativeCommunitySurveyElems(teamID models.TeamID, cc *strategy.StrategyInitiativeCommunity,
 	capabilityComms []models.KvPair) (op []ebm.AttachmentActionTextElement) {
 	// Survey box should consist of a menu option to select rating and a text area for a user to enter the feedback
 	if cc == nil {
@@ -121,7 +121,7 @@ func EditInitiativeCommunitySurveyElems(platformID models.PlatformID, cc *strate
 			Label:    strategy.InitiativeCommunityCoordinatorLabel,
 			Name:     strategy.InitiativeCommunityCoordinator,
 			ElemType: models.MenuSelectType,
-			Options:  utils.AttachActionElementOptions(allUsersInAnyStrategyCommunities(platformID)),
+			Options:  utils.AttachActionElementOptions(allUsersInAnyStrategyCommunities(teamID)),
 			Value:    cc.Advocate,
 		},
 		{

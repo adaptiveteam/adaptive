@@ -108,7 +108,7 @@ type AdaptiveCommunityDynamoDBConnection = DynamoDBConnection
 
 func AdaptiveCommunityReadByID(communityID daosCommon.AdaptiveCommunityID) func(conn DynamoDBConnection) (comm models.AdaptiveCommunity, err error) {
 	return func(conn DynamoDBConnection) (comm models.AdaptiveCommunity, err error) {
-		comm = community.CommunityById(string(communityID), conn.PlatformID, communitiesTableName(conn.ClientID))
+		comm = community.CommunityById(string(communityID), models.ParseTeamID(conn.PlatformID), communitiesTableName(conn.ClientID))
 		// dao := adaptiveCommunity.NewDAO(conn.Dynamo, "AdaptiveCommunityDynamoDBConnection", conn.ClientID)
 		// comm, err = dao.Read(communityID)
 		if comm.ID != string(communityID) {
@@ -121,7 +121,7 @@ func AdaptiveCommunityReadByID(communityID daosCommon.AdaptiveCommunityID) func(
 func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated() func(conn AdaptiveCommunityDynamoDBConnection) (res []strategy.CapabilityCommunity, err error) {
 	return func(conn AdaptiveCommunityDynamoDBConnection) (res []strategy.CapabilityCommunity, err error) {
 		defer recoverToErrorVar("SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated", &err)
-		capComms := strategy.AllCapabilityCommunities(conn.PlatformID,
+		capComms := strategy.AllCapabilityCommunities(models.ParseTeamID(conn.PlatformID),
 			capabilityCommunitiesTableName(conn.ClientID), capabilityCommunitiesPlatformIndex, strategyCommunitiesTableName(conn.ClientID))
 		for _, each := range capComms {
 			var stratComm strategy.StrategyCommunity
@@ -150,7 +150,7 @@ func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated() fun
 // 	if isMemberInCommunity(userID, community.Strategy) {
 // 		initComms = strategy.AllStrategyInitiativeCommunities(conn.PlatformID, strategyInitiativeCommunitiesTable, strategyInitiativeCommunitiesPlatformIndex, strategyCommunitiesTable)
 // 	} else {
-// 		initComms = StrategyInitiativeCommunitiesForUserID(userID, models.PlatformID(conn.PlatformID))
+// 		initComms = StrategyInitiativeCommunitiesForUserID(userID, models.TeamID(conn.PlatformID))
 // 	}
 
 // 	var adaptiveAssociatedInitComms []strategy.StrategyInitiativeCommunity
@@ -182,7 +182,7 @@ func SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(userI
 		// Query all the Strategy Initiative communities
 		var initComms []strategy.StrategyInitiativeCommunity
 		if isMemberInCommunity(conn, userID, community.Strategy) {
-			initComms = strategy.AllStrategyInitiativeCommunities(conn.PlatformID,
+			initComms = strategy.AllStrategyInitiativeCommunities(models.ParseTeamID(conn.PlatformID),
 				strategyInitiativeCommunitiesTableName(conn.ClientID),
 				strategyInitiativeCommunitiesPlatformIndex,
 				strategyCommunitiesTableName(conn.ClientID))
@@ -190,7 +190,7 @@ func SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(userI
 			initComms = strategy.UserStrategyInitiativeCommunities(userID,
 				communityUsersTableName(conn.ClientID), communityUsersUserCommunityIndex, communityUsersUserIndex,
 				strategyInitiativeCommunitiesTableName(conn.ClientID), strategyInitiativeCommunitiesPlatformIndex,
-				strategyCommunitiesTableName(conn.ClientID), conn.PlatformID)
+				strategyCommunitiesTableName(conn.ClientID), models.ParseTeamID(conn.PlatformID))
 		}
 		existingIds := map[string]struct{}{}
 		// Get a list of Adaptive associated Initiative communities
@@ -231,15 +231,15 @@ func StrategyCommunityByID(id string) func(conn AdaptiveCommunityDynamoDBConnect
 type UserDynamoDBConnection = DynamoDBConnection
 
 func userDAO(conn DynamoDBConnection) utilsUser.DAO {
-	return utilsUser.NewDAO(conn.Dynamo, "DynamoDBConnection", adaptiveUsersTableName(conn.ClientID))
+	return utilsUser.DAOFromConnection(conn)
 }
 
-func UserRead(userID string) func(conn DynamoDBConnection) (ut models.User, err error) {
-	return func(conn DynamoDBConnection) (ut models.User, err error) {
+func UserRead(userID string) func(conn DynamoDBConnection) (users []models.User, err error) {
+	return func(conn DynamoDBConnection) (users []models.User, err error) {
 		if utilsUser.IsSpecialOrEmptyUserID(userID) {
 			err = errors.Errorf("Cannot read nonexisting userID %s", userID)
 		} else {
-			ut, err = userDAO(conn).Read(userID)
+			users, err = userDAO(conn).ReadOrEmpty(userID)
 		}
 		err = errors.Wrapf(err, "UserDynamoDBConnection) Read(userID=%s)", userID)
 		return
@@ -261,23 +261,27 @@ var none = models.KvPair{Key: string(objectives.CoachNotNeededOption), Value: ut
 func IDOCoaches(userID string) func(conn DynamoDBConnection) (res []models.KvPair, err error) {
 	return func(conn DynamoDBConnection) (res []models.KvPair, err error) {
 		defer recoverToErrorVar("IDOCoaches", &err)
-		userDao := utilsUser.NewDAO(conn.Dynamo, "UserDynamoDBConnection", adaptiveUsersTableName(conn.ClientID))
+		userDao := utilsUser.DAOFromConnection(conn)
 
-		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(community.Coaching), conn.PlatformID, communityUsersCommunityIndex)
+		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(community.Coaching), 
+			models.ParseTeamID(conn.PlatformID), communityUsersCommunityIndex)
 		userIDs := mapAdaptiveCommunityUsersToUserID(commMembers)
 		res = []models.KvPair{none}
 		if len(commMembers) > 0 { // Does this include adaptive bot name?
 			res = append(res, requested)
 		}
 		for _, id := range userIDs {
-			var user models.User
-			user, err = userDao.Read(id)
+			var users [] models.User
+			users, err = userDao.ReadOrEmpty(id)
 			err = errors.Wrapf(err, "UserDynamoDBConnection) IDOCoaches(userID=%s)", userID)
-			if err != nil {
-				return
-			}
-			if user.ID != userID && !user.IsAdaptiveBot && user.DisplayName != "" {
-				res = append(res, models.KvPair{Key: user.DisplayName, Value: id})
+			if err == nil {
+				for _, user := range users {
+					if user.ID != userID &&
+					!user.IsAdaptiveBot &&
+					user.DisplayName != "" {
+						res = append(res, models.KvPair{Key: user.DisplayName, Value: id})
+					}
+				}
 			}
 		}
 
@@ -318,7 +322,8 @@ func StrategyObjectiveRead(id string) func(conn DynamoDBConnection) (res models.
 		}
 
 		log.Printf("StrategyObjectiveDynamoDBConnection) Read: reading id2=%s\n", id2)
-		res = strategy.StrategyObjectiveByID(conn.PlatformID, id2, strategyObjectivesTableName(conn.ClientID))
+		res = strategy.StrategyObjectiveByID(models.ParseTeamID(conn.PlatformID), id2, 
+			strategyObjectivesTableName(conn.ClientID))
 		if res.ID != id2 {
 			err = fmt.Errorf("couldn't find StrategyObjectiveByID(id2=%s, id=%s). Instead got ID=%s", id2, id, res.ID)
 		}
@@ -361,7 +366,8 @@ func StrategyCommunityRead(id string) func(conn DynamoDBConnection) (res strateg
 func CapabilityCommunityRead(id string) func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
 	return func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
 		defer recoverToErrorVar("CapabilityCommunityDynamoDBConnection.Read", &err)
-		res = strategy.CapabilityCommunityByID(conn.PlatformID, id, capabilityCommunitiesTableName(conn.ClientID))
+		res = strategy.CapabilityCommunityByID(models.ParseTeamID(conn.PlatformID), id, 
+			capabilityCommunitiesTableName(conn.ClientID))
 		if res.ID != id {
 			err = fmt.Errorf("couldn't find CapabilityCommunityByID(id=%s). Instead got ID=%s", id, res.ID)
 		}
@@ -374,7 +380,9 @@ func CapabilityCommunityRead(id string) func(conn DynamoDBConnection) (res model
 func StrategyInitiativeRead(id string) func(conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
 	return func(conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
 		defer recoverToErrorVar("StrategyInitiativeDynamoDBConnection.Read", &err)
-		res = strategy.StrategyInitiativeByID(conn.PlatformID, id, strategyInitiativesTableName(conn.ClientID))
+		res = strategy.StrategyInitiativeByID(
+			models.ParseTeamID(conn.PlatformID), id, 
+			strategyInitiativesTableName(conn.ClientID))
 		if res.ID != id {
 			err = fmt.Errorf("couldn't find StrategyInitiativeByID(id=%s). Instead got ID=%s", id, res.ID)
 		}
@@ -466,12 +474,15 @@ func SelectKvPairsFromCommunityJoinUsers(communityID community.AdaptiveCommunity
 		defer recoverToErrorVar("QueriesDynamoDBConnection) SelectKvPairsFromCommunityJoinUsers", &err)
 		userDAO1 := userDAO(conn)
 
-		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(communityID), conn.PlatformID, communityUsersCommunityIndex)
+		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(communityID), 
+			models.ParseTeamID(conn.PlatformID), communityUsersCommunityIndex)
 		for _, each := range commMembers {
 			// Self user checking
-			u := userDAO1.ReadUnsafe(each.UserId)
-			if u.DisplayName != "" && !u.IsAdaptiveBot {
-				members = append(members, models.KvPair{Key: u.DisplayName, Value: each.UserId})
+			us := userDAO1.ReadOrEmptyUnsafe(each.UserId)
+			for _, u := range us {
+				if u.DisplayName != "" && !u.IsAdaptiveBot {
+					members = append(members, models.KvPair{Key: u.DisplayName, Value: each.UserId})
+				}
 			}
 		}
 		return
@@ -513,7 +524,7 @@ func OnCloseoutImplOld(issue Issue) func(conn DynamoDBConnection) (err error) {
 			false,
 			DynamoNamespace(conn, "OnCloseoutImpl"),
 			models.UserEngagementCheckWithValue{},
-			issue.UserObjective.PlatformID,
+			models.ParseTeamID(issue.UserObjective.PlatformID),
 		)
 		return
 	}

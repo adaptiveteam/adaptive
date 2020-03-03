@@ -12,7 +12,7 @@ import (
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
+	// mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	
 )
@@ -56,17 +56,17 @@ var (
 	userDAO             = utilsUser.NewDAOFromSchema(d, namespace, schema)
 	communityMembersDao = communityUser.NewDAOFromSchema(d, namespace, schema)
 	platformDAO         = utilsPlatform.NewDAOFromSchema(d, namespace, schema)
-	platformAdapter     = mapper.SlackAdapter2(platformDAO)
+	// platformAdapter     = mapper.SlackAdapter2(platformDAO)
 	// typedObjectiveDAO   = typedObjective.NewDAO(d, namespace, clientID)
 	dialogTableName     = utils.NonEmptyEnv("DIALOG_TABLE")
 	dialogFetcherDAO    = dialogFetcher.NewDAO(d, dialogTableName)
 	strategyObjectiveDAO= strategyObjective.NewDAOByTableName(d, namespace, strategyObjectivesTable)
 )
 
-// func allUsers(platformID models.PlatformID, list []string) []models.KvPair {
+// func allUsers(teamID models.TeamID, list []string) []models.KvPair {
 // 	var users []models.KvPair
 // 	// Get user options
-// 	userProfiles := user.ReadAllUserProfiles(userDAO, platformID)
+// 	userProfiles := user.ReadAllUserProfiles(userDAO, teamID)
 // 	for _, each := range userProfiles {
 // 		if len(list) == 0 || core.ListContainsString(list, each.Id) {
 // 			users = append(users, models.KvPair{Key: each.DisplayName, Value: each.Id})
@@ -76,13 +76,13 @@ var (
 // }
 
 // allUsersInAnyStrategyCommunities should return users that belong to one of the communities
-func allUsersInAnyStrategyCommunities(platformID models.PlatformID) []models.KvPair {
-	communityUsers := communityMembersDao.ReadAnyCommunityUsersUnsafe(platformID)
+func allUsersInAnyStrategyCommunities(teamID models.TeamID) []models.KvPair {
+	communityUsers := communityMembersDao.ReadAnyCommunityUsersUnsafe(teamID)
 	userIDsSet := getUserIDsSet(communityUsers)
 	var users []models.KvPair
 	// Get user options
 
-	userProfiles := user.ReadAllUserProfiles(userDAO, platformID)
+	userProfiles := user.ReadAllUserProfiles(userDAO, teamID)
 	for _, each := range userProfiles {
 		if _, ok := userIDsSet[each.Id]; ok {
 			users = append(users, models.KvPair{Key: each.DisplayName, Value: each.Id})

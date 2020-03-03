@@ -46,12 +46,12 @@ func initiativeCommunityAttachmentFields(mc models.MessageCallback, oldSi, newSi
 	capabilityCommunitiesTable string) ([]models.KvPair, ui.RichText) {
 	var kvs []models.KvPair
 	dn := common.TaggedUser(newSi.Advocate)
-	platformID := UserIDToPlatformID(userDAO())(mc.Source)
+	teamID := UserIDToTeamID(userDAO())(mc.Source)
 	if oldSi != nil {
 		oldDn := common.TaggedUser(oldSi.Advocate)
 
-		newCapComm := CapabilityCommunityByID(platformID, newSi.CapabilityCommunityID, capabilityCommunitiesTable)
-		oldCapComm := CapabilityCommunityByID(platformID, oldSi.CapabilityCommunityID, capabilityCommunitiesTable)
+		newCapComm := CapabilityCommunityByID(teamID, newSi.CapabilityCommunityID, capabilityCommunitiesTable)
+		oldCapComm := CapabilityCommunityByID(teamID, oldSi.CapabilityCommunityID, capabilityCommunitiesTable)
 		kvs = []models.KvPair{
 			{Key: InitiativeCommunityNameLabel, Value: NewAndOld(newSi.Name, oldSi.Name)},
 			{Key: InitiativeCommunityDescriptionLabel, Value: NewAndOld(newSi.Description, oldSi.Description)},
@@ -59,7 +59,7 @@ func initiativeCommunityAttachmentFields(mc models.MessageCallback, oldSi, newSi
 			{Key: InitiativeCommunityCapabilityCommunityLabel, Value: NewAndOld(newCapComm.Name, oldCapComm.Name)},
 		}
 	} else {
-		newCapComm := CapabilityCommunityByID(platformID, newSi.CapabilityCommunityID, capabilityCommunitiesTable)
+		newCapComm := CapabilityCommunityByID(teamID, newSi.CapabilityCommunityID, capabilityCommunitiesTable)
 		kvs = []models.KvPair{
 			{Key: InitiativeCommunityNameLabel, Value: newSi.Name},
 			{Key: InitiativeCommunityDescriptionLabel, Value: newSi.Description},
@@ -78,8 +78,8 @@ func InitiativeCommunityViewAttachmentReadOnly(mc models.MessageCallback, newSi,
 
 func initiativeCommunityEditActions(initCommID string, mc models.MessageCallback, strategyInitiativesTable, strategyInitiativesPlatformIndex string) []ebm.AttachmentAction {
 	var actions []ebm.AttachmentAction
-	platformID := UserIDToPlatformID(userDAO())(mc.Source)
-	allInits := AllStrategyInitiatives(platformID, strategyInitiativesTable, strategyInitiativesPlatformIndex)
+	teamID := UserIDToTeamID(userDAO())(mc.Source)
+	allInits := AllStrategyInitiatives(teamID, strategyInitiativesTable, strategyInitiativesPlatformIndex)
 	mc = *mc.WithTarget(initCommID)
 	if len(allInits) > 0 {
 		// Show allocation button when there are initiatives

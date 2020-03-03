@@ -16,7 +16,7 @@ func ParseApiRequest(payload string) (slackevents.EventsAPIEvent, error) {
 }
 
 // UnsafeUnmarshallSlackEventsAPIEvent unmarshalls EventsAPIEvent. 
-// deprecated, use UnsafeUnmarshallSlackEventsAPIEventUnsafe
+// Deprecated: use UnsafeUnmarshallSlackEventsAPIEventUnsafe
 func UnsafeUnmarshallSlackEventsAPIEvent(payload, namespace string) slackevents.EventsAPIEvent {
 	return UnsafeUnmarshallSlackEventsAPIEventUnsafe(payload, namespace)
 }
@@ -34,7 +34,7 @@ func UnmarshallSlackEventsAPIEventUnsafe(payload, namespace string) slackevents.
 }
 
 // UnmarshallSlackInteractionMsg parses InteractionCallback.
-// deprecated. Use UnmarshallSlackInteractionCallbackUnsafe (which is named consistently)
+// Deprecated: Use UnmarshallSlackInteractionCallbackUnsafe (which is named consistently)
 func UnmarshallSlackInteractionMsg(msg string) slack.InteractionCallback {
 	return UnmarshallSlackInteractionCallbackUnsafe(msg, "unknown-namespace")
 }
@@ -63,7 +63,7 @@ func UnmarshallSlackDialogSubmissionCallbackUnsafe(msg, namespace string) (slack
 }
 
 // ParseAsInteractionMsg parses InteractionCallback.
-// deprecated. Use UnmarshallSlackInteractionCallback (named consistently)
+// Deprecated: Use UnmarshallSlackInteractionCallback (named consistently)
 func ParseAsInteractionMsg(payload string) (slack.InteractionCallback, error) {
 	return UnmarshallSlackInteractionCallback(payload, "unknown-namespace-3")
 }

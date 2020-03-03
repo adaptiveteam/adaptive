@@ -98,7 +98,7 @@ func (b *AttachmentBuilder) Author(author model.AttachmentAuthor) *AttachmentBui
 }
 
 // Build converts builder to Attachment.
-// deprecated. Use ToAttachment
+// Deprecated: Use ToAttachment
 // This method is misleading as it always returns `nil` as the second 
 func (b *AttachmentBuilder) Build() (*model.Attachment, error) {
 	return b.attachment, nil

@@ -158,6 +158,7 @@ func (d DAOImpl) CreateOrUpdate(contextAliasEntry ContextAliasEntry) (err error)
 			if ok {
 				old := olds[0]
 				
+				
 				key := idParams(old.ApplicationAlias)
 				expr, exprAttributes, names := updateExpression(contextAliasEntry, old)
 				input := dynamodb.UpdateItemInput{
@@ -168,8 +169,10 @@ func (d DAOImpl) CreateOrUpdate(contextAliasEntry ContextAliasEntry) (err error)
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-				if err == nil {
+				if  len(exprAttributes) > 0 { // if there some changes
 					err = d.Dynamo.UpdateItemInternal(input)
+				} else {
+					// WARN: no changes.
 				}
 				err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
 			} else {

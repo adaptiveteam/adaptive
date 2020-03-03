@@ -294,11 +294,11 @@ func mapAdaptiveCommunityUsersToUserID(users []models.AdaptiveCommunityUser2) (u
 // IDOCoaches retrieves available coaches for a user
 // It shows 'none' option indicating no coach is required
 // It shows 'requested' option when a user wants to request uber-coach
-func IDOCoaches(userID string, platformID models.PlatformID,
+func IDOCoaches(userID string, teamID models.TeamID,
 	communityUsersTable, communityUsersCommunityIndex string,
 	fetchUsers common.UserIDsToDisplayNames) []models.KvPair {
 	// Get coaching community members
-	commMembers := community.CommunityMembers(communityUsersTable, string(community.Coaching), platformID, communityUsersCommunityIndex)
+	commMembers := community.CommunityMembers(communityUsersTable, string(community.Coaching), teamID, communityUsersCommunityIndex)
 	kvs := []models.KvPair{{Key: string(CoachNotNeededOption), Value: "none"}}
 	// Showing "Request a Coach" option only when there is a coaching community
 	if len(commMembers) > 0 { // Does this include adaptive bot name?

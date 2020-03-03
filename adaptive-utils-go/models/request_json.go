@@ -59,7 +59,7 @@ func (np *NamespacePayload) ToJSONUnsafe(namespace string) string {
 }
 
 // ParseGwSNSRequest parses EventsAPIEvent
-// deprecated. Use NamespacePayload.ParseEventsAPIEventUnsafe as it is named more consistently
+// Deprecated: Use NamespacePayload.ParseEventsAPIEventUnsafe as it is named more consistently
 func (np NamespacePayload)ParseGwSNSRequest(namespace string) slackevents.EventsAPIEvent {
 	return np.ParseEventsAPIEventUnsafe(namespace)
 }

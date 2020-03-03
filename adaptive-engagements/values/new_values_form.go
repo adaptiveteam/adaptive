@@ -14,7 +14,7 @@ import (
 // a new adaptive value
 func CreateAdaptiveValuesEng(mc models.MessageCallback,
 	fallback, learnTrailPath, namespace string, check models.UserEngagementCheckWithValue,
-	platformID models.PlatformID) models.UserEngagement {
+	teamID models.TeamID) models.UserEngagement {
 	title := "Create adaptive competency"
 	actions := models.AppendOptionalAction(
 		[]ebm.AttachmentAction{
@@ -24,7 +24,7 @@ func CreateAdaptiveValuesEng(mc models.MessageCallback,
 	fields := []ebm.AttachmentField{}
 	urgent := true
 	return utils.MakeUserEngagement(mc, title, core.EmptyString, fallback,
-		mc.Source, actions, fields, urgent, namespace, time.Now().Unix(), check, platformID)
+		mc.Source, actions, fields, urgent, namespace, time.Now().Unix(), check, teamID)
 }
 
 const (

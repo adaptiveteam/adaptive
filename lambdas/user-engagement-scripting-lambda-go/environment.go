@@ -7,7 +7,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,7 +24,6 @@ var (
 	sns                                 = awsutils.NewSNS(region, "", namespace)
 	schema                              = models.SchemaForClientID(clientID)
 	platformTokenDao                    = plat.NewDAOFromSchema(d, namespace, schema)
-	platformAdapter                     = mapper.SlackAdapter2(platformTokenDao)
 
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 )

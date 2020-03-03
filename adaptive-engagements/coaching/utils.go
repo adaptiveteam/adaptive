@@ -2,19 +2,20 @@ package coaching
 
 import (
 	"fmt"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+	// utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
 
-func UserDNPlatform(userId string, userProfileLambda, region string, dns common.DynamoNamespace) (string, models.PlatformID) {
-	ut, err := utils.UserToken(userId, userProfileLambda, region, dns.Namespace)
-	core.ErrorHandler(err, dns.Namespace, fmt.Sprintf("Could not query for user token"))
-	return ut.DisplayName, ut.ClientPlatformRequest.PlatformID
-}
+// func UserDNPlatform(userId string, userProfileLambda, region string, dns common.DynamoNamespace) (string, models.TeamID) {
+// 	ut, err := utils.UserToken(userId, userProfileLambda, region, dns.Namespace)
+// 	core.ErrorHandler(err, dns.Namespace, fmt.Sprintf("Could not query for user token"))
+// 	return ut.DisplayName, ut.ClientPlatformRequest.TeamID
+// }
 
 func Coach(table string, coachee string, quarter, year int, coachingCoacheeIndex string, dns common.DynamoNamespace) (
 	[]models.CoachingRelationship, error) {
@@ -91,10 +92,10 @@ func UserReportIDForPreviousQuarter(engage models.UserEngage) (key string, err e
 
 // ReportFor returns the user or channel, where to post report in
 func ReportFor(engage models.UserEngage) (reportFor string) {
-	if engage.TargetId == "" {
-		reportFor = engage.UserId
+	if engage.TargetID == "" {
+		reportFor = engage.UserID
 	} else {
-		reportFor = engage.TargetId
+		reportFor = engage.TargetID
 	}
 	return
 }

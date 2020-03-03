@@ -14,7 +14,7 @@ import (
 )
 
 func CreateStrategyWorkbook(
-	platformID string,
+	teamID string,
 	db *utilities.Database,
 	dialogDAO fetch_dialog.DAO,
 	properties *excel.DocProperties,
@@ -26,19 +26,19 @@ func CreateStrategyWorkbook(
 		qm := utilities.NewQueryMap().
 			AddToQuery("strategy",
 				queries.StrategyStatus,
-				platformID,
+				teamID,
 			).AddToQuery(
 				"alignment",
 				queries.AlignmentSummary,
-				platformID,
+				teamID,
 			).AddToQuery(
 			"vision",
 			queries.Vision,
-				platformID,
+				teamID,
 			).AddToQuery(
 			"competencies",
 			queries.Competencies,
-			platformID,
+			teamID,
 		)
 		queryResults, err := utilities.RunQueries(db, &qm)
 

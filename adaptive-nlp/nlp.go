@@ -34,7 +34,7 @@ const (
 
 // GetDialog requests text analysis from Meaning Cloud.
 // And then converts them to recommendations using dialog.
-// deprecated: breaks SRP, the name is misleading. Inline instead.
+// Deprecated: breaks SRP, the name is misleading. Inline instead.
 func GetDialog(
 	textToAnalyze string,
 	lc LanguageCode,
@@ -48,7 +48,7 @@ func GetDialog(
 }
 
 // FetchDialogForImprovements fetches dialog messages for the list of recommendations.
-// deprecated. Use FetchDialogForImprovementsOrGood
+// Deprecated: Use FetchDialogForImprovementsOrGood
 func FetchDialogForImprovements(
 	dialogFetcherDAO fetch_dialog.DAO,
 	context string,

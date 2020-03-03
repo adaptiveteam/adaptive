@@ -4,6 +4,8 @@ import (
 	"sort"
 	"context"
 	"encoding/json"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -71,17 +73,17 @@ func HandleRequest(ctx context.Context, engage models.UserEngageWithCheckValues)
 		}
 	}
 
-	engs := user.NotPostedUnansweredNotIgnoredEngagements(engage.UserId, engagementTable, engagementAnsweredIndex)
+	engs := user.NotPostedUnansweredNotIgnoredEngagements(engage.UserID, engagementTable, engagementAnsweredIndex)
 	allValidEngagements := filterEngagements(engs, isNotIgnored)
 	logger.WithField("not ignored engagements", &allValidEngagements).Info("Queried engagements")
-	logger.Infof("Queried all not ignored engagements for user %s, total: %d", engage.UserId, len(engs))
+	logger.Infof("Queried all not ignored engagements for user %s, total: %d", engage.UserID, len(engs))
 	totalCount := len(allValidEngagements)
-	conn := common.DynamoDBConnection{Dynamo: d, ClientID: clientID, PlatformID: engage.PlatformID}
-	count, err2 := workflows.TriggerAllPostponedEvents(engage.PlatformID, engage.UserId)(conn)
+	conn := common.DynamoDBConnection{Dynamo: d, ClientID: clientID, PlatformID: engage.TeamID.ToPlatformID()}
+	count, err2 := workflows.TriggerAllPostponedEvents(engage.TeamID, engage.UserID)(conn)
 	core.ErrorHandler(err2, "TriggerAllPostponedEvents", "TriggerAllPostponedEvents")
 	totalCount += count
 	if totalCount == 0 && engage.OnDemand {
-		publish(models.PlatformSimpleNotification{UserId: engage.UserId, Message: string(greeting())})
+		publish(models.PlatformSimpleNotification{UserId: engage.UserID, Message: string(greeting())})
 	}
 }
 
@@ -130,17 +132,22 @@ func showEngagements(engage models.UserEngageWithCheckValues, allValidEngagement
 	// First post urgent engagements and then post non-urgent engagements. Also sort by TargetID to improve locality
 	sortEngagements(allValidEngagements)
 
-	slackAdapter := platformAdapter.ForPlatformID(engage.PlatformID)
+	conn := daosCommon.DynamoDBConnection{
+		Dynamo: d,
+		ClientID: clientID,
+		PlatformID: engage.TeamID.ToPlatformID(),
+	}
+	slackAdapter := mapper.SlackAdapterForTeamID(conn)
 	if !engage.OnDemand && len(allValidEngagements) > 0 {
-		slackAdapter.PostSyncUnsafe(plat.Post(plat.ConversationID(engage.UserId), plat.MessageContent{
+		slackAdapter.PostSyncUnsafe(plat.Post(plat.ConversationID(engage.UserID), plat.MessageContent{
 			Message:     ui.RichText(fmt.Sprintf("You have %d engagements for today", len(allValidEngagements))),
 			Attachments: nil,
 		}))
 	}
-	delivered, _ := postEngs(allValidEngagements, engage.UserId, slackAdapter)
-	logger.Infof("Posted engagements for user %s", engage.UserId)
+	delivered, _ := postEngs(allValidEngagements, engage.UserID, slackAdapter)
+	logger.Infof("Posted engagements for user %s", engage.UserID)
 	// Deleting only delivered engagements
-	updateEngagementsAsPostedAsync(engage.UserId, delivered)
+	updateEngagementsAsPostedAsync(engage.UserID, delivered)
 }
 
 func updateEngagementsAsPostedAsync(userID string, engagements []models.UserEngagement) {

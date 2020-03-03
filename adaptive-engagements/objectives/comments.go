@@ -28,5 +28,5 @@ func CommentsEng(table string, mc models.MessageCallback, title, fallback string
 	dns common.DynamoNamespace, check models.UserEngagementCheckWithValue) {
 	actions := commentsEngAttachmentActions(mc, obj)
 	utils.AddChatEngagement(mc, title, core.EmptyString, fallback, mc.Source, actions, []ebm.AttachmentField{},
-		obj.PlatformID, urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(), check)
+		models.ParseTeamID(obj.PlatformID), urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(), check)
 }

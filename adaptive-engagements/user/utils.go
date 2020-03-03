@@ -10,8 +10,8 @@ import (
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
 
-func ReadAllUserProfiles(userDAO daosUser.DAO, platformID models.PlatformID) []models.UserProfile {
-	users := userDAO.ReadByPlatformIDUnsafe(platformID)
+func ReadAllUserProfiles(userDAO daosUser.DAO, teamID models.TeamID) []models.UserProfile {
+	users := userDAO.ReadByPlatformIDUnsafe(teamID.ToPlatformID())
 	return user.ConvertUsersToUserProfilesAndRemoveAdaptiveBot(users)
 }
 

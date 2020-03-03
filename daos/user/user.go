@@ -25,7 +25,7 @@ type User struct  {
 	AdaptiveScheduledTime string `json:"adaptive_scheduled_time,omitempty"`
 	AdaptiveScheduledTimeInUTC string `json:"adaptive_scheduled_time_in_utc,omitempty"`
 	PlatformID common.PlatformID `json:"platform_id"`
-	PlatformOrg string `json:"platform_org"`
+	PlatformOrg string `json:"platform_org,omitempty"`
 	IsAdmin bool `json:"is_admin"`
 	IsShared bool `json:"is_shared"`
 	DeactivatedAt string `json:"deactivated_at,omitempty"`
@@ -52,7 +52,6 @@ func (user User)CollectEmptyFields() (emptyFields []string, ok bool) {
 	if user.DisplayName == "" { emptyFields = append(emptyFields, "DisplayName")}
 	if user.Timezone == "" { emptyFields = append(emptyFields, "Timezone")}
 	if user.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
-	if user.PlatformOrg == "" { emptyFields = append(emptyFields, "PlatformOrg")}
 	ok = len(emptyFields) == 0
 	return
 }
@@ -192,8 +191,8 @@ func (d DAOImpl) CreateOrUpdate(user User) (err error) {
 			emptyFields, ok := user.CollectEmptyFields()
 			if ok {
 				old := olds[0]
+				user.CreatedAt  = old.CreatedAt
 				user.ModifiedAt = core.CurrentRFCTimestamp()
-
 				key := idParams(old.ID)
 				expr, exprAttributes, names := updateExpression(user, old)
 				input := dynamodb.UpdateItemInput{
@@ -204,8 +203,10 @@ func (d DAOImpl) CreateOrUpdate(user User) (err error) {
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-				if err == nil {
+				if  len(exprAttributes) > 0 { // if there some changes
 					err = d.Dynamo.UpdateItemInternal(input)
+				} else {
+					// WARN: no changes.
 				}
 				err = errors.Wrapf(err, "User DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
 			} else {

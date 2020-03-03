@@ -17,16 +17,17 @@ import (
 // DAO - wrapper around a Dynamo DB table to work with adaptiveValues inside it
 type DAO interface {
 	Create(adaptiveValue models.AdaptiveValue) error
-	Read(adaptiveValueID string) (models.AdaptiveValue, error)
+	ReadOrEmpty(adaptiveValueID string) ([]models.AdaptiveValue, error)
+	Read(adaptiveValueID string) (models.AdaptiveValue, bool, error)
 	ReadUnsafe(adaptiveValueID string) models.AdaptiveValue
 	Update(adaptiveValue models.AdaptiveValue) error
 	Delete(adaptiveValueID string) error
 	Deactivate(adaptiveValueID string) error
 
-	ForPlatformID(platformID string) PlatformDAO
+	ForPlatformID(platformID daosCommon.PlatformID) PlatformDAO
 }
 
-// PlatformDAO is a set of utilities that work for a fixed `platformID`
+// PlatformDAO is a set of utilities that work for a fixed `teamID`
 type PlatformDAO interface {
 	All() ([]models.AdaptiveValue, error)
 	AllUnsafe() []models.AdaptiveValue
@@ -41,7 +42,7 @@ type DAOImpl struct {
 
 // PlatformDAOImpl DAO that will implement PlatformDAO interface
 type PlatformDAOImpl struct {
-	PlatformID string
+	PlatformID daosCommon.PlatformID
 	DAOImpl
 }
 
@@ -66,20 +67,31 @@ func (d DAOImpl) Create(adaptiveValue models.AdaptiveValue) error {
 	return d.DNS.Dynamo.PutTableEntry(adaptiveValue, d.Name)
 }
 
+func (d DAOImpl) ReadOrEmpty(adaptiveValueID string) (out []models.AdaptiveValue, err error) {
+	var value models.AdaptiveValue
+	var found bool
+	value, found, err = d.Read(adaptiveValueID)
+	if found {
+		out = append(out, value)
+	}
+	return
+}
 // Read reads the adaptiveValue
-func (d DAOImpl) Read(adaptiveValueID string) (models.AdaptiveValue, error) {
+func (d DAOImpl) Read(adaptiveValueID string) (out models.AdaptiveValue, found bool, err error) {
 	params := map[string]*dynamodb.AttributeValue{
 		"id": daosCommon.DynS(adaptiveValueID),
 	}
-	var out models.AdaptiveValue
-	err2 := d.DNS.Dynamo.GetItemFromTable(d.Name, params, &out)
-	return out, err2
+	found, err = d.DNS.Dynamo.GetItemOrEmptyFromTable(d.Name, params, &out)
+	return
 }
 
 // ReadUnsafe reads the adaptiveValue. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(adaptiveValueID string) models.AdaptiveValue {
-	adaptiveValue, err := d.Read(adaptiveValueID)
-	core.ErrorHandler(err, d.DNS.Namespace, fmt.Sprintf("Could not find %s in %s", adaptiveValueID, d.Name))
+	adaptiveValue, found, err2 := d.Read(adaptiveValueID)
+	if !found {
+		panic(fmt.Errorf("Competency %s not found", adaptiveValueID))
+	}
+	core.ErrorHandler(err2, d.DNS.Namespace, fmt.Sprintf("Could not find %s in %s", adaptiveValueID, d.Name))
 	return adaptiveValue
 }
 
@@ -97,16 +109,19 @@ func (d DAOImpl) Update(adaptiveValue models.AdaptiveValue) error {
 }
 
 func (d DAOImpl) Deactivate(adaptiveValueID string) (err error) {
-	adaptiveValue, err := d.Read(adaptiveValueID)
+	adaptiveValue, found, err2 := d.Read(adaptiveValueID)
+	err = err2
 	if err == nil {
-		adaptiveValue.DeactivatedAt = core.TimestampLayout.Format(time.Now())
-		err = d.Update(adaptiveValue)
+		if found {
+			adaptiveValue.DeactivatedAt = core.TimestampLayout.Format(time.Now())
+			err = d.Update(adaptiveValue)
+		}
 	}
 	return
 }
 
 // UpdateGivenAttributes updates the adaptiveValue by ID
-// deprecated. This might be used if we want to update only some of the attributes
+// Deprecated: This might be used if we want to update only some of the attributes
 func (d DAOImpl) UpdateGivenAttributes(adaptiveValue models.AdaptiveValue) error {
 	exprAttributes := map[string]*dynamodb.AttributeValue{
 		":value_name": daosCommon.DynS(adaptiveValue.Name),
@@ -130,7 +145,7 @@ func (d DAOImpl) UpdateGivenAttributes(adaptiveValue models.AdaptiveValue) error
 }
 
 // ForPlatformID creates PlatformDAO that can be used for queries with PlatformID
-func (d DAOImpl) ForPlatformID(platformID string) PlatformDAO {
+func (d DAOImpl) ForPlatformID(platformID daosCommon.PlatformID) PlatformDAO {
 	return PlatformDAOImpl{
 		PlatformID: platformID,
 		DAOImpl:    d,

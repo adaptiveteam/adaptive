@@ -96,25 +96,25 @@ func LearnMoreAction(trailPath string) *ebm.AttachmentAction {
 }
 
 // NowAttachAction Attachment action for 'Now'
-// deprecated. Use SimpleAttachAction with models.Now
+// Deprecated: Use SimpleAttachAction with models.Now
 func NowAttachAction(mc MessageCallback, text string, confirm ebm.AttachmentActionConfirm) *model.AttachmentAction {
 	return GenAttachAction(mc, Now, text, confirm, false)
 }
 
 // UpdateAttachAction Attachment action for 'Update'
-// deprecated. Use SimpleAttachAction with models.Update
+// Deprecated: Use SimpleAttachAction with models.Update
 func UpdateAttachAction(mc MessageCallback, text string, confirm ebm.AttachmentActionConfirm) *ebm.AttachmentAction {
 	return GenAttachAction(mc, Update, text, confirm, true)
 }
 
 // IgnoreAttachAction Attachment action for 'Ignore'
-// deprecated. Use SimpleAttachAction with models.Ignore
+// Deprecated: Use SimpleAttachAction with models.Ignore
 func IgnoreAttachAction(mc MessageCallback, text string, confirm ebm.AttachmentActionConfirm) *ebm.AttachmentAction {
 	return GenAttachAction(mc, Ignore, text, confirm, true)
 }
 
 // BackAttachAction Attachment action for 'Back'
-// deprecated. Use SimpleAttachAction with models.Back
+// Deprecated: Use SimpleAttachAction with models.Back
 func BackAttachAction(mc MessageCallback, text string, confirm ebm.AttachmentActionConfirm) *ebm.AttachmentAction {
 	return GenAttachAction(mc, Back, text, confirm, false)
 }

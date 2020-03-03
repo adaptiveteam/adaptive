@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func LoadHolidays(time time.Time, platformID models.PlatformID, holidaysTable, holidaysPlatformDateIndex string) business_time.Holidays {
+func LoadHolidays(time time.Time, teamID models.TeamID, holidaysTable, holidaysPlatformDateIndex string) business_time.Holidays {
 	var res []models.AdHocHoliday
 	namespace := common.DeprecatedGetGlobalDns().Namespace
 	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(holidaysTable, awsutils.DynamoIndexExpression{
@@ -19,7 +19,7 @@ func LoadHolidays(time time.Time, platformID models.PlatformID, holidaysTable, h
 		// there is no != operator for ConditionExpression
 		Condition: "platform_id = :pl AND #date >= :target_date",
 		Attributes: map[string]interface{}{
-			":pl":          string(platformID),
+			":pl":          teamID.ToString(),
 			":target_date": time.Format(models.AdHocHolidayDateFormat),
 		},
 	}, map[string]string{"#date": "date"}, true, -1, &res)

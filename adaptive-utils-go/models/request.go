@@ -3,7 +3,6 @@ package models
 import (
 	"encoding/json"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	common "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slackevents"
 	"net/url"
@@ -11,14 +10,14 @@ import (
 )
 
 // LambdaRequest is a struct for string payload to invoke a lambda
-// deprecated. Not used anymore.
+// Deprecated: Not used anymore.
 type LambdaRequest struct {
 	Platform ClientPlatform `json:"platform,omitempty"`
 	Payload  string         `json:"payload"`
 }
 
 // NamespacePayload is a message routed from Slack
-// deprecated. Use NamespacePayload4 instead.
+// Deprecated: Use NamespacePayload4 instead.
 type NamespacePayload struct {
 	Id        string `json:"id"`
 	Namespace string `json:"namespace"`
@@ -81,9 +80,6 @@ func UnmarshalNamespacePayload4JSONUnsafe(jsMessage string) NamespacePayload4 {
 	return res
 }
 
-// PlatformID is an identifier of the platform.
-type PlatformID = common.PlatformID
-
 // SlackRequestType is enum of two possible slack events
 type SlackRequestType string
 
@@ -107,7 +103,7 @@ type SlackRequest struct {
 
 // PlatformRequest contains both platform id and Slack message
 type PlatformRequest struct {
-	PlatformID PlatformID
+	TeamID TeamID
 	SlackRequest
 }
 

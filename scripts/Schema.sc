@@ -137,7 +137,7 @@ val user = Entity(
             (underscoredName("adaptive_scheduled_time") :: optionTimestamp) \\ "in 24 hr format, localtime",
             adaptiveScheduledTimeInUtcField,
             platformIdField,
-            spacedName("platform org") :: string,
+            "PlatformOrg".camel :: optionString,
             spacedName("is admin") :: boolean,
             // spacedName("deleted") :: boolean,
             spacedName("is shared") :: boolean
@@ -850,7 +850,7 @@ val ContextAliasEntryTable = Table(ContextAliasEntry,
 
 val ContextAliasEntryPackage = defaultPackage(ContextAliasEntryTable, imports)
 
-val teamIdField = "TeamID".camel :: string
+val teamIdField = "TeamID".camel :: platformId
 // SlackTeam contains the information about Slack team that 
 // we obtain during OAuth2 authorization
 val SlackTeam = Entity(

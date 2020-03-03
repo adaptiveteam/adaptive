@@ -19,14 +19,14 @@ type DAO interface {
 	AddAdHocHoliday(holiday models.AdHocHoliday) error
 
 	Create(holiday models.AdHocHoliday) error
-	Read(holidayID string) (models.AdHocHoliday, error)
+	Read(holidayID string) (models.AdHocHoliday, bool, error)
 	ReadUnsafe(holidayID string) models.AdHocHoliday
 	Update(holiday models.AdHocHoliday) error
 	Delete(holidayID string) error
 
-	ForPlatformID(platformID models.PlatformID) PlatformDAO
+	ForPlatformID(teamID models.TeamID) PlatformDAO
 }
-// PlatformDAO is a set of utilities that work for a fixed `platformID`
+// PlatformDAO is a set of utilities that work for a fixed `teamID`
 type PlatformDAO interface {
 	All() ([]models.AdHocHoliday, error)
 	AllUnsafe() []models.AdHocHoliday
@@ -49,7 +49,7 @@ type DAOImpl struct {
 
 // PlatformDAOImpl DAO that will implement PlatformDAO interface
 type PlatformDAOImpl struct {
-	PlatformID models.PlatformID
+	TeamID models.TeamID
 	DAOImpl
 }
 const (
@@ -90,27 +90,29 @@ func (d DAOImpl) Create(holiday models.AdHocHoliday) error {
 }
 
 // AddAdHocHoliday creates an ad-hoc holiday
-// deprecated. Use .Create
+// Deprecated: Use .Create
 func (d DAOImpl) AddAdHocHoliday(holiday models.AdHocHoliday) error {
 	return d.Create(holiday)
 }
 
 // Read reads the ad-hoc holiday
-func (d DAOImpl) Read(holidayID string) (models.AdHocHoliday, error) {
+func (d DAOImpl) Read(holidayID string) (out models.AdHocHoliday, found bool, err error) {
 	params := map[string]*dynamodb.AttributeValue{
 		"id": daosCommon.DynS(holidayID),
 	}
-	var out models.AdHocHoliday
-	err2 := d.DNS.Dynamo.GetItemFromTable(d.Table, params, &out)
+	found, err = d.DNS.Dynamo.GetItemOrEmptyFromTable(d.Table, params, &out)
 	//if len(out) < 1 { return models.AdHocHoliday{}, errors.New("NotFound AdHocHoliday#ID=" + holidayID) }
 	//if len(out) > 1 { return models.AdHocHoliday{}, errors.New("Found many AdHocHoliday#ID=" + holidayID) }
-	return out, err2
+	return
 }
 
 // ReadUnsafe reads the ad-hoc holiday. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(holidayID string) models.AdHocHoliday {
-	holiday, err := d.Read(holidayID)
-	core.ErrorHandler(err, d.DNS.Namespace, fmt.Sprintf("Could not find %s in %s", holidayID, d.Table))
+	holiday, found, err2 := d.Read(holidayID)
+	if !found {
+		panic(fmt.Errorf("Holiday %s not found", holidayID))
+	}
+	core.ErrorHandler(err2, d.DNS.Namespace, fmt.Sprintf("Could not find %s in %s", holidayID, d.Table))
 	return holiday
 }
 
@@ -150,9 +152,9 @@ func (d DAOImpl) Update(holiday models.AdHocHoliday) error {
 }
 
 // ForPlatformID creates PlatformDAO that can be used for queries with PlatformID
-func (d DAOImpl) ForPlatformID(platformID models.PlatformID) PlatformDAO {
+func (d DAOImpl) ForPlatformID(teamID models.TeamID) PlatformDAO {
 	return PlatformDAOImpl{
-		PlatformID: platformID,
+		TeamID: teamID,
 		DAOImpl: d,
 	}
 }
@@ -166,7 +168,7 @@ func (p PlatformDAOImpl)All() ([]models.AdHocHoliday, error){
 		IndexName: p.PlatformDateIndex,
 		Condition: "platform_id = :platform_id",
 		Attributes: map[string]interface{}{
-			":platform_id": p.PlatformID,
+			":platform_id": p.TeamID.ToPlatformID(),
 		},
 	}, map[string]string{}, true, -1, &res)
 	return res,err
@@ -187,7 +189,7 @@ func (p PlatformDAOImpl)SelectNotEarlierThan(time time.Time) ([]models.AdHocHoli
 		// there is no != operator for ConditionExpression
 		Condition: "platform_id = :platform_id AND #date >= :target_date",
 		Attributes: map[string]interface{}{
-			":platform_id": p.PlatformID,
+			":platform_id": p.TeamID.ToPlatformID(),
 			":target_date": aws.String(time.Format(models.AdHocHolidayDateFormat)),
 		},
 	}, map[string]string{"#date": "date"}, true, -1, &res)
@@ -203,6 +205,6 @@ func (p PlatformDAOImpl)SelectNotEarlierThanUnsafe(time time.Time) []models.AdHo
 // Create creates an ad-hoc holiday making sure that PlatformID is correct
 func (p PlatformDAOImpl)Create(holiday models.AdHocHoliday) error {
 	holiday2 := holiday
-	holiday2.PlatformID = p.PlatformID
+	holiday2.PlatformID = p.TeamID.ToPlatformID()
 	return p.DNS.Dynamo.PutTableEntry(holiday2, p.Table)
 }

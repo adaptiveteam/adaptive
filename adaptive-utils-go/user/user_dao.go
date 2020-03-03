@@ -17,7 +17,7 @@ type DAO = daosUser.DAO
 // interface {
 // 	Read(userID string) (models.User, error)
 // 	ReadUnsafe(userID string) models.User
-// 	ReadByPlatformIDUnsafe(platformID models.PlatformID) (users []models.User)
+// 	ReadByPlatformIDUnsafe(teamID models.TeamID) (users []models.User)
 // 	Create(user models.User) error
 // 	CreateUnsafe(user models.User)
 // 	UserIDsToDisplayNamesUnsafe(userIDs []string) (res []models.KvPair)
@@ -33,14 +33,18 @@ type DAO = daosUser.DAO
 // }
 
 // NewDAO creates an instance of DAO that will provide access to ClientPlatformToken table
-var NewDAO = daosUser.NewDAOByTableName
+var NewDAOByTableName = daosUser.NewDAOByTableName
 
 // TableName is a function that returns `_user` table name having client id
 var TableName = func(clientID string) string { return clientID + "_adaptive_users" }
 
+// DAOFromConnectionGen -
+func DAOFromConnectionGen(conn daosCommon.DynamoDBConnectionGen) DAO {
+	return NewDAOByTableName(conn.Dynamo, "UserDAO", TableName(conn.TableNamePrefix))
+}
 // DAOFromConnection -
 func DAOFromConnection(conn daosCommon.DynamoDBConnection) DAO {
-	return NewDAO(conn.Dynamo, "UserDAO", TableName(conn.ClientID))
+	return NewDAOByTableName(conn.Dynamo, "UserDAO", TableName(conn.ClientID))
 }
 // NewDAOFromSchema creates an instance of DAO that will provide access to adaptiveValues table
 func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema models.Schema) DAO {
@@ -108,13 +112,13 @@ func UserIDsToDisplayNamesUnsafe(dao DAO) func(userIDs []string) (res []models.K
 // 	return params
 // }
 
-// func (d DAOImpl) ReadByPlatformIDUnsafe(platformID models.PlatformID) (users []models.User) {
+// func (d DAOImpl) ReadByPlatformIDUnsafe(teamID models.TeamID) (users []models.User) {
 // 	err := d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
 // 		IndexName: d.PlatformIndex,
 // 		// there is no != operator for ConditionExpression
 // 		Condition: "platform_id = :p",
 // 		Attributes: map[string]interface{}{
-// 			":p": platformID,
+// 			":p": teamID,
 // 		},
 // 	}, map[string]string{}, true, -1, &users)
 // 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s index on %s table",
@@ -149,7 +153,7 @@ func ConvertUsersToUserProfilesAndRemoveAdaptiveBot(users []models.User) (userPr
 }
 
 // ConvertSlackUserToUser -
-func ConvertSlackUserToUser(user slack.User, platformID models.PlatformID) (mUser models.User) {
+func ConvertSlackUserToUser(user slack.User, teamID models.TeamID) (mUser models.User) {
 	now := core.CurrentRFCTimestamp()
 	deactivatedAt := ""
 	if user.Deleted {
@@ -162,7 +166,7 @@ func ConvertSlackUserToUser(user slack.User, platformID models.PlatformID) (mUse
 		LastName:       user.Profile.LastName,
 		Timezone:       user.TZ,
 		TimezoneOffset: user.TZOffset,
-		PlatformID:     platformID,
+		PlatformID:     teamID.ToPlatformID(),
 		IsAdmin:        user.IsAdmin,
 		DeactivatedAt:  deactivatedAt,
 		CreatedAt:      now,

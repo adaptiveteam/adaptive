@@ -1,5 +1,8 @@
 package models
 
+import (
+	"github.com/adaptiveteam/adaptive/daos/common"
+)
 type CoachingRelationship struct {
 	CoachQuarterYear   string     `json:"coach_quarter_year"`
 	CoacheeQuarterYear string     `json:"coachee_quarter_year"`
@@ -8,7 +11,7 @@ type CoachingRelationship struct {
 	Year               int        `json:"year"`
 	CoachRequested     bool       `json:"coach_requested"`
 	CoacheeRequested   bool       `json:"coachee_requested"`
-	PlatformID         PlatformID `json:"platform_id"`
+	PlatformID         common.PlatformID `json:"platform_id"`
 }
 
 type TargetQY struct {
@@ -24,5 +27,5 @@ type CoachingRejection struct {
 	CoachRejected    bool       `json:"coach_rejected"`
 	CoacheeRejected  bool       `json:"coachee_rejected"`
 	Comments         string     `json:"comments"`
-	PlatformID       PlatformID `json:"platform_id"`
+	PlatformID       common.PlatformID `json:"platform_id"`
 }

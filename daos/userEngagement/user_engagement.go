@@ -207,8 +207,8 @@ func (d DAOImpl) CreateOrUpdate(userEngagement UserEngagement) (err error) {
 			emptyFields, ok := userEngagement.CollectEmptyFields()
 			if ok {
 				old := olds[0]
+				userEngagement.CreatedAt  = old.CreatedAt
 				userEngagement.ModifiedAt = core.CurrentRFCTimestamp()
-
 				key := idParams(old.UserID, old.ID)
 				expr, exprAttributes, names := updateExpression(userEngagement, old)
 				input := dynamodb.UpdateItemInput{
@@ -219,8 +219,10 @@ func (d DAOImpl) CreateOrUpdate(userEngagement UserEngagement) (err error) {
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-				if err == nil {
+				if  len(exprAttributes) > 0 { // if there some changes
 					err = d.Dynamo.UpdateItemInternal(input)
+				} else {
+					// WARN: no changes.
 				}
 				err = errors.Wrapf(err, "UserEngagement DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
 			} else {

@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	"fmt"
 	"log"
 	"sort"
@@ -8,7 +9,10 @@ import (
 	"time"
 
 	eholidays "github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
+	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	eb "github.com/adaptiveteam/adaptive/engagement-builder"
@@ -91,27 +95,35 @@ func main() {
 	LambdaRouting.StartHandler()
 }
 
-func retrieveUserToken(request slack.InteractionCallback) models.UserToken {
-	return userProfileLambda.UserTokenSyncUnsafe(request.User.ID)
+
+func globalConnectionGen() daosCommon.DynamoDBConnectionGen {
+	return daosCommon.DynamoDBConnectionGen{
+		Dynamo: d,
+		TableNamePrefix: clientID,
+	}
 }
 
-func platformID(request slack.InteractionCallback) models.PlatformID {
-	ut := retrieveUserToken(request)
-	return ut.PlatformIDUnsafe()
+func readUser(userID string) (models.User, error) {
+	conn := globalConnectionGen()
+	dao := user.DAOFromConnectionGen(conn)
+	// dao := user
+	return dao.Read(userID)
+}
+
+func retrieveUserToken(request slack.InteractionCallback) (string, error) {
+	return plat.GetTokenForUser(d, clientID, request.User.ID)
+}
+
+func teamID(request slack.InteractionCallback) models.TeamID {
+	user, err2 := readUser(request.User.ID)
+	core.ErrorHandler(err2, "teamID", "readUser failed") 
+	return models.ParseTeamID(user.PlatformID)
 }
 
 func responses(notifications ...models.PlatformSimpleNotification) []models.PlatformSimpleNotification {
 	return notifications
 }
 
-func platformDAO(request slack.InteractionCallback) eholidays.PlatformDAO {
-	return adHocHolidaysTableDao.ForPlatformID(platformID(request))
-}
-
-func slackAPI(request slack.InteractionCallback) *slack.Client {
-	ut := retrieveUserToken(request)
-	return ut.SlackAPI()
-}
 
 func callbackID(request slack.InteractionCallback, action string) models.ActionPath {
 	return models.NewActionPath(
@@ -138,7 +150,7 @@ func DispatchDialogSubmissionByRule(p utils.Platform, r utils.DialogSubmissionHa
 // listMenuItemFunc renders the list of holidays directly in chat.
 func listMenuItemFunc(request slack.InteractionCallback) []models.PlatformSimpleNotification {
 	platform.Debug(request, "Listing holidays...")
-	holidays := platformDAO(request).AllUnsafe()
+	holidays := platformDAO(teamID(request)).AllUnsafe()
 	sort.Slice(holidays, func(i, j int) bool {
 		return holidays[i].Date < holidays[j].Date
 	})
@@ -224,7 +236,7 @@ func adHocHolidayEditChatMessage(request slack.InteractionCallback) func(models.
 // detailedListMenuItemFunc sends the list of holidays to thread
 func detailedListMenuItemFunc(request slack.InteractionCallback) []models.PlatformSimpleNotification {
 	platform.Debug(request, "Listing holidays...")
-	holidays := platformDAO(request).AllUnsafe()
+	holidays := platformDAO(teamID(request)).AllUnsafe()
 	sort.Slice(holidays, func(i, j int) bool {
 		return holidays[i].Date < holidays[j].Date
 	})
@@ -255,9 +267,10 @@ func convertFormToAdHocHoliday(request slack.InteractionCallback, form map[strin
 	name := form["Name"]
 	description := form["Description"]
 	dateStr := form["Date"]
-	ut := retrieveUserToken(request)
-	locations := ut.Timezone // We don't have locations in the form anymore // form"Locations"]
-	platformID := platformID(request)
+	user, err2 := readUser(request.User.ID)
+	core.ErrorHandler(err2, "teamID", "readUser failed") 
+
+	locations := user.Timezone // We don't have locations in the form anymore // form"Locations"]
 	validateDate(request, dateStr)
 	holiday := models.AdHocHoliday{
 		ID:               core.Uuid(),
@@ -265,7 +278,7 @@ func convertFormToAdHocHoliday(request slack.InteractionCallback, form map[strin
 		Description:      description,
 		Date:             dateStr,
 		ScopeCommunities: locations,
-		PlatformID:       platformID,
+		PlatformID:       user.PlatformID,
 	}
 	return holiday
 }
@@ -275,8 +288,8 @@ func createNewHolidayDialogSubmissionHandler(request slack.InteractionCallback, 
 	if ok {
 		platform.Debug(request, "Creating holiday "+dialog.Submission["Name"])
 		holiday := convertFormToAdHocHoliday(request, dialog.Submission)
-		// holiday.PlatformID = platformID(request) no need as we are using platformDAO
-		platformDAO(request).Create(holiday)
+		// holiday.PlatformID = teamID(request) no need as we are using platformDAO
+		platformDAO(teamID(request)).Create(holiday)
 		platform.Debug(request, "Created holiday "+holiday.Name)
 		view := adHocHolidayInlineView(request, holiday)
 		//view.Ts = dialog.State
@@ -302,17 +315,23 @@ func showCreateDialog(request slack.InteractionCallback) {
 	h := newHolidayTemplate()
 	survey := utils.AttachmentSurvey("Holidays", eholidays.EditAdHocHolidayForm(&h))
 
-	dialog, err := utils.ConvertSurveyToSlackDialog(survey, request.TriggerID, callbackID, Ts) // timeStamp(request))
-	platform.ErrorHandler(request,
-		fmt.Sprintf("Could not convert dialog to survey"),
-		err,
-	)
+	survey2 := ebm.AttachmentActionSurvey2{
+		AttachmentActionSurvey: survey,
+		CallbackID: callbackID,
+		State: Ts,
+		TriggerID: request.TriggerID,
+	}
+	// dialog, err := utils.ConvertSurveyToSlackDialog(survey, request.TriggerID, callbackID, Ts) // timeStamp(request))
+	// platform.ErrorHandler(request,
+	// 	fmt.Sprintf("Could not convert dialog to survey"),
+	// 	err,
+	// )
 	// Open a survey associated with the engagement
-	err = slackAPI(request).OpenDialog(request.TriggerID, dialog)
+	err2 := slackAPI(teamID(request)).ShowDialog(survey2)
 	platform.Debug(request, "createNewHolidayMenuItemFunc: OpenDialog - done")
 	platform.ErrorHandler(request,
 		fmt.Sprintf("Could not open dialog from %s survey", request.CallbackID),
-		err,
+		err2,
 	)
 }
 func deleteHolidayButtonFunc(request slack.InteractionCallback) (resp []models.PlatformSimpleNotification) {
@@ -336,7 +355,7 @@ func editHolidayButtonFunc(request slack.InteractionCallback) (resp []models.Pla
 	if ok {
 		action := request.ActionCallback.AttachmentActions[0]
 		id := action.Value
-		ut := retrieveUserToken(request)
+		// ut := retrieveUserToken(request)
 		holiday := adHocHolidaysTableDao.ReadUnsafe(id)
 		platform.Debug(request, "Found holiday: "+holiday.Name)
 		mc := callbackID(request, SubmitUpdatedAdHocHolidayAction)
@@ -345,17 +364,28 @@ func editHolidayButtonFunc(request slack.InteractionCallback) (resp []models.Pla
 
 		survey := utils.AttachmentSurvey("Holidays", eholidays.EditAdHocHolidayForm(&holiday))
 
-		dialog, err := utils.ConvertSurveyToSlackDialog(survey, request.TriggerID, callbackID, request.MessageTs)
-		platform.ErrorHandler(request,
-			fmt.Sprintf("Could not convert dialog to survey"),
-			err,
-		)
+		survey2 := ebm.AttachmentActionSurvey2{
+			TriggerID: request.TriggerID,
+			AttachmentActionSurvey: survey,
+			State: request.MessageTs,
+			CallbackID: callbackID,
+		}
+		// dialog, err := utils.ConvertSurveyToSlackDialog(survey, request.TriggerID, callbackID, request.MessageTs)
+		// platform.ErrorHandler(request,
+		// 	fmt.Sprintf("Could not convert dialog to survey"),
+		// 	err,
+		// )
+		conn := daosCommon.DynamoDBConnection{
+			Dynamo: d,
+			ClientID: clientID,
+			PlatformID: teamID(request).ToPlatformID(),
+		}
 		// Open a survey associated with the engagement
-		err = ut.SlackAPI().OpenDialog(request.TriggerID, dialog)
+		err2 := mapper.SlackAdapterForTeamID(conn).ShowDialog(survey2)
 		platform.Debug(request, "createNewHolidayMenuItemFunc: OpenDialog - done")
 		platform.ErrorHandler(request,
 			fmt.Sprintf("Could not open dialog from %s survey", request.CallbackID),
-			err,
+			err2,
 		)
 		// utils.InteractionCallbackOverrideRequestMessage(request, HolidaysTemplate(EditingHolidayNoticeSubject))
 		// When just pressing Edit button we don't want to update anything.
