@@ -48,7 +48,10 @@ implicit class EntityOps(entity: Entity) {
 
 def defaultPackage(table: Table, imports: Imports): Package = 
   Package(table.entity.name, 
-    List(daoModule(table, imports))
+    List(
+      daoModule(table, imports),
+      daoConnectionModule(table, imports)
+    )
   )
 
 def daoModule(table: Table, imports: Imports): Module = 
@@ -62,6 +65,16 @@ def daoModule(table: Table, imports: Imports): Module =
     ))
   )
 
+
+def daoConnectionModule(table: Table, imports: Imports): Module = 
+  Module(Filename("ConnectionBased".camel, ".go"), 
+    List(GoModulePart(
+      imports.importClauses,
+      List(
+        ConnectionBasedDao(table)
+      )
+    ))
+  )
 
 def goFieldParser(goTypes: Map[String, TypeInfo])(fieldDeclaration: String): Field = {
     try {

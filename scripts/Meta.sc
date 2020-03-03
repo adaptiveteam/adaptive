@@ -164,8 +164,16 @@ case class Dao(table: Table) extends GoDefinition {
     ) ::: table.indices.map(DaoQueryRow)
 }
 
-
-
+case class ConnectionBasedDao(table: Table) extends GoDefinition {
+    def operations: List[DaoOperation] = List(
+        DaoCreateRow,
+        DaoReadRow,
+        DaoReadOrEmptyRow,
+        DaoUpdateRow,
+        DaoDeleteRow//,
+        // DaoQueryRow(table.defaultIndex)
+    ) ::: table.indices.map(DaoQueryRow)
+}
 
 case class SourceFile(path: String)
 
