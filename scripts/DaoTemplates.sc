@@ -260,11 +260,8 @@ func (d DAOImpl) CreateOrUpdate($structVarName $structName) (err error) {
 			emptyFields, ok := ${structVarName}.CollectEmptyFields()
 			if ok {
 				old := olds[0]
-				${
-					if(entity.supports(CreatedModifiedTimesTrait)) {
-						s"$structVarName.ModifiedAt = core.CurrentRFCTimestamp()" + "\n"
-					} else ""
-				}
+				${Option.when(entity.supports(CreatedModifiedTimesTrait))(s"$structVarName.CreatedAt  = old.CreatedAt"             ).getOrElse("")}
+				${Option.when(entity.supports(CreatedModifiedTimesTrait))(s"$structVarName.ModifiedAt = core.CurrentRFCTimestamp()").getOrElse("")}
 				key := idParams(${idFieldNames.map("old." + _).mkString(", ")})
 				expr, exprAttributes, names := updateExpression($structVarName, old)
 				input := dynamodb.UpdateItemInput{
@@ -275,8 +272,10 @@ func (d DAOImpl) CreateOrUpdate($structVarName $structName) (err error) {
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-				if err == nil {
+				if  len(exprAttributes) > 0 { // if there some changes
 					err = d.Dynamo.UpdateItemInternal(input)
+				} else {
+					// WARN: no changes.
 				}
 				err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
 			} else {
