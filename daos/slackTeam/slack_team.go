@@ -76,8 +76,13 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 		Name: tableName,
 	}
 }
-func TableName(clientID string) string {
-	return clientID + "_slack_team"
+// TableNameSuffixVar is a global variable that contains table name suffix.
+// After renaming all tables this may be made `const`.
+var TableNameSuffixVar = "_slack_team"
+
+// TableName concatenates table name prefix and suffix and returns table name
+func TableName(prefix string) string {
+	return prefix + TableNameSuffixVar
 }
 
 // Create saves the SlackTeam.
@@ -165,8 +170,8 @@ func (d DAOImpl) CreateOrUpdate(slackTeam SlackTeam) (err error) {
 			emptyFields, ok := slackTeam.CollectEmptyFields()
 			if ok {
 				old := olds[0]
+				slackTeam.CreatedAt  = old.CreatedAt
 				slackTeam.ModifiedAt = core.CurrentRFCTimestamp()
-
 				key := idParams(old.TeamID)
 				expr, exprAttributes, names := updateExpression(slackTeam, old)
 				input := dynamodb.UpdateItemInput{
@@ -177,8 +182,10 @@ func (d DAOImpl) CreateOrUpdate(slackTeam SlackTeam) (err error) {
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-				if err == nil {
+				if  len(exprAttributes) > 0 { // if there some changes
 					err = d.Dynamo.UpdateItemInternal(input)
+				} else {
+					// WARN: no changes.
 				}
 				err = errors.Wrapf(err, "SlackTeam DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
 			} else {
