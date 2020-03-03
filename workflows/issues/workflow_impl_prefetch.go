@@ -41,7 +41,11 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 	if issue.UserObjective.AccountabilityPartner != "none" && 
 		issue.UserObjective.AccountabilityPartner != "requested" && 
 		issue.UserObjective.AccountabilityPartner != "" {
-		issue.PrefetchedData.AccountabilityPartner, err = UserRead(issue.UserObjective.AccountabilityPartner)(w.DynamoDBConnection)
+		var partners [] models.User
+		partners, err = UserRead(issue.UserObjective.AccountabilityPartner)(w.DynamoDBConnection)
+		for _, p := range partners {
+			issue.PrefetchedData.AccountabilityPartner = p
+		}
 		if err != nil { return }
 	}
 

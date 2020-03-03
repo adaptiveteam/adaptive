@@ -61,8 +61,8 @@ func (d DAOImpl) Read(userID string, quarterYear string) (feedbacks []models.Use
 	
 // ReadUnsafe reads the User. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(userID string, quarterYear string) (feedbacks []models.UserFeedback) {
-	out, err := d.Read(userID, quarterYear)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s index", d.FeedbackSourceQuarterYearIndex))
+	out, err2 := d.Read(userID, quarterYear)
+	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query %s index", d.FeedbackSourceQuarterYearIndex))
 	return out
 }
 

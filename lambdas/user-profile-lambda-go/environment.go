@@ -3,6 +3,7 @@ package lambda
 import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
@@ -20,5 +21,9 @@ var (
 	schema           = models.SchemaForClientID(clientID)
 
 	platformTokenDao = plat.NewDAOFromSchema(d, namespace, schema)
-	userDao = user.NewDAOFromSchema(d, namespace, schema)
+	userDao          = user.NewDAOFromSchema(d, namespace, schema)
+	connGen          = daosCommon.DynamoDBConnectionGen{
+		Dynamo:          d,
+		TableNamePrefix: clientID,
+	}
 )
