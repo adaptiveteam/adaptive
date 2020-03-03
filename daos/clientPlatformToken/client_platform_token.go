@@ -164,6 +164,7 @@ func (d DAOImpl) CreateOrUpdate(clientPlatformToken ClientPlatformToken) (err er
 			if ok {
 				old := olds[0]
 				
+				
 				key := idParams(old.PlatformID)
 				expr, exprAttributes, names := updateExpression(clientPlatformToken, old)
 				input := dynamodb.UpdateItemInput{
@@ -174,8 +175,10 @@ func (d DAOImpl) CreateOrUpdate(clientPlatformToken ClientPlatformToken) (err er
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-				if err == nil {
+				if  len(exprAttributes) > 0 { // if there some changes
 					err = d.Dynamo.UpdateItemInternal(input)
+				} else {
+					// WARN: no changes.
 				}
 				err = errors.Wrapf(err, "ClientPlatformToken DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
 			} else {

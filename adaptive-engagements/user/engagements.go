@@ -26,7 +26,7 @@ func userConfirmAttachmentActions(mc models.MessageCallback, ignoreAction bool) 
 }
 
 func UserConfirmEng(table string, mc models.MessageCallback, title, fallback string, urgent bool, dns common.DynamoNamespace,
-	ignoreAction bool, check models.UserEngagementCheckWithValue, platformID models.PlatformID) {
+	ignoreAction bool, check models.UserEngagementCheckWithValue, teamID models.TeamID) {
 	utils.AddChatEngagement(mc, title, core.EmptyString, fallback, mc.Source, userConfirmAttachmentActions(mc, ignoreAction),
-		[]ebm.AttachmentField{}, platformID, urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(), check)
+		[]ebm.AttachmentField{}, teamID, urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(), check)
 }

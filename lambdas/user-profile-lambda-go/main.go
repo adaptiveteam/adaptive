@@ -1,15 +1,16 @@
 package lambda
 
 import (
-	"github.com/pkg/errors"
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	// daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/nlopes/slack"
-	"log"
+	"github.com/pkg/errors"
 )
 
 func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models.UserToken, err error) {
@@ -19,56 +20,53 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 			log.Printf("Error in user-profile-lambda:%v\n", err)
 		}
 	}()
-	log.Printf("HandleRequest UserID='%s', PlatformID='%s'\n", engage.UserId, engage.PlatformID)
+	log.Printf("HandleRequest UserID='%s', TeamID='%s'\n", engage.UserID, engage.TeamID.ToString())
 	uToken = models.UserToken{}
 	// this is used for keeping this lambda warm
 	// we send a request with an empty user every 30 min
-	if engage.UserId == "" {
+	if engage.UserID == "" {
 		return
 	}
-	platformID := engage.PlatformID
-	profile, platformIDFromDB, found, err2 := readUserProfile(engage.UserId)
-	if err2 != nil {
-		err = wrapError(err, "Couldn't read user profile for "+engage.UserId)
+	teamID := engage.TeamID
+	profile, teamIDFromDB, found, err := readUserProfile(engage.UserID)
+	if err != nil {
+		err = wrapError(err, "Couldn't read user profile for "+engage.UserID)
 		return
 	}
 	if !found {
-		log.Printf("Cache missing for %s: %v\n", engage.UserId, err)
-		profile, err = refreshUserCache(engage.UserId, platformID)
+		log.Printf("Cache missing for %s: %v\n", engage.UserID, err)
+		profile, err = refreshUserCache(engage.UserID, teamID)
 		if err != nil {
-			err = wrapError(err, "Couldn't even refresh cache for user "+engage.UserId)
+			err = wrapError(err, "Couldn't even refresh cache for user "+engage.UserID)
 			return
 		}
 	}
 
-	if platformID == "" {
-		platformID = platformIDFromDB
+	if teamID.IsEmpty() {
+		teamID = teamIDFromDB
 	}
-	platform, found, err3 := platformTokenDao.Read(platformID)
+	token, err3 := platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
 	if err3 != nil {
 		err = wrapError(err3, "Couldn't query table "+confTable)
 		return
 	}
-	if !found {
-		err = fmt.Errorf("not found platformID=%s",platformID)
-	}
 	uToken = models.UserToken{
 		UserProfile:           profile,
-		ClientPlatform:        models.ClientPlatform{PlatformName: platform.PlatformName, PlatformToken: platform.PlatformToken},
-		ClientPlatformRequest: models.ClientPlatformRequest{PlatformID: platform.PlatformID, Org: platform.Org},
+		ClientPlatform:        models.ClientPlatform{PlatformName: models.SlackPlatform, PlatformToken: token},
+		ClientPlatformRequest: models.ClientPlatformRequest{TeamID: teamID, Org: ""},
 	}
-	uToken.ClientPlatformRequest.PlatformID = platformID
+	uToken.ClientPlatformRequest.TeamID = teamID
 
 	return
 }
 
-func readUserProfile(userID string) (profile models.UserProfile, platformID models.PlatformID, found bool, err error) {
+func readUserProfile(userID string) (profile models.UserProfile, teamID models.TeamID, found bool, err error) {
 	var users []models.User
 	users, err = userDao.ReadOrEmpty(userID)
-	found = len(users)>0
+	found = len(users) > 0
 	if found {
 		profile = convertUserToProfile(users[0])
-		platformID = users[0].PlatformID
+		teamID = models.ParseTeamID(users[0].PlatformID)
 	}
 	return
 }
@@ -91,21 +89,17 @@ func wrapError(err error, name string) error {
 	return fmt.Errorf("{%s: %v}", name, err)
 }
 
-func refreshUserCache(userID string, platformID models.PlatformID) (profile models.UserProfile, err error) {
-	if platformID == "" {
-		err = errors.New("refreshUserCache: teamID is empty when querying " + userID)
-		return
+func refreshUserCache(userID string, teamID models.TeamID) (profile models.UserProfile, err error) {
+	if teamID.IsEmpty() {
+		panic(errors.New("refreshUserCache: teamID is empty when querying " + userID))
 	}
-	platform, found, err2 := platformTokenDao.Read(platformID)
-	err = err2
-	if !found {
-		err = fmt.Errorf("Token not found for platformID=%s", platformID)
-	}
+	var token string
+	token, err = platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
 	if err == nil {
-		api := slack.New(platform.PlatformToken)
-		user, err3 := api.GetUserInfo(userID)
-		err = err3
-		mUser := utilsUser.ConvertSlackUserToUser(*user, platformID)
+		api := slack.New(token)
+		user, err2 := api.GetUserInfo(userID)
+		err = err2
+		mUser := utilsUser.ConvertSlackUserToUser(*user, teamID)
 		err = userDao.Create(mUser)
 		profile = models.UserProfile{ //mUser.UserProfile
 			Id:             mUser.ID,

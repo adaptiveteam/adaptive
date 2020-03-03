@@ -10,8 +10,8 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
-	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,7 +44,7 @@ var (
 	strategyObjectivesTableName                    = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME")
 	strategyObjectivesPlatformIndex                = "PlatformIDIndex"
 	capabilityCommunitiesTable                     = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")     // required
-	capabilityCommunitiesPlatformIndex             = "PlatformIDIndex" // required
+	capabilityCommunitiesPlatformIndex             = "PlatformIDIndex"                                          // required
 	initiativeCommunitiesTable                     = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME")     // required
 	initiativeCommunitiesPlatformIndex             = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX") // required
 	_                                              = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
@@ -55,6 +55,10 @@ var (
 	dialogFetcherDAO = dialogFetcher.NewDAO(d, dialogTableName)
 
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
+	connGen  = daosCommon.DynamoDBConnectionGen{
+		Dynamo:     d,
+		TableNamePrefix:   clientID,
+	}
 	schema   = models.SchemaForClientID(clientID)
 
 	userDAO = utilsUser.NewDAOFromSchema(d, namespace, schema)
@@ -66,7 +70,7 @@ var (
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 
 	platformTokenDAO = platform.NewDAOFromSchema(d, namespace, schema)
-	platformAdapter  = mapper.SlackAdapter2(platformTokenDAO)
+	// platformAdapter  = mapper.SlackAdapter2(platformTokenDAO)
 )
 
 type RDSConfig struct {
@@ -86,4 +90,8 @@ func ReadRDSConfigFromEnv() RDSConfig {
 	)}
 	return GlobalRDSConfig
 
+}
+
+func globalConnection(teamID models.TeamID) daosCommon.DynamoDBConnection {
+	return connGen.ForPlatformID(teamID.ToPlatformID())
 }

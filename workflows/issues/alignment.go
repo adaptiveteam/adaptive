@@ -59,17 +59,17 @@ func (InitiativeImpl) GetAlignment(issue Issue) (alignment string) {
 	return
 }
 
-// func objectiveType(platformID models.PlatformID) func(uObj models.UserObjective) (typ string, alignment string) {
+// func objectiveType(teamID models.TeamID) func(uObj models.UserObjective) (typ string, alignment string) {
 // 	return func(uObj models.UserObjective) (typ string, alignment string) {
 // 		typ = "Not aligned with strategy"
 // 		if uObj.Type == models.IndividualDevelopmentObjective {
 // 			typ = Individual
 // 			switch uObj.StrategyAlignmentEntityType {
 // 			case models.ObjectiveStrategyObjectiveAlignment:
-// 				capObj := strategy.StrategyObjectiveByID(platformID, uObj.StrategyAlignmentEntityID, strategyObjectivesTableName)
+// 				capObj := strategy.StrategyObjectiveByID(teamID, uObj.StrategyAlignmentEntityID, strategyObjectivesTableName)
 // 				alignment = renderStrategyAssociations("Capability Objective", "Name", capObj)
 // 			case models.ObjectiveStrategyInitiativeAlignment:
-// 				initiative := strategy.StrategyInitiativeByID(platformID, uObj.StrategyAlignmentEntityID, strategyInitiativesTableName)
+// 				initiative := strategy.StrategyInitiativeByID(teamID, uObj.StrategyAlignmentEntityID, strategyInitiativesTableName)
 // 				alignment = renderStrategyAssociations("Initiative", "Name", initiative)
 // 			case models.ObjectiveCompetencyAlignment:
 // 				valueID := uObj.StrategyAlignmentEntityID
@@ -87,22 +87,22 @@ func (InitiativeImpl) GetAlignment(issue Issue) (alignment string) {
 // 				typ = CapabilityObjective
 // 				splits := strings.Split(uObj.ID, "_")
 // 				if len(splits) == 2 {
-// 					so := strategy.StrategyObjectiveByID(platformID, splits[0], strategyObjectivesTableName)
-// 					capComm := strategy.CapabilityCommunityByID(platformID, splits[1], capabilityCommunitiesTableName)
+// 					so := strategy.StrategyObjectiveByID(teamID, splits[0], strategyObjectivesTableName)
+// 					capComm := strategy.CapabilityCommunityByID(teamID, splits[1], capabilityCommunitiesTableName)
 // 					alignment = fmt.Sprintf("%s%s",
 // 						renderStrategyAssociations("Capability Communities", "Name", capComm),
 // 						renderStrategyAssociations("Capability Objectives", "Name", so))
 // 				} else {
-// 					so := strategy.StrategyObjectiveByID(platformID, uObj.ID, strategyObjectivesTableName)
+// 					so := strategy.StrategyObjectiveByID(teamID, uObj.ID, strategyObjectivesTableName)
 // 					alignment = fmt.Sprintf("`%s Objective` : `%s`\n", so.Type, so.Name)
 // 				}
 // 			case models.ObjectiveStrategyInitiativeAlignment:
 // 				typ = StrategyInitiative
-// 				si := strategy.StrategyInitiativeByID(platformID, uObj.ID, strategyInitiativesTableName)
+// 				si := strategy.StrategyInitiativeByID(teamID, uObj.ID, strategyInitiativesTableName)
 // 				initCommID := si.InitiativeCommunityID
 // 				capObjID := si.CapabilityObjective
-// 				initComm := strategy.InitiativeCommunityByID(platformID, initCommID, strategyInitiativeCommunitiesTable)
-// 				capObj := strategy.StrategyObjectiveByID(platformID, capObjID, strategyObjectivesTableName)
+// 				initComm := strategy.InitiativeCommunityByID(teamID, initCommID, strategyInitiativeCommunitiesTable)
+// 				capObj := strategy.StrategyObjectiveByID(teamID, capObjID, strategyObjectivesTableName)
 // 				alignment = fmt.Sprintf("%s%s",
 // 					renderStrategyAssociations("Initiative Communities", "Name", initComm),
 // 					renderStrategyAssociations("Capability Objectives", "Name", capObj))

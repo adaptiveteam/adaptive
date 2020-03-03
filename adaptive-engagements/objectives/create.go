@@ -20,11 +20,11 @@ const (
 func CreateObjectiveEng(table string, mc models.MessageCallback, coaches, dates []models.KvPair,
 	initsAndObjs []ebm.AttachmentActionElementOptionGroup, title,
 	fallback string, urgent bool, dns common.DynamoNamespace, check models.UserEngagementCheckWithValue,
-	platformID models.PlatformID) {
+	teamID models.TeamID) {
 	actions := []ebm.AttachmentAction{
 		*models.DialogAttachAction(mc, models.Now, ObjectiveCreateNowActionLabel),
 		*models.SimpleAttachAction(mc, models.Ignore, ObjectiveCreateSkipActionLabel),
 	}
 	utils.AddChatEngagement(mc, title, core.EmptyString, fallback, mc.Source, actions, []ebm.AttachmentField{},
-		platformID, urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(), check)
+		teamID, urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(), check)
 }

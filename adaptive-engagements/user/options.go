@@ -61,10 +61,10 @@ func SelectUserTemplateActions(mc models.MessageCallback, userProfiles []models.
 }
 
 // UserSelectAttachments reads users, filters them twice, then renders options as attachments.
-// deprecated. Breaks SRP. Inline instead
+// Deprecated: Breaks SRP. Inline instead
 func UserSelectAttachments(mc models.MessageCallback, userIDs, toFilterOutUserIDs []string,
-	platformID models.PlatformID, dao daosUser.DAO) []model.AttachmentAction {
-	userProfiles := ReadAllUserProfiles(dao, platformID)
+	teamID models.TeamID, dao daosUser.DAO) []model.AttachmentAction {
+	userProfiles := ReadAllUserProfiles(dao, teamID)
 	if len(userIDs) > 0 {
 		// If users are passed, use them directly
 		userProfiles = UserProfilesIntersect(userProfiles, userIDs)
@@ -78,15 +78,15 @@ func UserSelectAttachments(mc models.MessageCallback, userIDs, toFilterOutUserID
 
 // UserSelectEng reads users, filters them twice, then renders options as attachments,
 // then creates engagement.
-// deprecated. Breaks SRP. Inline.
-func UserSelectEng(userID, engagementsTable string, platformID models.PlatformID,
+// Deprecated: Breaks SRP. Inline.
+func UserSelectEng(userID, engagementsTable string, teamID models.TeamID,
 	dao daosUser.DAO,
 	mc models.MessageCallback, users, toFilterUsers []string,
 	text, context string, check models.UserEngagementCheckWithValue) {
-	attachs := UserSelectAttachments(mc, users, toFilterUsers, platformID, dao)
+	attachs := UserSelectAttachments(mc, users, toFilterUsers, teamID, dao)
 	dns := common.DeprecatedGetGlobalDns()
 
 	utils.AddChatEngagement(mc, "", text, fmt.Sprintf("Select one of the users for %s", context), userID,
-		attachs, []ebm.AttachmentField{}, platformID, true, engagementsTable, dns.Dynamo,
+		attachs, []ebm.AttachmentField{}, teamID, true, engagementsTable, dns.Dynamo,
 		dns.Namespace, time.Now().Unix(), check)
 }

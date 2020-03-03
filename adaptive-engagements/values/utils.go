@@ -14,6 +14,6 @@ func valuesDAO() DAO {
 	return valuesDao
 }
 
-func PlatformValues(platformID models.PlatformID) []models.AdaptiveValue {
-	return valuesDAO().ForPlatformID(string(platformID)).AllUnsafe()
+func PlatformValues(teamID models.TeamID) []models.AdaptiveValue {
+	return valuesDAO().ForPlatformID(teamID.ToPlatformID()).AllUnsafe()
 }

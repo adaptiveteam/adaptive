@@ -17,17 +17,12 @@ type ClientPlatform struct {
 }
 
 type ClientPlatformRequest struct {
-	// Id is the AppID (api_app_id) from Slack
-	PlatformID common.PlatformID `json:"platform_id"`
+	// team_id is either the AppID (api_app_id) or TeamID (team_id) from Slack
+	TeamID TeamID `json:"team_id"`
 	Org string `json:"platform_org"`
 }
 
 type ClientPlatformToken = clientPlatformToken.ClientPlatformToken
-//  struct {
-// 	ClientPlatformRequest
-// 	ClientPlatform
-// 	ClientContact
-// }
 
 // ClientPlatformTokenTableSchema is the schema of _adaptive_client_config table
 type ClientPlatformTokenTableSchema struct {

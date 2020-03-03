@@ -5,7 +5,7 @@ import (
 )
 
 // MenuOptionBuilder pattern code
-// deprecated. Use MenuOption constructor function
+// Deprecated: Use MenuOption constructor function
 type MenuOptionBuilder struct {
 	menuOption *model.MenuOption
 }

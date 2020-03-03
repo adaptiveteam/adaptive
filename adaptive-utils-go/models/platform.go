@@ -27,7 +27,7 @@ type PlatformSimpleNotification struct {
 	// TODO: rename it to ConversationID and make mandatory. We should not reuse UserID.
 	Channel string `json:"channel"`
 	Message string `json:"message"`
-	// deprecated. 2019-07-31 https://github.com/adaptiveteam/adaptive-core-lambdas/issues/42
+	// Deprecated: 2019-07-31 https://github.com/adaptiveteam/adaptive-core-lambdas/issues/42
 	AsUser bool `json:"as_user"`
 	// Timestamp if the message has to be updated
 	Ts string `json:"ts"`

@@ -35,7 +35,7 @@ var TestDateShiftConfig = DateShiftConfig{
 	EndEmulateDate: time.Date(2019, 12, 31, 0, 0, 0, 0, time.UTC),
 }
 
-func emulateDates(dateShiftConfig DateShiftConfig, date time.Time, userID string, platformID models.PlatformID, config Config) {
+func emulateDates(dateShiftConfig DateShiftConfig, date time.Time, userID string, teamID models.TeamID, config Config) {
 
 	if !date.Before(dateShiftConfig.StartDate) {
 		days := int(date.Sub(dateShiftConfig.StartDate).Hours() / 24)
@@ -45,9 +45,9 @@ func emulateDates(dateShiftConfig DateShiftConfig, date time.Time, userID string
 			dateStr := core.ISODateLayout.Format(date)
 			fmt.Println(fmt.Sprintf("user %s: Emulating date %s --> %s", userID, dateStr, emulatedDateStr))
 			engage := models.UserEngage{
-				UserId:     userID,
-				PlatformID: platformID,
-				Date:       emulatedDateStr,
+				UserID: userID,
+				TeamID: teamID,
+				Date:   emulatedDateStr,
 			}
 			logger.Infof("Emulating %s date for %s user on %s", emulatedDateStr, userID, dateStr)
 			invokeSchedulerLambda(engage, config)

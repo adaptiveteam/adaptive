@@ -63,7 +63,7 @@ func (w workflowImpl)requireCapabilityCommunity(ctx wf.EventHandlingContext, tc 
 		out.NextState = FormShownState
 	default:
 		out.NextState = CommunitySelectingState
-		opts := w.mapCapabilityCommunitiesToOptions(adaptiveAssociatedCapComms, ctx.PlatformID)
+		opts := w.mapCapabilityCommunitiesToOptions(adaptiveAssociatedCapComms, ctx.TeamID)
 		// Enable a user to create an objective if user is in strategy community and there are capability communities
 		out.Interaction = wf.Buttons(
 			"Select a capability community. You can assign the "+ ui.RichText(tc.IssueTypeName()) + " to other communities later but you need at least one for now.",
@@ -91,7 +91,7 @@ func (w workflowImpl)requireInitiativeCommunity(ctx wf.EventHandlingContext, tc 
 		out.NextState = FormShownState
 	default:
 		out.NextState = CommunitySelectingState
-		opts := w.mapInitiativeCommunitiesToOptions(adaptiveAssociatedComms, ctx.PlatformID)
+		opts := w.mapInitiativeCommunitiesToOptions(adaptiveAssociatedComms, ctx.TeamID)
 		// Enable a user to create an objective if user is in strategy community and there are capability communities
 		out.Interaction = wf.Buttons(
 			"Select an initiative community. You can assign the "+ ui.RichText(tc.IssueTypeName()) + " to other communities later but you need at least one for now.",
@@ -100,7 +100,7 @@ func (w workflowImpl)requireInitiativeCommunity(ctx wf.EventHandlingContext, tc 
 	return 
 }
 
-func (w workflowImpl)mapCapabilityCommunitiesToOptions(comms []strategy.CapabilityCommunity, platformID models.PlatformID) (opts []wf.SelectorOption) {
+func (w workflowImpl)mapCapabilityCommunitiesToOptions(comms []strategy.CapabilityCommunity, teamID models.TeamID) (opts []wf.SelectorOption) {
 	for _, each := range comms {
 		opts = append(opts, wf.SelectorOption{
 			Label: ui.PlainText(each.Name), 
@@ -110,7 +110,7 @@ func (w workflowImpl)mapCapabilityCommunitiesToOptions(comms []strategy.Capabili
 	return
 }
 
-func (w workflowImpl)mapInitiativeCommunitiesToOptions(comms []strategy.StrategyInitiativeCommunity, platformID models.PlatformID) (opts []wf.SelectorOption) {
+func (w workflowImpl)mapInitiativeCommunitiesToOptions(comms []strategy.StrategyInitiativeCommunity, teamID models.TeamID) (opts []wf.SelectorOption) {
 	for _, each := range comms {
 		opts = append(opts, wf.SelectorOption{
 			Label: ui.PlainText(each.Name), 

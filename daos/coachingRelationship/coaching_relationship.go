@@ -165,6 +165,7 @@ func (d DAOImpl) CreateOrUpdate(coachingRelationship CoachingRelationship) (err 
 			if ok {
 				old := olds[0]
 				
+				
 				key := idParams(old.CoachQuarterYear)
 				expr, exprAttributes, names := updateExpression(coachingRelationship, old)
 				input := dynamodb.UpdateItemInput{
@@ -175,8 +176,10 @@ func (d DAOImpl) CreateOrUpdate(coachingRelationship CoachingRelationship) (err 
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
-				if err == nil {
+				if  len(exprAttributes) > 0 { // if there some changes
 					err = d.Dynamo.UpdateItemInternal(input)
+				} else {
+					// WARN: no changes.
 				}
 				err = errors.Wrapf(err, "CoachingRelationship DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
 			} else {

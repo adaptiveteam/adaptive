@@ -17,12 +17,12 @@ import (
 )
 
 // Constructing Dynamo query expression based on index for the platform
-func platformIndexExpr(index string, platformID models.PlatformID) awsutils.DynamoIndexExpression {
+func platformIndexExpr(index string, teamID models.TeamID) awsutils.DynamoIndexExpression {
 	return awsutils.DynamoIndexExpression{
 		IndexName: index,
 		Condition: "platform_id = :p",
 		Attributes: map[string]interface{}{
-			":p": string(platformID),
+			":p": teamID.ToString(),
 		},
 	}
 }
@@ -38,8 +38,8 @@ func UserStrategyObjectives(userID string,
 									   userID,    strategyObjectivesTable,    strategyObjectivesPlatformIndex,    userObjectivesTable,    communityUsersTable,    communityUsersUserCommunityIndex)
 	if community.IsUserInCommunity(userID, communityUsersTable, communityUsersUserCommunityIndex, community.Strategy) {
 		log.Println(fmt.Sprintf("### User %s is in strategy community, showing all the objectives", userID))
-		platformID := UserIDToPlatformID(userDAO())(userID)
-		return AllOpenStrategyObjectives(platformID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
+		teamID := UserIDToTeamID(userDAO())(userID)
+		return AllOpenStrategyObjectives(teamID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
 			userObjectivesTable)
 	} else {
 		log.Println(fmt.Sprintf("### User %s is not in strategy community, showing relevant objectives", userID))
@@ -49,11 +49,11 @@ func UserStrategyObjectives(userID string,
 }
 
 // USED
-func allStrategyObjectives(platformID models.PlatformID, strategyObjectivesTable,
+func allStrategyObjectives(teamID models.TeamID, strategyObjectivesTable,
 	strategyObjectivesPlatformIndex string) []models.StrategyObjective {
 	var objs []models.StrategyObjective
 	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(strategyObjectivesTable,
-		platformIndexExpr(strategyObjectivesPlatformIndex, platformID),
+		platformIndexExpr(strategyObjectivesPlatformIndex, teamID),
 		map[string]string{}, true, -1, &objs)
 	core.ErrorHandler(err, common.DeprecatedGetGlobalDns().Namespace, fmt.Sprintf("Could not query %s index on %s table",
 		strategyObjectivesPlatformIndex,
@@ -63,9 +63,9 @@ func allStrategyObjectives(platformID models.PlatformID, strategyObjectivesTable
 
 // AllOpenStrategyObjectives returns a slice of open strategy objectives: capability, customer and financial objectives
 // USED
-func AllOpenStrategyObjectives(platformID models.PlatformID, strategyObjectivesTable, strategyObjectivesPlatformIndex, 
+func AllOpenStrategyObjectives(teamID models.TeamID, strategyObjectivesTable, strategyObjectivesPlatformIndex, 
 	userObjectivesTable string) []models.StrategyObjective {
-	allObjs := allStrategyObjectives(platformID, strategyObjectivesTable, strategyObjectivesPlatformIndex)
+	allObjs := allStrategyObjectives(teamID, strategyObjectivesTable, strategyObjectivesPlatformIndex)
 	log.Printf("AllOpenStrategyObjectives: len(allObjs)=%d\n", len(allObjs))
 
 	var res []models.StrategyObjective
@@ -100,11 +100,11 @@ func getUserObjectiveByID(userObjectivesTable string, id string) (uo models.User
 	}
 	return
 }
-func AllStrategyInitiatives(platformID models.PlatformID, strategyInitiativesTable,
+func AllStrategyInitiatives(teamID models.TeamID, strategyInitiativesTable,
 	strategyInitiativesPlatformIndex string) []models.StrategyInitiative {
 	var sis []models.StrategyInitiative
 	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(strategyInitiativesTable,
-		platformIndexExpr(strategyInitiativesPlatformIndex, platformID),
+		platformIndexExpr(strategyInitiativesPlatformIndex, teamID),
 		map[string]string{}, true, -1, &sis)
 	core.ErrorHandler(err, common.DeprecatedGetGlobalDns().Namespace, fmt.Sprintf("Could not query %s index on %s table",
 		strategyInitiativesPlatformIndex,
@@ -113,9 +113,9 @@ func AllStrategyInitiatives(platformID models.PlatformID, strategyInitiativesTab
 }
 
 // AllOpenStrategyInitiatives returns a slice of all open strategy initiatives
-func AllOpenStrategyInitiatives(platformID models.PlatformID, strategyInitiativesTable, strategyInitiativesPlatformIndex, 
+func AllOpenStrategyInitiatives(teamID models.TeamID, strategyInitiativesTable, strategyInitiativesPlatformIndex, 
 	userObjectivesTable string) []models.StrategyInitiative {
-	inits := AllStrategyInitiatives(platformID, strategyInitiativesTable, strategyInitiativesPlatformIndex)
+	inits := AllStrategyInitiatives(teamID, strategyInitiativesTable, strategyInitiativesPlatformIndex)
 	var res []models.StrategyInitiative
 	for _, each := range inits {
 		userObj := objectives.UserObjectiveById(userObjectivesTable, each.ID, common.DeprecatedGetGlobalDns())
@@ -153,16 +153,16 @@ func StrategyCommunityByIDUnsafe(id, strategyCommunitiesTable string) StrategyCo
 
 // AllCapabilityCommunities Get all the capability communities, 
 // that have Adaptive associated, for the platform ID
-func AllCapabilityCommunities(platformID models.PlatformID,
+func AllCapabilityCommunities(teamID models.TeamID,
 	capabilityCommunitiesTable, capabilityCommunitiesPlatformIndex, strategyCommunitiesTable string) []CapabilityCommunity {
 	var ccs, op []CapabilityCommunity
 	err2 := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(capabilityCommunitiesTable,
-		platformIndexExpr(capabilityCommunitiesPlatformIndex, platformID),
+		platformIndexExpr(capabilityCommunitiesPlatformIndex, teamID),
 		map[string]string{}, true, -1, &ccs)
-	core.ErrorHandler(err2, "AllCapabilityCommunities.all capabilityCommunities for platformID", fmt.Sprintf("Could not query %s index on %s table. platformID=%s",
+	core.ErrorHandler(err2, "AllCapabilityCommunities.all capabilityCommunities for teamID", fmt.Sprintf("Could not query %s index on %s table. teamID=%s",
 		capabilityCommunitiesPlatformIndex,
 		capabilityCommunitiesTable,
-		platformID))
+		teamID))
 
 	for _, each := range ccs {
 		stratComm, found, err3 := StrategyCommunityOrEmptyByID(each.ID, strategyCommunitiesTable)
@@ -180,12 +180,12 @@ func AllCapabilityCommunities(platformID models.PlatformID,
 
 // AllStrategyInitiativeCommunities - Get all the initiative communities 
 // for the platform ID
-func AllStrategyInitiativeCommunities(platformID models.PlatformID, initiativeCommunitiesTable,
+func AllStrategyInitiativeCommunities(teamID models.TeamID, initiativeCommunitiesTable,
 	initiativeCommunitiesPlatformIndex, strategyCommunitiesTable string) []StrategyInitiativeCommunity {
 	var sics, op []StrategyInitiativeCommunity
 	err2 := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(
 		initiativeCommunitiesTable,
-		platformIndexExpr(initiativeCommunitiesPlatformIndex, platformID),
+		platformIndexExpr(initiativeCommunitiesPlatformIndex, teamID),
 		map[string]string{}, true, -1, &sics)
 	core.ErrorHandler(err2, "AllStrategyInitiativeCommunities", fmt.Sprintf("Could not query %s index on %s table",
 		initiativeCommunitiesPlatformIndex, initiativeCommunitiesTable))
@@ -209,8 +209,8 @@ func AllStrategyInitiativeCommunities(platformID models.PlatformID, initiativeCo
 func UserStrategyInitiativeCommunities(userID,
 	communityUsersTable, communityUsersUserCommunityIndex, communityUsersUserIndex string,
 	initiativeCommunitiesTable, initiativeCommunitiesPlatformIndex, strategyCommunitiesTable string,
-	platformID models.PlatformID) []StrategyInitiativeCommunity {
-	allInitiativeCommunities := AllStrategyInitiativeCommunities(platformID, initiativeCommunitiesTable,
+	teamID models.TeamID) []StrategyInitiativeCommunity {
+	allInitiativeCommunities := AllStrategyInitiativeCommunities(teamID, initiativeCommunitiesTable,
 		initiativeCommunitiesPlatformIndex, strategyCommunitiesTable)
 	var op []StrategyInitiativeCommunity
 	if community.IsUserInCommunity(userID, communityUsersTable, communityUsersUserCommunityIndex, community.Strategy) {
@@ -244,55 +244,55 @@ func dynString(str string) *dynamodb.AttributeValue {
 	return &attr
 }
 
-func getByIDAndPlatformIDUnsafe(table string, ID string, platformID models.PlatformID, result interface{}) {
+func getByIDAndPlatformIDUnsafe(table string, ID string, teamID models.TeamID, result interface{}) {
 	err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemFromTable(table, map[string]*dynamodb.AttributeValue{
 		"id":          dynString(ID),
-		"platform_id": dynString(string(platformID)),
+		"platform_id": dynString(teamID.ToString()),
 	}, &result)
 	core.ErrorHandler(err2, "getByIDAndPlatformIDUnsafe", fmt.Sprintf("Could not find %s in %s table", ID, table))
 }
 
-func CapabilityCommunityByID(platformID models.PlatformID, ID, table string) (res CapabilityCommunity) {
-	getByIDAndPlatformIDUnsafe(table, ID, platformID, &res)
+func CapabilityCommunityByID(teamID models.TeamID, ID, table string) (res CapabilityCommunity) {
+	getByIDAndPlatformIDUnsafe(table, ID, teamID, &res)
 	if res.ID != ID {
 		panic(fmt.Errorf("couldn't find CapabilityCommunityByID(ID=%s). Instead got ID=%s", ID, res.ID))
 	}
 	return
 }
 
-func StrategyObjectiveByID(platformID models.PlatformID, ID, table string) (res models.StrategyObjective) {
-	getByIDAndPlatformIDUnsafe(table, ID, platformID, &res)
+func StrategyObjectiveByID(teamID models.TeamID, ID, table string) (res models.StrategyObjective) {
+	getByIDAndPlatformIDUnsafe(table, ID, teamID, &res)
 	if res.ID != ID {
 		panic(fmt.Errorf("couldn't find StrategyObjectiveByID(ID=%s). Instead got ID=%s", ID, res.ID))
 	}
 	return
 }
 
-func StrategyInitiativeByID(platformID models.PlatformID, ID, table string) (res models.StrategyInitiative) {
-	getByIDAndPlatformIDUnsafe(table, ID, platformID, &res)
+func StrategyInitiativeByID(teamID models.TeamID, ID, table string) (res models.StrategyInitiative) {
+	getByIDAndPlatformIDUnsafe(table, ID, teamID, &res)
 	if res.ID != ID {
 		panic(fmt.Errorf("couldn't find StrategyInitiativeByID(ID=%s). Instead got ID=%s", ID, res.ID))
 	}
 	return
 }
 
-func InitiativeCommunityByID(platformID models.PlatformID, ID, table string) (res StrategyInitiativeCommunity) {
-	getByIDAndPlatformIDUnsafe(table, ID, platformID, &res)
+func InitiativeCommunityByID(teamID models.TeamID, ID, table string) (res StrategyInitiativeCommunity) {
+	getByIDAndPlatformIDUnsafe(table, ID, teamID, &res)
 	if res.ID != ID {
 		panic(fmt.Errorf("couldn't find InitiativeCommunityByID(ID=%s). Instead got ID=%s", ID, res.ID))
 	}
 	return
 }
 // StrategyVision returns vision for platform ID or nil if absent
-func StrategyVision(platformID models.PlatformID, visionTable string) (res *models.VisionMission) {
-	log.Println("### In StrategyVision: platformID: " + platformID)
+func StrategyVision(teamID models.TeamID, visionTable string) (res *models.VisionMission) {
+	log.Println("### In StrategyVision: teamID: " + teamID.ToString())
 	// Query for the vision
 	params := map[string]*dynamodb.AttributeValue{
-		"platform_id": dynString(string(platformID)),
+		"platform_id": dynString(teamID.ToString()),
 	}
 	var vision models.VisionMission
 	found, err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemOrEmptyFromTable(visionTable, params, &vision)
-	core.ErrorHandler(err2, "StrategyVision", fmt.Sprintf("Could not find vision for platformID=%s in %s table", platformID, visionTable))
+	core.ErrorHandler(err2, "StrategyVision", fmt.Sprintf("Could not find vision for teamID=%s in %s table", teamID, visionTable))
 	if found {
 		res = &vision
 	} else {

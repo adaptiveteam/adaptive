@@ -8,7 +8,7 @@ import (
 type EventOutput struct {
 	Interaction
 	// Data will be available to the next handler in Instance.Data
-	// deprecated. Use only DataOverride.
+	// Deprecated: Use only DataOverride.
 	// It's deprecated because in most cases we don't want to replace all data
 	Data
 	// Data might be nil. In this case it'll be reused from context.

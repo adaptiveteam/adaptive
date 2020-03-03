@@ -7,7 +7,7 @@ import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 )
 
-func EditCapabilityCommunitySurveyElems(platformID models.PlatformID, cc *strategy.CapabilityCommunity) []ebm.AttachmentActionTextElement {
+func EditCapabilityCommunitySurveyElems(teamID models.TeamID, cc *strategy.CapabilityCommunity) []ebm.AttachmentActionTextElement {
 	var op []ebm.AttachmentActionTextElement
 	// Survey box should consist of a menu option to select rating and a text area for a user to enter the feedback
 	if cc == nil {
@@ -26,7 +26,7 @@ func EditCapabilityCommunitySurveyElems(platformID models.PlatformID, cc *strate
 				Label:    strategy.CapabilityCommunityCoordinatorLabel,
 				Name:     strategy.CapabilityCommunityCoordinator,
 				ElemType: models.MenuSelectType,
-				Options:  utils.AttachActionElementOptions(allUsersInAnyStrategyCommunities(platformID)),
+				Options:  utils.AttachActionElementOptions(allUsersInAnyStrategyCommunities(teamID)),
 			},
 		}
 	} else {
@@ -47,7 +47,7 @@ func EditCapabilityCommunitySurveyElems(platformID models.PlatformID, cc *strate
 				Label:    strategy.CapabilityCommunityCoordinatorLabel,
 				Name:     strategy.CapabilityCommunityCoordinator,
 				ElemType: models.MenuSelectType,
-				Options:  utils.AttachActionElementOptions(allUsersInAnyStrategyCommunities(platformID)),
+				Options:  utils.AttachActionElementOptions(allUsersInAnyStrategyCommunities(teamID)),
 				Value:    cc.Advocate,
 			},
 		}

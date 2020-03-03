@@ -107,7 +107,7 @@ func (a AttachmentActionConfirm) IsEmpty() bool {
 }
 
 // AttachmentActionElementOption - option for select drop down control
-// deprecated. Use AttachmentActionElementPlainTextOption
+// Deprecated: Use AttachmentActionElementPlainTextOption
 type AttachmentActionElementOption struct {
 	Label string `json:"label"`
 	Value string `json:"value"`

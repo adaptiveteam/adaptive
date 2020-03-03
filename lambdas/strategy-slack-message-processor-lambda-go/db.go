@@ -17,8 +17,8 @@ import (
 )
 
 // StrategyInitiativeCommunityByID reads initiative community from table.
-func StrategyInitiativeCommunityByID(id string, platformID models.PlatformID) (result strategy.StrategyInitiativeCommunity) {
-	entity := StrategyEntityById(id, platformID, strategyInitiativeCommunitiesTable)
+func StrategyInitiativeCommunityByID(id string, teamID models.TeamID) (result strategy.StrategyInitiativeCommunity) {
+	entity := StrategyEntityById(id, teamID, strategyInitiativeCommunitiesTable)
 	byt, _ := json.Marshal(entity)
 	err := json.Unmarshal(byt, &result)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not decode interface to struct"))
@@ -37,8 +37,8 @@ func StrategyCommunityByID(id string) strategy.StrategyCommunity {
 	return comm
 }
 
-func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(platformID models.PlatformID) (out []strategy.CapabilityCommunity) {
-	capComms := AllCapabilityCommunities(models.PlatformID(platformID))
+func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(teamID models.TeamID) (out []strategy.CapabilityCommunity) {
+	capComms := AllCapabilityCommunities(models.TeamID(teamID))
 	for _, each := range capComms {
 		stratComm := StrategyCommunityByID(each.ID)
 		if stratComm.ChannelCreated == 1 {
@@ -68,10 +68,10 @@ func dynBool(b bool) *dynamodb.AttributeValue {
 	return &attr
 }
 
-func idAndPlatformIDParams(id string, platformID models.PlatformID) map[string]*dynamodb.AttributeValue {
+func idAndPlatformIDParams(id string, teamID models.TeamID) map[string]*dynamodb.AttributeValue {
 	params := map[string]*dynamodb.AttributeValue{
 		"id":          dynString(id),
-		"platform_id": dynString(string(platformID)),
+		"platform_id": dynString(teamID.ToString()),
 	}
 	return params
 }
@@ -130,11 +130,11 @@ func LatestProgressUpdateByObjectiveID(id string) []models.UserObjectiveProgress
 	return ops
 }
 
-func getInitiativeCommunitiesForUserIDUnsafe(userID string, platformID models.PlatformID) (initComms []strategy.StrategyInitiativeCommunity) {
+func getInitiativeCommunitiesForUserIDUnsafe(userID string, teamID models.TeamID) (initComms []strategy.StrategyInitiativeCommunity) {
 	if isMemberInCommunity(userID, community.Strategy) {
-		initComms = strategy.AllStrategyInitiativeCommunities(platformID, strategyInitiativeCommunitiesTable, strategyInitiativeCommunitiesPlatformIndex, strategyCommunitiesTable)
+		initComms = strategy.AllStrategyInitiativeCommunities(teamID, strategyInitiativeCommunitiesTable, strategyInitiativeCommunitiesPlatformIndex, strategyCommunitiesTable)
 	} else {
-		initComms = StrategyInitiativeCommunitiesForUserID(userID, models.PlatformID(platformID))
+		initComms = StrategyInitiativeCommunitiesForUserID(userID, models.TeamID(teamID))
 	}
 	return
 }

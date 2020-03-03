@@ -122,7 +122,7 @@ var _ = Describe("Workflow", func() {
 		log := logger.LambdaLogger(logrus.InfoLevel)
 		env := wf.Environment{
 			Prefix: prefix,
-			GetPlatformAPI: func (pid models.PlatformID) mapper.PlatformAPI {
+			GetPlatformAPI: func (pid models.TeamID) mapper.PlatformAPI {
 				return &mock
 			},
 			LogInfof: func(format string, args ...interface{}) { log.Infof(format, args ...)},

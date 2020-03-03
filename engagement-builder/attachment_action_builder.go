@@ -78,7 +78,7 @@ func (b *AttachmentActionBuilder) DataSource(source model.AttachmentActionDataSo
 }
 
 // Build converts builder to AttachmentAction.
-// deprecated. Use ToAttachmentAction
+// Deprecated: Use ToAttachmentAction
 // This method is misleading as it always returns `nil` as the second
 func (b *AttachmentActionBuilder) Build() (*model.AttachmentAction, error) {
 	return b.attachmentAction, nil

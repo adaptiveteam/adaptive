@@ -80,3 +80,7 @@ resource "aws_lambda_permission" "adaptive_platform_notification_lambda_sns" {
   source_arn    = aws_sns_topic.platform_notification.arn
 }
 
+resource "aws_iam_role_policy_attachment" "platform_notification_lambda_read_all_tables" {
+  role       = module.adaptive-platform-notification-lambda.role_name
+  policy_arn = aws_iam_policy.read_all_tables.arn
+}

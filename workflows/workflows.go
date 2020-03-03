@@ -7,9 +7,9 @@ import (
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	// utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	common "github.com/adaptiveteam/adaptive/daos/common"
-	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
+	// mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/adaptiveteam/adaptive/workflows/issues"
 	"github.com/adaptiveteam/adaptive/workflows/request_coach"
 	"github.com/adaptiveteam/adaptive/workflows/coachees"
@@ -75,7 +75,7 @@ func InvokeWorkflow(np models.NamespacePayload4, conn common.DynamoDBConnection)
 func invokeWorkflowInner(np models.NamespacePayload4, action wf.TriggerImmediateEventForAnotherUser) func (conn common.DynamoDBConnection) (err error) {
 	return func (conn common.DynamoDBConnection) (err error) {
 		np.SlackRequest.InteractionCallback.User.ID = action.UserID
-		np.PlatformID = conn.PlatformID
+		np.TeamID = models.ParseTeamID(conn.PlatformID)
 		np.InteractionCallback.CallbackID = action.ActionPath.Encode()
 		var furtherActions []wf.TriggerImmediateEventForAnotherUser
 		logger.
@@ -121,11 +121,11 @@ func feedbackWorkflows(conn common.DynamoDBConnection) (templates []wf.NamedTemp
 }
 
 func prepareEnvironmentWithoutPrefix(conn common.DynamoDBConnection) (env wf.Environment) {
-	schema := models.SchemaForClientID(conn.ClientID)
-	platformDAO := utilsPlatform.NewDAOFromSchema(conn.Dynamo, "workflows", schema)
-	platformAdapter := mapper.SlackAdapter2(platformDAO)
+	// schema := models.SchemaForClientID(conn.ClientID)
+	// platformDAO := utilsPlatform.NewDAOFromSchema(conn.Dynamo, "workflows", schema)
+	// platformAdapter := mapper.SlackAdapterForTeamID(conn)
 
-	env = wf.ConstructEnvironmentWithoutPrefix(platformAdapter, 
+	env = wf.ConstructEnvironmentWithoutPrefix(conn, 
 		wf.PostponeEventHandler(conn), logger)
 	return
 }

@@ -17,7 +17,7 @@ const (
 
 // This is an engagement prompting a user to create an objective
 // It consists of 4 action labels: create now, create later, skip, learn more
-func CreateAskEngagement(table string, platformID models.PlatformID, mc models.MessageCallback,
+func CreateAskEngagement(table string, teamID models.TeamID, mc models.MessageCallback,
 	title, fallback, learnTrailPath string, urgent bool, dns common.DynamoNamespace) {
 	actions := models.AppendOptionalAction(
 		[]ebm.AttachmentAction{
@@ -26,5 +26,5 @@ func CreateAskEngagement(table string, platformID models.PlatformID, mc models.M
 		},
 		models.LearnMoreAction(learnTrailPath))
 	utils.AddChatEngagement(mc, title, core.EmptyString, fallback, mc.Source, actions, []ebm.AttachmentField{},
-		platformID, urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(), models.UserEngagementCheckWithValue{})
+		teamID, urgent, table, dns.Dynamo, dns.Namespace, time.Now().Unix(), models.UserEngagementCheckWithValue{})
 }

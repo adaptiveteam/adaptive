@@ -75,6 +75,7 @@ func InitAction(callbackId, userID string) []ebm.Attachment {
 	mog := dms.Build(userID, today)
 	dms.StripOutFunctions().Evaluate(userID, business_time.Today(loc))
 
+	logger.Infof("AdaptiveDynamicMenu contains %d groups\n", len(mog))
 	attachAction1, _ := eb.NewAttachmentActionBuilder().
 		Name("menu_list").
 		Text("Pick an option...").
@@ -104,35 +105,30 @@ func publish(msg models.PlatformSimpleNotification) {
 	_, err := sns.Publish(msg, platformNotificationTopic)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not publish message to %s topic", platformNotificationTopic))
 }
-func globalConnection(platformID models.PlatformID) daosCommon.DynamoDBConnection {
-	return daosCommon.DynamoDBConnection{
-		Dynamo: d,
-		ClientID: clientID,
-		PlatformID: platformID,
-	}
-}
-func helloMessage(userID, channelID string, platformID models.PlatformID) {
+
+func helloMessage(userID, channelID string, teamID models.TeamID) {
 	keyParams := map[string]*dynamodb.AttributeValue{
 		"id": daosCommon.DynS(userID),
 	}
 
 	// Check if the user already exists
 	var aUser models.User
-	found, err := d.GetItemOrEmptyFromTable(usersTable, keyParams, &aUser)
-	core.ErrorHandler(err, namespace, "Couldn't find user "+userID)
+	found, err2 := d.GetItemOrEmptyFromTable(usersTable, keyParams, &aUser)
+	core.ErrorHandler(err2, namespace, "Couldn't find user "+userID)
 	// If the user doesn't exist in our tables, add the user first and then proceed to evaluate ADM
-	if err == nil {
+	if err2 == nil {
 		if !found {
 			log.Println("User does not exist, adding...")
 			// refresh user cache
-			engageUser, _ := json.Marshal(models.UserEngage{UserId: userID, PlatformID: models.PlatformID(platformID)})
-			_, err = l.InvokeFunction(profileLambdaName, engageUser, false)
+			engageUser, _ := json.Marshal(models.UserEngage{UserID: userID, TeamID: models.TeamID(teamID)})
+			_, err3 := l.InvokeFunction(profileLambdaName, engageUser, false)
+			core.ErrorHandler(err3, namespace, "Couldn't add user "+userID)
 		}
 	}
 
 	rels := strategy.QueryCommunityUserIndex(userID, communityUsersTable, communityUsersUserIndex)
 	if len(rels) > 0 {
-		// api := slack.New(platformTokenDAO.GetPlatformTokenUnsafe(models.PlatformID(platformID)))
+		// api := slack.New(platformTokenDAO.GetPlatformTokenUnsafe(models.TeamID(teamID)))
 		//history, err2 := getChannelHistory(api, channelID)
 		// if err2 != nil || !isThereVeryRecentHiResponse(history) {
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
@@ -143,8 +139,8 @@ func helloMessage(userID, channelID string, platformID models.PlatformID) {
 		// }
 	} else {
 		// get the admin community
-		dao := community.CommunityDAO(globalConnection(platformID), userCommunitiesTable)
-		adminComms := dao.ReadOrEmptyUnsafe(platformID, string(community.Admin))
+		dao := community.CommunityDAO(globalConnection(teamID), userCommunitiesTable)
+		adminComms := dao.ReadOrEmptyUnsafe(teamID.ToPlatformID(), string(community.Admin))
 		if len(adminComms) == 0 {
 			// if no admin community, post message to the user about that
 			message := "Please ask your Slack administrator to finish setting up Adaptive by creating an Adaptive Admin private channel and then invite Adaptive to that channel."
@@ -161,24 +157,25 @@ func helloMessage(userID, channelID string, platformID models.PlatformID) {
 		actions := []ebm.AttachmentAction{
 			*models.SimpleAttachAction(mc, models.Now, user.NowActionLabel),
 			*models.SimpleAttachAction(mc, models.Ignore, "Nah")}
-		noAccessText, err := dialogFetcherDAO.FetchByContextSubject(NoAdaptiveAccessDialogContext, "text")
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not get dialog content for %s",
+		noAccessText, err4 := dialogFetcherDAO.FetchByContextSubject(NoAdaptiveAccessDialogContext, "text")
+		core.ErrorHandler(err4, namespace, fmt.Sprintf("Could not get dialog content for %s",
 			NoAdaptiveAccessDialogContext))
 
 		attach := utils.ChatAttachment("Sorry, you are not a member of any community yet :disappointed:",
-			core.RandomString(noAccessText.Dialog), "", mc.ToCallbackID(), actions, []ebm.AttachmentField{}, time.Now().Unix())
+			core.RandomString(noAccessText.Dialog), "", mc.ToCallbackID(), 
+			actions, []ebm.AttachmentField{}, time.Now().Unix())
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
 			Attachments: []ebm.Attachment{*attach}})
 	}
 }
 
-func forwardToNamespaceWithAppID(appID models.PlatformID, eventsAPIEvent string) func(string) {
+func forwardToNamespaceWithAppID(appID models.TeamID, eventsAPIEvent string) func(string) {
 	return func(namespace string) {
 		np2 := models.NamespacePayload4{
 			ID:        core.Uuid(),
 			Namespace: namespace,
 			PlatformRequest: models.PlatformRequest{
-				PlatformID:   models.PlatformID(appID),
+				TeamID:   appID,
 				SlackRequest: models.EventsAPIEvent(eventsAPIEvent),
 			},
 		}
@@ -190,13 +187,13 @@ func forwardToNamespaceWithAppID(appID models.PlatformID, eventsAPIEvent string)
 	}
 }
 
-func invokeLambdaWithAppID(appID models.PlatformID, eventsAPIEvent string) func(string) {
+func invokeLambdaWithAppID(appID models.TeamID, eventsAPIEvent string) func(string) {
 	return func(namespace string) {
 		np2 := models.NamespacePayload4{
 			ID:        core.Uuid(),
 			Namespace: namespace,
 			PlatformRequest: models.PlatformRequest{
-				PlatformID:   appID,
+				TeamID:   appID,
 				SlackRequest: models.EventsAPIEvent(eventsAPIEvent),
 			},
 		}
@@ -219,7 +216,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	defer core.RecoverAsLogError("HandleRequest.Recover")
 	logger = logger.WithLambdaContext(ctx)
 	if request.HTTPMethod == "GET" {
-		err = HandleRedirectURLGetRequest(globalConnection("UNKNOWN-PLATFORM-ID"), request)
+		err = HandleRedirectURLGetRequest(globalConnection(models.ParseTeamID("UNKNOWN-PLATFORM-ID")), request)
 		if err == nil {
 			response.StatusCode = 308 // Permanent Redirect
 			response.Headers = map[string]string{
@@ -246,8 +243,13 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 				if ahe.Event.Type == AppHomeOpened {
 					userID := ahe.Event.User
 					channelID := ahe.Event.Channel
-					// teamID := ahe.TeamID
-					helloMessage(userID, channelID, models.PlatformID(ahe.ApiAppID))
+
+					teamID := models.TeamID{
+						TeamID: daosCommon.PlatformID(ahe.TeamID),
+						AppID: daosCommon.PlatformID(ahe.ApiAppID),
+					}
+					logger.Infof("AppHomeOpened, teamID=%v", teamID)
+					helloMessage(userID, channelID, teamID)
 				}
 			} else {
 				var requestPayload string
@@ -293,7 +295,9 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 	switch eventsAPIEvent.Type {
 	case slackevents.AppHomeOpened:
 		appHomeOpened := eventsAPIEvent.Data.(*slackevents.AppHomeOpenedEvent)
-		helloMessage(appHomeOpened.User, appHomeOpened.Channel, "<UNKNOWN-PlatformID>")
+		logger.Infof("UNKNOWN-PlatformID")
+		helloMessage(appHomeOpened.User, appHomeOpened.Channel, 
+			models.ParseTeamID("<UNKNOWN-PlatformID>"))
 	case slackevents.URLVerification:
 		urlVerification := eventsAPIEvent.Data.(*slackevents.EventsAPIURLVerificationEvent)
 		response, err = GwOk(urlVerification.Challenge, nil)
@@ -332,7 +336,7 @@ func routeCallbackEvent(
 	requestPayload string, 
 	callbackEvent slackevents.EventsAPICallbackEvent,
 ) (err error)  {
-	apiAppID := models.PlatformID(callbackEvent.APIAppID)
+	apiAppID := models.ParseTeamID(daosCommon.PlatformID(callbackEvent.APIAppID))
 	forwardToNamespace := forwardToNamespaceWithAppID(apiAppID, requestPayload)
 	invokeLambdaWithNamespace := invokeLambdaWithAppID(apiAppID, requestPayload)
 	eventType := eventsAPIEvent.InnerEvent.Type
@@ -362,6 +366,7 @@ func routeCallbackEvent(
 			// Warmed up lambda
 			log.Println("Received warmup message ...")
 		} else if slackText == "hello" || slackText == "hi" {
+			logger.Infof("apiAppID: %v", apiAppID)
 			helloMessage(slackMsg.User, slackMsg.Channel, apiAppID)
 		} else if strings.Contains(slackText, "generate") ||
 		strings.Contains(slackText, "add to slack") || 
@@ -400,17 +405,17 @@ func routeByCallbackID(
 	slackRequest := models.EventsAPIEvent(requestPayload)
 	u := userDAO.ReadUnsafe(userID)
 	apiAppID := u.PlatformID
-	platformID := u.PlatformID
+	teamID := models.ParseTeamID(apiAppID)
 	np := models.NamespacePayload4{
 		ID:        core.Uuid(),
 		Namespace: namespace,
 		PlatformRequest: models.PlatformRequest{
-			PlatformID:   apiAppID,
+			TeamID:   teamID,
 			SlackRequest: slackRequest,
 		},
 	}	
-	forwardToNamespace := forwardToNamespaceWithAppID(apiAppID, requestPayload)
-	invokeLambdaWithNamespace := invokeLambdaWithAppID(apiAppID, requestPayload)
+	forwardToNamespace := forwardToNamespaceWithAppID(teamID, requestPayload)
+	invokeLambdaWithNamespace := invokeLambdaWithAppID(teamID, requestPayload)
 
 	if strings.Contains(callbackID, "init_message") {
 		if eventsAPIEvent.Type == string(slack.InteractionTypeInteractionMessage) {
@@ -424,7 +429,7 @@ func routeByCallbackID(
 			if action.Name == "menu_list" {
 				selected := action.SelectedOptions[0]
 				menuOption := selected.Value
-				err = routeMenuOption(eventsAPIEvent, requestPayload, message, platformID,
+				err = routeMenuOption(eventsAPIEvent, requestPayload, message, teamID,
 					menuOption)
 			} else if action.Name == "cancel" {
 				deleteMessage(message)
@@ -453,7 +458,7 @@ func routeMenuOption(
 	eventsAPIEvent slackevents.EventsAPIEvent, 
 	requestPayload string,
 	message slack.InteractionCallback,
-	platformID models.PlatformID,
+	teamID models.TeamID,
 	menuOption string,
 ) (err error) {
 	slackRequest := models.EventsAPIEvent(requestPayload)
@@ -462,23 +467,23 @@ func routeMenuOption(
 	// fmt.Printf("userID=%v,callbackID=%v\n", userID, callbackID)
 	// u := userDAO.ReadUnsafe(userID)
 	// apiAppID := u.PlatformID
-	// platformID := u.PlatformID
+	// teamID := u.PlatformID
 	np := models.NamespacePayload4{
 		ID:        core.Uuid(),
 		Namespace: namespace,
 		PlatformRequest: models.PlatformRequest{
-			PlatformID:   platformID,
+			TeamID:   teamID,
 			SlackRequest: slackRequest,
 		},
 	}	
-	forwardToNamespace := forwardToNamespaceWithAppID(platformID, requestPayload)
-	invokeLambdaWithNamespace := invokeLambdaWithAppID(platformID, requestPayload)
+	forwardToNamespace := forwardToNamespaceWithAppID(teamID, requestPayload)
+	invokeLambdaWithNamespace := invokeLambdaWithAppID(teamID, requestPayload)
 	switch menuOption {
 	case user.AskForEngagements:
 		engage := models.UserEngageWithCheckValues{
 			UserEngage: models.UserEngage{
-				UserId: userID, IsNew: true, Update: true, OnDemand: true,
-				ThreadTs: message.MessageTs, PlatformID: platformID,
+				UserID: userID, IsNew: true, Update: true, OnDemand: true,
+				ThreadTs: message.MessageTs, TeamID: teamID,
 			},
 			CheckValues: checkValues(message.User.ID),
 		}
@@ -535,9 +540,9 @@ func routeMenuOption(
 	case "StrategyPerformanceReport":
 		var buf *bytes.Buffer
 		var reportname string
-		buf, reportname, err = onStrategyPerformanceReport(ReadRDSConfigFromEnv(), platformID)
+		buf, reportname, err = onStrategyPerformanceReport(ReadRDSConfigFromEnv(), teamID)
 		if err == nil {
-			err = sendReportToUser(platformID, userID, reportname, buf)
+			err = sendReportToUser(teamID, userID, reportname, buf)
 		}
 		deleteMessage(message)
 		err = errors.Wrap(err, "StrategyPerformanceReport")
@@ -546,7 +551,7 @@ func routeMenuOption(
 		var reportname string
 		buf, reportname, err = onIDOPerformanceReport(ReadRDSConfigFromEnv(), userID)
 		if err == nil {
-			err = sendReportToUser(platformID, userID, reportname, buf)
+			err = sendReportToUser(teamID, userID, reportname, buf)
 		}
 		deleteMessage(message)
 		err = errors.Wrap(err, "IDOPerformanceReport")

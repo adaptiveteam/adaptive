@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	// "github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -21,20 +22,20 @@ import (
 // LogInfof signature of log.Infof function
 type LogInfof = func(format string, args ...interface{})
 
-// PlatformAPIForPlatformID is a function to obtain API by PlatformID
-type PlatformAPIForPlatformID = func(platformID models.PlatformID) mapper.PlatformAPI
+// PlatformAPIForTeamID is a function to obtain API by TeamID
+type PlatformAPIForTeamID = func(teamID models.TeamID) mapper.PlatformAPI
 
 // PostponeEvent saves an event to a database for further processing.
 // The database will be eventually evaluated for a particular user and
 // the event will be triggered.
-type PostponeEvent = func(platformID models.PlatformID, postponedEvent PostponeEventForAnotherUser) error
+type PostponeEvent = func(teamID models.TeamID, postponedEvent PostponeEventForAnotherUser) error
 
 // Environment contains mechanisms to deal with external world
 type Environment struct {
 	// this is provided from outside as a context. When we want to
 	// have a callback routed to our instance, we should prepend this prefix.
 	Prefix         models.Path
-	GetPlatformAPI PlatformAPIForPlatformID
+	GetPlatformAPI PlatformAPIForTeamID
 	LogInfof       LogInfof
 	PostponeEvent
 }
@@ -120,7 +121,7 @@ func (w Template) handleContext(env Environment,
 			lastMessageID, err = interact(ctx, env, out.NextState, out.Interaction, oldData, data)
 			if err == nil && out.ImmediateEvent != "" {
 				newContext := EventHandlingContext{
-					PlatformID: ctx.PlatformID,
+					TeamID: ctx.TeamID,
 					Request:    ctx.Request,
 					EventData: EventData{
 						State:               out.NextState,
@@ -151,7 +152,7 @@ func (w Template) getEventHandlingContext(np models.NamespacePayload4) (ctx Even
 	s, err = w.Parser(np)
 	if err == nil {
 		ctx = EventHandlingContext{
-			PlatformID:      np.PlatformID,
+			TeamID:      np.TeamID,
 			Request:         np.InteractionCallback,
 			EventData:       s,
 			TargetMessageID: targetMessageID(np.InteractionCallback),
@@ -173,10 +174,10 @@ func interact(ctx EventHandlingContext,
 	oldData Data,
 	data Data) (lastMessageID platform.TargetMessageID, err error) {
 	bytes, _ := json.Marshal(interaction)
-	env.LogInfof("interact(..., platformID=%s, next state=%s, interaction=%v, data=%s)",
-		ctx.PlatformID, nextState, string(bytes), ShowData(data))
+	env.LogInfof("interact(..., teamID=%s, next state=%s, interaction=%v, data=%s)",
+		ctx.TeamID.ToString(), nextState, string(bytes), ShowData(data))
 	resps := interaction.Responses
-	platformAPI := env.GetPlatformAPI(ctx.PlatformID)
+	platformAPI := env.GetPlatformAPI(ctx.TeamID)
 	err = sendResponses(platformAPI, resps...)
 	isOriginalPermanentF := ctx.IsOriginalPermanent
 	isDeletingOriginal := !interaction.KeepOriginal && !isOriginalPermanentF
@@ -209,7 +210,7 @@ func interact(ctx EventHandlingContext,
 			if err == nil {
 				// interaction.ImmediateEvents { // these events will be returned
 				for _, evt := range interaction.PostponedEvents {
-					err = env.PostponeEvent(ctx.PlatformID, evt)
+					err = env.PostponeEvent(ctx.TeamID, evt)
 				}
 			}
 		}
@@ -282,7 +283,7 @@ func deleteOriginal(ctx EventHandlingContext,
 	} else {
 		delete = platform.Delete(ctx.TargetMessageID)
 	}
-	err2 := sendResponses(env.GetPlatformAPI(ctx.PlatformID), delete)
+	err2 := sendResponses(env.GetPlatformAPI(ctx.TeamID), delete)
 	if err2 != nil {
 		env.LogInfof("couldn't delete old message: %+v", err2)
 	}

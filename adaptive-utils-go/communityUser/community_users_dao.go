@@ -17,10 +17,10 @@ type DAO interface {
 	Read(userID string) ([]models.AdaptiveCommunityUser3, error)
 	ReadUnsafe(userID string) []models.AdaptiveCommunityUser3
 	ReadCommunityUsers(channelID string) (users []models.AdaptiveCommunityUser3, err error)
-	ReadCommunityMembers(channelID string, platformID models.PlatformID) (users []models.AdaptiveCommunityUser3, err error)
-	ReadCommunityMembersUnsafe(channelID string, platformID models.PlatformID) (users []models.AdaptiveCommunityUser3)
-	ReadAnyCommunityUsers(platformID models.PlatformID) (users []models.AdaptiveCommunityUser3, err error)
-	ReadAnyCommunityUsersUnsafe(platformID models.PlatformID) (users []models.AdaptiveCommunityUser3)
+	ReadCommunityMembers(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error)
+	ReadCommunityMembersUnsafe(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3)
+	ReadAnyCommunityUsers(teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error)
+	ReadAnyCommunityUsersUnsafe(teamID models.TeamID) (users []models.AdaptiveCommunityUser3)
 	ReadCommunityUserOptional(channelID string, userID string) (user []models.AdaptiveCommunityUser3, err error)
 	ReadCommunityUserOptionalUnsafe(channelID string, userID string) (user []models.AdaptiveCommunityUser3)
 	DeleteUserFromCommunity(channelID string, userID string) (err error)
@@ -96,39 +96,39 @@ func (d DAOImpl) ReadCommunityUsersUnsafe(channelID string) (users []models.Adap
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s table on %s index", d.Name, d.UserCommunityIndex))
 	return
 }
-// ReadCommunityMembers reads members using platformID
-func (d DAOImpl) ReadCommunityMembers(channelID string, platformID models.PlatformID) (users []models.AdaptiveCommunityUser3, err error) {
+// ReadCommunityMembers reads members using teamID
+func (d DAOImpl) ReadCommunityMembers(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error) {
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
 		IndexName: d.UserCommunityIndex,
 		Condition: "platform_id = :pi AND community_id = :c",
 		Attributes: map[string]interface{}{
 			":c":  channelID,
-			":pi": platformID,
+			":pi": teamID,
 		},
 	}, map[string]string{}, true, -1, &users)
 	return
 }
 // ReadCommunityMembersUnsafe read and panic
-func (d DAOImpl) ReadCommunityMembersUnsafe(channelID string, platformID models.PlatformID) (users []models.AdaptiveCommunityUser3) {
-	users, err := d.ReadCommunityMembers(channelID, platformID)
+func (d DAOImpl) ReadCommunityMembersUnsafe(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3) {
+	users, err := d.ReadCommunityMembers(channelID, teamID)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s table on %s index",
 		d.Name, d.UserCommunityIndex))
 	return
 }
 
-func (d DAOImpl) ReadAnyCommunityUsers(platformID models.PlatformID) (users []models.AdaptiveCommunityUser3, err error) {
+func (d DAOImpl) ReadAnyCommunityUsers(teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error) {
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
 		IndexName: d.CommunityIndex,
 		Condition: "platform_id = :pi",
 		Attributes: map[string]interface{}{
-			":pi": platformID,
+			":pi": teamID,
 		},
 	}, map[string]string{}, true, -1, &users)
 	return
 }
 
-func (d DAOImpl) ReadAnyCommunityUsersUnsafe(platformID models.PlatformID) (users []models.AdaptiveCommunityUser3) {
-	users, err := d.ReadAnyCommunityUsers(platformID)
+func (d DAOImpl) ReadAnyCommunityUsersUnsafe(teamID models.TeamID) (users []models.AdaptiveCommunityUser3) {
+	users, err := d.ReadAnyCommunityUsers(teamID)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s table on %s index",
 		d.Name, d.CommunityIndex))
 	return

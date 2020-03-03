@@ -2,6 +2,7 @@ package adaptive_utils_go
 
 import (
 	"encoding/json"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/aws/aws-lambda-go/events"
@@ -37,7 +38,7 @@ func TestRequestParsing(t *testing.T) {
 				ID:        id,
 				Namespace: "adaptive-channel",
 				PlatformRequest: models.PlatformRequest{
-					PlatformID:   models.PlatformID(apiAppID),
+					TeamID:       models.ParseTeamID(daosCommon.PlatformID(apiAppID)),
 					SlackRequest: models.EventsAPIEvent(requestPayload),
 				},
 			}

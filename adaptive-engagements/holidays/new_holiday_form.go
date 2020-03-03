@@ -22,7 +22,7 @@ const (
 // a new ad-hoc holiday
 func CreateAdHocHolidayEng(mc models.MessageCallback,
 	fallback, learnTrailPath, namespace string, check models.UserEngagementCheckWithValue,
-	platformID models.PlatformID) models.UserEngagement {
+	teamID models.TeamID) models.UserEngagement {
 	title := "Create an ad-hoc holiday"
 	actions := models.AppendOptionalAction(
 		[]ebm.AttachmentAction{
@@ -31,7 +31,7 @@ func CreateAdHocHolidayEng(mc models.MessageCallback,
 	fields := []ebm.AttachmentField{}
 	urgent := true
 	return utils.MakeUserEngagement(mc, title, core.EmptyString, fallback,
-		mc.Source, actions, fields, urgent, namespace, time.Now().Unix(), check, platformID)
+		mc.Source, actions, fields, urgent, namespace, time.Now().Unix(), check, teamID)
 }
 
 // EditAdHocHolidayForm creates a form for modifying/constructing an ad-hoc holiday

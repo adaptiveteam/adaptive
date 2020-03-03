@@ -100,7 +100,7 @@ func (w workflowImpl) OnViewListOfQueryIssuesWithTypeInContext(issueQueryFactory
 		}
 
 		var prefetchedIssues []Issue
-		prefetchedIssues, err = w.prefetchManyIssuesWithoutProgress(ctx.PlatformID, issues)
+		prefetchedIssues, err = w.prefetchManyIssuesWithoutProgress(ctx.TeamID, issues)
 		if err != nil {
 			return
 		}
