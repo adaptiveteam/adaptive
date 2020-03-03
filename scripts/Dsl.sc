@@ -80,7 +80,7 @@ def indexToStringBasedEnumItem(index: Index): StringBasedEnumItem =
 def fieldNamesModule(table: Table, imports: Imports): Module = 
   Module(Filename(table.entity.name ++ "Names".camel, ".go"), 
     List(GoModulePart(
-      List(),//imports.importClauses,
+      List(),// no imports are needed for string constants
       List(
         List(StringBasedEnum("FieldName".camel, table.entity.fields.map(fieldToStringBasedEnumItem))),
         table.indices.headOption.toList.map(_ => 
@@ -91,15 +91,20 @@ def fieldNamesModule(table: Table, imports: Imports): Module =
   )
 
 
-def daoConnectionModule(table: Table, imports: Imports): Module = 
+def daoConnectionModule(table: Table, imports: Imports): Module = {
+  val unusedImports = List("encoding/json", "strings", 
+    "github.com/adaptiveteam/adaptive/engagement-builder/model")
+  val importClauses = imports.importClauses.filterNot(ic => unusedImports.contains(ic.url))
+  val importClauses2 = if(table.indices.isEmpty) importClauses.filterNot(_.url == "github.com/adaptiveteam/adaptive/aws-utils-go") else importClauses
   Module(Filename(table.entity.name ++ "ConnectionBased".camel, ".go"), 
     List(GoModulePart(
-      imports.importClauses,
+      importClauses2,
       List(
         ConnectionBasedDao(table)
       )
     ))
   )
+}
 
 def goFieldParser(goTypes: Map[String, TypeInfo])(fieldDeclaration: String): Field = {
     try {

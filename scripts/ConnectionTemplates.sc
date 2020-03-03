@@ -98,9 +98,11 @@ case class DaoFunctionTemplates(table: Table){
 	def DaoOperationCreateUnsafeTemplate: String =
 		s"""
 		|// CreateUnsafe saves the $structName.
-		|func CreateUnsafe($entityArgValue) {
-		|	err2 := Create($structVarName)(conn)
-		|	core.ErrorHandler(err2, "daos/$structName", fmt.Sprintf("Could not create $formatIds in %s\\n", ${idFieldNames.map{f => structVarName + "." + f}.mkString(", ")}, TableName(conn.ClientID)))
+		|func CreateUnsafe($entityArgValue) func (conn common.DynamoDBConnection) {
+		|	return func (conn common.DynamoDBConnection) {
+		|		err2 := Create($structVarName)(conn)
+		|		core.ErrorHandler(err2, "daos/$structName", fmt.Sprintf("Could not create $formatIds in %s\\n", ${idFieldNames.map{f => structVarName + "." + f}.mkString(", ")}, TableName(conn.ClientID)))
+		|	}
 		|}
 		|""".stripMargin
 
@@ -315,13 +317,13 @@ case class DaoFunctionTemplates(table: Table){
 		def ReadByIndexUnsafeTemplate: String = {
 			s"""
 			|func ReadBy${indexShortName}Unsafe($args) func (conn common.DynamoDBConnection) (out []$structName) {
-			|	return {
+			|	return func (conn common.DynamoDBConnection) (out []$structName) {
 			|		out, err2 := ReadBy${indexShortName}(${index.fields.map(varName).mkString(", ")})(conn)
 			|		core.ErrorHandler(err2, "daos/$structName", fmt.Sprintf("Could not query $indexFullName on %s table\\n", TableName(conn.ClientID)))
 			|		return
 			|	}
 			|}
-			|"""
+			|""".stripMargin
 		}
 	}
 
