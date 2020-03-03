@@ -1,6 +1,9 @@
 import $file.Meta
 import Meta._
 
+import $file.Templates
+import Templates._
+
 lazy val golangStringRawType = simpleType("String", "string", "\"\"", "S")
 
 lazy val timestampRawType = simpleType("Timestamp", "string", "\"\"", "S")
@@ -28,6 +31,9 @@ implicit class SourceFileOps(sf: SourceFile) {
 }
 
 implicit class SimpleNameOps(name: SimpleName) {
+  def ++(other: SimpleName): SimpleName = 
+    SimpleName(name.parts ++ other.parts)
+
   def init: SimpleName = SimpleName(name.parts.init)
 
   def ^^(value: String): StringBasedEnumItem = 
@@ -50,7 +56,8 @@ def defaultPackage(table: Table, imports: Imports): Package =
   Package(table.entity.name, 
     List(
       daoModule(table, imports),
-      daoConnectionModule(table, imports)
+      daoConnectionModule(table, imports),
+      fieldNamesModule(table, imports)
     )
   )
 
@@ -65,9 +72,27 @@ def daoModule(table: Table, imports: Imports): Module =
     ))
   )
 
+def fieldToStringBasedEnumItem(field: Field): StringBasedEnumItem = 
+  StringBasedEnumItem(field.name, snakeCaseName(field.dbName))
+def indexToStringBasedEnumItem(index: Index): StringBasedEnumItem = 
+  StringBasedEnumItem(index.name, goPublicName(index.name))
+
+def fieldNamesModule(table: Table, imports: Imports): Module = 
+  Module(Filename(table.entity.name ++ "Names".camel, ".go"), 
+    List(GoModulePart(
+      List(),//imports.importClauses,
+      List(
+        List(StringBasedEnum("FieldName".camel, table.entity.fields.map(fieldToStringBasedEnumItem))),
+        table.indices.headOption.toList.map(_ => 
+          StringBasedEnum("IndexName".camel, table.indices.map(indexToStringBasedEnumItem))
+        )
+      ).flatten
+    ))
+  )
+
 
 def daoConnectionModule(table: Table, imports: Imports): Module = 
-  Module(Filename("ConnectionBased".camel, ".go"), 
+  Module(Filename(table.entity.name ++ "ConnectionBased".camel, ".go"), 
     List(GoModulePart(
       imports.importClauses,
       List(

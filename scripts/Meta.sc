@@ -83,6 +83,8 @@ case class StringBasedEnumItem(name: SimpleName, value: String)
 case class StringBasedEnum(name: SimpleName, values: List[StringBasedEnumItem]) extends GoDefinition
 
 case class Struct(entity: Entity) extends GoDefinition
+// A list of constants with the single `const` header
+// case class ConstBlock(consts: List[Const]) extends GoDefinition
 
 case class ImportClause(nameOpt: Option[String], url: String) {
   def name: String = nameOpt.getOrElse{
