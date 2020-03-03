@@ -13,15 +13,18 @@ type DynamoDBConnectionGen struct {
 // ClientID allows to get table names.
 // PlatformID is the sharding key that is required in all queries.
 type DynamoDBConnection struct {
-	Dynamo     *awsutils.DynamoRequest
-	ClientID   string
-	PlatformID PlatformID
+	Dynamo          *awsutils.DynamoRequest
+	ClientID        string
+	PlatformID      PlatformID
 }
 
 func (dgen DynamoDBConnectionGen)ForPlatformID(platformID PlatformID) DynamoDBConnection {
 	return DynamoDBConnection{
-		Dynamo: dgen.Dynamo,
-		ClientID: dgen.TableNamePrefix,
-		PlatformID: platformID,
+		Dynamo:          dgen.Dynamo,
+		ClientID:        dgen.TableNamePrefix,
+		PlatformID:      platformID,
 	}
 }
+// ConnectionProc a procedure that takes a connection, performs some operation
+// and possibly returns an error
+type ConnectionProc = func (conn DynamoDBConnection) (err error)
