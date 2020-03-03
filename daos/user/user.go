@@ -25,7 +25,7 @@ type User struct  {
 	AdaptiveScheduledTime string `json:"adaptive_scheduled_time,omitempty"`
 	AdaptiveScheduledTimeInUTC string `json:"adaptive_scheduled_time_in_utc,omitempty"`
 	PlatformID common.PlatformID `json:"platform_id"`
-	PlatformOrg string `json:"platform_org"`
+	PlatformOrg string `json:"platform_org,omitempty"`
 	IsAdmin bool `json:"is_admin"`
 	IsShared bool `json:"is_shared"`
 	DeactivatedAt string `json:"deactivated_at,omitempty"`
@@ -52,7 +52,6 @@ func (user User)CollectEmptyFields() (emptyFields []string, ok bool) {
 	if user.DisplayName == "" { emptyFields = append(emptyFields, "DisplayName")}
 	if user.Timezone == "" { emptyFields = append(emptyFields, "Timezone")}
 	if user.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
-	if user.PlatformOrg == "" { emptyFields = append(emptyFields, "PlatformOrg")}
 	ok = len(emptyFields) == 0
 	return
 }

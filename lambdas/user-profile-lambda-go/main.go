@@ -1,27 +1,26 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"context"
 	"fmt"
-
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
-	"github.com/pkg/errors"
-
-	// core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"log"
 
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/nlopes/slack"
+	"github.com/pkg/errors"
 )
 
 func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models.UserToken, err error) {
+	defer core.RecoverToErrorVar("profile-lambda", &err)
 	defer func() {
-		if err2 := recover(); err2 != nil {
-			err = fmt.Errorf("error in user-profile-lambda %v", err2)
+		if err != nil {
+			log.Printf("Error in user-profile-lambda:%v\n", err)
 		}
 	}()
-	fmt.Printf("HandleRequest UserID='%s', PlatformID='%s'\n", engage.UserID, engage.TeamID)
+	log.Printf("HandleRequest UserID='%s', TeamID='%s'\n", engage.UserID, engage.TeamID.ToString())
 	uToken = models.UserToken{}
 	// this is used for keeping this lambda warm
 	// we send a request with an empty user every 30 min
@@ -46,15 +45,15 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 	if teamID.IsEmpty() {
 		teamID = teamIDFromDB
 	}
-	platform, err2 := platformTokenDao.Read(teamID)
-	if err2 != nil {
-		err = wrapError(err2, "Couldn't query table "+confTable)
+	token, err3 := platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
+	if err3 != nil {
+		err = wrapError(err3, "Couldn't query table "+confTable)
 		return
 	}
 	uToken = models.UserToken{
 		UserProfile:           profile,
-		ClientPlatform:        models.ClientPlatform{PlatformName: platform.PlatformName, PlatformToken: platform.PlatformToken},
-		ClientPlatformRequest: models.ClientPlatformRequest{TeamID: models.ParseTeamID(platform.PlatformID), Org: platform.Org},
+		ClientPlatform:        models.ClientPlatform{PlatformName: models.SlackPlatform, PlatformToken: token},
+		ClientPlatformRequest: models.ClientPlatformRequest{TeamID: teamID, Org: ""},
 	}
 	uToken.ClientPlatformRequest.TeamID = teamID
 
@@ -64,7 +63,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 func readUserProfile(userID string) (profile models.UserProfile, teamID models.TeamID, found bool, err error) {
 	var users []models.User
 	users, err = userDao.ReadOrEmpty(userID)
-	found = len(users)>0
+	found = len(users) > 0
 	if found {
 		profile = convertUserToProfile(users[0])
 		teamID = models.ParseTeamID(users[0].PlatformID)
@@ -94,7 +93,8 @@ func refreshUserCache(userID string, teamID models.TeamID) (profile models.UserP
 	if teamID.IsEmpty() {
 		panic(errors.New("refreshUserCache: teamID is empty when querying " + userID))
 	}
-	token, err := platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
+	var token string
+	token, err = platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
 	if err == nil {
 		api := slack.New(token)
 		user, err2 := api.GetUserInfo(userID)

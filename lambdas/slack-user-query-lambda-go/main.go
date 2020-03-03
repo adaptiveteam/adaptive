@@ -33,10 +33,11 @@ func addSlackUser(user slack.User, event models.ClientPlatformRequest, teamID mo
 	item.IsAdaptiveBot = user.IsBot && user.Profile.ApiAppID == teamID.ToString()
 
 	// Check if the user already exists
-	existingUser, err := userDao.Read(user.ID)
+	var users []models.User
+	users, err = userDao.ReadOrEmpty(user.ID)
 	if err == nil {
 		// Id not-empty meaning user exists
-		if existingUser.ID != "" {
+		for _, existingUser := range users {
 			// Preserving the scheduled time
 			item.AdaptiveScheduledTime = existingUser.AdaptiveScheduledTime
 			item.AdaptiveScheduledTimeInUTC = existingUser.AdaptiveScheduledTimeInUTC

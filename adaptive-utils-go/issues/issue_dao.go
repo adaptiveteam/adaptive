@@ -631,7 +631,11 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func (DynamoDBConnection)(err
 			initCommID := issueRef.StrategyInitiative.InitiativeCommunityID
 			if initCommID != "" {
 				dao := strategyInitiativeCommunity.NewDAOByTableName(DynamoDBConnection.Dynamo, "PrefetchIssueWithoutProgress", models.StrategyInitiativeCommunitiesTableName(DynamoDBConnection.ClientID))
-				issueRef.PrefetchedData.AlignedInitiativeCommunity, err = dao.Read(initCommID, DynamoDBConnection.PlatformID)
+				var comms []strategyInitiativeCommunity.StrategyInitiativeCommunity
+				comms, err = dao.ReadOrEmpty(initCommID, DynamoDBConnection.PlatformID)
+				for _, comm := range comms {
+					issueRef.PrefetchedData.AlignedInitiativeCommunity = comm
+				}
 				if err != nil { return }
 			}
 			capObjID := issueRef.StrategyInitiative.CapabilityObjective
