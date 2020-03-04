@@ -34,7 +34,7 @@ var (
 	platformNotificationTopic     = utils.NonEmptyEnv("PLATFORM_NOTIFICATION_TOPIC")
 	engScriptingLambda            = utils.NonEmptyEnv("USER_ENGAGEMENT_SCRIPTING_LAMBDA_NAME")
 	coachingRelationshipsTable    = "" // utils.NonEmptyEnv("COACHING_RELATIONSHIPS_TABLE_NAME")
-	coachingRejectionsTable       = utils.NonEmptyEnv("COACHING_REJECTIONS_TABLE_NAME")
+	// coachingRejectionsTable       = utils.NonEmptyEnv("COACHING_REJECTIONS_TABLE_NAME")
 	userObjectivesTable           = utils.NonEmptyEnv("USER_OBJECTIVES_TABLE_NAME")
 	userObjectivesProgressTable   = utils.NonEmptyEnv("USER_OBJECTIVES_PROGRESS_TABLE")
 	communityUsersTable           = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")

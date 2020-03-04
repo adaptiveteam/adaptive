@@ -263,10 +263,13 @@ func dispatchCommunityDialogSubmission(dialog slack.InteractionCallback, teamID 
 	var msgState MsgState
 	err = json.Unmarshal([]byte(dialog.State), &msgState)
 
-	if mc.Topic == CoachingName {
-		communityNamespaceCoachingDialogSubmissionHandler(dialog, msgState, *mc, dialog.Submission)
-	} else if mc.Topic == "init" {
+	// if mc.Topic == CoachingName {
+	// 	communityNamespaceCoachingDialogSubmissionHandler(dialog, msgState, *mc, dialog.Submission)
+	// } else 
+	if mc.Topic == "init" {
 		dispatchCommunitySimulateDialogSubmission(dialog, msgState, *mc, dialog.Submission)
+	} else {
+		logger.Errorf("Unhandled mc.Topic=%s", mc.Topic)
 	}
 }
 

@@ -6,11 +6,11 @@ import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+	// utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
+	// core "github.com/adaptiveteam/adaptive/core-utils-go"
+	// "github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	"github.com/nlopes/slack"
 )
@@ -42,30 +42,30 @@ func onRequestCoachClicked(request slack.InteractionCallback, mc models.MessageC
 	})
 }
 
-func communityNamespaceCoachingDialogSubmissionHandler(dialog slack.InteractionCallback, msgState MsgState, mc models.MessageCallback, form map[string]string) {
-	switch mc.Action {
-	case CoachConfirm:
-		// This is the dialog for when a coachee doesn't accept coach
-		rejectionComments := ui.RichText(form[CommentsName])
-		attachs := viewCommentsAttachment(mc,
-			CoachingRequestRejectionReasonTitleToCoachee,
-			rejectionComments)
-		publish(models.PlatformSimpleNotification{UserId: dialog.User.ID, Channel: dialog.Channel.ID, Ts: msgState.ThreadTs, Attachments: attachs})
-		err := d.PutTableEntry(models.CoachingRejection{Id: mc.ToCallbackID(), CoachRequested: true, CoacheeRejected: true,
-			Comments: string(rejectionComments)}, coachingRejectionsTable)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not add entry to %s table", coachingRejectionsTable))
-	case RequestCoach:
-		// TODO: Remove this
-		// This is the dialog for when a coach doesn't accept coachee
-		rejectionComments := ui.RichText(form[CommentsName])
-		attachs := viewCommentsAttachment(mc,
-			CoachingRequestRejectionReasonTitleToCoach,
-			rejectionComments)
-		publish(models.PlatformSimpleNotification{UserId: dialog.User.ID, Channel: dialog.Channel.ID, Ts: msgState.ThreadTs, Attachments: attachs})
-		err := d.PutTableEntry(models.CoachingRejection{Id: mc.ToCallbackID(), CoacheeRequested: true, CoachRejected: true,
-			Comments: string(rejectionComments)}, coachingRejectionsTable)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not add entry to %s table", coachingRejectionsTable))
-		// Updating engagement as answered
-		utils.UpdateEngAsAnswered(mc.Target, mc.ToCallbackID(), engagementTable, d, namespace)
-	}
-}
+// func communityNamespaceCoachingDialogSubmissionHandler(dialog slack.InteractionCallback, msgState MsgState, mc models.MessageCallback, form map[string]string) {
+// 	switch mc.Action {
+// 	case CoachConfirm:
+// 		// This is the dialog for when a coachee doesn't accept coach
+// 		rejectionComments := ui.RichText(form[CommentsName])
+// 		attachs := viewCommentsAttachment(mc,
+// 			CoachingRequestRejectionReasonTitleToCoachee,
+// 			rejectionComments)
+// 		publish(models.PlatformSimpleNotification{UserId: dialog.User.ID, Channel: dialog.Channel.ID, Ts: msgState.ThreadTs, Attachments: attachs})
+// 		err := d.PutTableEntry(models.CoachingRejection{Id: mc.ToCallbackID(), CoachRequested: true, CoacheeRejected: true,
+// 			Comments: string(rejectionComments)}, coachingRejectionsTable)
+// 		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not add entry to %s table", coachingRejectionsTable))
+// 	case RequestCoach:
+// 		// TODO: Remove this
+// 		// This is the dialog for when a coach doesn't accept coachee
+// 		rejectionComments := ui.RichText(form[CommentsName])
+// 		attachs := viewCommentsAttachment(mc,
+// 			CoachingRequestRejectionReasonTitleToCoach,
+// 			rejectionComments)
+// 		publish(models.PlatformSimpleNotification{UserId: dialog.User.ID, Channel: dialog.Channel.ID, Ts: msgState.ThreadTs, Attachments: attachs})
+// 		err := d.PutTableEntry(models.CoachingRejection{Id: mc.ToCallbackID(), CoacheeRequested: true, CoachRejected: true,
+// 			Comments: string(rejectionComments)}, coachingRejectionsTable)
+// 		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not add entry to %s table", coachingRejectionsTable))
+// 		// Updating engagement as answered
+// 		utils.UpdateEngAsAnswered(mc.Target, mc.ToCallbackID(), engagementTable, d, namespace)
+// 	}
+// }
