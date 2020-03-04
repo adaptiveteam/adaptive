@@ -1,6 +1,11 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
+	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
+	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/pkg/errors"
 	"context"
 	"encoding/json"
@@ -107,7 +112,7 @@ const (
 func IDOCoaches(userID string, teamID models.TeamID) []models.KvPair {
 	var filteredCoaches []models.KvPair
 	coaches := objectives.IDOCoaches(userID, teamID,
-		communityUsersTable, communityUsersCommunityIndex, UserIDsToDisplayNames)
+		communityUsersTable, string(adaptiveCommunityUser.PlatformIDCommunityIDIndex), UserIDsToDisplayNames)
 	for _, each := range coaches {
 		if each.Value != userID {
 			// Filtering out the self-user
@@ -546,7 +551,7 @@ func filterObjectives(objs []models.UserObjective, predicate ObjectivePredicate)
 func ListObjectivesWithEvaluation(userID, channelID string, fn ObjectivePredicate,
 	uofn UserObjectiveAttachments, typ models.DevelopmentObjectiveType, threadTs string) {
 	// Times in AWS are in UTC
-	allObjs := objectives.AllUserObjectives(userID, userObjectivesTable, userObjectivesUserIdIndex, typ, 0)
+	allObjs := objectives.AllUserObjectives(userID, userObjectivesTable, string(userObjective.UserIDTypeIndex), typ, 0)
 	openObjs := filterObjectives(allObjs, fn)
 	if len(openObjs) > 0 {
 		ListObjectives(userID, channelID, allObjs, uofn, threadTs)
@@ -596,13 +601,8 @@ func objectiveType(teamID models.TeamID) func(uObj models.UserObjective) (typ st
 				alignment = renderStrategyAssociations("Initiative", "Name", initiative)
 			case models.ObjectiveCompetencyAlignment:
 				valueID := uObj.StrategyAlignmentEntityID
-				dns := common.DeprecatedGetGlobalDns()
-				valueDao := values.DAOImpl{DNS: &dns}
-				valueDao.Name = valuesTableName
-				valueDao.PlatformIDIndex = valuesPlatformIdIndex
-
 				values, err2 := valueDao.ReadOrEmpty(valueID)
-				core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not read value from %s table", valuesTableName))
+				core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not read adaptive value %s ", valueID))
 				for _, value := range values {
 					alignment = renderStrategyAssociations("Competency", "Name", value)
 				}
@@ -792,7 +792,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// onViewIDOs(np)
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfIssuesByTypeEvent(issues.IDO)) // "view-idos")
 		// userObjs := objectives.AllUserObjectives(userID, userObjectivesTable,
-		// 	userObjectivesUserIdIndex, models.IndividualDevelopmentObjective, 0)
+		// 	string(userObjective.UserIDTypeIndex), models.IndividualDevelopmentObjective, 0)
 		// if len(userObjs) > 0 {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 		// 		Message: "You can find the list of your Individual Development Objectives in the thread."})
@@ -810,7 +810,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 	case ViewStaleObjectives:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfStaleIssuesByTypeEvent(issues.SObjective))
 		// userObjs := strategy.UserCapabilityObjectivesWithNoProgressInAMonth(userID, Today(),
-		// 	userObjectivesTable, userObjectivesUserIdIndex, userObjectivesProgressTable, 0)
+		// 	userObjectivesTable, string(userObjective.UserIDTypeIndex), userObjectivesProgressTable, 0)
 		// if len(userObjs) > 0 {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 		// 		Message: "You can find the list of your Capability Objectives that haven't been updated in the last 30 days in the thread below"})
@@ -829,7 +829,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 	case ViewStaleInitiatives:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfStaleIssuesByTypeEvent(issues.Initiative))
 		// userObjs := strategy.UserInitiativesWithNoProgressInAWeek(userID, Today(),
-		// 	userObjectivesTable, userObjectivesUserIdIndex, userObjectivesProgressTable, 0)
+		// 	userObjectivesTable, string(userObjective.UserIDTypeIndex), userObjectivesProgressTable, 0)
 		// if len(userObjs) > 0 {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 		// 		Message: "You can find the list of your Initiatives that haven't been updated in the last 7 days in the thread below."})
@@ -846,10 +846,10 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfStaleIssuesByTypeEvent(issues.IDO))
 		// fmt.Printf("UserIDOsWithNoProgressInAWeek(%s, %s, %s, %s, %s)",
 		// 	userID, Today(),
-		// 	userObjectivesTable, userObjectivesUserIdIndex, userObjectivesProgressTable)
+		// 	userObjectivesTable, string(userObjective.UserIDTypeIndex), userObjectivesProgressTable)
 
 		// userObjs := objectives.UserIDOsWithNoProgressInAWeek(userID, Today(),
-		// 	userObjectivesTable, userObjectivesUserIdIndex, userObjectivesProgressTable)
+		// 	userObjectivesTable, string(userObjective.UserIDTypeIndex), userObjectivesProgressTable)
 		// if len(userObjs) > 0 {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 		// 		Message: "You can find  a list of your stale Individual Development Objectives in the thread"})
@@ -909,7 +909,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfAdvocacyIssuesByTypeEvent(issues.SObjective))
 
 		// // List objectives for which the user is an advocate for
-		// stratObjs := objectives.AllUserObjectives(userID, userObjectivesTable, userObjectivesUserIdIndex,
+		// stratObjs := objectives.AllUserObjectives(userID, userObjectivesTable, string(userObjective.UserIDTypeIndex),
 		// 	models.StrategyDevelopmentObjective, 0)
 		// if len(stratObjs) > 0 {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
@@ -931,13 +931,13 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// Query all the objectives for which no partner is assigned
 		var uaObjs []models.UserObjective
 		err := d.QueryTableWithIndex(userObjectivesTable, awsutils.DynamoIndexExpression{
-			IndexName: userObjectivesAcceptedIndex,
+			IndexName: string(userObjective.AcceptedIndex),
 			Condition: "accepted = :a",
 			Attributes: map[string]interface{}{
 				":a": aws.Int(0),
 			},
 		}, map[string]string{}, true, -1, &uaObjs)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s index on %s table", userObjectivesAcceptedIndex, userObjectivesTable))
+		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s index on %s table", userObjective.AcceptedIndex, userObjectivesTable))
 		for _, each := range uaObjs {
 			users = append(users, each.UserID)
 		}
@@ -1331,7 +1331,7 @@ func onPartnerSelectUser(request slack.InteractionCallback, teamID models.TeamID
 	case string(models.Now):
 		// Listing not accepted objectives for a user
 		typ := models.IndividualDevelopmentObjective
-		allObjs := objectives.AllUserObjectives(userID, userObjectivesTable, userObjectivesUserIdIndex, typ, 0)
+		allObjs := objectives.AllUserObjectives(userID, userObjectivesTable, string(userObjective.UserIDTypeIndex), typ, 0)
 		openObjs := filterObjectives(allObjs, func(objective models.UserObjective) bool {
 			return objective.Accepted != 1
 		})
@@ -1621,17 +1621,17 @@ func onCapabilityObjectiveUpdateDueWithinWeek(request slack.InteractionCallback,
 		switch act {
 		case user.IDOUpdateDueWithinWeek:
 			objs = objectives.UserIDOsWithNoProgressInAWeek(userID, Today(), userObjectivesTable,
-				userObjectivesUserIdIndex, userObjectivesProgressTable)
+				string(userObjective.UserIDTypeIndex), userObjectivesProgressTable)
 			text = "You can find the list of stale Individual Development Objectives in the thread"
 			emptyListMessage = "All of your Individual Development Objectives has been updated"
 		case user.CapabilityObjectiveUpdateDueWithinMonth:
 			objs = strategy.UserCapabilityObjectivesWithNoProgressInAMonth(userID, Today(), userObjectivesTable,
-				userObjectivesUserIdIndex, userObjectivesProgressTable, 0)
+				string(userObjective.UserIDTypeIndex), userObjectivesProgressTable, 0)
 			text = "You can find the list of stale Capability Objectives in the thread"
 			emptyListMessage = "All of your capability objectives has been updated"
 		case user.InitiativeUpdateDueWithinWeek:
 			objs = strategy.UserInitiativesWithNoProgressInAWeek(userID, Today(), userObjectivesTable,
-				userObjectivesUserIdIndex, userObjectivesProgressTable, 0)
+				string(userObjective.UserIDTypeIndex), userObjectivesProgressTable, 0)
 			text = "You can find the list of stale Initiatives in the thread"
 			emptyListMessage = "All of your Initiatives has been updated"
 		}
@@ -1953,20 +1953,20 @@ func onCoachingRequestRejected(request slack.InteractionCallback, mc models.Mess
 	userID := request.User.ID
 	rejectionComments := dialog.Submission[CommentsName]
 
-	apr := models.AccountabilityPartnerShipRejection{ObjectiveID: mc.Target,
-		CreatedOn: core.CurrentRFCTimestamp(), UserID: mc.Source,
-		AccountabilityPartnerID: dialog.User.ID, Comments: rejectionComments}
-	err := d.PutTableEntry(apr, partnershipRejectionsTable)
-	if err == nil {
+	// apr := models.AccountabilityPartnerShipRejection{ObjectiveID: mc.Target,
+	// 	CreatedOn: core.CurrentRFCTimestamp(), UserID: mc.Source,
+	// 	AccountabilityPartnerID: dialog.User.ID, Comments: rejectionComments}
+	// err := d.PutTableEntry(apr, partnershipRejectionsTable)
+	// if err == nil {
 		notes, coachAttachs := coachingRejectionRequestNotifications(mc, userID, rejectionComments, msgState.ThreadTs)
 		platformInstance.PublishAll(notes)
 
 		utils.ECAnalysis(rejectionComments, IDOCoachingRejectionContext, "Non-acceptance comments",
 			dialogTableName, mc.ToCallbackID(), dialog.User.ID, dialog.Channel.ID, msgState.Ts,
 			msgState.ThreadTs, coachAttachs, s, platformNotificationTopic, namespace)
-	} else {
-		logger.WithField("error", err).Errorf("Could not write partner rejection entry in %s table", partnershipRejectionsTable)
-	}
+	// } else {
+	// 	logger.WithField("error", err).Errorf("Could not write partner rejection entry in %s table", partnershipRejectionsTable)
+	// }
 }
 
 func coachingRejectionRequestNotifications(mc models.MessageCallback, coachID, comments string, coachMsgThreadTs string) (
@@ -2204,8 +2204,8 @@ func engageCoacheeReviewAsk(teamID models.TeamID, mc *models.MessageCallback, us
 	mc.Set("Action", ReviewCoacheeProgressAsk)
 
 	// Post an engagement to the user asking to review coachee's progress
-	objs := objectives.AllUserObjectivesWithProgress(mc.Target, userObjectivesTable, userObjectivesUserIdIndex,
-		userObjectivesProgressTable, userObjectivesProgressIdIndex, models.IndividualDevelopmentObjective, 0)
+	objs := objectives.AllUserObjectivesWithProgress(mc.Target, userObjectivesTable, string(userObjective.UserIDTypeIndex),
+		userObjectivesProgressTable, string(userObjectiveProgress.IDIndex), models.IndividualDevelopmentObjective, 0)
 
 	var percentDone string
 	if len(objs) > 0 {
@@ -2330,7 +2330,7 @@ func clipString(str string, prefixLength int) string {
 // initiativesGroup formats one option group with initiatives
 func initiativesGroup(userID string) (res []ebm.AttachmentActionElementOptionGroup, opInits []models.StrategyInitiative) {
 	opInits = strategy.UserInitiativeCommunityInitiatives(userID, strategyInitiativesTableName,
-		strategyInitiativesInitiativeCommunityIndex, communityUsersTable, communityUsersUserIndex)
+		string(strategyInitiative.InitiativeCommunityIDIndex), communityUsersTable, string(adaptiveCommunityUser.UserIDIndex))
 
 	if len(opInits) != 0 {
 		grp := ebm.AttachmentActionElementOptionGroup{}
@@ -2359,8 +2359,8 @@ func (a MenuOptionLabelSorter) Less(i, j int) bool { return a[i].Label < a[j].La
 // objectives formats one option group with objectives
 func objectivesGroup(userID string, teamID models.TeamID, initiatives []models.StrategyInitiative) (res []ebm.AttachmentActionElementOptionGroup) {
 	capabilityObjectives := strategy.UserStrategyObjectives(userID, strategyObjectivesTableName,
-		strategyObjectivesPlatformIndex, userObjectivesTable,
-		communityUsersTable, communityUsersUserCommunityIndex)
+		string(strategyObjective.PlatformIDIndex), userObjectivesTable,
+		communityUsersTable, string(adaptiveCommunityUser.UserIDCommunityIDIndex))
 
 	var initiativeRelatedCapabilityObjectiveIDs []string
 	// Getting the last of related Capability Objective for each of the Initiatives

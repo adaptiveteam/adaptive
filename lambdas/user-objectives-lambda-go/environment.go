@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	"fmt"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
@@ -24,33 +25,20 @@ var (
 
 	engagementTable                  = utils.NonEmptyEnv("USER_ENGAGEMENTS_TABLE_NAME")
 	userTable                        = utils.NonEmptyEnv("USERS_TABLE_NAME")
-	usersPlatformIndex               = utils.NonEmptyEnv("USERS_PLATFORM_INDEX")
 	userProfileLambda                = utils.NonEmptyEnv("USER_PROFILE_LAMBDA_NAME")
 	userObjectivesTable              = utils.NonEmptyEnv("USER_OBJECTIVES_TABLE_NAME")        // needed
 	userObjectivesProgressTable      = utils.NonEmptyEnv("USER_OBJECTIVES_PROGRESS_TABLE")    // needed
-	userObjectivesProgressIdIndex    = utils.NonEmptyEnv("USER_OBJECTIVES_PROGRESS_ID_INDEX") // needed
-	userObjectivesUserIdIndex        = utils.NonEmptyEnv("USER_OBJECTIVES_USER_ID_INDEX")     // needed
-	userObjectivesAcceptedIndex      = utils.NonEmptyEnv("USER_OBJECTIVES_ACCEPTED_INDEX")
-	userObjectivesPartnerIndex       = utils.NonEmptyEnv("USER_OBJECTIVES_PARTNER_INDEX")
-	userObjectivesTypeIndex          = utils.NonEmptyEnv("USER_OBJECTIVES_TYPE_INDEX")
-	objectiveCloseoutPath            = utils.NonEmptyEnv("USER_OBJECTIVES_CLOSEOUT_LEARN_MORE_PATH")
+	objectiveCloseoutPath            = ""//utils.NonEmptyEnv("USER_OBJECTIVES_CLOSEOUT_LEARN_MORE_PATH")
 	dialogTableName                  = utils.NonEmptyEnv("DIALOG_TABLE")
 	communityUsersTable              = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
-	communityUsersCommunityIndex     = utils.NonEmptyEnv("COMMUNITY_USERS_COMMUNITY_INDEX")
-	communityUsersUserCommunityIndex = utils.NonEmptyEnv("COMMUNITY_USERS_USER_COMMUNITY_INDEX")
-	communityUsersUserIndex          = utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX")
 	communitiesTable                 = utils.NonEmptyEnv("USER_COMMUNITIES_TABLE")
-	partnershipRejectionsTable       = utils.NonEmptyEnv("ACCOUNTABILITY_PARTNERSHIP_REJECTION_TABLE")
+	// partnershipRejectionsTable       = utils.NonEmptyEnv("ACCOUNTABILITY_PARTNERSHIP_REJECTION_TABLE")
 
 	capabilityCommunitiesTableName     = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")
 	strategyInitiativeCommunitiesTable = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME")
 
 	strategyInitiativesTableName                = utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE_NAME")
-	strategyInitiativesPlatformIndex            = "StrategyInitiativesPlatformIndex"
 	strategyObjectivesTableName                 = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE")
-	strategyObjectivesPlatformIndex             = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_PLATFORM_INDEX")
-	strategyObjectivesCapabilityCommunityIndex  = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_CAPABILITY_COMMUNITY_INDEX")
-	strategyInitiativesInitiativeCommunityIndex = "StrategyInitiativesInitiativeCommunityIndex"
 )
 
 var (
@@ -63,8 +51,7 @@ var (
 	userDAO  = utilsUser.NewDAOFromSchema(d, namespace, schema)
 
 	sns                   = awsutils.NewSNS(region, "", namespace)
-	valuesTableName       = utils.NonEmptyEnv("VALUES_TABLE_NAME")
-	valuesPlatformIdIndex = utils.NonEmptyEnv("VALUES_PLATFORM_ID_INDEX")
+	valueDao              = adaptiveValue.NewDAO(d, namespace, clientID)
 
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 

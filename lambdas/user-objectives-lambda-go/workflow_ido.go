@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -725,7 +726,7 @@ func CreateIDOWorkflow_OnViewIDOs(ctx wf.EventHandlingContext) (out wf.EventOutp
 	out.Data = ctx.Data
 	out.KeepOriginal = true // we want to override it, so, not to delete
 	// Times in AWS are in UTC
-	allObjs := objectives.AllUserObjectives(userID, userObjectivesTable, userObjectivesUserIdIndex, typ, 0)
+	allObjs := objectives.AllUserObjectives(userID, userObjectivesTable, string(userObjective.UserIDTypeIndex), typ, 0)
 	threadMessages := wf.InteractiveMessages()
 	for _, obj := range allObjs {
 		view := viewObjectiveWritable(ctx, obj, obj)

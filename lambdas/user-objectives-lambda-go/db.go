@@ -2,13 +2,15 @@ package lambda
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"strconv"
 )
 
 // Retrieve user objective by it's id
@@ -45,13 +47,13 @@ func UsersForPartner(partnerId string) []string {
 	var uObjs []models.UserObjective
 	var users []string
 	err2 := d.QueryTableWithIndex(userObjectivesTable, awsutils.DynamoIndexExpression{
-		IndexName: userObjectivesPartnerIndex,
+		IndexName: string(userObjective.AccountabilityPartnerIndex),
 		Condition: "accountability_partner = :ap",
 		Attributes: map[string]interface{}{
 			":ap": aws.String(partnerId),
 		},
 	}, map[string]string{}, true, -1, &uObjs)
-	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query %s index on %s table", userObjectivesPartnerIndex, userObjectivesTable))
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query %s index on %s table", userObjective.AccountabilityPartnerIndex, userObjectivesTable))
 	for _, each := range uObjs {
 		users = append(users, each.UserID)
 	}
