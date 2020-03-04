@@ -73,10 +73,13 @@ def importClauseTemplate(i: ImportClause): String = i match {
     case ImportClause(None, url) => "\"" + url + "\"" 
 }
 
-def importsTemplate(i: Imports): List[String] = parensBlockNamed(
-    "import",
-    i.importClauses.map(importClauseTemplate)
-)
+def importsTemplate(i: Imports): List[String] = 
+  i.importClauses.headOption.toList.flatMap(_ => 
+    parensBlockNamed(
+        "import",
+        i.importClauses.map(importClauseTemplate)
+    )
+  )
 
 def deactivationFilter(entity: Entity): List[String] =
     entity.traits.filter(_ == DeactivationTrait).flatMap(_ => 

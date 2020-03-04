@@ -13,7 +13,8 @@ def dynamoType(tpe: TypeInfo): String = tpe match {
     case _ => "<unsupported type>"
 }
 
-def dynamoName(name: SimpleName): String = name.parts.map(_.map(_.toLower)).mkString("_")
+def dynamoName(name: SimpleName): String = 
+  snakeCaseName(name)
 
 def dbName(field: Field): String = dynamoName(field.dbName)
 
