@@ -483,8 +483,11 @@ val UserObjectiveTable = Table(
 )
 
 val UserObjectivePackage = Package(UserObjective.name, 
-    List(DevelopmentObjectiveType :: AlignedStrategyType :: 
-        daoModule(UserObjectiveTable, allEntitySpecificImports(UserObjective))
+    List(
+        DevelopmentObjectiveType :: AlignedStrategyType :: 
+            daoModule(UserObjectiveTable, allEntitySpecificImports(UserObjective)),
+        daoConnectionModule(UserObjectiveTable, allEntitySpecificImports(UserObjective)),
+        fieldNamesModule(UserObjectiveTable, allEntitySpecificImports(UserObjective))
     )
 )
 
@@ -525,11 +528,7 @@ val UserObjectiveProgressTable = Table(
     )
 )
 
-val UserObjectiveProgressPackage = Package(UserObjectiveProgress.name, 
-    List(//ObjectiveStatusColor :: 
-        daoModule(UserObjectiveProgressTable, imports)
-    )
-)
+val UserObjectiveProgressPackage = defaultPackage(UserObjectiveProgressTable, imports)
 
 val AdaptiveValue = Entity(
     "AdaptiveValue".camel, 
@@ -570,11 +569,7 @@ val ClientPlatformToken = Entity(
 val ClientPlatformTokenTable = Table(ClientPlatformToken, 
     Index(platformIdField, None), List()
 )
-val ClientPlatformTokenPackage = Package(ClientPlatformToken.name, 
-    List(//PlatformName :: 
-        daoModule(ClientPlatformTokenTable, imports)
-    )
-)
+val ClientPlatformTokenPackage = defaultPackage(ClientPlatformTokenTable, imports)
 
 val StrategyObjectiveType = TypeAlias("StrategyObjectiveType".camel, string)
 // TODO: rename field in DB and then remove `dbName` 
@@ -610,7 +605,9 @@ val StrategyObjectiveTable = Table(StrategyObjective,
 
 val StrategyObjectivePackage = Package(StrategyObjective.name, 
     List(StrategyObjectiveType :: 
-        daoModule(StrategyObjectiveTable, allEntitySpecificImports(StrategyObjective))
+        daoModule(StrategyObjectiveTable, allEntitySpecificImports(StrategyObjective)),
+        daoConnectionModule(StrategyObjectiveTable, allEntitySpecificImports(StrategyObjective)),
+        fieldNamesModule(StrategyObjectiveTable, allEntitySpecificImports(StrategyObjective))
     )
 )
 
@@ -631,11 +628,7 @@ val ObjectiveTypeDictionaryTable = Table(ObjectiveTypeDictionary,
     )
 )
 
-val ObjectiveTypeDictionaryPackage = Package(ObjectiveTypeDictionary.name, 
-    List(
-        daoModule(ObjectiveTypeDictionaryTable, allEntitySpecificImports(ObjectiveTypeDictionary))
-    )
-)
+val ObjectiveTypeDictionaryPackage = defaultPackage(ObjectiveTypeDictionaryTable, allEntitySpecificImports(ObjectiveTypeDictionary))
 
 val TypedObjective = Entity("TypedObjective".camel, 
     List(idField \\ "hash"),
@@ -660,12 +653,7 @@ val TypedObjectiveTable = Table(TypedObjective,
     )
 )
 
-val TypedObjectivePackage = Package(TypedObjective.name, 
-    List(
-        daoModule(TypedObjectiveTable, allEntitySpecificImports(TypedObjective))
-    )
-)
-
+val TypedObjectivePackage = defaultPackage(TypedObjectiveTable, allEntitySpecificImports(TypedObjective))
 
 val initiativeCommunityIDField = "InitiativeCommunityID".camel :: string
 
@@ -747,11 +735,15 @@ val StrategyCommunityTable = Table(StrategyCommunity,
     )
 )
 
-val StrategyCommunityPackage = Package(StrategyCommunity.name, 
-    List(//AdaptiveCommunityID :: 
-        daoModule(StrategyCommunityTable, allEntitySpecificImports(StrategyCommunity))
-    )
-)
+val StrategyCommunityPackage = defaultPackage(StrategyCommunityTable, allEntitySpecificImports(StrategyCommunity))
+
+// val StrategyCommunityPackage = Package(StrategyCommunity.name, 
+//     List(//AdaptiveCommunityID :: 
+//         daoModule(StrategyCommunityTable, allEntitySpecificImports(StrategyCommunity)),
+//         daoConnectionModule(table, imports),
+//         fieldNamesModule(table, imports)
+//     )
+// )
 
 val CapabilityCommunity = Entity(
     "CapabilityCommunity".camel, 
@@ -774,11 +766,7 @@ val CapabilityCommunityTable = Table(CapabilityCommunity,
     )
 )
 
-val CapabilityCommunityPackage = Package(CapabilityCommunity.name, 
-    List(
-        daoModule(CapabilityCommunityTable, allEntitySpecificImports(CapabilityCommunity))
-    )
-)
+val CapabilityCommunityPackage = defaultPackage(CapabilityCommunityTable, allEntitySpecificImports(CapabilityCommunity))
 
 val StrategyInitiativeCommunity = Entity(
     "StrategyInitiativeCommunity".camel, 
