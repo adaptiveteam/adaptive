@@ -6,6 +6,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/aws/aws-sdk-go/aws"
@@ -30,7 +31,7 @@ func availableStrategyCommunities(teamID models.TeamID, userID string) []models.
 	var op []models.KvPair
 	var strComms []strategy.StrategyCommunity
 	err := d.QueryTableWithIndex(strategyCommunitiesTable, awsutils.DynamoIndexExpression{
-		IndexName: strategyCommunitiesUserChannelIndex,
+		IndexName: string(strategyCommunity.ChannelIDIndex),
 		Condition: "platform_id = :pi AND channel_created = :cc",
 		Attributes: map[string]interface{}{
 			":pi": teamID,
@@ -79,7 +80,7 @@ func availableStrategyCommunities(teamID models.TeamID, userID string) []models.
 		}
 	} else {
 		logger.WithField("namespace", namespace).WithField("error", err).
-			Errorf(fmt.Sprintf("Could not query %s table on %s index", communityUsersTable, communityUsersChannelIndex))
+			Errorf(fmt.Sprintf("Could not query %s table", strategyCommunity.TableNameSuffixVar))
 	}
 	return op
 }
@@ -108,7 +109,7 @@ func unsetStrategyCommunities(channelID string) {
 			":c": channelID,
 		},
 	}, map[string]string{}, true, -1, &strComms)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table on %s index", communityUsersTable, communityUsersChannelIndex))
+	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table", communityUsersTable))
 	// For each of the strategy community, unset the channel created flag
 	exprAttributes := map[string]*dynamodb.AttributeValue{
 		":cc": dynNumber(0),
