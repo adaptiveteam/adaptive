@@ -22,7 +22,6 @@ module "community_slack_message_processor_lambda" {
   environment_variables = merge(local.environment_variables, {
     LAMBDA_ROLE   = "community-slack-message-processor"
     LOG_NAMESPACE = "community-slack-message-processor"
-    REPORTS_BUCKET_NAME = aws_s3_bucket.adaptive-feedback-reports-bucket.bucket
   })
 
   // Schedule the lambda

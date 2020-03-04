@@ -20,9 +20,9 @@ module "user_objectives_lambda" {
   environment_variables = merge(local.environment_variables, {
     LAMBDA_ROLE   = "user-objectives"
     LOG_NAMESPACE = "user-objectives"
-    REPORTS_BUCKET_NAME = aws_s3_bucket.adaptive-feedback-reports-bucket.bucket
-    USER_OBJECTIVES_LEARN_MORE_PATH          = "user-objectives"
-    USER_OBJECTIVES_CLOSEOUT_LEARN_MORE_PATH = "user-objectives"
+    # REPORTS_BUCKET_NAME = aws_s3_bucket.adaptive-feedback-reports-bucket.bucket
+    # USER_OBJECTIVES_LEARN_MORE_PATH          = "user-objectives"
+    # USER_OBJECTIVES_CLOSEOUT_LEARN_MORE_PATH = "user-objectives"
 
   })
 
