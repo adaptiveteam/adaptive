@@ -465,10 +465,15 @@ func (d DAOImpl)ReadBy${indexShortName}Unsafe($args) (out []$structName) {
 }
 
 def tableNameFuncTemplate(table: Table): List[String] =
+	"// TableNameSuffixVar is a global variable that contains table name suffix." ::
+	"// After renaming all tables this may be made `const`." :: 
+	s"""var TableNameSuffixVar = "_${dynamoName(table.entity.name)}"""" ::
+	"" ::
+	"// TableName concatenates table name prefix and suffix and returns table name" ::
 	blockNamed(
-		s"func TableName(clientID string) string",
+		"func TableName(prefix string) string",
 		lines(
-			s"""return clientID + "_${dynamoName(table.entity.name)}""""
+			"return prefix + TableNameSuffixVar"
 		)
 	)
  

@@ -16,10 +16,14 @@ import GoTemplates._
 import $file.DaoTemplates
 import DaoTemplates._
 
+import $file.ConnectionTemplates
+import ConnectionTemplates._
+
 def definitionTemplate(definition: GoDefinition): List[String] = definition match {
   case Struct(e) => structTemplate(e)
   case TypeAlias(name, tpe) => List(s"type ${goPublicName(name)} ${goType(tpe)}")
   case d:Dao => daoTemplate(d)
+  case d:ConnectionBasedDao => daoFunctionsTemplate(d)
   case StringBasedEnum(name, items) => 
     val typeName = goPublicName(name)
     s"type $typeName string" ::

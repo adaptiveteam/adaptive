@@ -97,8 +97,13 @@ func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName stri
 		Name: tableName,
 	}
 }
-func TableName(clientID string) string {
-	return clientID + "_strategy_objective"
+// TableNameSuffixVar is a global variable that contains table name suffix.
+// After renaming all tables this may be made `const`.
+var TableNameSuffixVar = "_strategy_objective"
+
+// TableName concatenates table name prefix and suffix and returns table name
+func TableName(prefix string) string {
+	return prefix + TableNameSuffixVar
 }
 
 // Create saves the StrategyObjective.
