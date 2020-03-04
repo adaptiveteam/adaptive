@@ -26,11 +26,11 @@ func RecoverToErrorVar(name string, err *error) {
 		switch err2.(type) {
 		case error:
 			err3 := err2.(error)
-			err4 := errors.Wrap(err3, "Recover "+name+" from panic in issues workflow")
+			err4 := errors.Wrap(err3, "Recover "+name+" from panic")
 			err = &err4
 		case string:
 			err3 := err2.(string)
-			err4 := errors.New("Recover " + name + " from string-panic in issues workflow: " + err3)
+			err4 := errors.New("Recover " + name + " from string-panic: " + err3)
 			err = &err4
 		}
 	}
