@@ -16,7 +16,14 @@ locals {
   }
 
   platform_notification_topic_arn = aws_sns_topic.platform_notification.arn
-  reporting_lambda_name = "${var.client_id}_feedback-reporting-lambda-go"
+  // TODO: Move these to core state
+  reporting_lambda_name        = "${var.client_id}_feedback-reporting-lambda-go"
+  report_posting_lambda_name   = "${var.client_id}_feedback-report-posting-lambda-go"
+  # feedback_reports_bucket_name = aws_s3_bucket.adaptive-feedback-reports-bucket.bucket
+
+  # reporting_lambda_name        = data.terraform_remote_state.core.outputs.reporting_lambda_name
+  # report_posting_lambda_name   = data.terraform_remote_state.feedback.outputs.report_posting_lambda_name
+  # feedback_reports_bucket_name = data.terraform_remote_state.feedback.outputs.feedback_reports_bucket_name
 
   slack_message_processor_suffix = "slack-message-processor-lambda-go"
   region = var.aws_region

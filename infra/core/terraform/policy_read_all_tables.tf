@@ -5,7 +5,7 @@ resource "aws_iam_policy" "read_all_tables" {
 
 data "aws_iam_policy_document" "read_all_tables" {
   statement {
-    actions = ["dynamodb:GetItem","dynamodb:Query","dynamodb:DescribeTable"]
+    actions = ["dynamodb:GetItem","dynamodb:Query","dynamodb:DescribeTable", "dynamodb:Scan"]
     resources = [
       aws_dynamodb_table.adaptive_dialog_content.arn,
       aws_dynamodb_table.adaptive_dialog_aliases.arn,
@@ -28,6 +28,8 @@ data "aws_iam_policy_document" "read_all_tables" {
       aws_dynamodb_table.capability_communities.arn,
       aws_dynamodb_table.postponed_event_dynamodb_table.arn,
       aws_dynamodb_table.slack_team_dynamodb_table.arn,
+
+      aws_dynamodb_table.coaching_rejections.arn,
     ]
   }
   statement {
