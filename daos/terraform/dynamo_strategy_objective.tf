@@ -17,7 +17,7 @@ resource "aws_dynamodb_table" "strategy_objective_dynamodb_table"  {
 	    type = "S"
 	}
 	attribute {
-	    name = "capability_community_id"
+	    name = "capability_community_ids"
 	    type = "SS"
 	}
 	global_secondary_index {
@@ -29,8 +29,8 @@ resource "aws_dynamodb_table" "strategy_objective_dynamodb_table"  {
 		read_capacity   = var.dynamo_ondemand_read_capacity
 	}
 	global_secondary_index {
-		name            = "CapabilityCommunityIDIndex"
-		hash_key        = "capability_community_id"
+		name            = "CapabilityCommunityIDsIndex"
+		hash_key        = "capability_community_ids"
 		
 		projection_type = "ALL"
 		write_capacity  = var.dynamo_ondemand_write_capacity
