@@ -574,7 +574,7 @@ val ClientPlatformTokenPackage = defaultPackage(ClientPlatformTokenTable, import
 val StrategyObjectiveType = TypeAlias("StrategyObjectiveType".camel, string)
 // TODO: rename field in DB and then remove `dbName` 
 val capabilityCommunityIDsField = (spacedName("capability community IDs") :: optionStringArray).
-    dbName(spacedName("capability community ID")) \\ "community id not require d for customer/financial objectives"
+    dbName(spacedName("capability community IDs")) \\ "community id not require d for customer/financial objectives"
 val createdByField = "CreatedBy".camel :: string
 val advocateField = "Advocate".camel :: string
 val StrategyObjective = Entity(
@@ -801,8 +801,8 @@ val DialogEntry = Entity(
         contextField,
         subjectField,
         ("Updated".camel :: string) \\ "This was when the dialog was last updated",
-        ("Dialog".camel :: optionStringArray) \\ "These are the dialog options",
-        ("Comments".camel :: optionStringArray) \\ "Comments to help cultivators understand the dialog intent",
+        ("Dialog".camel :: stringArray) \\ "These are the dialog options",
+        ("Comments".camel :: stringArray) \\ "Comments to help cultivators understand the dialog intent",
         ("LearnMoreLink".camel :: string) \\ "This the link to the LearnMore page",
         ("LearnMoreContent".camel :: string) \\ "This is the actual content from the LearnMore page",
         "BuildBranch".camel :: string,

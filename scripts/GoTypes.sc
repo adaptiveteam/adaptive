@@ -22,7 +22,9 @@ val bool = boolean
 
 val optionBoolean = simpleType("Option[Boolean]", "bool", "false", "BOOL", isOptional = true)
 
-val optionStringArray = simpleType("Option[Array[String]]", "[]string", "nil", "SS")
+val stringArray = simpleType("Option[Array[String]]", "[]string", "nil", "SS", isOptional = false)
+
+val optionStringArray = simpleType("Option[Array[String]]", "[]string", "nil", "SS", isOptional = true)
 
 val goTypes: Map[String, TypeInfo] = Map(
     "bool" -> boolean,
