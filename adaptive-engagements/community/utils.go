@@ -1,35 +1,40 @@
 package community
 
 import (
-	"log"
 	"fmt"
+	"log"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	daosCommunity "github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	daosCommunity "github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/pkg/errors"
 )
 
-func CommunityMembers(table string, ID string, teamID models.TeamID, userCommIndex string) []models.AdaptiveCommunityUser2 {
+func CommunityMembers(table string, ID string, teamID models.TeamID) []models.AdaptiveCommunityUser2 {
 	var commUsers []models.AdaptiveCommunityUser2
-	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(table, awsutils.DynamoIndexExpression{
-		IndexName: userCommIndex,
+	err2 := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(table, awsutils.DynamoIndexExpression{
+		IndexName: string(adaptiveCommunityUser.PlatformIDCommunityIDIndex),
 		Condition: "platform_id = :pi AND community_id = :c",
 		Attributes: map[string]interface{}{
 			":c":  ID,
-			":pi": teamID,
+			":pi": teamID.ToString(),
 		},
 	}, map[string]string{}, true, -1, &commUsers)
-	core.ErrorHandler(err, common.DeprecatedGetGlobalDns().Namespace, fmt.Sprintf("Could not query %s table on %s index",
-		table, userCommIndex))
+	err2 = errors.Wrapf(err2, "CommunityMembers(ID=%s, teamID=%s)", ID, teamID.ToString())
+	core.ErrorHandler(err2, common.DeprecatedGetGlobalDns().Namespace,
+		fmt.Sprintf("CommunityMembers: Could not find community  %s in %s table using %s index",
+			ID, table, string(adaptiveCommunityUser.PlatformIDCommunityIDIndex)))
 	return commUsers
 }
 
 func CommunityById(communityId string, teamID models.TeamID, communitiesTable string) models.AdaptiveCommunity {
 	params := map[string]*dynamodb.AttributeValue{
-		"id": daosCommon.DynS(communityId),
+		"id":          daosCommon.DynS(communityId),
 		"platform_id": daosCommon.DynS(teamID.ToString()),
 	}
 	var comm models.AdaptiveCommunity
@@ -58,8 +63,8 @@ func SubscribedCommunities(channel string, communitiesTable, channelIndex string
 func queryUserCommIndex(userID, communityID string, communityUsersTable,
 	communityUsersUserCommunityIndex string) []interface{} {
 	var rels []interface{}
-	log.Printf("queryUserCommIndex(userID=%s, communityID=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s)", 
-		userID,    communityID,    communityUsersTable,    communityUsersUserCommunityIndex)
+	log.Printf("queryUserCommIndex(userID=%s, communityID=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s)",
+		userID, communityID, communityUsersTable, communityUsersUserCommunityIndex)
 
 	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(communityUsersTable, awsutils.DynamoIndexExpression{
 		IndexName: communityUsersUserCommunityIndex,
@@ -69,8 +74,8 @@ func queryUserCommIndex(userID, communityID string, communityUsersTable,
 			":c": communityID,
 		},
 	}, map[string]string{}, true, -1, &rels)
-	log.Printf("queryUserCommIndex(userID=%s, communityID=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s) result=%+v", 
-		userID,    communityID,    communityUsersTable,    communityUsersUserCommunityIndex, err)
+	log.Printf("queryUserCommIndex(userID=%s, communityID=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s) result=%+v",
+		userID, communityID, communityUsersTable, communityUsersUserCommunityIndex, err)
 	if err != nil {
 		log.Printf("queryUserCommIndex err=%+v", err)
 	}
@@ -82,7 +87,7 @@ func queryUserCommIndex(userID, communityID string, communityUsersTable,
 // IsUserInCommunity checks if a user is part of an Adaptive Community
 func IsUserInCommunity(userID string, communityUsersTable, communityUsersUserCommunityIndex string,
 	community AdaptiveCommunity) (res bool) {
-	defer func(){
+	defer func() {
 		if err2 := recover(); err2 != nil {
 			log.Printf("IsUserInCommunity got an error %+v", err2)
 			res = false
@@ -99,7 +104,7 @@ func PlatformCommunities(teamID models.TeamID, communitiesTable, communityPlatfo
 		IndexName: communityPlatformIndex,
 		Condition: "platform_id = :pi",
 		Attributes: map[string]interface{}{
-			":pi": teamID,
+			":pi": teamID.ToString(),
 		},
 	}, map[string]string{}, true, -1, &comms)
 	return
@@ -113,7 +118,7 @@ func PlatformCommunityMemberIDs(teamID models.TeamID, communitiesTable, communit
 	if err == nil {
 		for _, each := range communities {
 			// Get community members by querying community users table based on platform id and community id
-			members := CommunityMembers(communityUsersTable, each.ID, teamID, communityUsersCommunityIndex)
+			members := CommunityMembers(communityUsersTable, each.ID, teamID)
 			for _, member := range members {
 				allCommunitiesMemberIDs = append(allCommunitiesMemberIDs, member.UserId)
 			}
