@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 )
 
@@ -27,9 +28,9 @@ var (
 	userObjectivesIDIndex                       = "IDIndex"
 	userObjectivesUserIDIndex                   = "UserIDCompletedIndex"
 	userObjectivesTypeIndex                     = "UserIDTypeIndex"
-	communityUsersCommunityIndex                = "PlatformIDCommunityIDIndex"
-	communityUsersUserIndex                     = "UserIDIndex"
+	communityUsersCommunityIndex                = string(adaptiveCommunityUser.PlatformIDCommunityIDIndex)
+	communityUsersUserIndex                     = string(adaptiveCommunityUser.UserIDIndex)
 	strategyInitiativeCommunitiesPlatformIndex  = "PlatformIDIndex"
-	communityUsersUserCommunityIndex            = "UserIDCommunityIDIndex"
+	communityUsersUserCommunityIndex            = string(adaptiveCommunityUser.UserIDCommunityIDIndex)
 	capabilityCommunitiesPlatformIndex          = "PlatformIDIndex"
 )
