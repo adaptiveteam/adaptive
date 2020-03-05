@@ -1,18 +1,19 @@
 package lambda
 
 import (
-	"log"
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"strconv"
-	"strings"
 )
 
 func availableCommunities(teamID models.TeamID) []string {
@@ -34,7 +35,7 @@ func availableStrategyCommunities(teamID models.TeamID, userID string) []models.
 		IndexName: string(strategyCommunity.ChannelIDIndex),
 		Condition: "platform_id = :pi AND channel_created = :cc",
 		Attributes: map[string]interface{}{
-			":pi": teamID,
+			":pi": teamID.ToString(),
 			":cc": 0,
 		},
 	}, map[string]string{}, true, -1, &strComms)
@@ -84,6 +85,7 @@ func availableStrategyCommunities(teamID models.TeamID, userID string) []models.
 	}
 	return op
 }
+
 // StrategyCommunityByID finds community by id. panics if not found
 func StrategyCommunityByID(ID string) strategy.StrategyCommunity {
 	params := map[string]*dynamodb.AttributeValue{
@@ -209,13 +211,13 @@ func createCommunityFromCreatorUser(creatorUserID string, channelID string, comm
 			LastName:       "",
 			Timezone:       creator.Timezone,
 			TimezoneOffset: creator.TimezoneOffset,
-			PlatformID:  creator.PlatformID,
-			PlatformOrg: creator.PlatformOrg,
-			IsAdmin:     false,
+			PlatformID:     creator.PlatformID,
+			PlatformOrg:    creator.PlatformOrg,
+			IsAdmin:        false,
 			// Deleted:     false,
 			DeactivatedAt: "",
-			CreatedAt:   core.CurrentRFCTimestamp(),
-			IsShared:    true,
+			CreatedAt:     core.CurrentRFCTimestamp(),
+			IsShared:      true,
 		}
 		err = userDAO.Create(item)
 	}
@@ -237,7 +239,7 @@ func addUserToAllCommunities(teamID models.TeamID, userID string, subscribedComm
 	return
 }
 
-func addUsersToCommunity(teamID models.TeamID, channelID string, communityID string, userIDs []string) (res [] models.AdaptiveCommunityUser3) {
+func addUsersToCommunity(teamID models.TeamID, channelID string, communityID string, userIDs []string) (res []models.AdaptiveCommunityUser3) {
 	// Adding existing channel members
 	for _, each := range userIDs {
 		commUser := models.AdaptiveCommunityUser3{

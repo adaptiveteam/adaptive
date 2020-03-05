@@ -459,7 +459,7 @@ func Read(issueType IssueType, issueID string) func (conn DynamoDBConnection) (i
 			}
 		}
 		issue.NormalizeIssueDateTimes()
-		err = errors.Wrapf(err, "DynamoDBConnection) Read(issueType=%s, ID=%s)", issueType, issueID)
+		err = errors.Wrapf(err, "issue_dao.Read(issueType=%s, ID=%s)", issueType, issueID)
 		return
 	}
 }
