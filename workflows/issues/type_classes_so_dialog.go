@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/pkg/errors"
 	"log"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"time"
@@ -28,13 +29,30 @@ func (SObjectiveImpl) CreateDialog(w workflowImpl, ctx wf.EventHandlingContext, 
 	var commMembers, strMembers []models.KvPair
 	strMembers, err = SelectKvPairsFromCommunityJoinUsers(community.Strategy)(w.DynamoDBConnection)
 	if err == nil {
-		commMembers, err = SelectKvPairsFromCommunityJoinUsers(commID)(w.DynamoDBConnection)
+		if capCommID == "" {
+			w.AdaptiveLogger.Infof("capCommID is empty. No more members")
+		} else {
+			commMembers, err = SelectKvPairsFromCommunityJoinUsers(commID)(w.DynamoDBConnection)
+			w.AdaptiveLogger.WithField("member count", len(strMembers)).Infof("Found %d members in %s using SelectKvPairsFromCommunityJoinUsers", len(strMembers), commID)
+		}
 		if err == nil {
 			allMembers := append(strMembers, commMembers...)
+			if len(allMembers) == 0 {
+				err = errors.New("SObjectiveImpl) CreateDialog: Could not find any advocate for strategy objective - from community.Strategy and from commID="+string(commID))
+				return
+			}
 			allDates := objectives.StrategyObjectiveDatesWithIndefiniteOption("SObjectiveImpl CreateDialog", issue.UserObjective.ExpectedEndDate)
+			if len(allDates) == 0 {
+				err = errors.New("SObjectiveImpl) CreateDialog: len allDates = 0")
+				return
+			}
 			advocates = convertKvPairToPlainTextOption(allMembers)
 			dates = convertKvPairToPlainTextOption(allDates)
 			types = convertKvPairToPlainTextOption(ObjectiveTypes())
+			if len(types) == 0 {
+				err = errors.New("SObjectiveImpl) CreateDialog: len types = 0")
+				return
+			}
 
 			survey = SOObjectiveSurvey(issue.StrategyObjective, types, advocates, dates)
 		}
