@@ -2,18 +2,20 @@ package user
 
 import (
 	"fmt"
+
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	daosUser "github.com/adaptiveteam/adaptive/daos/user"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/nlopes/slack"
 	// "github.com/aws/aws-sdk-go/aws"
 	// "github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 // DAO is a wrapper around the _adaptive_users Dynamo DB table to work with adaptive-users table (CRUD)
-type DAO = daosUser.DAO 
+type DAO = daosUser.DAO
+
 // interface {
 // 	Read(userID string) (models.User, error)
 // 	ReadUnsafe(userID string) models.User
@@ -42,15 +44,17 @@ var TableName = func(clientID string) string { return clientID + "_adaptive_user
 func DAOFromConnectionGen(conn daosCommon.DynamoDBConnectionGen) DAO {
 	return NewDAOByTableName(conn.Dynamo, "UserDAO", TableName(conn.TableNamePrefix))
 }
+
 // DAOFromConnection -
 func DAOFromConnection(conn daosCommon.DynamoDBConnection) DAO {
 	return NewDAOByTableName(conn.Dynamo, "UserDAO", TableName(conn.ClientID))
 }
+
 // NewDAOFromSchema creates an instance of DAO that will provide access to adaptiveValues table
 func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema models.Schema) DAO {
 	return daosUser.NewDAOByTableName(dynamo, namespace, schema.AdaptiveUsers.Name)
 	//  DAOImpl{Dynamo: dynamo, Namespace: namespace,
-		// AdaptiveUsersTableSchema: schema.AdaptiveUsers}
+	// AdaptiveUsersTableSchema: schema.AdaptiveUsers}
 }
 
 // // Read reads User
@@ -89,7 +93,7 @@ func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema m
 // UserIDsToDisplayNamesUnsafe converts a bunch of user ids to their names
 // NB! O(n)! TODO: implement a query that returns many users at once.
 func UserIDsToDisplayNamesUnsafe(dao DAO) func(userIDs []string) (res []models.KvPair) {
-	return func (userIDs []string) (res []models.KvPair) {
+	return func(userIDs []string) (res []models.KvPair) {
 		if len(userIDs) > 10 {
 			fmt.Println("WARN: Very slow user data fetching")
 		}
@@ -118,7 +122,7 @@ func UserIDsToDisplayNamesUnsafe(dao DAO) func(userIDs []string) (res []models.K
 // 		// there is no != operator for ConditionExpression
 // 		Condition: "platform_id = :p",
 // 		Attributes: map[string]interface{}{
-// 			":p": teamID,
+// 			":p": teamID.ToString(),
 // 		},
 // 	}, map[string]string{}, true, -1, &users)
 // 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s index on %s table",

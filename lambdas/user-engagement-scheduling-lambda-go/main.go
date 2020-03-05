@@ -3,6 +3,11 @@ package lambda
 import (
 	"context"
 	"fmt"
+	"log"
+	"math"
+	"strings"
+	"time"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
@@ -11,10 +16,6 @@ import (
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/sirupsen/logrus"
-	"log"
-	"math"
-	"strings"
-	"time"
 )
 
 var (
@@ -27,7 +28,7 @@ func usersWithinScheduledPeriod(config Config, teamID string, startUTCTime, endU
 		IndexName: config.usersScheduledTimeIndex,
 		Condition: "platform_id = :pi AND adaptive_scheduled_time_in_utc BETWEEN :t1 AND :t2",
 		Attributes: map[string]interface{}{
-			":pi": teamID,
+			":pi": teamID.ToString(),
 			":t1": startUTCTime,
 			":t2": endUTCTime,
 		},
@@ -42,7 +43,7 @@ func usersWithinOffsetRange(config Config, teamID string, startOffset, endOffset
 		IndexName: config.usersZoneOffsetIndex,
 		Condition: "platform_id = :pi AND timezone_offset BETWEEN :t1 AND :t2",
 		Attributes: map[string]interface{}{
-			":pi": teamID,
+			":pi": teamID.ToString(),
 			":t1": startOffset,
 			":t2": endOffset,
 		},
@@ -115,13 +116,13 @@ func HandleRequest(ctx context.Context) (err error) {
 					logger.Infof("%s user belongs only to Admin Community, not invoking schedules for this user", user.ID)
 				} else if len(userCommunities) > 0 {
 					engage := models.UserEngage{
-						UserID:     user.ID,
-						Date:       "", // current date
+						UserID: user.ID,
+						Date:   "", // current date
 						TeamID: teamID,
 					}
 					switch teamID.AppID {
-//					case EmbursePlatformID, GeigsenPlatformID:
-//						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, teamID, config)
+					//					case EmbursePlatformID, GeigsenPlatformID:
+					//						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, teamID, config)
 					case IvanPlatformID, StagingPlatformID:
 						emulateDates(TestDateShiftConfig, time.Now(), user.ID, teamID, config)
 					default:

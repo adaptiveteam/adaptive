@@ -1,15 +1,16 @@
 package communityUser
 
 import (
+	"fmt"
+
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"fmt"
 )
 
-// DAO is a CRUD wrapper around the _community_users Dynamo DB table 
+// DAO is a CRUD wrapper around the _community_users Dynamo DB table
 type DAO interface {
 	Create(user models.AdaptiveCommunityUser3) error
 	CreateUnsafe(user models.AdaptiveCommunityUser3)
@@ -39,28 +40,31 @@ type DAOImpl struct {
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
-func NewDAO(dynamo *awsutils.DynamoRequest, namespace string, 
+func NewDAO(dynamo *awsutils.DynamoRequest, namespace string,
 	table models.CommunityUsersTableSchema) DAO {
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
+	return DAOImpl{Dynamo: dynamo, Namespace: namespace,
 		CommunityUsersTableSchema: table,
 	}
 }
 
 // NewDAOFromSchema creates an instance of DAO that will provide access to the table
-func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema models.Schema) DAO {	
+func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema models.Schema) DAO {
 	return NewDAO(dynamo, namespace, schema.CommunityUsers)
 }
+
 // Create saves the User.
 func (d DAOImpl) Create(user models.AdaptiveCommunityUser3) error {
-	return d.Dynamo.PutTableEntryWithCondition(user, d.Name, 
+	return d.Dynamo.PutTableEntryWithCondition(user, d.Name,
 		"attribute_not_exists(id)")
 }
+
 // CreateUnsafe saves the User.
 func (d DAOImpl) CreateUnsafe(user models.AdaptiveCommunityUser3) {
 	err := d.Create(user)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.UserID, d.Name))
 
 }
+
 // Read reads user by id, returns zero or one results
 func (d DAOImpl) Read(userID string) (out []models.AdaptiveCommunityUser3, err error) {
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
@@ -72,12 +76,14 @@ func (d DAOImpl) Read(userID string) (out []models.AdaptiveCommunityUser3, err e
 	}, map[string]string{}, true, -1, &out)
 	return
 }
+
 // ReadUnsafe reads data. Panics in case of errors
 func (d DAOImpl) ReadUnsafe(userID string) []models.AdaptiveCommunityUser3 {
 	out, err2 := d.Read(userID)
 	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not find %s in %s using index %s", userID, d.Name, d.UserIndex))
 	return out
 }
+
 // ReadCommunityUsers reads users of the channel
 // NB! Use another method with PlatformID argument.
 func (d DAOImpl) ReadCommunityUsers(channelID string) (users []models.AdaptiveCommunityUser3, err error) {
@@ -90,12 +96,14 @@ func (d DAOImpl) ReadCommunityUsers(channelID string) (users []models.AdaptiveCo
 	}, map[string]string{}, true, -1, &users)
 	return
 }
+
 // ReadCommunityUsersUnsafe reads&panics
 func (d DAOImpl) ReadCommunityUsersUnsafe(channelID string) (users []models.AdaptiveCommunityUser3) {
 	users, err := d.ReadCommunityUsers(channelID)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s table on %s index", d.Name, d.UserCommunityIndex))
 	return
 }
+
 // ReadCommunityMembers reads members using teamID
 func (d DAOImpl) ReadCommunityMembers(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error) {
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
@@ -103,11 +111,12 @@ func (d DAOImpl) ReadCommunityMembers(channelID string, teamID models.TeamID) (u
 		Condition: "platform_id = :pi AND community_id = :c",
 		Attributes: map[string]interface{}{
 			":c":  channelID,
-			":pi": teamID,
+			":pi": teamID.ToString(),
 		},
 	}, map[string]string{}, true, -1, &users)
 	return
 }
+
 // ReadCommunityMembersUnsafe read and panic
 func (d DAOImpl) ReadCommunityMembersUnsafe(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3) {
 	users, err := d.ReadCommunityMembers(channelID, teamID)
@@ -121,7 +130,7 @@ func (d DAOImpl) ReadAnyCommunityUsers(teamID models.TeamID) (users []models.Ada
 		IndexName: d.CommunityIndex,
 		Condition: "platform_id = :pi",
 		Attributes: map[string]interface{}{
-			":pi": teamID,
+			":pi": teamID.ToString(),
 		},
 	}, map[string]string{}, true, -1, &users)
 	return
@@ -149,12 +158,12 @@ func dynString(str string) (attr *dynamodb.AttributeValue) {
 }
 
 // Delete removes user from db
-func (d DAOImpl)Delete(userID string) error {
+func (d DAOImpl) Delete(userID string) error {
 	return d.Dynamo.DeleteEntry(d.Name, idParams(userID))
 }
 
 // DeleteUnsafe deletes user and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(userID string) {
+func (d DAOImpl) DeleteUnsafe(userID string) {
 	err := d.Delete(userID)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not delete %s in %s", userID, d.Name))
 }
@@ -172,8 +181,9 @@ func wrapError(err error, name string) error {
 	}
 	return fmt.Errorf("{%s: %v}", name, err)
 }
+
 // ReadCommunityUserOptional checks if the user is in the channel
-func (d DAOImpl)ReadCommunityUserOptional(channelID string, userID string) (user []models.AdaptiveCommunityUser3, err error) {
+func (d DAOImpl) ReadCommunityUserOptional(channelID string, userID string) (user []models.AdaptiveCommunityUser3, err error) {
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
 		IndexName: d.UserCommunityIndex,
 		Condition: "user_id = :u and community_id = :c",
@@ -184,19 +194,21 @@ func (d DAOImpl)ReadCommunityUserOptional(channelID string, userID string) (user
 	}, map[string]string{}, true, -1, &user)
 	return
 }
+
 // ReadCommunityUserOptionalUnsafe read&panic
-func (d DAOImpl)ReadCommunityUserOptionalUnsafe(channelID string, userID string) (user []models.AdaptiveCommunityUser3) {
-	user, err := d.ReadCommunityUserOptional(channelID, userID) 
+func (d DAOImpl) ReadCommunityUserOptionalUnsafe(channelID string, userID string) (user []models.AdaptiveCommunityUser3) {
+	user, err := d.ReadCommunityUserOptional(channelID, userID)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s table on %s index",
 		d.Name, d.UserCommunityIndex))
 	return
 }
+
 // IsUserInCommunity checks if a user is part of an Adaptive Community
-func (d DAOImpl)IsUserInCommunity(channelID string, userID string) bool {
+func (d DAOImpl) IsUserInCommunity(channelID string, userID string) bool {
 	return len(d.ReadCommunityUserOptionalUnsafe(channelID, userID)) > 0
 }
 
-func (d DAOImpl)DeleteAllCommunityMembers(channelID string) (err error) {
+func (d DAOImpl) DeleteAllCommunityMembers(channelID string) (err error) {
 	commUsers, err := d.ReadCommunityUsers(channelID)
 	if err == nil {
 		for _, each := range commUsers {
@@ -209,8 +221,8 @@ func (d DAOImpl)DeleteAllCommunityMembers(channelID string) (err error) {
 	return wrapError(err, "removeCommunityMembers("+channelID+")")
 }
 
-func (d DAOImpl)DeleteAllCommunityMembersUnsafe(channelID string) {
+func (d DAOImpl) DeleteAllCommunityMembersUnsafe(channelID string) {
 	err := d.DeleteAllCommunityMembers(channelID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("removeCommunityMembersUnsafe: Could not query %s table on %s index", 
+	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("removeCommunityMembersUnsafe: Could not query %s table on %s index",
 		d.Name, d.ChannelIndex))
 }
