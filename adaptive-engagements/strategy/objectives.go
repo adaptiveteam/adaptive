@@ -40,7 +40,7 @@ func StrategyCommunitiesDAOReadByPlatformID(teamID models.TeamID, strategyCommun
 			IndexName: "PlatformIDIndex",
 			Condition: "platform_id = :a0",
 			Attributes: map[string]interface{}{
-				":a0": teamID,
+				":a0": teamID.ToString(),
 			},
 		}, map[string]string{}, true, -1, &instances)
 	out = instances

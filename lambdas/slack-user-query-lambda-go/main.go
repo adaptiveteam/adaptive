@@ -127,7 +127,7 @@ func platformCommunities(teamID models.TeamID) (comms []models.AdaptiveCommunity
 		IndexName: userCommunityPlatformIndex,
 		Condition: "platform_id = :pi",
 		Attributes: map[string]interface{}{
-			":pi": teamID,
+			":pi": teamID.ToString(),
 		},
 	}, map[string]string{}, true, -1, &comms)
 	return
@@ -136,7 +136,7 @@ func platformCommunities(teamID models.TeamID) (comms []models.AdaptiveCommunity
 func readCommMemberIDs(commID string, teamID models.TeamID) (ids []string, err error) {
 	defer core.RecoverToErrorVar("readCommMemberIDs", &err)
 	// Get community members by querying community users table based on platform id and community id
-	dbMembers := community.CommunityMembers(communityUsersTable, commID, teamID, communityUsersCommunityIndex)
+	dbMembers := community.CommunityMembers(communityUsersTable, commID, teamID)
 	for _, m := range dbMembers {
 		ids = append(ids, m.UserId)
 	}

@@ -3,6 +3,11 @@ package lambda
 import (
 	"context"
 	"fmt"
+	"log"
+	"math"
+	"strings"
+	"time"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
@@ -11,10 +16,6 @@ import (
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/sirupsen/logrus"
-	"log"
-	"math"
-	"strings"
-	"time"
 )
 
 var (
@@ -22,12 +23,12 @@ var (
 	logger             = alog.LambdaLogger(logrus.InfoLevel)
 )
 
-func usersWithinScheduledPeriod(config Config, teamID string, startUTCTime, endUTCTime string) (users []models.User) {
+func usersWithinScheduledPeriod(config Config, teamID models.TeamID, startUTCTime, endUTCTime string) (users []models.User) {
 	err := config.d.QueryTableWithIndex(config.usersTable, awsutils.DynamoIndexExpression{
 		IndexName: config.usersScheduledTimeIndex,
 		Condition: "platform_id = :pi AND adaptive_scheduled_time_in_utc BETWEEN :t1 AND :t2",
 		Attributes: map[string]interface{}{
-			":pi": teamID,
+			":pi": teamID.ToString(),
 			":t1": startUTCTime,
 			":t2": endUTCTime,
 		},
@@ -37,12 +38,12 @@ func usersWithinScheduledPeriod(config Config, teamID string, startUTCTime, endU
 	return
 }
 
-func usersWithinOffsetRange(config Config, teamID string, startOffset, endOffset int) (users []models.User) {
+func usersWithinOffsetRange(config Config, teamID models.TeamID, startOffset, endOffset int) (users []models.User) {
 	err := config.d.QueryTableWithIndex(config.usersTable, awsutils.DynamoIndexExpression{
 		IndexName: config.usersZoneOffsetIndex,
 		Condition: "platform_id = :pi AND timezone_offset BETWEEN :t1 AND :t2",
 		Attributes: map[string]interface{}{
-			":pi": teamID,
+			":pi": teamID.ToString(),
 			":t1": startOffset,
 			":t2": endOffset,
 		},
@@ -91,12 +92,12 @@ func HandleRequest(ctx context.Context) (err error) {
 
 			fmt.Println(fmt.Sprintf("Invoking user schedules for %s UTC", startUTCTime.String()))
 			// Querying for users who explicitly set the time
-			usersToAsk1 := usersWithinScheduledPeriod(config, teamID.ToString(), timeInHrMin(startUTCTime), timeInHrMin(endUTCTime))
+			usersToAsk1 := usersWithinScheduledPeriod(config, teamID, timeInHrMin(startUTCTime), timeInHrMin(endUTCTime))
 			log.Println(fmt.Sprintf("No. of users invoked with scheduled time: %d", len(usersToAsk1)))
 			// Querying for others that have the default time and should be invoked now
 			offsetEnd := absoluteOffsetFromUTC(startUTCTime, time.Time(defaultMeetingTime))
 			offsetStart := absoluteOffsetFromUTC(endUTCTime, time.Time(defaultMeetingTime))
-			usersToAsk2 := usersWithinOffsetRange(config, teamID.ToString(), offsetStart, offsetEnd)
+			usersToAsk2 := usersWithinOffsetRange(config, teamID, offsetStart, offsetEnd)
 			var usersToAsk2Filtered []models.User
 			// Filtering out the users who have explicitly set scheduled time same as default time since these are part of `usersToAsk1`
 			for _, each := range usersToAsk2 {
@@ -115,13 +116,13 @@ func HandleRequest(ctx context.Context) (err error) {
 					logger.Infof("%s user belongs only to Admin Community, not invoking schedules for this user", user.ID)
 				} else if len(userCommunities) > 0 {
 					engage := models.UserEngage{
-						UserID:     user.ID,
-						Date:       "", // current date
+						UserID: user.ID,
+						Date:   "", // current date
 						TeamID: teamID,
 					}
 					switch teamID.AppID {
-//					case EmbursePlatformID, GeigsenPlatformID:
-//						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, teamID, config)
+					//					case EmbursePlatformID, GeigsenPlatformID:
+					//						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, teamID, config)
 					case IvanPlatformID, StagingPlatformID:
 						emulateDates(TestDateShiftConfig, time.Now(), user.ID, teamID, config)
 					default:

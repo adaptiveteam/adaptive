@@ -30,6 +30,10 @@ func (w workflowImpl) OnEdit(ctx wf.EventHandlingContext) (out wf.EventOutput, e
 	w.AdaptiveLogger.WithField("issueID", issueID).Info("OnEdit")
 	var issue Issue
 	issue, err = issuesUtils.Read(itype, issueID)(w.DynamoDBConnection)
+	err = errors.Wrapf(err, "OnEdit/issuesUtils.Read(issueID=%s)", issue.GetIssueID())
+	if err != nil {
+		return
+	}
 	out, err = w.showDialog(ctx, issue, UpdateContext)
 	out.Interaction.KeepOriginal = true
 	return

@@ -1,8 +1,8 @@
 package adaptive_utils_go
 
 import (
+	"github.com/pkg/errors"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -122,7 +122,7 @@ func ConvertSurveyToSlackDialog(survey model.AttachmentActionSurvey,
 				selectElement := ConvertAttachmentActionTextElementToDialogElement(each)
 				selectElements = append(selectElements, selectElement)
 			} else {
-				err = errors.New("dialog InputSelect elements cannot be empty")
+				err = errors.New("Element (name=" + each.Name + "; label=" + each.Label + ") of type InputTypeSelect should have at least some options or option groups")
 			}
 		} else {
 			textElement := ConvertAttachmentActionTextElementToDialogElement(each)

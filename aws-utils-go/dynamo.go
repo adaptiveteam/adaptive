@@ -1,6 +1,7 @@
 package aws_utils_go
 
 import (
+	"github.com/pkg/errors"
 	"encoding/json"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/core-utils-go/logger"
@@ -49,7 +50,7 @@ func NewDax(region, endpoint, namespace string) (*DynamoRequest, error) {
 }
 
 func (d *DynamoRequest) errorLog(err error) {
-	d.log.Errorf(err.Error())
+	d.log.Errorf(err.Error()+"\n")
 }
 
 func (d *DynamoRequest) ListTables(input *dynamodb.ListTablesInput) (*dynamodb.ListTablesOutput, error) {
@@ -118,7 +119,7 @@ func (d *DynamoRequest) PutTableEntryWithCondition(item interface{}, table strin
 	if err != nil {
 		d.errorLog(err)
 	}
-	return nil
+	return
 }
 
 func (d *DynamoRequest) UpdateTableEntry(exprAttributes, key map[string]*dynamodb.AttributeValue, updateExpression, table string) error {
@@ -150,6 +151,7 @@ func (d *DynamoRequest) UpdateItemInternal(input dynamodb.UpdateItemInput) error
 
 // QueryTable reads single item
 // Deprecated: Use GetItemFromTable or GetItemOrEmptyFromTable
+// The name is misleading.
 func (d *DynamoRequest) QueryTable(table string, params map[string]*dynamodb.AttributeValue, out interface{}) (err error) {
 	return d.GetItemFromTable(table, params, out)
 }
@@ -203,6 +205,22 @@ func attrsMapped(attrs map[string]string) map[string]*string {
 	return mapped
 }
 
+func marshalAttributes(attributes map[string]interface{}) (m map[string]*dynamodb.AttributeValue, err error) {
+	m = map[string]*dynamodb.AttributeValue{}
+
+	for k, v := range attributes {
+		var dynAttr *dynamodb.AttributeValue
+		dynAttr, err = dynamodbattribute.Marshal(v)
+
+		if err != nil {
+			err = errors.Wrapf(err, "marshalAttributes: could not marshal attribute value attr.name=%s, attr.value=%v", k, v)
+			return
+		}
+		m[k] = dynAttr
+	}
+	return
+}
+
 func (d *DynamoRequest) QueryTableWithExpr(table string, condExpr string, attrNames map[string]string,
 	params map[string]*dynamodb.AttributeValue, scanForward bool, limit int, out interface{}) (err error) {
 	qi := &dynamodb.QueryInput{
@@ -223,6 +241,7 @@ func (d *DynamoRequest) QueryTableWithExpr(table string, condExpr string, attrNa
 	if err == nil {
 		err = dynamodbattribute.UnmarshalListOfMaps(result.Items, out)
 	}
+	err = errors.Wrapf(err, "QueryTableWithExpr(table=%s, condExpr=%s, params=%v) ", table, condExpr, params)
 	if err != nil {
 		d.errorLog(err)
 	}
@@ -231,44 +250,38 @@ func (d *DynamoRequest) QueryTableWithExpr(table string, condExpr string, attrNa
 
 func (d *DynamoRequest) QueryTableWithIndex(table string, indexExpr DynamoIndexExpression, attrNames map[string]string,
 	scanForward bool, limit int, out interface{}) (err error) {
-	var m = map[string]*dynamodb.AttributeValue{}
+	var indexAttributesMarshalled = map[string]*dynamodb.AttributeValue{}
 	var attrNamesMapped = attrsMapped(attrNames)
 
-	for k, v := range indexExpr.Attributes {
-		dynAttr, err2 := dynamodbattribute.Marshal(v)
-
-		if err2 != nil {
-			d.errorLog(err2)
-			return err2
-		}
-		m[k] = dynAttr
-	}
-
-	ip := &dynamodb.QueryInput{
-		TableName:                 aws.String(table),
-		KeyConditionExpression:    aws.String(indexExpr.Condition),
-		ExpressionAttributeValues: m,
-		// https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html
-		ScanIndexForward: aws.Bool(scanForward),
-	}
-
-	if indexExpr.IndexName != "" {
-		ip.IndexName = aws.String(indexExpr.IndexName)
-	}
-
-	if len(attrNamesMapped) > 0 {
-		ip.ExpressionAttributeNames = attrNamesMapped
-	}
-
-	if limit > 0 {
-		ip.Limit = aws.Int64(int64(limit))
-	}
-
-	result, err2 := d.svc.Query(ip)
-	err = err2
+	indexAttributesMarshalled, err = marshalAttributes(indexExpr.Attributes)
 	if err == nil {
-		err = dynamodbattribute.UnmarshalListOfMaps(result.Items, out)
+		ip := &dynamodb.QueryInput{
+			TableName:                 aws.String(table),
+			KeyConditionExpression:    aws.String(indexExpr.Condition),
+			ExpressionAttributeValues: indexAttributesMarshalled,
+			// https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html
+			ScanIndexForward: aws.Bool(scanForward),
+		}
+
+		if indexExpr.IndexName != "" {
+			ip.IndexName = aws.String(indexExpr.IndexName)
+		}
+
+		if len(attrNamesMapped) > 0 {
+			ip.ExpressionAttributeNames = attrNamesMapped
+		}
+
+		if limit > 0 {
+			ip.Limit = aws.Int64(int64(limit))
+		}
+
+		result, err2 := d.svc.Query(ip)
+		err = err2
+		if err == nil {
+			err = dynamodbattribute.UnmarshalListOfMaps(result.Items, out)
+		}
 	}
+	err = errors.Wrapf(err, "QueryTableWithIndex(table=%s, indexExpr=%v) ", table, indexExpr)
 	if err != nil {
 		d.errorLog(err)
 	}
@@ -283,6 +296,7 @@ func (d *DynamoRequest) ScanTable(table string, out interface{}) (err error) {
 	if err == nil {
 		err = dynamodbattribute.UnmarshalListOfMaps(res.Items, &out)
 	}
+	err = errors.Wrapf(err, "ScanTable(table=%s) ", table)
 	if err != nil {
 		d.errorLog(err)
 	}
@@ -294,6 +308,7 @@ func (d *DynamoRequest) DeleteEntry(table string, params map[string]*dynamodb.At
 		TableName: aws.String(table),
 		Key:       params,
 	})
+	err2 = errors.Wrapf(err2, "DeleteEntry(table=%s)", table)
 	if err2 != nil {
 		d.errorLog(err2)
 	}

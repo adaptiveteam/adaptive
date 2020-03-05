@@ -88,7 +88,7 @@ func (d DAOImpl) ReadAll(teamID models.TeamID) (comms []models.AdaptiveCommunity
 		IndexName: d.PlatformIndex,
 		Condition: "platform_id = :p",
 		Attributes: map[string]interface{}{
-			":p": teamID,
+			":p": teamID.ToString(),
 		},
 	}, map[string]string{}, true, -1, &comms)
 	return

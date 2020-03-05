@@ -40,7 +40,7 @@ locals {
     ADAPTIVE_COMMUNITIES_TABLE = aws_dynamodb_table.user_communities.name
     USER_FEEDBACK_TABLE_NAME = aws_dynamodb_table.adaptive_user_feedback_dynamodb_table.name
     USER_FEEDBACK_SOURCE_QUARTER_YEAR_INDEX = var.feedback_source_quarter_year_index
-    FEEDBACK_REPORTING_LAMBDA_NAME = local.reporting_lambda_name
+    
     HOLIDAYS_AD_HOC_TABLE = aws_dynamodb_table.ad_hoc_holidays.name
     HOLIDAYS_PLATFORM_DATE_INDEX = var.dynamo_holidays_date_index
     STRATEGY_INITIATIVES_TABLE = aws_dynamodb_table.strategy_initiatives.name
@@ -69,10 +69,14 @@ locals {
 
     SLACK_LAMBDA_FUNCTION_NAME              = local.slack_user_query_lambda_function_name
     USER_SETUP_LAMBDA_NAME                  = local.user_setup_lambda_function_name
+    ENGAGEMENT_SCHEDULER_LAMBDA_NAME        = local.user_engagement_scheduler_lambda_function_name // module.user_engagement_scheduler_lambda.function_name
     USER_ENGAGEMENT_SCHEDULING_LAMBDA_NAME  = local.user_engagement_scheduling_lambda_function_name
     USER_ENGAGEMENT_SCRIPTING_LAMBDA_NAME   = local.user_engagement_scripting_lambda_function_name
     USER_PROFILE_LAMBDA_NAME                = local.user_profile_lambda_function_name
 
+    FEEDBACK_REPORTING_LAMBDA_NAME          = local.reporting_lambda_name
+    FEEDBACK_REPORT_POSTING_LAMBDA_NAME     = local.report_posting_lambda_name
+    
 
     STRATEGY_INITIATIVE_COMMUNITIES_TABLE_NAME = aws_dynamodb_table.initiative_communities.name
   }

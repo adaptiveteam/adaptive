@@ -298,7 +298,7 @@ func IDOCoaches(userID string, teamID models.TeamID,
 	communityUsersTable, communityUsersCommunityIndex string,
 	fetchUsers common.UserIDsToDisplayNames) []models.KvPair {
 	// Get coaching community members
-	commMembers := community.CommunityMembers(communityUsersTable, string(community.Coaching), teamID, communityUsersCommunityIndex)
+	commMembers := community.CommunityMembers(communityUsersTable, string(community.Coaching), teamID)
 	kvs := []models.KvPair{{Key: string(CoachNotNeededOption), Value: "none"}}
 	// Showing "Request a Coach" option only when there is a coaching community
 	if len(commMembers) > 0 { // Does this include adaptive bot name?

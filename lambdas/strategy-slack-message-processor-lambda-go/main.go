@@ -88,7 +88,7 @@ type MsgState struct {
 
 func communityMembers(commID string, teamID models.TeamID) []models.KvPair {
 	// Get coaching community members
-	commMembers := community.CommunityMembers(communityUsersTable, commID, teamID, communityUsersCommunityIndex)
+	commMembers := community.CommunityMembers(communityUsersTable, commID, teamID)
 	logger.Infof("Members in %s Community for %s platform: %s", commID, teamID, commMembers)
 	var users []models.KvPair
 	for _, each := range commMembers {
@@ -131,7 +131,7 @@ func AllStrategyCommunities(teamID models.TeamID) []strategy.StrategyCommunity {
 		IndexName: strategyCommunitiesPlatformIndex,
 		Condition: "platform_id = :p",
 		Attributes: map[string]interface{}{
-			":p": teamID,
+			":p": teamID.ToString(),
 		},
 	}, map[string]string{}, true, -1, &scs)
 	if err != nil {

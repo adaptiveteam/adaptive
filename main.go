@@ -5,20 +5,22 @@ import (
 
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	platformNotification "github.com/adaptiveteam/adaptive/lambdas/adaptive-platform-notification-lambda-go"
+	communitySlackMessageProcessor "github.com/adaptiveteam/adaptive/lambdas/community-slack-message-processor-lambda-go"
+	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
+	holidays "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
 	platformEngagementScheduler "github.com/adaptiveteam/adaptive/lambdas/platform-engagement-scheduler-lambda-go"
 	slackMessageProcessor "github.com/adaptiveteam/adaptive/lambdas/slack-message-processor-lambda-go"
 	slackUserQuery "github.com/adaptiveteam/adaptive/lambdas/slack-user-query-lambda-go"
+	strategySlackMessageProcessor "github.com/adaptiveteam/adaptive/lambdas/strategy-slack-message-processor-lambda-go"
 	userEngagement "github.com/adaptiveteam/adaptive/lambdas/user-engagement-lambda-go"
 	userEngagementScheduler "github.com/adaptiveteam/adaptive/lambdas/user-engagement-scheduler-lambda-go"
 	userEngagementScheduling "github.com/adaptiveteam/adaptive/lambdas/user-engagement-scheduling-lambda-go"
 	userEngagementScripting "github.com/adaptiveteam/adaptive/lambdas/user-engagement-scripting-lambda-go"
+	userObjectives "github.com/adaptiveteam/adaptive/lambdas/user-objectives-lambda-go"
 	userProfile "github.com/adaptiveteam/adaptive/lambdas/user-profile-lambda-go"
 	userQuery "github.com/adaptiveteam/adaptive/lambdas/user-query-lambda-go"
 	userSettings "github.com/adaptiveteam/adaptive/lambdas/user-settings-lambda-go"
 	userSetup "github.com/adaptiveteam/adaptive/lambdas/user-setup-lambda-go"
-	strategySlackMessageProcessor "github.com/adaptiveteam/adaptive/lambdas/strategy-slack-message-processor-lambda-go"
-	holidays "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
-	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
 	ls "github.com/aws/aws-lambda-go/lambda"
 )
 
@@ -55,6 +57,10 @@ func main() {
 		holidays.LambdaRouting.StartHandler()
 	case "competencies":
 		ls.Start(competencies.HandleRequest)
+	case "community-slack-message-processor":
+		ls.Start(communitySlackMessageProcessor.HandleRequest)
+	case "user-objectives":
+		ls.Start(userObjectives.HandleRequest)
 	default:
 		log.Printf("Unknown role %s", role)
 	}

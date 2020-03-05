@@ -211,7 +211,7 @@ module "adaptive_holidays_lambda" {
     name = "adaptive-holidays-lambda"
     modpath = "../adaptive-user-community-lambdas/adaptive-holidays-lambda/src/main/golang"
     id = "client_id"
-    input_sns_topic_arn = "${local.namespace_payload_topic_arn}"
+    input_sns_topic_arn = "${aws_sns_topic.namespace_payload.arn}"
     tags = "${var.global_tags}"
 }
 ```
