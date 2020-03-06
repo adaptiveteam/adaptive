@@ -435,26 +435,29 @@ func Read(issueType IssueType, issueID string) func (conn DynamoDBConnection) (i
 			err = fmt.Errorf("%s issue id is empty", issueType)
 			return
 		}
+		dao := UserObjectiveDAO()(conn)
+		var objs []userObjective.UserObjective
+		objs, err = dao.ReadOrEmpty(issueID)
+		if len(objs) > 0 {
+			issue.UserObjective = objs[0]
+		}
 		switch issueType {
 		case IDO:
-			dao := UserObjectiveDAO()(conn)
-			var objs []userObjective.UserObjective
-			objs, err = dao.ReadOrEmpty(issueID)
-			if len(objs) > 0 {
-				issue.UserObjective = objs[0]
-			} else {
+			// We don't need to read anything additional. It's only UserObjective
+			// Though it's required that we have found one objective
+			if len(objs) == 0 {
 				err = errors.New("UserObjective " + issueID + " not found")
 			}
 		case SObjective:
 			// dao := strategyObjective.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
 			issue.StrategyObjective, err = StrategyObjectiveRead(issueID)(conn)
-			if err == nil {
+			if err == nil && len(objs) == 0 {
 				issue.UserObjective, err = UserObjectiveFromStrategyObjective(issue.StrategyObjective)(conn)
 			}
 		case Initiative:
 			// dao := strategyInitiative.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
 			issue.StrategyInitiative, err = StrategyInitiativeRead(issueID)(conn)
-			if err == nil {
+			if err == nil && len(objs) == 0 {
 				issue, err = IssueFromStrategyInitiative(issue.StrategyInitiative)(conn)
 			}
 		}
@@ -594,19 +597,21 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func (DynamoDBConnection)(err
 			if err != nil { return }
 		}
 
-		switch issueRef.StrategyAlignmentEntityType {
-		case userObjective.ObjectiveStrategyObjectiveAlignment:
-			issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
-		case userObjective.ObjectiveStrategyInitiativeAlignment:
-			issueRef.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
-		case userObjective.ObjectiveCompetencyAlignment:
-			dao := adaptiveValue.NewDAOByTableName(DynamoDBConnection.Dynamo, "CompetencyDynamoDBConnection", models.SchemaForClientID(DynamoDBConnection.ClientID).AdaptiveValues.Name)	
-			issueRef.PrefetchedData.AlignedCompetency, err = dao.Read(issueRef.StrategyAlignmentEntityID)
+		if issueRef.StrategyAlignmentEntityID != "" {
+			switch issueRef.StrategyAlignmentEntityType {
+			case userObjective.ObjectiveStrategyObjectiveAlignment:
+				issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
+			case userObjective.ObjectiveStrategyInitiativeAlignment:
+				issueRef.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
+			case userObjective.ObjectiveCompetencyAlignment:
+				dao := adaptiveValue.NewDAOByTableName(DynamoDBConnection.Dynamo, "CompetencyDynamoDBConnection", models.SchemaForClientID(DynamoDBConnection.ClientID).AdaptiveValues.Name)	
+				issueRef.PrefetchedData.AlignedCompetency, err = dao.Read(issueRef.StrategyAlignmentEntityID)
+			}
+			if err != nil {
+				log.Printf("IGNORE ERROR Couldn't prefetch %s id=%s due to an error: %+v", issueRef.StrategyAlignmentEntityType, issueRef.StrategyAlignmentEntityID, err)
+				err = nil
+			}
 		}
-		if err != nil {
-			return
-		}
-
 		itype := issueRef.GetIssueType()
 		switch itype {
 		case IDO:

@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"github.com/pkg/errors"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
@@ -245,6 +246,9 @@ func dynString(str string) *dynamodb.AttributeValue {
 }
 
 func getByIDAndPlatformIDUnsafe(table string, ID string, teamID models.TeamID, result interface{}) {
+	if ID == "" {
+		panic(errors.New("getByIDAndPlatformIDUnsafe(table "+table+", ID is empty)"))
+	}
 	err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemFromTable(table, map[string]*dynamodb.AttributeValue{
 		"id":          dynString(ID),
 		"platform_id": dynString(teamID.ToString()),
