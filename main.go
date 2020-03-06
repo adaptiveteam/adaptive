@@ -21,6 +21,7 @@ import (
 	userQuery "github.com/adaptiveteam/adaptive/lambdas/user-query-lambda-go"
 	userSettings "github.com/adaptiveteam/adaptive/lambdas/user-settings-lambda-go"
 	userSetup "github.com/adaptiveteam/adaptive/lambdas/user-setup-lambda-go"
+	_ "github.com/adaptiveteam/adaptive/daos" // call init to rename table suffixes
 	ls "github.com/aws/aws-lambda-go/lambda"
 )
 
