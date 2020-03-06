@@ -77,6 +77,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngageWithCheckValues)
 	allValidEngagements := filterEngagements(engs, isNotIgnored)
 	logger.WithField("not ignored engagements", &allValidEngagements).Info("Queried engagements")
 	logger.Infof("Queried all not ignored engagements for user %s, total: %d", engage.UserID, len(engs))
+	showEngagements(engage, allValidEngagements)
 	totalCount := len(allValidEngagements)
 	conn := common.DynamoDBConnection{Dynamo: d, ClientID: clientID, PlatformID: engage.TeamID.ToPlatformID()}
 	count, err2 := workflows.TriggerAllPostponedEvents(engage.TeamID, engage.UserID)(conn)
