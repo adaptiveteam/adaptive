@@ -21,6 +21,10 @@ import (
 	userQuery "github.com/adaptiveteam/adaptive/lambdas/user-query-lambda-go"
 	userSettings "github.com/adaptiveteam/adaptive/lambdas/user-settings-lambda-go"
 	userSetup "github.com/adaptiveteam/adaptive/lambdas/user-setup-lambda-go"
+	reportingTransformedModelStreaming"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda"
+	entityBootstrap "github.com/adaptiveteam/adaptive/lambdas/entity-bootstrap-lambda"
+	entityStreaming "github.com/adaptiveteam/adaptive/lambdas/entity-streaming-lambda"
+	
 	_ "github.com/adaptiveteam/adaptive/daos" // call init to rename table suffixes
 	ls "github.com/aws/aws-lambda-go/lambda"
 )
@@ -62,6 +66,12 @@ func main() {
 		ls.Start(communitySlackMessageProcessor.HandleRequest)
 	case "user-objectives":
 		ls.Start(userObjectives.HandleRequest)
+	case "reporting-transformed-model-streaming":
+		ls.Start(reportingTransformedModelStreaming.HandleRequest)
+	case "entity-bootstrap":
+		ls.Start(entityBootstrap.HandleRequest)
+	case "entity-streaming":
+		ls.Start(entityStreaming.HandleRequest)	
 	default:
 		log.Printf("Unknown role %s", role)
 	}
