@@ -18,6 +18,7 @@ require (
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gruntwork-io/terratest v0.23.4
+	github.com/jinzhu/gorm v1.9.12
 	github.com/mattn/go-colorable v0.1.4
 	github.com/nlopes/slack v0.6.0
 	github.com/onsi/ginkgo v1.10.2
