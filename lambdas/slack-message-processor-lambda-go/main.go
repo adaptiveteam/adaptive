@@ -42,12 +42,12 @@ import (
 	"github.com/nlopes/slack/slackevents"
 )
 
-func GwOk(resp string, err error) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
-		Body:       string(resp),
-		StatusCode: 200,
-	}, err
-}
+// func GwOk(resp string, err error) (events.APIGatewayProxyResponse, error) {
+// 	return events.APIGatewayProxyResponse{
+// 		Body:       string(resp),
+// 		StatusCode: 200,
+// 	}, err
+// }
 
 const (
 	HelloWorldNamespace           = "hello-world"
@@ -211,45 +211,35 @@ func invokeLambdaWithAppID(appID models.TeamID, eventsAPIEvent string) func(stri
 // It uses Amazon API Gateway request/responses provided by the aws-lambda-go/events package,
 // However you could use other event sources (S3, Kinesis etc), or JSON-decoded primitive types such as 'string'.
 func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (response events.APIGatewayProxyResponse, err error) {
-	// IMPORTANT: It should always return this with the empty body. Else actions won't work.
-	response = events.APIGatewayProxyResponse{StatusCode: 200}
 	defer core.RecoverAsLogError("HandleRequest.Recover")
 	logger = logger.WithLambdaContext(ctx)
 	if request.HTTPMethod == "GET" {
 		err = HandleRedirectURLGetRequest(globalConnection(models.ParseTeamID("UNKNOWN-PLATFORM-ID")), request)
 		if err == nil {
-			response.StatusCode = 308 // Permanent Redirect
-			response.Headers = map[string]string{
-				"Location": "https://adaptiveteam.github.io/",
-			}
-		} else {
-			response.StatusCode = 500 // Server error
-			response.Body = "Server error. See log for details"
-
+			response = responsePermanentRedirect("https://adaptiveteam.github.io/")
 		}
 	} else {
 		byt, _ := json.Marshal(request)
 		logger.WithField("payload", string(byt)).Infof("Incoming gateway request")
-
 		if request.Body != "" {
 			// TODO: Refactor this condition. The problem is that slackevents.EventsAPIEvent doesn't have ApiAppId which is required (as PlatformID)
 			if strings.Contains(request.Body, AppHomeOpened) {
 				var ahe SlackAppHomeEvent
 				err = json.Unmarshal([]byte(request.Body), &ahe)
 				err = errors.Wrap(err, "Could not parse payload to AppHomeOpened")
-				if err != nil {
-					return
-				}
-				if ahe.Event.Type == AppHomeOpened {
-					userID := ahe.Event.User
-					channelID := ahe.Event.Channel
+				if err == nil {
+					if ahe.Event.Type == AppHomeOpened {
+						userID := ahe.Event.User
+						channelID := ahe.Event.Channel
 
-					teamID := models.TeamID{
-						TeamID: daosCommon.PlatformID(ahe.TeamID),
-						AppID: daosCommon.PlatformID(ahe.ApiAppID),
+						teamID := models.TeamID{
+							TeamID: daosCommon.PlatformID(ahe.TeamID),
+							AppID: daosCommon.PlatformID(ahe.ApiAppID),
+						}
+						logger.Infof("AppHomeOpened, teamID=%v", teamID)
+						helloMessage(userID, channelID, teamID)
 					}
-					logger.Infof("AppHomeOpened, teamID=%v", teamID)
-					helloMessage(userID, channelID, teamID)
+					response = responseOk
 				}
 			} else {
 				var requestPayload string
@@ -260,7 +250,6 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 						json.RawMessage(requestPayload),
 						slackevents.OptionNoVerifyToken(),
 					)
-					// eventsAPIEvent.
 					err = errors.Wrap(err, "Could not parse eventsAPIEvent")
 					if err == nil {
 						response, err = routeEventsAPIEvent(eventsAPIEvent, requestPayload)
@@ -269,12 +258,17 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 			}
 		}
 	}
+	if err != nil {
+		response = responseServerError(err)
+	} 
 	err = errors.Wrap(err, "HandleRequest")
 	if err != nil {
 		logger.WithLambdaContext(ctx).WithError(err).Error("HandleRequest error")
 	}
 	err = nil
-	logger.WithLambdaContext(ctx).Println("HandleRequest: normal termination. Returning `err=nil`")
+	logger.
+		WithLambdaContext(ctx).
+		Printf("HandleRequest: normal termination. Returning `err=nil`. response: %v\n", response)
 	return
 }
 
@@ -291,7 +285,7 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 	requestPayload string,
 ) (response events.APIGatewayProxyResponse, err error)  {
 	logger.Infof("EVENT %v", eventsAPIEvent.Type)
-
+	response = responseOk
 	switch eventsAPIEvent.Type {
 	case slackevents.AppHomeOpened:
 		appHomeOpened := eventsAPIEvent.Data.(*slackevents.AppHomeOpenedEvent)
@@ -300,10 +294,9 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 			models.ParseTeamID("<UNKNOWN-PlatformID>"))
 	case slackevents.URLVerification:
 		urlVerification := eventsAPIEvent.Data.(*slackevents.EventsAPIURLVerificationEvent)
-		response, err = GwOk(urlVerification.Challenge, nil)
+		response = responseOkBody(urlVerification.Challenge)
 	case slackevents.CallbackEvent:
 		callbackEvent := eventsAPIEvent.Data.(*slackevents.EventsAPICallbackEvent)
-		response = events.APIGatewayProxyResponse{StatusCode: 200}
 		err = routeCallbackEvent(eventsAPIEvent, requestPayload, *callbackEvent)
 	default:
 		logger.Infof("Handling event of type %v", eventsAPIEvent.Type)

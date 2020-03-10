@@ -29,7 +29,6 @@ module "user_engagement_lambda" {
 
 data "aws_iam_policy_document" "user_engagement_policy" {
   statement {
-    effect = "Allow"
     actions = [
       "dynamodb:GetRecords",
       "dynamodb:GetShardIterator",
@@ -42,7 +41,6 @@ data "aws_iam_policy_document" "user_engagement_policy" {
   }
 
   statement {
-    effect = "Allow"
     actions = [
       "dynamodb:UpdateItem",
     ]
@@ -52,7 +50,6 @@ data "aws_iam_policy_document" "user_engagement_policy" {
   }
 
   statement {
-    effect = "Allow"
     actions = [
       "lambda:InvokeFunction",
     ]
@@ -62,18 +59,21 @@ data "aws_iam_policy_document" "user_engagement_policy" {
   }
 
   statement {
-    effect = "Allow"
     actions = [
       "dynamodb:Query",
     ]
     resources = [
-      "${aws_dynamodb_table.community_users.arn}/index/${var.dynamo_community_users_user_index}",
-      "${aws_dynamodb_table.community_users.arn}/index/${var.dynamo_community_users_channel_index}",
+      "${aws_dynamodb_table.community_users.arn}/index/*",
     ]
   }
 }
 
-resource "aws_lambda_event_source_mapping" "user_enagagement_lambda_source_mapping" {
+resource "aws_iam_role_policy_attachment" "user_engagement_lambda_read_all_tables" {
+  role       = module.user_engagement_lambda.role_name
+  policy_arn = aws_iam_policy.read_all_tables.arn
+}
+
+resource "aws_lambda_event_source_mapping" "user_engagement_lambda_source_mapping" {
   event_source_arn = aws_dynamodb_table.adaptive_user_engagements_dynamo_table.stream_arn
   function_name = module.user_engagement_lambda.function_arn
   starting_position = "LATEST"
