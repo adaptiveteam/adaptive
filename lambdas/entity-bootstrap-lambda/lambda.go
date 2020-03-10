@@ -15,7 +15,7 @@ import (
 
 var (
 	logger            = alog.LambdaLogger(logrus.InfoLevel)
-	streamEventMapper = utils.NonEmptyEnv("STREAM_EVENT_MAPPER_LAMBDA")
+	streamEventMapper = func () string { return utils.NonEmptyEnv("STREAM_EVENT_MAPPER_LAMBDA") }
 	clientID          = utils.NonEmptyEnv("CLIENT_ID")
 )
 
@@ -42,7 +42,7 @@ func addTableRecordsToDB(tableName string, d *aws_utils_go.DynamoRequest) {
 			}
 			logger.WithField("entity", &entity).Info("Invoke payload")
 			byt, _ := json.Marshal(entity)
-			io, err := streamhandler.LambdaClient.InvokeFunction(streamEventMapper, byt, false)
+			io, err := streamhandler.LambdaClient.InvokeFunction(streamEventMapper(), byt, false)
 			if err == nil {
 				logger.Infof("GoString:"+io.GoString())
 			} else {

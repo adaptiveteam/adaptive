@@ -14,7 +14,7 @@ import (
 
 var (
 	logger            = alog.LambdaLogger(logrus.InfoLevel)
-	streamEventMapper = utils.NonEmptyEnv("STREAM_EVENT_MAPPER_LAMBDA")
+	streamEventMapper = func () string { return utils.NonEmptyEnv("STREAM_EVENT_MAPPER_LAMBDA") }
 )
 
 func marshalStreamImageToInterfaceUnsafe(change map[string]events.DynamoDBAttributeValue) (u interface{}) {
@@ -67,7 +67,7 @@ func HandleRequest(ctx context.Context, e events.DynamoDBEvent) {
 
 		if event.EventType != "" {
 			byt, _ := json.Marshal(event)
-			_, err := streamhandler.LambdaClient.InvokeFunction(streamEventMapper, byt, false)
+			_, err := streamhandler.LambdaClient.InvokeFunction(streamEventMapper(), byt, false)
 			if err != nil {
 				logger.WithField("error", err).Errorf("Could not invoke stream mapper lambda for %s event",
 					recordEventName)
