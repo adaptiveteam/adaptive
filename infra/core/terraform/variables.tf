@@ -305,3 +305,70 @@ variable "SLACK_CLIENT_SECRET" {
 variable "SLACK_SIGNING_SECRET" {
     default = ""
 }
+
+# VPC
+variable "vpc_cidr" {
+  description = "VPC CIDR block"
+  type = string
+  default = "10.0.0.0/16"
+}
+
+variable "vpc_private_subnets" {
+  description = "Private subnets"
+  type = list
+  default = [
+    "10.0.1.0/24",
+    "10.0.2.0/24",
+  ]
+}
+
+variable "vpc_public_subnets" {
+  description = "Public subnets"
+  type = list
+  default = [
+    "10.0.101.0/24",
+    "10.0.102.0/24",
+  ]
+}
+
+variable "vpc_database_subnets" {
+  default = [
+    "10.0.3.0/24",
+    "10.0.4.0/24",
+  ]
+}
+
+variable "aws_availability_zones" {
+  description = "AWS availability zones"
+  type = map(list(string))
+  default = {
+    //  N. Virginia
+    us-east-1 = [
+      "us-east-1a",
+      "us-east-1b",
+      "us-east-1c",
+    ]
+    //  Ohio
+    us-east-2 = [
+      "us-east-2a",
+      "us-east-2b",
+      "us-east-2c",
+    ]
+    //  N. California
+    us-west-1 = [
+      "us-west-1a",
+      "us-west-1b",
+      "us-west-1c",
+    ]
+    //  Oregon
+    us-west-2 = [
+      "us-west-2a",
+      "us-west-2b",
+      "us-west-2c",
+    ]
+  }
+}
+
+locals {
+    availability_zones = var.aws_availability_zones[var.aws_region]
+}
