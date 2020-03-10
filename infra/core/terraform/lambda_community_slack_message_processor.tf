@@ -12,7 +12,7 @@ module "community_slack_message_processor_lambda" {
   handler       = "adaptive"
   function_name_suffix = local.community_slack_lambda_function_name_suffix
   runtime       = var.lambda_runtime
-  timeout       = var.lambda_timeout
+  timeout       = 600 // 600 seconds = 10 minutes; because Current/Next Quarter Events handling take too long.
 
   memory_size   = var.multi_core_memory_size
 
