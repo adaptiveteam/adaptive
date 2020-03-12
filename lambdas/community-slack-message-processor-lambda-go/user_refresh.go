@@ -51,12 +51,24 @@ func refreshUserCache(userID string, teamID models.TeamID) (profile models.UserP
 			sUser, err = api.GetUserInfo(userID)
 			if err == nil {
 				mUser := utilsUser.ConvertSlackUserToUser(*sUser, teamID)
-				err = userDAO.CreateOrUpdate(mUser)
-				logger.Infof("refreshUserCache: Created/updated user id=%s", mUser.ID)
+				var previousUsers [] models.User
+				previousUsers, err = userDAO.ReadOrEmpty(mUser.ID)
+				if err == nil {
+					for _, u := range previousUsers {
+						mUser.CreatedAt = u.CreatedAt
+						mUser.PlatformOrg = u.PlatformOrg
+						mUser.IsAdmin = u.IsAdmin
+						mUser.IsAdaptiveBot = u.IsAdaptiveBot
+						mUser.AdaptiveScheduledTime = u.AdaptiveScheduledTime
+						mUser.AdaptiveScheduledTimeInUTC = u.AdaptiveScheduledTimeInUTC
+					}
+					err = userDAO.CreateOrUpdate(mUser)
+					logger.Infof("refreshUserCache: Created/updated user id=%s", mUser.ID)
+						
+					profile = convertUserToProfile(mUser)
 					
-				profile = convertUserToProfile(mUser)
-				
-				isAdaptiveBot = mUser.IsAdaptiveBot
+					isAdaptiveBot = false // because mUser.IsAdaptiveBot is never initialized
+				}
 			}
 		}
 	}

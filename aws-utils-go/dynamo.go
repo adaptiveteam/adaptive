@@ -98,6 +98,7 @@ func (d *DynamoRequest) PutItemIntoTable(tableName string, item interface{}) (er
 			_, err = d.svc.PutItem(input)
 			// o.
 		}
+		err = errors.Wrapf(err, "PutItemIntoTable(tableName=%s, item=%v)", tableName, av)
 	}
 	if err != nil {
 		d.errorLog(err)
@@ -116,6 +117,7 @@ func (d *DynamoRequest) PutTableEntryWithCondition(item interface{}, table strin
 		}
 		_, err = d.svc.PutItem(input)
 	}
+	err = errors.Wrapf(err, "PutTableEntryWithCondition(tableName=%s, item=%v, conditional=%s)", table, item, conditional)
 	if err != nil {
 		d.errorLog(err)
 	}
