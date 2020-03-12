@@ -66,7 +66,7 @@ func main() {
 		ls.Start(communitySlackMessageProcessor.HandleRequest)
 	case "user-objectives":
 		ls.Start(userObjectives.HandleRequest)
-	case "reporting-transformed-model-streaming":
+	case "stream-event-mapping":
 		ls.Start(reportingTransformedModelStreaming.HandleRequest)
 	case "entity-bootstrapping":
 		ls.Start(entityBootstrap.HandleRequest)
