@@ -22,9 +22,11 @@ type GetUserPlatformToken func(userID string) UserPlatformToken
 func InitLocalCache(cache *ttlcache.Cache) *ttlcache.Cache {
 	if cache == nil {
 		cache = ttlcache.NewCache()
-		cache.SetTTL(time.Duration(10 * time.Second))
+		var expiration time.Duration 
+		expiration = 10 * time.Second
+		cache.SetTTL(expiration)
 		expirationCallback := func(key string, value interface{}) {
-			fmt.Printf("This key(%s) has expired\n", key)
+			fmt.Printf("PlatformTokenCache: This key(%s) has expired after duration %v\n", key, expiration)
 		}
 		cache.SetExpirationCallback(expirationCallback)
 	}
