@@ -42,13 +42,6 @@ import (
 	"github.com/nlopes/slack/slackevents"
 )
 
-// func GwOk(resp string, err error) (events.APIGatewayProxyResponse, error) {
-// 	return events.APIGatewayProxyResponse{
-// 		Body:       string(resp),
-// 		StatusCode: 200,
-// 	}, err
-// }
-
 const (
 	HelloWorldNamespace           = "hello-world"
 	HolidaysNamespace             = "holidays"
@@ -441,8 +434,8 @@ func routeByCallbackID(
 	} else if strings.Contains(callbackID, "holidays") {
 		holidaysLambda.LambdaRouting.HandleNamespacePayload4(np)
 		// forwardToNamespace(HolidaysNamespace)
-	} else if strings.Contains(callbackID, "adaptive_values") {
-		forwardToNamespace(AdaptiveValuesNamespace)
+	} else if strings.Contains(callbackID, AdaptiveValuesNamespace) {
+		competencies.HandleNamespacePayload4(np)
 	}
 	return
 }
