@@ -68,7 +68,7 @@ func main() {
 		ls.Start(userObjectives.HandleRequest)
 	case "reporting-transformed-model-streaming":
 		ls.Start(reportingTransformedModelStreaming.HandleRequest)
-	case "entity-bootstrap":
+	case "entity-bootstrapping":
 		ls.Start(entityBootstrap.HandleRequest)
 	case "entity-streaming":
 		ls.Start(entityStreaming.HandleRequest)	
