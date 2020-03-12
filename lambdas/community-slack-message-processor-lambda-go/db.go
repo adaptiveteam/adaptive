@@ -32,7 +32,7 @@ func availableStrategyCommunities(teamID models.TeamID, userID string) []models.
 	var op []models.KvPair
 	var strComms []strategy.StrategyCommunity
 	err := d.QueryTableWithIndex(strategyCommunitiesTable, awsutils.DynamoIndexExpression{
-		IndexName: string(strategyCommunity.ChannelIDIndex),
+		IndexName: string(strategyCommunity.PlatformIDChannelCreatedIndex),
 		Condition: "platform_id = :pi AND channel_created = :cc",
 		Attributes: map[string]interface{}{
 			":pi": teamID.ToString(),
