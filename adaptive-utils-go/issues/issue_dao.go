@@ -1,12 +1,13 @@
 package issues
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
-	"time"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
+	"time"
+
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
 
 	"github.com/pkg/errors"
 
@@ -14,14 +15,16 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/common"
 	// "github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
-	
+
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
+
 	// "github.com/adaptiveteam/adaptive/daos/visionMission"
 	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
-	
+
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
+
 	// "github.com/adaptiveteam/adaptive/engagement-builder/ui"
 
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
@@ -33,41 +36,41 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	// aws "github.com/aws/aws-sdk-go/aws"
 	// dynamodb "github.com/aws/aws-sdk-go/service/dynamodb"
-
 	// userCommunity "github.com/adaptiveteam/adaptive/daos/userCommunity"
 	// dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 )
 
 type DynamoDBConnection = common.DynamoDBConnection
+
 var (
-dialogContentTableName                      = func(clientID string) string { return clientID + "_dialog_content" }
-strategyObjectiveTableName                 = func(clientID string) string { return clientID + "_strategy_objectives" }
-strategyInitiativeTableName                = func(clientID string) string { return clientID + "_strategy_initiatives" }
-strategyInitiativeInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
-userObjectiveTableName                     = func(clientID string) string { return clientID + "_user_objective" }
-userObjectiveIDIndex                       = "IDIndex"
-userObjectiveUserIDIndex                   = "UserIDCompletedIndex"
-userObjectiveTypeIndex                     = "UserIDTypeIndex"
-userObjectiveProgressTableName             = func(clientID string) string { return clientID + "_user_objectives_progress" }
-adaptiveCommunityUserTableName                     = func(clientID string) string { return clientID + "_community_users" }
-communityTableName                        = func(clientID string) string { return clientID + "_communities" }
-competencyTableName                       = func(clientID string) string { return clientID + "_adaptive_value" }
-strategyInitiativeCommunityTableName      = func(clientID string) string { return clientID + "_initiative_communities" }
-strategyInitiativeCommunityPlatformIndex  = "PlatformIDIndex"
-strategyCommunityTableName                  = func(clientID string) string { return clientID + "_strategy_communities" }
-visionMissionTableName                             = func(clientID string) string { return clientID + "_vision" }
-capabilityCommunityTableName              = func(clientID string) string { return clientID + "_capability_communities" }
-capabilityCommunityPlatformIndex          = "PlatformIDIndex"
-adaptiveUserTableName                      = func(clientID string) string { return clientID + "_adaptive_users" }
+	dialogContentTableName                     = func(clientID string) string { return clientID + "_dialog_content" }
+	strategyObjectiveTableName                 = func(clientID string) string { return clientID + "_strategy_objectives" }
+	strategyInitiativeTableName                = func(clientID string) string { return clientID + "_strategy_initiatives" }
+	strategyInitiativeInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
+	userObjectiveTableName                     = func(clientID string) string { return clientID + "_user_objective" }
+	userObjectiveIDIndex                       = "IDIndex"
+	userObjectiveUserIDIndex                   = "UserIDCompletedIndex"
+	userObjectiveTypeIndex                     = "UserIDTypeIndex"
+	userObjectiveProgressTableName             = func(clientID string) string { return clientID + "_user_objectives_progress" }
+	adaptiveCommunityUserTableName             = func(clientID string) string { return clientID + "_community_users" }
+	communityTableName                         = func(clientID string) string { return clientID + "_communities" }
+	competencyTableName                        = func(clientID string) string { return clientID + "_adaptive_value" }
+	strategyInitiativeCommunityTableName       = func(clientID string) string { return clientID + "_initiative_communities" }
+	strategyInitiativeCommunityPlatformIndex   = "PlatformIDIndex"
+	strategyCommunityTableName                 = func(clientID string) string { return clientID + "_strategy_communities" }
+	visionMissionTableName                     = func(clientID string) string { return clientID + "_vision" }
+	capabilityCommunityTableName               = func(clientID string) string { return clientID + "_capability_communities" }
+	capabilityCommunityPlatformIndex           = "PlatformIDIndex"
+	adaptiveUserTableName                      = func(clientID string) string { return clientID + "_adaptive_users" }
 )
 
-const communityUsersUserCommunityIndex            = "UserIDCommunityIDIndex"
-const strategyObjectivesPlatformIndex             = "PlatformIDIndex"
-const strategyInitiativesPlatformIndex            = "PlatformIDIndex"
-const communityUsersUserIndex                     = "UserIDIndex"
+const communityUsersUserCommunityIndex = "UserIDCommunityIDIndex"
+const strategyObjectivesPlatformIndex = "PlatformIDIndex"
+const strategyInitiativesPlatformIndex = "PlatformIDIndex"
+const communityUsersUserIndex = "UserIDIndex"
 
 // SelectFromIssuesWhereTypeAndUserID reads all issues of the given type accessible by userID
-func SelectFromIssuesWhereTypeAndUserID(userID string, issueType IssueType, completed int) func (conn common.DynamoDBConnection) (res []Issue, err error) {
+func SelectFromIssuesWhereTypeAndUserID(userID string, issueType IssueType, completed int) func(conn common.DynamoDBConnection) (res []Issue, err error) {
 	switch issueType {
 	case IDO:
 		return selectFromIssuesWhereTypeAndUserIDIDO(userID, completed)
@@ -80,20 +83,20 @@ func SelectFromIssuesWhereTypeAndUserID(userID string, issueType IssueType, comp
 	return selectFromIssuesWhereTypeAndUserIDIDO(userID, completed)
 }
 
-func UserObjectiveDAO() func (conn common.DynamoDBConnection) userObjective.DAO {
-	return func (conn common.DynamoDBConnection) userObjective.DAO {
+func UserObjectiveDAO() func(conn common.DynamoDBConnection) userObjective.DAO {
+	return func(conn common.DynamoDBConnection) userObjective.DAO {
 		return userObjective.NewDAO(conn.Dynamo, "userObjectiveDAO", conn.ClientID)
 	}
 }
 
-func UserObjectiveProgressDAO() func (conn common.DynamoDBConnection) userObjectiveProgress.DAO {
-	return func (conn common.DynamoDBConnection) userObjectiveProgress.DAO {
+func UserObjectiveProgressDAO() func(conn common.DynamoDBConnection) userObjectiveProgress.DAO {
+	return func(conn common.DynamoDBConnection) userObjectiveProgress.DAO {
 		return userObjectiveProgress.NewDAOByTableName(conn.Dynamo, "userObjectiveProgressDAO", userObjectiveProgressTableName(conn.ClientID))
 	}
 }
 
-func selectFromIssuesWhereTypeAndUserIDIDO(userID string, completed int) func (conn DynamoDBConnection) (res []Issue, err error) {
-	return func (conn DynamoDBConnection) (res []Issue, err error) {
+func selectFromIssuesWhereTypeAndUserIDIDO(userID string, completed int) func(conn DynamoDBConnection) (res []Issue, err error) {
+	return func(conn DynamoDBConnection) (res []Issue, err error) {
 		dao := UserObjectiveDAO()(conn)
 
 		var objs []userObjective.UserObjective
@@ -120,8 +123,8 @@ func platformIndexExpr(index string, teamID models.TeamID) awsutils.DynamoIndexE
 	}
 }
 
-func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) func (conn common.DynamoDBConnection) (res []Issue, err error) {
-	return func (conn common.DynamoDBConnection) (res []Issue, err error) {
+func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) func(conn common.DynamoDBConnection) (res []Issue, err error) {
+	return func(conn common.DynamoDBConnection) (res []Issue, err error) {
 		defer core.RecoverToErrorVar("selectFromIssuesWhereTypeAndUserIDSObjective", &err)
 
 		var allObjs []models.StrategyObjective
@@ -133,8 +136,8 @@ func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) 
 
 		userObjectiveDao := UserObjectiveDAO()(conn)
 		for _, each := range allObjs {
-			// there has to be at least one capability community id
-			// TODO: This presents a tricky scenario when original capability community is updated. Think about this.
+			// there has to be at least one objective community id
+			// TODO: This presents a tricky scenario when original objective community is updated. Think about this.
 			// Customer and financial objectives have no capability communities associated with them. For them,we only use the ID
 			id := each.ID
 			var objs []userObjective.UserObjective
@@ -159,7 +162,7 @@ func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) 
 				}
 			} else {
 				// err = errors.New("UserObjective " + each.ID + " or " + id + " not found")
-				log.Printf("selectFromIssuesWhereTypeAndUserIDSObjective: Not found user objective for %s or %s\n", each.ID, id)// err)
+				log.Printf("selectFromIssuesWhereTypeAndUserIDSObjective: Not found user objective for %s or %s\n", each.ID, id) // err)
 				// err = nil
 				var uo userObjective.UserObjective
 				uo, err = UserObjectiveFromStrategyObjective(each)(conn)
@@ -195,8 +198,8 @@ func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) 
 	}
 }
 
-func UserObjectiveFromStrategyObjective(so models.StrategyObjective) func (conn common.DynamoDBConnection) (uObj userObjective.UserObjective, err error) {
-	return func (conn common.DynamoDBConnection) (uObj userObjective.UserObjective, err error) {
+func UserObjectiveFromStrategyObjective(so models.StrategyObjective) func(conn common.DynamoDBConnection) (uObj userObjective.UserObjective, err error) {
+	return func(conn common.DynamoDBConnection) (uObj userObjective.UserObjective, err error) {
 		defer core.RecoverToErrorVar("UserObjectiveFromStrategyObjective", &err)
 		var commID string
 		if len(so.CapabilityCommunityIDs) > 0 {
@@ -236,14 +239,14 @@ func UserObjectiveFromStrategyObjective(so models.StrategyObjective) func (conn 
 	}
 }
 
-func IsMemberInCommunity(userID string, comm community.AdaptiveCommunity) func (conn DynamoDBConnection) bool {
-	return func (conn DynamoDBConnection) bool {
+func IsMemberInCommunity(userID string, comm community.AdaptiveCommunity) func(conn DynamoDBConnection) bool {
+	return func(conn DynamoDBConnection) bool {
 		defer core.RecoverAsLogError("issues_dao.go: IsMemberInCommunity")
 		return community.IsUserInCommunity(userID, adaptiveCommunityUserTableName(conn.ClientID), communityUsersUserCommunityIndex, comm)
 	}
 }
-func selectFromIssuesWhereTypeAndUserIDInitiative(userID string, completed int) func (conn DynamoDBConnection) (res []Issue, err error) {
-	return func (conn DynamoDBConnection) (res []Issue, err error) {
+func selectFromIssuesWhereTypeAndUserIDInitiative(userID string, completed int) func(conn DynamoDBConnection) (res []Issue, err error) {
+	return func(conn DynamoDBConnection) (res []Issue, err error) {
 		inStrategyCommunity := IsMemberInCommunity(userID, community.Strategy)(conn)
 		var res2 []Issue
 		if inStrategyCommunity {
@@ -273,7 +276,7 @@ func selectFromIssuesWhereTypeAndUserIDInitiative(userID string, completed int) 
 	}
 }
 
-func removeDuplicates(issues []Issue)(res [] Issue) {
+func removeDuplicates(issues []Issue) (res []Issue) {
 	existingIDs := map[string]struct{}{}
 	for _, each := range issues {
 		if _, ok := existingIDs[each.UserObjective.ID]; !ok {
@@ -286,8 +289,8 @@ func removeDuplicates(issues []Issue)(res [] Issue) {
 	return
 }
 
-func IssuesFromAllStrategyInitiatives() func (conn DynamoDBConnection) (res []Issue, err error) {
-	return func (conn DynamoDBConnection) (res []Issue, err error) {
+func IssuesFromAllStrategyInitiatives() func(conn DynamoDBConnection) (res []Issue, err error) {
+	return func(conn DynamoDBConnection) (res []Issue, err error) {
 		defer core.RecoverToErrorVar("AllStrategyInitiatives", &err)
 		inits := strategy.AllOpenStrategyInitiatives(models.ParseTeamID(conn.PlatformID),
 			strategyInitiativeTableName(conn.ClientID),
@@ -299,8 +302,8 @@ func IssuesFromAllStrategyInitiatives() func (conn DynamoDBConnection) (res []Is
 	}
 }
 
-func IssuesFromGivenStrategyInitiatives(inits []models.StrategyInitiative) func (conn DynamoDBConnection) (issues []Issue, err error) {
-	return func (conn DynamoDBConnection) (issues []Issue, err error) {
+func IssuesFromGivenStrategyInitiatives(inits []models.StrategyInitiative) func(conn DynamoDBConnection) (issues []Issue, err error) {
+	return func(conn DynamoDBConnection) (issues []Issue, err error) {
 		for _, si := range inits {
 			var issue Issue
 			issue, err = IssueFromStrategyInitiative(si)(conn)
@@ -313,11 +316,11 @@ func IssuesFromGivenStrategyInitiatives(inits []models.StrategyInitiative) func 
 		return
 	}
 }
-func IssuesFromCapabilityCommunityInitiatives(userID string) func (conn DynamoDBConnection)(res []Issue, err error) {
-	return func (conn DynamoDBConnection)(res []Issue, err error) {
+func IssuesFromCapabilityCommunityInitiatives(userID string) func(conn DynamoDBConnection) (res []Issue, err error) {
+	return func(conn DynamoDBConnection) (res []Issue, err error) {
 		defer core.RecoverToErrorVar("CapabilityCommunityInitiatives", &err)
 		strategyInitiativesInitiativeCommunityIndex := "InitiativeCommunityIDIndex"
-		inits := strategy.UserCapabilityCommunityInitiatives(userID, 
+		inits := strategy.UserCapabilityCommunityInitiatives(userID,
 			strategyObjectiveTableName(conn.ClientID), strategyObjectivesPlatformIndex,
 			strategyInitiativeTableName(conn.ClientID), strategyInitiativesInitiativeCommunityIndex,
 			userObjectiveTableName(conn.ClientID),
@@ -329,11 +332,11 @@ func IssuesFromCapabilityCommunityInitiatives(userID string) func (conn DynamoDB
 	}
 }
 
-func IssuesFromInitiativeCommunityInitiatives(userID string) func (conn DynamoDBConnection) (res []Issue, err error) {
-	return func (conn DynamoDBConnection) (res []Issue, err error) {
+func IssuesFromInitiativeCommunityInitiatives(userID string) func(conn DynamoDBConnection) (res []Issue, err error) {
+	return func(conn DynamoDBConnection) (res []Issue, err error) {
 		defer core.RecoverToErrorVar("IssuesFromInitiativeCommunityInitiatives", &err)
 		var inits []models.StrategyInitiative
-		inits = strategy.AllOpenStrategyInitiatives(models.ParseTeamID(conn.PlatformID), 
+		inits = strategy.AllOpenStrategyInitiatives(models.ParseTeamID(conn.PlatformID),
 			strategyInitiativeTableName(conn.ClientID), strategyInitiativesPlatformIndex,
 			userObjectiveTableName(conn.ClientID))
 		res, err = IssuesFromGivenStrategyInitiatives(inits)(conn)
@@ -342,12 +345,11 @@ func IssuesFromInitiativeCommunityInitiatives(userID string) func (conn DynamoDB
 	}
 }
 
-
-func IssueFromStrategyInitiative(si models.StrategyInitiative) func (conn common.DynamoDBConnection) (issue Issue, err error) {
-	return func (conn common.DynamoDBConnection) (issue Issue, err error) {
+func IssueFromStrategyInitiative(si models.StrategyInitiative) func(conn common.DynamoDBConnection) (issue Issue, err error) {
+	return func(conn common.DynamoDBConnection) (issue Issue, err error) {
 		advocate := ""
 		if si.CapabilityObjective != "" {
-			capObj := strategy.StrategyObjectiveByID(models.ParseTeamID(conn.PlatformID), si.CapabilityObjective, 
+			capObj := strategy.StrategyObjectiveByID(models.ParseTeamID(conn.PlatformID), si.CapabilityObjective,
 				strategyObjectiveTableName(conn.ClientID))
 			advocate = capObj.Advocate
 		}
@@ -372,9 +374,8 @@ func IssueFromStrategyInitiative(si models.StrategyInitiative) func (conn common
 	}
 }
 
-
-func StrategyInitiativeRead(id string) func (conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
-	return func (conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
+func StrategyInitiativeRead(id string) func(conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
+	return func(conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
 		defer core.RecoverToErrorVar("StrategyInitiativeRead", &err)
 		res = strategy.StrategyInitiativeByID(models.ParseTeamID(conn.PlatformID), id, strategyInitiativeTableName(conn.ClientID))
 		if res.ID != id {
@@ -383,16 +384,16 @@ func StrategyInitiativeRead(id string) func (conn DynamoDBConnection) (res model
 		return
 	}
 }
-func StrategyInitiativeCreateOrUpdate(si models.StrategyInitiative) func (conn DynamoDBConnection) (err error) {
-	return func (conn DynamoDBConnection) (err error) {
+func StrategyInitiativeCreateOrUpdate(si models.StrategyInitiative) func(conn DynamoDBConnection) (err error) {
+	return func(conn DynamoDBConnection) (err error) {
 		err = conn.Dynamo.PutTableEntry(si, strategyInitiativeTableName(conn.ClientID))
 		err = errors.Wrapf(err, "StrategyObjectiveDynamoDBConnection) CreateOrUpdate(si.ID=%s)", si.ID)
 		return
 	}
 }
 
-func StrategyObjectiveRead(id string) func (conn DynamoDBConnection) (res models.StrategyObjective, err error) {
-	return func (conn DynamoDBConnection) (res models.StrategyObjective, err error) {
+func StrategyObjectiveRead(id string) func(conn DynamoDBConnection) (res models.StrategyObjective, err error) {
+	return func(conn DynamoDBConnection) (res models.StrategyObjective, err error) {
 		defer core.RecoverToErrorVar("StrategyObjectiveDynamoDBConnection.Read", &err)
 		id2 := id
 		i := strings.Index(id2, "_")
@@ -410,8 +411,8 @@ func StrategyObjectiveRead(id string) func (conn DynamoDBConnection) (res models
 	}
 }
 
-func StrategyObjectiveCreateOrUpdate(so models.StrategyObjective) func (conn DynamoDBConnection) (err error) {
-	return func (conn DynamoDBConnection) (err error) {
+func StrategyObjectiveCreateOrUpdate(so models.StrategyObjective) func(conn DynamoDBConnection) (err error) {
+	return func(conn DynamoDBConnection) (err error) {
 		if so.ID == "" {
 			err = errors.New("ID is empty")
 		} else if so.PlatformID == "" {
@@ -428,8 +429,8 @@ func StrategyObjectiveCreateOrUpdate(so models.StrategyObjective) func (conn Dyn
 	}
 }
 
-func Read(issueType IssueType, issueID string) func (conn DynamoDBConnection) (issue Issue, err error) {
-	return func (conn DynamoDBConnection) (issue Issue, err error) {
+func Read(issueType IssueType, issueID string) func(conn DynamoDBConnection) (issue Issue, err error) {
+	return func(conn DynamoDBConnection) (issue Issue, err error) {
 		defer core.RecoverToErrorVar("DynamoDBConnection) Read", &err)
 		if issueID == "" {
 			err = fmt.Errorf("%s issue id is empty", issueType)
@@ -467,10 +468,10 @@ func Read(issueType IssueType, issueID string) func (conn DynamoDBConnection) (i
 	}
 }
 
-func Save(issue Issue) func (conn DynamoDBConnection) (err error) {
-	return func (conn DynamoDBConnection) (err error) {
+func Save(issue Issue) func(conn DynamoDBConnection) (err error) {
+	return func(conn DynamoDBConnection) (err error) {
 		log.Printf("DynamoDBConnection) Save(uo.ID=%s, so.ID=%s, si.ID=%s, issue=%v)\n",
-		issue.UserObjective.ID, issue.StrategyObjective.ID, issue.StrategyInitiative.ID, issue)
+			issue.UserObjective.ID, issue.StrategyObjective.ID, issue.StrategyInitiative.ID, issue)
 		dao := UserObjectiveDAO()(conn)
 		err = dao.CreateOrUpdate(issue.UserObjective)
 		if err == nil {
@@ -508,8 +509,8 @@ func Save(issue Issue) func (conn DynamoDBConnection) (err error) {
 }
 
 // SetCancelled updates a single field in the entity - Cancelled - to true
-func SetCancelled(issueID string) func (conn DynamoDBConnection) (err error) {
-	return func (conn DynamoDBConnection) (err error) {
+func SetCancelled(issueID string) func(conn DynamoDBConnection) (err error) {
+	return func(conn DynamoDBConnection) (err error) {
 		dao := UserObjectiveDAO()(conn)
 		var objs []userObjective.UserObjective
 		objs, err = dao.ReadOrEmpty(issueID)
@@ -529,8 +530,8 @@ func SetCancelled(issueID string) func (conn DynamoDBConnection) (err error) {
 }
 
 // SetCompleted updates a single field in the entity - Completed - to true
-func SetCompleted(issueID string) func (conn DynamoDBConnection) (err error) {
-	return func (conn DynamoDBConnection) (err error) {
+func SetCompleted(issueID string) func(conn DynamoDBConnection) (err error) {
+	return func(conn DynamoDBConnection) (err error) {
 		dao := UserObjectiveDAO()(conn)
 		var objs []userObjective.UserObjective
 		objs, err = dao.ReadOrEmpty(issueID)
@@ -548,25 +549,25 @@ func SetCompleted(issueID string) func (conn DynamoDBConnection) (err error) {
 
 // ReadNewAndOldIssuesAndPrefetch loads issue and prefetches all dictionaries
 // NB! Only the new issue is loaded and prefetched!
-func ReadNewAndOldIssuesAndPrefetch(issueType IssueType, issueID string, isShowingProgress bool) func (DynamoDBConnection)(newAndOldIssues NewAndOldIssues, err error) {
-	return func (DynamoDBConnection DynamoDBConnection)(newAndOldIssues NewAndOldIssues, err error) {
+func ReadNewAndOldIssuesAndPrefetch(issueType IssueType, issueID string, isShowingProgress bool) func(DynamoDBConnection) (newAndOldIssues NewAndOldIssues, err error) {
+	return func(DynamoDBConnection DynamoDBConnection) (newAndOldIssues NewAndOldIssues, err error) {
 		newAndOldIssues.NewIssue, err = Read(issueType, issueID)(DynamoDBConnection)
-		if err != nil { 
+		if err != nil {
 			err = errors.Wrapf(err, "ReadNewAndOldIssuesAndPrefetch/Read")
-			return 
+			return
 		}
 		if newAndOldIssues.NewIssue.GetIssueID() == "" {
 			err = errors.New("newAndOldIssues.NewIssue.GetIssueID = ''")
-			return  
+			return
 		}
 		if newAndOldIssues.NewIssue.GetIssueID() != issueID {
-			err = errors.Errorf(" newAndOldIssues.NewIssue.UserObjective.ID = %s != issueID = %s",  newAndOldIssues.NewIssue.GetIssueID(), issueID)
-			return  
+			err = errors.Errorf(" newAndOldIssues.NewIssue.UserObjective.ID = %s != issueID = %s", newAndOldIssues.NewIssue.GetIssueID(), issueID)
+			return
 		}
 		err = Prefetch(&newAndOldIssues.NewIssue, isShowingProgress)(DynamoDBConnection)
-		if err != nil { 
+		if err != nil {
 			err = errors.Wrapf(err, "getNewAndOldIssues/prefetch")
-			return 
+			return
 		}
 		newAndOldIssues.OldIssue = newAndOldIssues.NewIssue // we don't have the previous version of the entity
 		err = errors.Wrap(err, "{ReadNewAndOldIssuesAndPrefetch}")
@@ -575,26 +576,30 @@ func ReadNewAndOldIssuesAndPrefetch(issueType IssueType, issueID string, isShowi
 }
 
 // Prefetch reads joined tables and puts related data into issue
-func Prefetch(issueRef *Issue, isShowingProgress bool) func (DynamoDBConnection)(err error ) {
-	return func (DynamoDBConnection DynamoDBConnection)(err error ) {
+func Prefetch(issueRef *Issue, isShowingProgress bool) func(DynamoDBConnection) (err error) {
+	return func(DynamoDBConnection DynamoDBConnection) (err error) {
 		if isShowingProgress {
 			// 	objectiveProgress := LatestProgressUpdateByObjectiveID(issue.UserObjective.ID)
 			issueRef.PrefetchedData.Progress, err = IssueProgressReadAll(issueRef.UserObjective.ID, 0)(DynamoDBConnection)
 			log.Printf("Prefetch: len(Progress)==%d", len(issueRef.PrefetchedData.Progress))
-			if err != nil { return }
+			if err != nil {
+				return
+			}
 		}
 		return PrefetchIssueWithoutProgress(issueRef)(DynamoDBConnection)
 	}
 }
 
 // PrefetchIssueWithoutProgress loads issue information ignoring context
-func PrefetchIssueWithoutProgress(issueRef *Issue) func (DynamoDBConnection)(err error ) {
-	return func (DynamoDBConnection DynamoDBConnection)(err error ) {
+func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err error) {
+	return func(DynamoDBConnection DynamoDBConnection) (err error) {
 		if !utilsUser.IsSpecialOrEmptyUserID(issueRef.UserObjective.AccountabilityPartner) {
-			issueRef.PrefetchedData.AccountabilityPartner, err = 
+			issueRef.PrefetchedData.AccountabilityPartner, err =
 				utilsUser.DAOFromConnection(DynamoDBConnection).
-				Read(issueRef.UserObjective.AccountabilityPartner)
-			if err != nil { return }
+					Read(issueRef.UserObjective.AccountabilityPartner)
+			if err != nil {
+				return
+			}
 		}
 
 		if issueRef.StrategyAlignmentEntityID != "" {
@@ -604,7 +609,7 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func (DynamoDBConnection)(err
 			case userObjective.ObjectiveStrategyInitiativeAlignment:
 				issueRef.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
 			case userObjective.ObjectiveCompetencyAlignment:
-				dao := adaptiveValue.NewDAOByTableName(DynamoDBConnection.Dynamo, "CompetencyDynamoDBConnection", models.SchemaForClientID(DynamoDBConnection.ClientID).AdaptiveValues.Name)	
+				dao := adaptiveValue.NewDAOByTableName(DynamoDBConnection.Dynamo, "CompetencyDynamoDBConnection", models.SchemaForClientID(DynamoDBConnection.ClientID).AdaptiveValues.Name)
 				issueRef.PrefetchedData.AlignedCompetency, err = dao.Read(issueRef.StrategyAlignmentEntityID)
 			}
 			if err != nil {
@@ -641,7 +646,9 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func (DynamoDBConnection)(err
 				for _, comm := range comms {
 					issueRef.PrefetchedData.AlignedInitiativeCommunity = comm
 				}
-				if err != nil { return }
+				if err != nil {
+					return
+				}
 			}
 			capObjID := issueRef.StrategyInitiative.CapabilityObjective
 			if capObjID != "" {
@@ -654,13 +661,13 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func (DynamoDBConnection)(err
 	}
 }
 
-func PrefetchManyIssuesWithoutProgress(issues []Issue) func (DynamoDBConnection)(prefetchedIssues []Issue, err error ) {
-	return  func (DynamoDBConnection DynamoDBConnection)(prefetchedIssues []Issue, err error ) {
+func PrefetchManyIssuesWithoutProgress(issues []Issue) func(DynamoDBConnection) (prefetchedIssues []Issue, err error) {
+	return func(DynamoDBConnection DynamoDBConnection) (prefetchedIssues []Issue, err error) {
 		for _, issue := range issues {
 			err = PrefetchIssueWithoutProgress(&issue)(DynamoDBConnection)
 			if err != nil {
 				return
-			} 
+			}
 			prefetchedIssues = append(prefetchedIssues, issue)
 		}
 		return

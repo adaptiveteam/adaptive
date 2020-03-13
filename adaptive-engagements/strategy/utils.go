@@ -1,8 +1,10 @@
 package strategy
 
 import (
-	"github.com/pkg/errors"
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
@@ -13,8 +15,7 @@ import (
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"log"
-	"strings"
+	"github.com/pkg/errors"
 )
 
 // Constructing Dynamo query expression based on index for the platform
@@ -35,8 +36,8 @@ func platformIndexExpr(index string, teamID models.TeamID) awsutils.DynamoIndexE
 func UserStrategyObjectives(userID string,
 	strategyObjectivesTable, strategyObjectivesPlatformIndex, userObjectivesTable string,
 	communityUsersTable, communityUsersUserCommunityIndex string) []models.StrategyObjective {
-	log.Printf("UserStrategyObjectives(userID=%s, strategyObjectivesTable=%s, strategyObjectivesPlatformIndex=%s, userObjectivesTable=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s)", 
-									   userID,    strategyObjectivesTable,    strategyObjectivesPlatformIndex,    userObjectivesTable,    communityUsersTable,    communityUsersUserCommunityIndex)
+	log.Printf("UserStrategyObjectives(userID=%s, strategyObjectivesTable=%s, strategyObjectivesPlatformIndex=%s, userObjectivesTable=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s)",
+		userID, strategyObjectivesTable, strategyObjectivesPlatformIndex, userObjectivesTable, communityUsersTable, communityUsersUserCommunityIndex)
 	if community.IsUserInCommunity(userID, communityUsersTable, communityUsersUserCommunityIndex, community.Strategy) {
 		log.Println(fmt.Sprintf("### User %s is in strategy community, showing all the objectives", userID))
 		teamID := UserIDToTeamID(userDAO())(userID)
@@ -64,15 +65,15 @@ func allStrategyObjectives(teamID models.TeamID, strategyObjectivesTable,
 
 // AllOpenStrategyObjectives returns a slice of open strategy objectives: capability, customer and financial objectives
 // USED
-func AllOpenStrategyObjectives(teamID models.TeamID, strategyObjectivesTable, strategyObjectivesPlatformIndex, 
+func AllOpenStrategyObjectives(teamID models.TeamID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
 	userObjectivesTable string) []models.StrategyObjective {
 	allObjs := allStrategyObjectives(teamID, strategyObjectivesTable, strategyObjectivesPlatformIndex)
 	log.Printf("AllOpenStrategyObjectives: len(allObjs)=%d\n", len(allObjs))
 
 	var res []models.StrategyObjective
 	for _, each := range allObjs {
-		// there has to be at least one capability community id
-		// TODO: This presents a tricky scenario when original capability community is updated. Think about this.
+		// there has to be at least one objective community id
+		// TODO: This presents a tricky scenario when original objective community is updated. Think about this.
 		// Customer and financial objectives have no capability communities associated with them. For them,we only use the ID
 		id := each.ID
 		// if len(each.CapabilityCommunityIDs) > 0 {
@@ -114,7 +115,7 @@ func AllStrategyInitiatives(teamID models.TeamID, strategyInitiativesTable,
 }
 
 // AllOpenStrategyInitiatives returns a slice of all open strategy initiatives
-func AllOpenStrategyInitiatives(teamID models.TeamID, strategyInitiativesTable, strategyInitiativesPlatformIndex, 
+func AllOpenStrategyInitiatives(teamID models.TeamID, strategyInitiativesTable, strategyInitiativesPlatformIndex,
 	userObjectivesTable string) []models.StrategyInitiative {
 	inits := AllStrategyInitiatives(teamID, strategyInitiativesTable, strategyInitiativesPlatformIndex)
 	var res []models.StrategyInitiative
@@ -152,7 +153,7 @@ func StrategyCommunityByIDUnsafe(id, strategyCommunitiesTable string) StrategyCo
 	return comm
 }
 
-// AllCapabilityCommunities Get all the capability communities, 
+// AllCapabilityCommunities Get all the capability communities,
 // that have Adaptive associated, for the platform ID
 func AllCapabilityCommunities(teamID models.TeamID,
 	capabilityCommunitiesTable, capabilityCommunitiesPlatformIndex, strategyCommunitiesTable string) []CapabilityCommunity {
@@ -179,7 +180,7 @@ func AllCapabilityCommunities(teamID models.TeamID,
 	return op
 }
 
-// AllStrategyInitiativeCommunities - Get all the initiative communities 
+// AllStrategyInitiativeCommunities - Get all the initiative communities
 // for the platform ID
 func AllStrategyInitiativeCommunities(teamID models.TeamID, initiativeCommunitiesTable,
 	initiativeCommunitiesPlatformIndex, strategyCommunitiesTable string) []StrategyInitiativeCommunity {
@@ -247,7 +248,7 @@ func dynString(str string) *dynamodb.AttributeValue {
 
 func getByIDAndPlatformIDUnsafe(table string, ID string, teamID models.TeamID, result interface{}) {
 	if ID == "" {
-		panic(errors.New("getByIDAndPlatformIDUnsafe(table "+table+", ID is empty)"))
+		panic(errors.New("getByIDAndPlatformIDUnsafe(table " + table + ", ID is empty)"))
 	}
 	err2 := common.DeprecatedGetGlobalDns().Dynamo.GetItemFromTable(table, map[string]*dynamodb.AttributeValue{
 		"id":          dynString(ID),
@@ -287,6 +288,7 @@ func InitiativeCommunityByID(teamID models.TeamID, ID, table string) (res Strate
 	}
 	return
 }
+
 // StrategyVision returns vision for platform ID or nil if absent
 func StrategyVision(teamID models.TeamID, visionTable string) (res *models.VisionMission) {
 	log.Println("### In StrategyVision: teamID: " + teamID.ToString())
@@ -300,7 +302,7 @@ func StrategyVision(teamID models.TeamID, visionTable string) (res *models.Visio
 	if found {
 		res = &vision
 	} else {
-		res =  nil
+		res = nil
 	}
 	return
 }

@@ -7,8 +7,11 @@ import (
 	platformNotification "github.com/adaptiveteam/adaptive/lambdas/adaptive-platform-notification-lambda-go"
 	communitySlackMessageProcessor "github.com/adaptiveteam/adaptive/lambdas/community-slack-message-processor-lambda-go"
 	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
+	entityBootstrap "github.com/adaptiveteam/adaptive/lambdas/entity-bootstrap-lambda"
+	entityStreaming "github.com/adaptiveteam/adaptive/lambdas/entity-streaming-lambda"
 	holidays "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
 	platformEngagementScheduler "github.com/adaptiveteam/adaptive/lambdas/platform-engagement-scheduler-lambda-go"
+	reportingTransformedModelStreaming "github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda"
 	slackMessageProcessor "github.com/adaptiveteam/adaptive/lambdas/slack-message-processor-lambda-go"
 	slackUserQuery "github.com/adaptiveteam/adaptive/lambdas/slack-user-query-lambda-go"
 	strategySlackMessageProcessor "github.com/adaptiveteam/adaptive/lambdas/strategy-slack-message-processor-lambda-go"
@@ -21,10 +24,7 @@ import (
 	userQuery "github.com/adaptiveteam/adaptive/lambdas/user-query-lambda-go"
 	userSettings "github.com/adaptiveteam/adaptive/lambdas/user-settings-lambda-go"
 	userSetup "github.com/adaptiveteam/adaptive/lambdas/user-setup-lambda-go"
-	reportingTransformedModelStreaming"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda"
-	entityBootstrap "github.com/adaptiveteam/adaptive/lambdas/entity-bootstrap-lambda"
-	entityStreaming "github.com/adaptiveteam/adaptive/lambdas/entity-streaming-lambda"
-	
+
 	_ "github.com/adaptiveteam/adaptive/daos" // call init to rename table suffixes
 	ls "github.com/aws/aws-lambda-go/lambda"
 )
