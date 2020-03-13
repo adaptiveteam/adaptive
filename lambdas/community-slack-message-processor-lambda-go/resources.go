@@ -200,7 +200,7 @@ var (
 	StrategyCommunityWelcomeMessage   = ui.RichText("Welcome to the Adaptive Strategy Community. " + communityMessageSuffix)
 	CompetencyCommunityWelcomeMessage = ui.RichText("Welcome to the Adaptive Competencies Community. " + communityMessageSuffix)
 	InitiativeCommunityWelcomeMessage = ui.RichText("Welcome to the Adaptive Initiative Community. " + communityMessageSuffix)
-	CapabilityCommunityWelcomeMessage = ui.RichText("Welcome to the Adaptive Capability Community. " + communityMessageSuffix)
+	CapabilityCommunityWelcomeMessage = ui.RichText("Welcome to the Adaptive Objective Community. " + communityMessageSuffix)
 )
 
 func InvitedByUserToCommunityNotification(userID string, community string) ui.RichText {

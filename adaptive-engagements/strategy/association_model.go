@@ -11,7 +11,7 @@ const (
 	StrategyInitiativeCommunityEntity StrategyEntityType = "initiative_community"
 	StrategyNoEntity                  StrategyEntityType = ""
 
-	StrategyObjectiveCapabilityCommunityAssociationSourceLabel      = "Capability Community"
+	StrategyObjectiveCapabilityCommunityAssociationSourceLabel      = "Objective Community"
 	StrategyObjectiveCapabilityCommunityAssociationTargetLabel      = "Allocated Objective"
 	StrategyObjectiveCapabilityCommunityAssociationDescriptionLabel = "Allocation Description"
 

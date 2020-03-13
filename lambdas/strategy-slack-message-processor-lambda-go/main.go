@@ -868,7 +868,7 @@ func handleCreateEvent1(mc models.MessageCallback, userID, channelID string, tea
 		handleMenuObjectiveAssociationCreate(userID, channelID, message, true, teamID)
 	case strategy.CapabilityCommunityAdhocEvent:
 		// copied from CreateCapabilityCommunity event in menu_list
-		handleCreateEvent(CapabilityCommunityEvent, "Would you like to create a capability community?", userID,
+		handleCreateEvent(CapabilityCommunityEvent, "Would you like to create an objective community?", userID,
 			channelID, teamID, message, true)
 	case InitiativeAdhocEvent:
 		handleMenuCreateInitiative(userID, channelID, teamID, message, false)
@@ -1030,7 +1030,7 @@ func handleMenuObjectiveCreate(userID, channelID string, teamID models.TeamID, m
 			// Enable a user to create an objective if user is in strategy community and there are capability communities
 			mc := models.MessageCallback{Module: string(community.Strategy), Source: userID, Topic: ObjectiveSelectCommunityEvent,
 				Action: string(strategy.Create)}
-			handleMenuEvent("Select a capability community. You can assign the objective to other communities later but you need at least one for now.",
+			handleMenuEvent("Select an objective community. You can assign the objective to other communities later but you need at least one for now.",
 				userID, mc, allCapabilityCommunitiesOptions(adaptiveAssociatedCapComms, models.TeamID(teamID)))
 			if deleteOriginal {
 				DeleteOriginalEng(userID, channelID, message.MessageTs)
@@ -1166,10 +1166,10 @@ func onSlackInteraction(np models.NamespacePayload4) (err error) {
 		case strategy.ViewVision, strategy.ViewEditVision:
 			onViewEditVision(request, teamID)
 		case CreateCapabilityCommunity:
-			handleCreateEvent(CapabilityCommunityEvent, "Would you like to create a capability community?",
+			handleCreateEvent(CapabilityCommunityEvent, "Would you like to create an objective community?",
 				userID, channelID, teamID, message, true)
 		case AssociateStrategyObjectiveToCapabilityCommunity:
-			handleCreateEvent(AssociateObjectiveWithCapabilityCommunityEvent, "I see you want to associate objective with capability community",
+			handleCreateEvent(AssociateObjectiveWithCapabilityCommunityEvent, "I see you want to associate objective with an objective community",
 				userID, channelID, teamID, message, true)
 		case CreateInitiative:
 			handleMenuCreateInitiative(userID, channelID, teamID, message, true)
@@ -1438,7 +1438,7 @@ func onObjectiveEventCreateOrUpdateDialogSubmission(request slack.InteractionCal
 	text := fmt.Sprintf("Below objective has been %s by <@%s>", editStatus, userID)
 	// Post objectives with no actions to strategy community
 	PostMsgToCommunity(community.Strategy, teamID, text, attachsWithNoActions)
-	// Post to associated capability community with no actions
+	// Post to associated objective community with no actions
 	stratComm := StrategyCommunityByID(capCommID)
 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: stratComm.ChannelID,
 		Message: text, Attachments: attachsWithNoActions})
@@ -1655,7 +1655,7 @@ func onCapabilityCommunityEventCreateOrUpdateDialogSubmission(request slack.Inte
 	// Check if Adaptive is associated with the community
 	if stratComm.ChannelCreated == 1 {
 		PostMsgToCommunity(community.Strategy, teamID,
-			fmt.Sprintf("Below capability community has been %s by <@%s>",
+			fmt.Sprintf("Below objective community has been %s by <@%s>",
 				editStatus, userID), attachsWithNoActions)
 	}
 	// Post strategy community entity to the table
@@ -1730,7 +1730,7 @@ func onInitiativeSelectCommunityEventCreateOrUpdateDialogSubmission(request slac
 	initComm := StrategyCommunityByID(initCommID)
 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: initComm.ChannelID,
 		Message: text, Attachments: attachsWithNoActions})
-	// Post to associated capability community id
+	// Post to associated objective community id
 	capObj := strategy.StrategyObjectiveByID(teamID, capObjective, strategyObjectivesTable)
 	stratComm := StrategyCommunityByID(capObj.CapabilityCommunityIDs[0])
 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: stratComm.ChannelID,

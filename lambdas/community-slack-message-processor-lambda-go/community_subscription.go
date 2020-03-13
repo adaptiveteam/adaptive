@@ -3,6 +3,9 @@ package lambda
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -13,8 +16,6 @@ import (
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slackevents"
-	"log"
-	"strings"
 )
 
 // TODO: save engagements.
@@ -56,7 +57,7 @@ func onCommunitySubscribeCommunityClicked(
 		PlatformID: teamID.ToPlatformID(),
 		ChannelID:  request.Channel.ID,
 		Active:     true, RequestedBy: request.User.ID,
-		CreatedAt:  core.CurrentRFCTimestamp()}
+		CreatedAt: core.CurrentRFCTimestamp()}
 	// Reading community by ID
 	dbCommunity, err := communityDAO.ReadByID(teamID, communityID)
 	if err != nil && strings.Contains(err.Error(), "not found") {
@@ -119,9 +120,9 @@ func subscribedToStrategyCommunity(request slack.InteractionCallback,
 	teamID models.TeamID, channelID string, communityID string) {
 	communityName := ui.PlainText(communityID)
 
-	// Get information about the capability community
+	// Get information about the objective community
 	strategyCommunityID, typ, name := StrategyCommunityIdTypeName(string(communityName), teamID)
-	// A channel has been created for a capability community. Update strategy communities with the same
+	// A channel has been created for a objective community. Update strategy communities with the same
 	// Set channel_created and channel_id values
 	err := updateStrategyCommunity(channelID, strategyCommunityID)
 	if err == nil {
@@ -429,7 +430,7 @@ func postCommunityToStrategy(teamID models.TeamID, mc models.MessageCallback,
 		initComm := strategy.InitiativeCommunityByID(models.TeamID(teamID), commID, strategyInitiativeCommunitiesTable)
 		stratComm := StrategyCommunityByID(initComm.CapabilityCommunityID)
 		attachs = strategy.InitiativeCommunityViewAttachmentReadOnly(mc, &initComm, nil, capabilityCommunitiesTable)
-		// Also post the update to capability community
+		// Also post the update to objective community
 		response := platform.Post(platform.ConversationID(stratComm.ChannelID),
 			platform.MessageContent{
 				Message:     NotifyAboutNewAbilitiesInCommunityNotification(ui.PlainText(commType)),

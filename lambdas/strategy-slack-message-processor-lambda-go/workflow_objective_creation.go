@@ -126,7 +126,7 @@ func CreateObjectiveWorkflow_OnInit(isFromMainMenu bool) func(ctx wf.EventHandli
 				opts := mapCapabilityCommunitiesToOptions(adaptiveAssociatedCapComms, models.TeamID(ctx.TeamID))
 				// Enable a user to create an objective if user is in strategy community and there are capability communities
 				out.Interaction = wf.Buttons(
-					"Select a capability community. You can assign the objective to other communities later but you need at least one for now.",
+					"Select an objective community. You can assign the objective to other communities later but you need at least one for now.",
 					wf.Selectors(wf.Selector{Event: CommunitySelectedEvent, Options: opts})...) // , wf.MenuOption("ignore", "Not now"))
 			}
 		} else {

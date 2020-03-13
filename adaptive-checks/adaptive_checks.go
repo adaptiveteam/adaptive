@@ -14,8 +14,8 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/adaptiveteam/adaptive/daos/postponedEvent"
+	"github.com/adaptiveteam/adaptive/daos/userObjective"
 )
 
 /* IDO Checks */
@@ -159,7 +159,7 @@ func CapabilityObjectivesDueInAQuarter(userID string, date business_time.Date) (
 
 /* Capabilitity Community Checks */
 
-// InCapabilityCommunity Is the user in any Capability Community?
+// InCapabilityCommunity Is the user in any Objective Community?
 func InCapabilityCommunity(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("InCapabilityCommunity")
 	capComms, _ := strategy.UserCapabilityInitiativeCommunities(userID, communityUsersTable, communityUsersUserIndex)
@@ -177,7 +177,7 @@ func CapabilityCommunityExists(userID string, _ business_time.Date) (res bool) {
 	return len(capComms) > 0
 }
 
-// MultipleCapabilityCommunitiesExists Is there more than one capability community?
+// MultipleCapabilityCommunitiesExists Is there more than one objective community?
 func MultipleCapabilityCommunitiesExists(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("MultipleCapabilityCommunitiesExists")
 	teamID := strategy.UserIDToTeamID(userDAO)(userID)
@@ -278,7 +278,7 @@ func InitiativesDueInAQuarter(userID string, date business_time.Date) (res bool)
 /* Initiative Community Checks */
 
 // InitiativeCommunityExistsForMe An Initiative Community exists for a
-// capability community that the user is in.
+// objective community that the user is in.
 func InitiativeCommunityExistsForMe(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("InitiativeCommunityExistsForMe")
 	teamID := strategy.UserIDToTeamID(userDAO)(userID)
@@ -334,18 +334,18 @@ func UndeliveredEngagementsExistForMe(userID string, _ business_time.Date) (res 
 // PostponedEventsExistForMe -
 func PostponedEventsExistForMe(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("PostponedEventsExistForMe")
-	dao := postponedEvent.NewDAO(common.DeprecatedGetGlobalDns().Dynamo,"PostponedEventsExistForMe", clientID)
-	
-	events, err2 := dao.ReadByUserID(userID)//, engagementsTable, engagementsAnsweredIndex)
+	dao := postponedEvent.NewDAO(common.DeprecatedGetGlobalDns().Dynamo, "PostponedEventsExistForMe", clientID)
+
+	events, err2 := dao.ReadByUserID(userID) //, engagementsTable, engagementsAnsweredIndex)
 	res = err2 == nil && len(events) > 0
-	
+
 	return
 }
 
 // UndeliveredEngagementsOrPostponedEventsExistForMe -
 func UndeliveredEngagementsOrPostponedEventsExistForMe(userID string, date business_time.Date) (res bool) {
-	return UndeliveredEngagementsExistForMe(userID, date) || 
-		   PostponedEventsExistForMe(userID, date)
+	return UndeliveredEngagementsExistForMe(userID, date) ||
+		PostponedEventsExistForMe(userID, date)
 }
 
 /* Reports exist check */

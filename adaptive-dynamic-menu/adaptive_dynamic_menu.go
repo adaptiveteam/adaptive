@@ -268,18 +268,18 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				"").
 				AddOptionCheck(profile, acfn.CompanyVisionExists, true).
 				AddOptionCheck(profile, acfn.InStrategyCommunity, true),
-//***************************************************************************************************//
-// The next four entries enable people who are either in a capability community to
-// create an initiative community or initiative if they are in the strategy community
-// or in an associated capability community.  The first set of two group options
-// enables people who are in a capability community to create an initiative community
-// (if there is a capability community) or an initiative
-// (if there is an initiative community). The group does the same but for people who
-// are in the strategy community.  To prevent duplicates we in the second group we
-//  explicitely exclude the conditions from the first group.
-// 
-// TODO: Actually this should be implemented using boolean logic (and, or, not ...)
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+			//***************************************************************************************************//
+			// The next four entries enable people who are either in a objective community to
+			// create an initiative community or initiative if they are in the strategy community
+			// or in an associated objective community.  The first set of two group options
+			// enables people who are in a objective community to create an initiative community
+			// (if there is a objective community) or an initiative
+			// (if there is an initiative community). The group does the same but for people who
+			// are in the strategy community.  To prevent duplicates we in the second group we
+			//  explicitely exclude the conditions from the first group.
+			//
+			// TODO: Actually this should be implemented using boolean logic (and, or, not ...)
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////
 		).AddGroupOption(
 			// Enables the user to create Initiatives
 			menu.NewAdaptiveDynamicMenuSpecification(
@@ -289,15 +289,15 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				AddOptionCheck(profile, acfn.InStrategyCommunity, false).
 				AddOptionCheck(profile, acfn.ObjectivesExistInMyCapabilityCommunities, true).
 				AddOptionCheck(profile, acfn.InInitiativeCommunity, true),
-			).AddGroupOption(
-				// Enables users from the strategy community to create Initiatives
-				menu.NewAdaptiveDynamicMenuSpecification(
-					bindings["CreateInitiatives"],
-					"Initiatives",
-					"").
-					AddOptionCheck(profile, acfn.InStrategyCommunity, true).
-					AddOptionCheck(profile, acfn.InitiativeCommunityExists, true),
-			).AddGroupOption(
+		).AddGroupOption(
+			// Enables users from the strategy community to create Initiatives
+			menu.NewAdaptiveDynamicMenuSpecification(
+				bindings["CreateInitiatives"],
+				"Initiatives",
+				"").
+				AddOptionCheck(profile, acfn.InStrategyCommunity, true).
+				AddOptionCheck(profile, acfn.InitiativeCommunityExists, true),
+		).AddGroupOption(
 			// Enables the user to create Initiative Communities
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateInitiativeCommunity"],
@@ -314,7 +314,7 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				"").
 				AddOptionCheck(profile, acfn.InStrategyCommunity, true).
 				AddOptionCheck(profile, acfn.CapabilityCommunityExists, true),
-//***************************************************************************************************//
+			//***************************************************************************************************//
 		).AddGroupOption(
 			// Enables the user to create team values
 			menu.NewAdaptiveDynamicMenuSpecification(
@@ -359,7 +359,7 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 					"Collaboration Report",
 					"").
 					AddOptionCheck(profile, acfn.CollaborationReportExists, true),
-					// AddOptionCheck(profile, acfn.InStrategyCommunity, true),
+				// AddOptionCheck(profile, acfn.InStrategyCommunity, true),
 			).
 			AddGroupOption(
 				menu.NewAdaptiveDynamicMenuSpecification(
