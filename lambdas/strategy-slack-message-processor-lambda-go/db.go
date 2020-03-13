@@ -3,7 +3,6 @@ package lambda
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
@@ -12,7 +11,6 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -25,23 +23,34 @@ func StrategyInitiativeCommunityByID(id string, teamID models.TeamID) (result st
 	return
 }
 
+// StrategyCommunityChannelIDOrEmptyByID - finds community, 
+// if found returns it's channel, if not - empty string
+func StrategyCommunityChannelIDOrEmptyByID(id string) (channelToPost string) {
+	comm, found := StrategyCommunityByID(id)
+	channelToPost = ""
+	if found && comm.ChannelCreated == 1 {
+		channelToPost = comm.ChannelID
+	}
+	return
+}
+
 // StrategyCommunityByID reads community by ID (from `_strategy_communities` table)
 // panics when not found.
-func StrategyCommunityByID(id string) strategy.StrategyCommunity {
+func StrategyCommunityByID(id string) (comm strategy.StrategyCommunity, found bool) {
 	params := map[string]*dynamodb.AttributeValue{
 		"id": daosCommon.DynS(id),
 	}
-	var comm strategy.StrategyCommunity
-	err2 := d.GetItemFromTable(strategyCommunitiesTable, params, &comm)
+	var err2 error
+	found, err2 = d.GetItemOrEmptyFromTable(strategyCommunitiesTable, params, &comm)
 	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query %s table", strategyCommunitiesTable))
-	return comm
+	return
 }
 
 func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(teamID models.TeamID) (out []strategy.CapabilityCommunity) {
 	capComms := AllCapabilityCommunities(models.TeamID(teamID))
 	for _, each := range capComms {
-		stratComm := StrategyCommunityByID(each.ID)
-		if stratComm.ChannelCreated == 1 {
+		stratComm, found := StrategyCommunityByID(each.ID)
+		if found && stratComm.ChannelCreated == 1 {
 			out = append(out, each)
 		}
 	}
@@ -49,23 +58,19 @@ func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(teamI
 }
 
 func dynListString(list []string) *dynamodb.AttributeValue {
-	attr := dynamodb.AttributeValue{SS: aws.StringSlice(list)}
-	return &attr
+	return daosCommon.DynSS(list)
 }
 
 func dynString(str string) *dynamodb.AttributeValue {
-	attr := dynamodb.AttributeValue{S: aws.String(str)}
-	return &attr
+	return daosCommon.DynS(str)
 }
 
 func dynInt(i int) *dynamodb.AttributeValue {
-	attr := dynamodb.AttributeValue{N: aws.String(strconv.Itoa(i))}
-	return &attr
+	return daosCommon.DynN(i)
 }
 
 func dynBool(b bool) *dynamodb.AttributeValue {
-	attr := dynamodb.AttributeValue{BOOL: aws.Bool(b)}
-	return &attr
+	return daosCommon.DynBOOL(b)
 }
 
 func idAndPlatformIDParams(id string, teamID models.TeamID) map[string]*dynamodb.AttributeValue {
