@@ -60,7 +60,7 @@ func TestCreateWorkbooks(t *testing.T) {
 	// TODO: Reimplement test to be executable on travis
 	if true { return }
 	dynamo := awsutils.NewDynamo(utils.NonEmptyEnv("AWS_REGION"), "", "dialog")
-	dialogTableName := "f" //utils.NonEmptyEnv("DIALOG_TABLE")
+	dialogTableName := utils.NonEmptyEnv("DIALOG_TABLE")
 	dialogDAO := fetch_dialog.NewDAO(dynamo, dialogTableName)
 
 	db := utilities.NewDatabase(
