@@ -36,7 +36,7 @@ example.tf
 terraform.tfplan
 
 #temporary excel files
-~*.xlsx
+*.xlsx
 ./output/
 
 infra/core/terraform/lambdas/
