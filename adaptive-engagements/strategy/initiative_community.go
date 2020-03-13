@@ -21,7 +21,7 @@ const (
 	InitiativeCommunityNameLabel                = "Name"
 	InitiativeCommunityDescriptionLabel         = "Description"
 	InitiativeCommunityCoordinatorLabel         = "Coordinator"
-	InitiativeCommunityCapabilityCommunityLabel = "Capability Community"
+	InitiativeCommunityCapabilityCommunityLabel = "Objective Community"
 
 	Create models.AttachActionName = "create"
 	Delete models.AttachActionName = "delete"

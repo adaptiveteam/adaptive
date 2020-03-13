@@ -324,7 +324,7 @@ func channelUnsubscribeUnsafe(channelID string, teamID models.TeamID) {
 }
 
 func updateStrategyCommunity(channelID string, strategyCommunityID string) error {
-	// A channel has been created for a capability community. Update strategy communities with the same
+	// A channel has been created for a objective community. Update strategy communities with the same
 	// Set channel_created and channel_id values
 	exprAttributes := map[string]*dynamodb.AttributeValue{
 		":cc": dynNumber(1),
