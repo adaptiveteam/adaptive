@@ -67,6 +67,7 @@ func (InitiativeImpl) CreateDialog(w workflowImpl, ctx wf.EventHandlingContext, 
 			commMembers, err = SelectKvPairsFromCommunityJoinUsers(commID)(w.DynamoDBConnection)
 			if err == nil {
 				allMembers := append(strMembers, commMembers...)
+				allMembers = removeDuplicates(allMembers)
 				allDates := objectives.StrategyObjectiveDatesWithIndefiniteOption("InitiativeImpl CreateDialog", issue.UserObjective.ExpectedEndDate)
 
 				availableObjectives := convertStrategyObjectivesToPlainTextOption(objs)

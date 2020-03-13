@@ -41,6 +41,7 @@ func (SObjectiveImpl) CreateDialog(w workflowImpl, ctx wf.EventHandlingContext, 
 				err = errors.New("SObjectiveImpl) CreateDialog: Could not find any advocate for strategy objective - from community.Strategy and from commID="+string(commID))
 				return
 			}
+			allMembers = removeDuplicates(allMembers)
 			allDates := objectives.StrategyObjectiveDatesWithIndefiniteOption("SObjectiveImpl CreateDialog", issue.UserObjective.ExpectedEndDate)
 			if len(allDates) == 0 {
 				err = errors.New("SObjectiveImpl) CreateDialog: len allDates = 0")
