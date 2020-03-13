@@ -615,3 +615,13 @@ func LoadObjectives(userID string) func(conn DynamoDBConnection) (objKVs []model
 
 // 	return
 // }
+func removeDuplicates(kvPairs []models.KvPair) (res []models.KvPair) {
+	values := make(map[string]struct{})
+	for _, p := range kvPairs {
+		if _, ok := values[p.Value]; !ok {
+			res = append(res, p)
+			values[p.Value] = struct{}{}
+		}
+	}
+	return
+}
