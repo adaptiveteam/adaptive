@@ -255,9 +255,9 @@ func handleObjectiveCreate(mc models.MessageCallback, actionName, actionValue st
 						// During update, original SO id is passed into target. We get cap comm id from existing record
 						capCommID = so.CapabilityCommunityIDs[0]
 					}
-					strategyComm := StrategyCommunityByID(capCommID)
+					strategyComm, found := StrategyCommunityByID(capCommID)
 					// Check if the community is still associated with Adaptive
-					if strategyComm.ChannelCreated == 1 {
+					if found && strategyComm.ChannelCreated == 1 {
 						allMembers := communityMembersIncludingStrategyMembers(fmt.Sprintf("%s:%s", community.Capability, capCommID), teamID)
 						if len(allMembers) > 0 {
 							objectiveSurveyElements := EditSObjectiveSurveyElems(&so, ObjectiveTypes(), allMembers,
@@ -378,9 +378,9 @@ func handleInitiativeCreate(mc models.MessageCallback, actionName, actionValue, 
 					// During update, original SI id is passed into target. We get init comm id from existing record
 					initCommID = si.InitiativeCommunityID
 				}
-				strategyComm := StrategyCommunityByID(initCommID)
+				strategyComm, found := StrategyCommunityByID(initCommID)
 				// Check if the community is still associated with Adaptive
-				if strategyComm.ChannelCreated == 1 {
+				if found && strategyComm.ChannelCreated == 1 {
 					commMembers := communityMembers(fmt.Sprintf("%s:%s", community.Initiative, initCommID), teamID)
 					logger.Infof("Community members for creating an initiative: %s", commMembers)
 					objs := UserCommunityObjectives(userID)
@@ -998,8 +998,8 @@ func handleMenuCreateInitiative(userID, channelID string, teamID models.TeamID,
 	var adaptiveAssociatedInitComms []strategy.StrategyInitiativeCommunity
 	// Get a list of Adaptive associated Initiative communities
 	for _, each := range initComms {
-		eachStrategyComms := StrategyCommunityByID(each.ID)
-		if eachStrategyComms.ChannelCreated == 1 {
+		eachStrategyComms, found := StrategyCommunityByID(each.ID)
+		if found && eachStrategyComms.ChannelCreated == 1 {
 			adaptiveAssociatedInitComms = append(adaptiveAssociatedInitComms, each)
 		}
 	}
@@ -1439,8 +1439,8 @@ func onObjectiveEventCreateOrUpdateDialogSubmission(request slack.InteractionCal
 	// Post objectives with no actions to strategy community
 	PostMsgToCommunity(community.Strategy, teamID, text, attachsWithNoActions)
 	// Post to associated objective community with no actions
-	stratComm := StrategyCommunityByID(capCommID)
-	publish(models.PlatformSimpleNotification{UserId: userID, Channel: stratComm.ChannelID,
+	stratCommChannelID := StrategyCommunityChannelIDOrEmptyByID(capCommID)
+	publish(models.PlatformSimpleNotification{UserId: userID, Channel: stratCommChannelID,
 		Message: text, Attachments: attachsWithNoActions})
 
 	uObj := UserObjectiveFromStrategyObjective(newSo, capCommID, teamID)
@@ -1450,6 +1450,7 @@ func onObjectiveEventCreateOrUpdateDialogSubmission(request slack.InteractionCal
 	utils.UpdateEngAsAnswered(mc.Source, mc.WithTarget(core.EmptyString).ToCallbackID(), engagementTable, d, namespace)
 	return responses()
 }
+
 func onFinancialObjectiveEventCreateOrUpdateDialogSubmission(request slack.InteractionCallback, msgState MsgState, teamID models.TeamID, mc *models.MessageCallback) (resp []models.PlatformSimpleNotification) {
 	dialog := request
 	userID := dialog.User.ID
@@ -1651,9 +1652,9 @@ func onCapabilityCommunityEventCreateOrUpdateDialogSubmission(request slack.Inte
 		mc.ToCallbackID(), userID, channelID, msgState.ThreadTs, msgState.ThreadTs, attachsWithActions,
 		s, platformNotificationTopic, namespace)
 	// Post to strategy community only if Adaptive is subscribed to it
-	stratComm := StrategyCommunityByID(newCc.ID)
+	stratComm, found := StrategyCommunityByID(newCc.ID)
 	// Check if Adaptive is associated with the community
-	if stratComm.ChannelCreated == 1 {
+	if found && stratComm.ChannelCreated == 1 {
 		PostMsgToCommunity(community.Strategy, teamID,
 			fmt.Sprintf("Below objective community has been %s by <@%s>",
 				editStatus, userID), attachsWithNoActions)
@@ -1727,13 +1728,13 @@ func onInitiativeSelectCommunityEventCreateOrUpdateDialogSubmission(request slac
 	// Post to the strategy community
 	PostMsgToCommunity(community.Strategy, teamID, text, attachsWithNoActions)
 	// Post to associated initiative community with no actions
-	initComm := StrategyCommunityByID(initCommID)
-	publish(models.PlatformSimpleNotification{UserId: userID, Channel: initComm.ChannelID,
+	initCommChannelID := StrategyCommunityChannelIDOrEmptyByID(initCommID)
+	publish(models.PlatformSimpleNotification{UserId: userID, Channel: initCommChannelID,
 		Message: text, Attachments: attachsWithNoActions})
 	// Post to associated objective community id
 	capObj := strategy.StrategyObjectiveByID(teamID, capObjective, strategyObjectivesTable)
-	stratComm := StrategyCommunityByID(capObj.CapabilityCommunityIDs[0])
-	publish(models.PlatformSimpleNotification{UserId: userID, Channel: stratComm.ChannelID,
+	stratCommChannelID := StrategyCommunityChannelIDOrEmptyByID(capObj.CapabilityCommunityIDs[0])
+	publish(models.PlatformSimpleNotification{UserId: userID, Channel: stratCommChannelID,
 		Message: text, Attachments: attachsWithNoActions})
 
 	// Accountability partner should be the advocate of the objective
