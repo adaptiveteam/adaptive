@@ -95,7 +95,7 @@ func GetToken(teamID models.TeamID) func (common.DynamoDBConnection) (string, er
 					err = nil
 				}
 				if len(teams) > 0 {
-					token = teams[0].AccessToken
+					token = teams[0].BotAccessToken
 				}
 			}
 			if token == "" {
