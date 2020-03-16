@@ -189,12 +189,16 @@ func HandleRedirectURLGetRequest(conn common.DynamoDBConnection, request events.
 	if token.Extra("enterprise_id") != nil {
 		enterpriseID = token.Extra("enterprise_id").(string)
 	}
+	fmt.Printf("bot_user_id: %v", token.Extra("bot_user_id"))
+	fmt.Printf("bot_access_token: %v", token.Extra("bot_access_token"))
 	team := slackTeam.SlackTeam{
 		TeamID:       common.PlatformID(token.Extra("team_id").(string)),
 		AccessToken:  token.AccessToken,
 		UserID:       token.Extra("user_id").(string),
 		TeamName:     token.Extra("team_name").(string),
+		// BotAccessToken:token.Extra("bot_access_token").(string),
 		EnterpriseID: enterpriseID,
+
 	}
 	dao := slackTeam.NewDAO(conn.Dynamo, "HandleRedirectURLGetRequest", conn.ClientID)
 	err = dao.CreateOrUpdate(team)
