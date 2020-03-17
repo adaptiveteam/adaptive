@@ -1,6 +1,8 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
+	"github.com/adaptiveteam/adaptive/daos/slackTeam"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -317,14 +319,39 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 	return
 }
 
+// ensureTeamID reads tokens and returns correct team id.
+// If we have teamID token, then we use it. Otherwise we use appID
+func ensureTeamID(appID, teamID daosCommon.PlatformID) (res models.TeamID, err error) {
+	// apiAppID := models.ParseTeamID(daosCommon.PlatformID(appID))
+	var teams []slackTeam.SlackTeam
+	teams, err = slackTeam.ReadOrEmpty(teamID)(connGen.ForPlatformID(teamID))
+	if err == nil {
+		if len(teams) > 0 {
+			res = models.TeamID{TeamID: teamID}
+		} else {
+			var clientConfigs []clientPlatformToken.ClientPlatformToken
+			clientConfigs, err = clientPlatformToken.ReadOrEmpty(appID)(connGen.ForPlatformID(appID))
+			if err == nil {
+				if len(clientConfigs) > 0 {
+					res = models.TeamID{AppID: appID}
+				} else {
+					err = errors.Errorf("Couldn't find teamID=%s or appID=%s", teamID, appID)
+				}
+			}
+		}
+	}
+	return
+}
+
 func routeCallbackEvent(
 	eventsAPIEvent slackevents.EventsAPIEvent,
 	requestPayload string, 
 	callbackEvent slackevents.EventsAPICallbackEvent,
 ) (err error)  {
-	apiAppID := models.ParseTeamID(daosCommon.PlatformID(callbackEvent.APIAppID))
-	forwardToNamespace := forwardToNamespaceWithAppID(apiAppID, requestPayload)
-	invokeLambdaWithNamespace := invokeLambdaWithAppID(apiAppID, requestPayload)
+	var teamID models.TeamID
+	teamID, err = ensureTeamID(daosCommon.PlatformID(callbackEvent.APIAppID), daosCommon.PlatformID(callbackEvent.TeamID))
+	forwardToNamespace := forwardToNamespaceWithAppID(teamID, requestPayload)
+	invokeLambdaWithNamespace := invokeLambdaWithAppID(teamID, requestPayload)
 	eventType := eventsAPIEvent.InnerEvent.Type
 	fmt.Printf("INNEREVENT %v\n", eventType)
 	if eventType == slackevents.AppMention {
@@ -352,12 +379,12 @@ func routeCallbackEvent(
 			// Warmed up lambda
 			log.Println("Received warmup message ...")
 		} else if slackText == "hello" || slackText == "hi" {
-			logger.Infof("apiAppID: %v", apiAppID)
-			helloMessage(slackMsg.User, slackMsg.Channel, apiAppID)
+			logger.Infof("apiAppID: %v", teamID)
+			helloMessage(slackMsg.User, slackMsg.Channel, teamID)
 		} else if strings.Contains(slackText, "generate") ||
 		strings.Contains(slackText, "add to slack") || 
 		strings.Contains(slackText, "addtoslack") {
-			GenerateAddToSlackURL(slackMsg.User, slackMsg.Channel, apiAppID)
+			GenerateAddToSlackURL(slackMsg.User, slackMsg.Channel, teamID)
 		} else if slackMsg != nil {
 			log.Println("### callback event: " + requestPayload)
 			// It's not a response to an engagement, but a query
@@ -372,7 +399,7 @@ func routeCallbackEvent(
 					invokeLambdaWithNamespace("feedback")
 				} else if slackText != "" {
 					logger.WithField("slackText", slackText).Info("Unknown user command. Showing menu")
-					helloMessage(slackMsg.User, slackMsg.Channel, apiAppID)
+					helloMessage(slackMsg.User, slackMsg.Channel, teamID)
 					// publish(models.PlatformSimpleNotification{UserId: slackMsg.User, Channel: slackMsg.Channel, Message: "Unable to process your message. Type `help` for instructions."})
 				} else {
 					logger.WithField("requestPayload", requestPayload).Info("Unknown request. Ignoring")
