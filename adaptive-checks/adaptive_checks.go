@@ -1,7 +1,6 @@
 package adaptive_checks
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
@@ -13,6 +12,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
+	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/postponedEvent"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
@@ -20,14 +20,20 @@ import (
 
 /* IDO Checks */
 
+const logEnabled = false
+
 // IDOsExistForMe Are there any IDO's that exist for the user?
 func IDOsExistForMe(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("IDOsExistForMe")
-	log.Println("Checking IDOsExistForMe")
+	if logEnabled {
+		log.Println("Checking IDOsExistForMe")
+	}
 	objs := objectives.AllUserObjectives(userID, userObjectivesTable, userObjectivesUserIndex,
 		models.IndividualDevelopmentObjective, 0)
 	res = len(objs) > 0
-	log.Printf("IDOsExistForMe(%s, _): %v\n", userID, res)
+	if logEnabled {
+		log.Printf("IDOsExistForMe(%s, _): %v\n", userID, res)
+	}
 	return
 }
 
@@ -36,7 +42,9 @@ func IDOsDueInAWeek(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("IDOsDueInAWeek")
 	op := objectives.IDOsDueInAWeek(userID, date, userObjectivesTable, userObjectivesUserIndex)
 	res = len(op) > 0
-	log.Printf("IDOsDueInAWeek(%s, %v): %v\n", userID, date, res)
+	if logEnabled {
+		log.Printf("IDOsDueInAWeek(%s, %v): %v\n", userID, date, res)
+	}
 	return
 }
 
@@ -45,7 +53,9 @@ func IDOsDueInAMonth(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("IDOsDueInAMonth")
 	op := objectives.IDOsDueInAMonth(userID, date, userObjectivesTable, userObjectivesUserIndex)
 	res = len(op) > 0
-	log.Printf("IDOsDueInAMonth(%s, %v): %v\n", userID, date, res)
+	if logEnabled {
+		log.Printf("IDOsDueInAMonth(%s, %v): %v\n", userID, date, res)
+	}
 	return
 }
 
@@ -54,7 +64,9 @@ func IDOsDueInAQuarter(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("IDOsDueInAQuarter")
 	op := objectives.IDOsDueInAQuarter(userID, date, userObjectivesTable, userObjectivesUserIndex)
 	res = len(op) > 0
-	log.Printf("IDOsDueInAQuarter(%s, %v): %v\n", userID, date, res)
+	if logEnabled {
+		log.Printf("IDOsDueInAQuarter(%s, %v): %v\n", userID, date, res)
+	}
 	return
 }
 
@@ -70,7 +82,9 @@ func StaleIDOsExist(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("StaleIDOsExist")
 	staleIDOs := StaleIDOs(userID, date)
 	res = len(staleIDOs) > 0
-	log.Printf("StaleIDOsExist(%s, %v): %v\n", userID, date, res)
+	if logEnabled {
+		log.Printf("StaleIDOsExist(%s, %v): %v\n", userID, date, res)
+	}
 	return
 }
 
@@ -95,17 +109,23 @@ func InStrategyCommunity(userID string, _ business_time.Date) (res bool) {
 func ObjectivesExistForMe(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("ObjectivesExistForMe")
 	objs := strategy.UserAdvocacyObjectives(userID, userObjectivesTable, userObjectivesTypeIndex, 0)
-	log.Println("Checked ObjectivesExistForMe: ", objs)
+	if logEnabled {
+		log.Println("Checked ObjectivesExistForMe: ", objs)
+	}
 	return len(objs) > 0
 }
 
 // ObjectivesExist returns all the objectives for the organization
 func ObjectivesExist(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("ObjectivesExist")
-	log.Printf("Checking ObjectivesExist for userID=%s, date=%v\n", userID, date)
+	if logEnabled {
+		log.Printf("Checking ObjectivesExist for userID=%s, date=%v\n", userID, date)
+	}
 	objs := strategy.UserStrategyObjectives(userID, strategyObjectivesTableName, strategyObjectivesPlatformIndex,
 		userObjectivesTable, communityUsersTable, communityUsersUserCommunityIndex)
-	log.Println("Checked ObjectivesExist: ", len(objs))
+	if logEnabled {
+		log.Println("Checked ObjectivesExist: ", len(objs))
+	}
 	return len(objs) > 0
 }
 
@@ -115,7 +135,9 @@ func StaleObjectivesExistForMe(userID string, date business_time.Date) (res bool
 	defer RecoverToLog("StaleObjectivesExistForMe")
 	stratObjs := strategy.UserCapabilityObjectivesWithNoProgressInAMonth(userID, date,
 		userObjectivesTable, userObjectivesUserIndex, userObjectivesProgressTable, 0)
-	log.Println("Checked StaleObjectivesExistForMe: ", len(stratObjs))
+	if logEnabled {
+		log.Println("Checked StaleObjectivesExistForMe: ", len(stratObjs))
+	}
 	return len(stratObjs) > 0
 }
 
@@ -124,12 +146,16 @@ func StaleObjectivesExistForMe(userID string, date business_time.Date) (res bool
 // Capability Objectives allocated to them?
 func ObjectivesExistInMyCapabilityCommunities(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("ObjectivesExistInMyCapabilityCommunities")
-	log.Printf("Checking ObjectivesExistInMyCapabilityCommunities for userID=%s, date=%v\n", userID, date)
+	if logEnabled {
+		log.Printf("Checking ObjectivesExistInMyCapabilityCommunities for userID=%s, date=%v\n", userID, date)
+	}
 	objs := strategy.UserCommunityObjectives(userID,
 		strategyObjectivesTableName, strategyObjectivesPlatformIndex,
 		userObjectivesTable,
 		communityUsersTable, communityUsersUserIndex)
-	log.Printf("Checked ObjectivesExistInMyCapabilityCommunities: %d\n", len(objs))
+	if logEnabled {
+		log.Printf("Checked ObjectivesExistInMyCapabilityCommunities: %d\n", len(objs))
+	}
 	return len(objs) > 0
 }
 
@@ -137,7 +163,9 @@ func ObjectivesExistInMyCapabilityCommunities(userID string, date business_time.
 func CapabilityObjectivesDueInAWeek(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("CapabilityObjectivesDueInAWeek")
 	op := strategy.CapabilityObjectivesDueInAWeek(userID, date, userObjectivesTable, userObjectivesUserIndex)
-	log.Println("Checked CapabilityObjectivesDueInAWeek: ", len(op))
+	if logEnabled {
+		log.Println("Checked CapabilityObjectivesDueInAWeek: ", len(op))
+	}
 	return len(op) > 0
 }
 
@@ -145,7 +173,9 @@ func CapabilityObjectivesDueInAWeek(userID string, date business_time.Date) (res
 func CapabilityObjectivesDueInAMonth(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("CapabilityObjectivesDueInAMonth")
 	op := strategy.CapabilityObjectivesDueInAMonth(userID, date, userObjectivesTable, userObjectivesUserIndex)
-	log.Println("Checked CapabilityObjectivesDueInAMonth: ", len(op))
+	if logEnabled {
+		log.Println("Checked CapabilityObjectivesDueInAMonth: ", len(op))
+	}
 	return len(op) > 0
 }
 
@@ -153,7 +183,9 @@ func CapabilityObjectivesDueInAMonth(userID string, date business_time.Date) (re
 func CapabilityObjectivesDueInAQuarter(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("CapabilityObjectivesDueInAQuarter")
 	op := strategy.CapabilityObjectivesDueInAQuarter(userID, date, userObjectivesTable, userObjectivesUserIndex)
-	log.Println("Checked CapabilityObjectivesDueInAQuarter: ", len(op))
+	if logEnabled {
+		log.Println("Checked CapabilityObjectivesDueInAQuarter: ", len(op))
+	}
 	return len(op) > 0
 }
 
@@ -163,7 +195,9 @@ func CapabilityObjectivesDueInAQuarter(userID string, date business_time.Date) (
 func InCapabilityCommunity(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("InCapabilityCommunity")
 	capComms, _ := strategy.UserCapabilityInitiativeCommunities(userID, communityUsersTable, communityUsersUserIndex)
-	log.Println("Checked InCapabilityCommunity: ", len(capComms))
+	if logEnabled {
+		log.Println("Checked InCapabilityCommunity: ", len(capComms))
+	}
 	return len(capComms) > 0
 }
 
@@ -173,7 +207,9 @@ func CapabilityCommunityExists(userID string, _ business_time.Date) (res bool) {
 	teamID := strategy.UserIDToTeamID(userDAO)(userID)
 	capComms := strategy.AllCapabilityCommunities(teamID, capabilityCommunitiesTable,
 		capabilityCommunitiesPlatformIndex, strategyCommunitiesTable)
-	log.Println("Checked CapabilityCommunityExists: ", len(capComms))
+	if logEnabled {
+		log.Println("Checked CapabilityCommunityExists: ", len(capComms))
+	}
 	return len(capComms) > 0
 }
 
@@ -183,7 +219,9 @@ func MultipleCapabilityCommunitiesExists(userID string, _ business_time.Date) (r
 	teamID := strategy.UserIDToTeamID(userDAO)(userID)
 	capComms := strategy.AllCapabilityCommunities(teamID, capabilityCommunitiesTable,
 		capabilityCommunitiesPlatformIndex, strategyCommunitiesTable)
-	log.Println("Checked MultipleCapabilityCommunitiesExists: ", len(capComms))
+	if logEnabled {
+		log.Println("Checked MultipleCapabilityCommunitiesExists: ", len(capComms))
+	}
 	return len(capComms) > 1
 }
 
@@ -210,7 +248,9 @@ func InitiativeCommunityExists(userID string, _ business_time.Date) (res bool) {
 func InitiativesExistForMe(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("InitiativesExistForMe")
 	inits := strategy.UserAdvocacyInitiatives(userID, userObjectivesTable, userObjectivesTypeIndex, 0)
-	log.Println("Checked InitiativesExistForMe: ", len(inits))
+	if logEnabled {
+		log.Println("Checked InitiativesExistForMe: ", len(inits))
+	}
 	return len(inits) > 0
 }
 
@@ -228,7 +268,9 @@ func InitiativesExistInMyCapabilityCommunities(userID string, _ business_time.Da
 			initiativesTable, strategyInitiativesInitiativeCommunityIndex, userObjectivesTable, communityUsersTable,
 			communityUsersUserCommunityIndex, communityUsersUserIndex)
 	}
-	log.Println("Checked InitiativesExistInMyCapabilityCommunities: ", len(inits))
+	if logEnabled {
+		log.Println("Checked InitiativesExistInMyCapabilityCommunities: ", len(inits))
+	}
 	return len(inits) > 0
 }
 
@@ -238,7 +280,9 @@ func InitiativesExistInMyInitiativeCommunities(userID string, _ business_time.Da
 	inits := strategy.UserInitiativeCommunityInitiatives(userID,
 		initiativesTable, strategyInitiativesInitiativeCommunityIndex,
 		communityUsersTable, communityUsersUserIndex)
-	log.Println("Checked InitiativesExistInMyInitiativeCommunities: ", len(inits))
+	if logEnabled {
+		log.Println("Checked InitiativesExistInMyInitiativeCommunities: ", len(inits))
+	}
 	return len(inits) > 0
 }
 
@@ -248,7 +292,9 @@ func StaleInitiativesExistForMe(userID string, date business_time.Date) (res boo
 	defer RecoverToLog("StaleInitiativesExistForMe")
 	initiativeObjs := strategy.UserInitiativesWithNoProgressInAWeek(userID, date,
 		userObjectivesTable, userObjectivesUserIndex, userObjectivesProgressTable, 0)
-	log.Println("Checked StaleInitiativesExistForMe: ", len(initiativeObjs))
+	if logEnabled {
+		log.Println("Checked StaleInitiativesExistForMe: ", len(initiativeObjs))
+	}
 	return len(initiativeObjs) > 0
 }
 
@@ -256,7 +302,9 @@ func StaleInitiativesExistForMe(userID string, date business_time.Date) (res boo
 func InitiativesDueInAWeek(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("InitiativesDueInAWeek")
 	op := strategy.InitiativesDueInAWeek(userID, date, userObjectivesTable, userObjectivesUserIndex)
-	log.Println("Checked InitiativesDueInAWeek: ", len(op))
+	if logEnabled {
+		log.Println("Checked InitiativesDueInAWeek: ", len(op))
+	}
 	return len(op) > 0
 }
 
@@ -264,14 +312,18 @@ func InitiativesDueInAWeek(userID string, date business_time.Date) (res bool) {
 func InitiativesDueInAMonth(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("InitiativesDueInAMonth")
 	op := strategy.InitiativesDueInAMonth(userID, date, userObjectivesTable, userObjectivesUserIndex)
-	log.Println("Checked InitiativesDueInAMonth: ", len(op))
+	if logEnabled {
+		log.Println("Checked InitiativesDueInAMonth: ", len(op))
+	}
 	return len(op) > 0
 }
 
 // Are there any open Initiatives that exist for the user that are due in exactly 90 days
 func InitiativesDueInAQuarter(userID string, date business_time.Date) (res bool) {
 	op := strategy.InitiativesDueInAQuarter(userID, date, userObjectivesTable, userObjectivesUserIndex)
-	log.Println("Checked InitiativesDueInAQuarter: ", len(op))
+	if logEnabled {
+		log.Println("Checked InitiativesDueInAQuarter: ", len(op))
+	}
 	return len(op) > 0
 }
 
@@ -284,7 +336,9 @@ func InitiativeCommunityExistsForMe(userID string, _ business_time.Date) (res bo
 	teamID := strategy.UserIDToTeamID(userDAO)(userID)
 	initComms := strategy.UserStrategyInitiativeCommunities(userID, communityUsersTable, communityUsersUserCommunityIndex,
 		communityUsersUserIndex, initiativeCommunitiesTableName, initiativeCommunitiesPlatformIndex, strategyCommunitiesTable, teamID)
-	log.Println("Checked InitiativeCommunityExistsForMe: ", len(initComms))
+	if logEnabled {
+		log.Println("Checked InitiativeCommunityExistsForMe: ", len(initComms))
+	}
 	return len(initComms) > 0
 }
 
@@ -337,6 +391,9 @@ func PostponedEventsExistForMe(userID string, _ business_time.Date) (res bool) {
 	dao := postponedEvent.NewDAO(common.DeprecatedGetGlobalDns().Dynamo, "PostponedEventsExistForMe", clientID)
 
 	events, err2 := dao.ReadByUserID(userID) //, engagementsTable, engagementsAnsweredIndex)
+	if err2 != nil {
+		log.Printf("PostponedEventsExistForMe user %s: %v\n", userID, err2)
+	}
 	res = err2 == nil && len(events) > 0
 
 	return
@@ -352,27 +409,31 @@ func UndeliveredEngagementsOrPostponedEventsExistForMe(userID string, date busin
 
 // ReportExists A performance report exists for the user
 func ReportExists(userID string, dat business_time.Date) (res bool) {
-	defer RecoverToLog("ReportExists")
-	key, err := coaching.UserReportIDForPreviousQuarter(models.UserEngage{
+	defer core.RecoverAsLogErrorf("ReportExists(userID=%s)", userID)
+	key, err2 := coaching.UserReportIDForPreviousQuarter(models.UserEngage{
 		UserID:   userID,
 		Date:     dat.DateToString(string(core_utils_go.ISODateLayout)),
 		OnDemand: false,
 	})
-	if err == nil {
+	if err2 == nil {
 		res = common.DeprecatedGetGlobalS3().ObjectExists(reportsBucket, key)
+	} else {
+		log.Printf("ReportExists user %s: %v\n", userID, err2)
 	}
-	log.Printf("Checked ReportExists(%s, %v): %v\n", userID, dat, res)
+	if logEnabled {
+		log.Printf("Checked ReportExists(%s, %v): %v\n", userID, dat, res)
+	}
 	return
 }
 
 // FeedbackGivenForTheQuarter -
 func FeedbackGivenForTheQuarter(userID string, date business_time.Date) (res bool) {
-	defer RecoverToLog("FeedbackGivenForTheQuarter")
+	defer core.RecoverAsLogErrorf("FeedbackGivenForTheQuarter(userID=%s)", userID)
 	q := date.GetQuarter()
 	y := date.GetYear()
-	feedbacks, err := coaching.FeedbackGivenForTheQuarter(userID, q, y, userFeedbackTable, userFeedbackSourceQYIndex)
-	if err != nil {
-		log.Println(fmt.Sprintf("Error with querying feedback given by the user %s", userID))
+	feedbacks, err2 := coaching.FeedbackGivenForTheQuarter(userID, q, y, userFeedbackTable, userFeedbackSourceQYIndex)
+	if err2 != nil {
+		log.Printf("Error with querying feedback given by the user %s: %v\n", userID, err2)
 	}
 	return len(feedbacks) > 0
 }
@@ -430,6 +491,8 @@ func CanBeNudgedForIDOCreation(userID string, date business_time.Date) (res bool
 	inUserCommunity := community.IsUserInCommunity(userID, communityUsersTable, communityUsersUserCommunityIndex, community.User)
 	inInitiativeCommunity := InitiativeCommunityExistsForMe(userID, date)
 	res = inUserCommunity || inInitiativeCommunity
-	log.Println(fmt.Sprintf("User %s nudge for IDO creation: %v", userID, res))
+	if logEnabled {
+		log.Printf("User %s nudge for IDO creation: %v\n", userID, res)
+	}
 	return
 }
