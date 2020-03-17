@@ -251,12 +251,10 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 			}
 		}
 	}
-	if err != nil {
-		response = responseServerError(err)
-	} 
 	err = errors.Wrap(err, "HandleRequest")
 	if err != nil {
 		logger.WithLambdaContext(ctx).WithError(err).Error("HandleRequest error")
+		response = responseServerError(err)
 	}
 	err = nil
 	logger.
