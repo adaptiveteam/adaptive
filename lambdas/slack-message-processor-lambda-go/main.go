@@ -1,6 +1,8 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
+	"github.com/adaptiveteam/adaptive/daos/slackTeam"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -290,7 +292,11 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 		response = responseOkBody(urlVerification.Challenge)
 	case slackevents.CallbackEvent:
 		callbackEvent := eventsAPIEvent.Data.(*slackevents.EventsAPICallbackEvent)
-		err = routeCallbackEvent(eventsAPIEvent, requestPayload, *callbackEvent)
+		if callbackEvent.TeamID == "xxxxx" && callbackEvent.APIAppID == "xxxxx" {
+			log.Println("Received warmup message with TeamID=xxxxx and AppID=xxxxx ...")
+		} else {
+			err = routeCallbackEvent(eventsAPIEvent, requestPayload, *callbackEvent)
+		}
 	default:
 		logger.Infof("Handling event of type %v", eventsAPIEvent.Type)
 		// workaround for slackevents.ParseEvent
@@ -317,65 +323,97 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 	return
 }
 
+// ensureTeamID reads tokens and returns correct team id.
+// If we have teamID token, then we use it. Otherwise we use appID
+func ensureTeamID(teamID, appID daosCommon.PlatformID) (res models.TeamID, err error) {
+	var teams []slackTeam.SlackTeam
+	teams, err = slackTeam.ReadOrEmpty(teamID)(connGen.ForPlatformID(teamID))
+	if err == nil {
+		if len(teams) > 0 {
+			res = models.TeamID{TeamID: teams[0].TeamID}
+		} else {
+			var clientConfigs []clientPlatformToken.ClientPlatformToken
+			clientConfigs, err = clientPlatformToken.ReadOrEmpty(appID)(connGen.ForPlatformID(appID))
+			if err == nil {
+				if len(clientConfigs) > 0 {
+					res = models.TeamID{AppID: clientConfigs[0].PlatformID}
+				} else {
+					err = errors.Errorf("Couldn't find teamID=%s or appID=%s", teamID, appID)
+				}
+			}
+		}
+	}
+	return
+}
+
 func routeCallbackEvent(
 	eventsAPIEvent slackevents.EventsAPIEvent,
 	requestPayload string, 
 	callbackEvent slackevents.EventsAPICallbackEvent,
 ) (err error)  {
-	apiAppID := models.ParseTeamID(daosCommon.PlatformID(callbackEvent.APIAppID))
-	forwardToNamespace := forwardToNamespaceWithAppID(apiAppID, requestPayload)
-	invokeLambdaWithNamespace := invokeLambdaWithAppID(apiAppID, requestPayload)
-	eventType := eventsAPIEvent.InnerEvent.Type
-	fmt.Printf("INNEREVENT %v\n", eventType)
-	if eventType == slackevents.AppMention {
-		forwardToNamespace("community")
-	} else if eventType == slackevents.MemberJoinedChannel {
-		forwardToNamespace(AdaptiveChannelNamespace)
-	} else if eventType == "member_left_channel" {
-		forwardToNamespace(AdaptiveChannelNamespace)
-	} else if eventType == "group_left" {
-		forwardToNamespace(AdaptiveChannelNamespace)
-	} else if eventType == "channel_deleted" {
-		forwardToNamespace(AdaptiveChannelNamespace)
-	} else if strings.HasPrefix(eventType, "channel_") {
-		forwardToNamespace(AdaptiveChannelNamespace)
-	} else if strings.HasPrefix(eventType, "app_") {
-		forwardToNamespace(AdaptiveChannelNamespace)
-	} else if strings.HasPrefix(eventType, "group_") {
-		forwardToNamespace(AdaptiveChannelNamespace)
-	} else if strings.HasPrefix(eventType, "member_") {
-		forwardToNamespace(AdaptiveChannelNamespace)
-	} else {
-		slackMsg := utils.ParseAsCallbackMsg(eventsAPIEvent)
-		slackText := core.TrimLower(slackMsg.Text)
-		if slackText == "warmup" {
-			// Warmed up lambda
-			log.Println("Received warmup message ...")
-		} else if slackText == "hello" || slackText == "hi" {
-			logger.Infof("apiAppID: %v", apiAppID)
-			helloMessage(slackMsg.User, slackMsg.Channel, apiAppID)
-		} else if strings.Contains(slackText, "generate") ||
-		strings.Contains(slackText, "add to slack") || 
-		strings.Contains(slackText, "addtoslack") {
-			GenerateAddToSlackURL(slackMsg.User, slackMsg.Channel, apiAppID)
-		} else if slackMsg != nil {
-			log.Println("### callback event: " + requestPayload)
-			// It's not a response to an engagement, but a query
-			if strings.Contains(requestPayload, "client_msg_id") {
-				// We need to get the token for non-bot messages, so we keep the token retrieval inside the above condition
-				if slackText == "help" {
-					publish(models.PlatformSimpleNotification{UserId: slackMsg.User, Channel: slackMsg.Channel,
-						Message: "Please refer to the adaptive documentation for available commands, " + helpPage, AsUser: true})
-				} else if core.ListContainsString(settingsCommands, slackText) {
-					forwardToNamespace("settings")
-				} else if core.ListContainsString(feedbackCommands, slackText) {
-					invokeLambdaWithNamespace("feedback")
-				} else if slackText != "" {
-					logger.WithField("slackText", slackText).Info("Unknown user command. Showing menu")
-					helloMessage(slackMsg.User, slackMsg.Channel, apiAppID)
-					// publish(models.PlatformSimpleNotification{UserId: slackMsg.User, Channel: slackMsg.Channel, Message: "Unable to process your message. Type `help` for instructions."})
+	var teamID models.TeamID
+	teamID, err = ensureTeamID(
+		daosCommon.PlatformID(callbackEvent.TeamID),
+		daosCommon.PlatformID(callbackEvent.APIAppID),
+	)
+	if err == nil {
+		forwardToNamespace := forwardToNamespaceWithAppID(teamID, requestPayload)
+		invokeLambdaWithNamespace := invokeLambdaWithAppID(teamID, requestPayload)
+		eventType := eventsAPIEvent.InnerEvent.Type
+		logger.WithField("InnerEvent.Type", eventType).Info("routeCallbackEvent")
+		if eventType == slackevents.AppMention {
+			forwardToNamespace("community")
+		} else if eventType == slackevents.MemberJoinedChannel {
+			forwardToNamespace(AdaptiveChannelNamespace)
+		} else if eventType == "member_left_channel" {
+			forwardToNamespace(AdaptiveChannelNamespace)
+		} else if eventType == "group_left" {
+			forwardToNamespace(AdaptiveChannelNamespace)
+		} else if eventType == "channel_deleted" {
+			forwardToNamespace(AdaptiveChannelNamespace)
+		} else if strings.HasPrefix(eventType, "channel_") {
+			forwardToNamespace(AdaptiveChannelNamespace)
+		} else if strings.HasPrefix(eventType, "app_") {
+			forwardToNamespace(AdaptiveChannelNamespace)
+		} else if strings.HasPrefix(eventType, "group_") {
+			forwardToNamespace(AdaptiveChannelNamespace)
+		} else if strings.HasPrefix(eventType, "member_") {
+			forwardToNamespace(AdaptiveChannelNamespace)
+		} else {
+			slackMsg := utils.ParseAsCallbackMsg(eventsAPIEvent)
+			if slackMsg != nil {
+				slackText := core.TrimLower(slackMsg.Text)
+				if slackText == "warmup" { // this case is not reachable, because we checked for warmup message earlier
+					// Warmed up lambda
+					log.Println("Received warmup message (WARN: shouldn't reach this point ever) ...")
+					err = nil // because teamID is not correct when it's warmup
+				} else if slackText == "hello" || slackText == "hi" {
+					logger.Infof("apiAppID: %v", teamID)
+					helloMessage(slackMsg.User, slackMsg.Channel, teamID)
+				} else if strings.Contains(slackText, "generate") ||
+				strings.Contains(slackText, "add to slack") || 
+				strings.Contains(slackText, "addtoslack") {
+					GenerateAddToSlackURL(slackMsg.User, slackMsg.Channel, teamID)
 				} else {
-					logger.WithField("requestPayload", requestPayload).Info("Unknown request. Ignoring")
+					log.Println("### callback event: " + requestPayload)
+					// It's not a response to an engagement, but a query
+					if strings.Contains(requestPayload, "client_msg_id") {
+						// We need to get the token for non-bot messages, so we keep the token retrieval inside the above condition
+						if slackText == "help" {
+							publish(models.PlatformSimpleNotification{UserId: slackMsg.User, Channel: slackMsg.Channel,
+								Message: "Please refer to the adaptive documentation for available commands, " + helpPage, AsUser: true})
+						} else if core.ListContainsString(settingsCommands, slackText) {
+							forwardToNamespace("settings")
+						} else if core.ListContainsString(feedbackCommands, slackText) {
+							invokeLambdaWithNamespace("feedback")
+						} else if slackText != "" {
+							logger.WithField("slackText", slackText).Info("Unknown user command. Showing menu")
+							helloMessage(slackMsg.User, slackMsg.Channel, teamID)
+							// publish(models.PlatformSimpleNotification{UserId: slackMsg.User, Channel: slackMsg.Channel, Message: "Unable to process your message. Type `help` for instructions."})
+						} else {
+							logger.WithField("requestPayload", requestPayload).Info("Unknown request. Ignoring")
+						}
+					}
 				}
 			}
 		}

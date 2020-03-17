@@ -11,7 +11,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	// utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	// mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	
@@ -55,7 +55,7 @@ var (
 	schema              = models.SchemaForClientID(clientID)
 	userDAO             = utilsUser.NewDAOFromSchema(d, namespace, schema)
 	communityMembersDao = communityUser.NewDAOFromSchema(d, namespace, schema)
-	platformDAO         = utilsPlatform.NewDAOFromSchema(d, namespace, schema)
+	// platformDAO         = utilsPlatform.NewDAOFromSchema(d, namespace, schema)
 	// platformAdapter     = mapper.SlackAdapter2(platformDAO)
 	// typedObjectiveDAO   = typedObjective.NewDAO(d, namespace, clientID)
 	dialogTableName     = utils.NonEmptyEnv("DIALOG_TABLE")

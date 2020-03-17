@@ -145,7 +145,8 @@ func AllStrategyCommunities(teamID models.TeamID) []strategy.StrategyCommunity {
 
 func dialogFromSurvey(teamID models.TeamID, userID string, message slack.InteractionCallback, survey ebm.AttachmentActionSurvey, callbackID string,
 	contextId string, update bool, selected string) (err error) {
-	token := platformDAO.GetPlatformTokenUnsafe(teamID)
+	token, err2 := platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
+	core.ErrorHandler(err2, "dialogFromSurvey", "Could not obtain token")
 	if token != "" {
 		api := slack.New(token)
 		survState := func() string {

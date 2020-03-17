@@ -39,7 +39,6 @@ module "user_profile_lambda" {
 
 data "aws_iam_policy_document" "user_profile_policy" {
   statement {
-    effect    = "Allow"
     actions   = [
       "dynamodb:GetItem",
       "dynamodb:PutItem",
@@ -50,18 +49,17 @@ data "aws_iam_policy_document" "user_profile_policy" {
   }
 
   statement {
-    effect    = "Allow"
     actions   = [
       "dynamodb:GetItem",
     ]
     resources = [
       aws_dynamodb_table.client_config_dynamodb_table.arn,
+      aws_dynamodb_table.slack_team_dynamodb_table.arn,
     ]
   }
 
   # DAX access
   statement {
-    effect    = "Allow"
     actions   = [
       "dax:GetItem",
       "dax:Query",
