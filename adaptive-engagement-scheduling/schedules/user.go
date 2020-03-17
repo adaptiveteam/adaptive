@@ -31,7 +31,7 @@ func IDOCreateReminder(fc checks.CheckResultMap, date bt.Date) (rv string) {
 
 	rv = utils.ScheduleEntry(
 			fc,
-			"Create Individual Improvement Objectives",
+			"Create Individual Development Objectives",
 		).AddScheduleBooleanCheck(
 			Daily || WeekOne || WeekTwo,
 			true,
@@ -62,7 +62,7 @@ func IDOUpdateReminder(fc checks.CheckResultMap, date bt.Date) (rv string) {
 	if date.DayOfWeek() == bt.Friday {
 		rv = utils.ScheduleEntry(
 			fc,
-			"Update Individual Improvement Objectives",
+			"Update Individual Development Objectives",
 		).AddScheduleFunctionCheck(
 			fcn.StaleIDOsExistForMe,
 			true,
