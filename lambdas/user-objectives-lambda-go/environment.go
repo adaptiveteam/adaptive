@@ -61,7 +61,7 @@ var (
 		Namespace:                 namespace,
 		IsInteractiveDebugEnabled: false,
 	}
-	platformDAO      = utilsPlatform.NewDAOFromSchema(d, namespace, schema)
+	// platformDAO      = utilsPlatform.NewDAOFromSchema(d, namespace, schema)
 	dialogFetcherDAO = dialogFetcher.NewDAO(d, dialogTableName)
 	connGen          = daosCommon.DynamoDBConnectionGen{
 		Dynamo:          d,
