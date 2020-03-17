@@ -173,21 +173,25 @@ const (
 	BlueDiamondEmoji = ":small_blue_diamond:"
 )
 
-func ObjectiveCreatedUpdatedStatusTemplate(updated bool, userID string) (text ui.RichText) {
+func ObjectiveCreatedUpdatedStatusTemplate(issueType IssueType, updated bool, userID string) (text ui.RichText) {
+	var verb = ""
 	if updated {
-		text = ui.Sprintf("Below objective has been updated by <@%s>", userID)
+		verb = "updated"
 	} else {
-		text = ui.Sprintf("Below objective has been created by <@%s>", userID)
+		verb = "created"
 	}
+	text = ui.Sprintf("Below %s has been %s by <@%s>", issueType.Template(), verb, userID)
 	return
 }
 
-func ObjectiveProgressCreatedUpdatedStatusTemplate(progressUpdated bool, userID string) (text ui.RichText) {
+func ObjectiveProgressCreatedUpdatedStatusTemplate(issueType IssueType, progressUpdated bool, userID string) (text ui.RichText) {
+	var verb = ""
 	if progressUpdated {
-		text = ui.Sprintf("Below objective's progress has been added by <@%s>", userID)
+		verb = "updated"
 	} else {
-		text = ui.Sprintf("Below objective's progress comment has been updated by <@%s>", userID)
+		verb = "added"
 	}
+	text = ui.Sprintf("Below %s's progress comment has been %s by <@%s>", issueType.Template(), verb, userID)
 	return
 }
 

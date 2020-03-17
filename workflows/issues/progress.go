@@ -171,7 +171,7 @@ func (w workflowImpl) OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out 
 	if err == nil {
 		ctx.SetFlag(isShowingProgressKey, true)
 
-		eventDescription := ObjectiveProgressCreatedUpdatedStatusTemplate(isProgressAvailableForToday, ctx.Request.User.ID)
+		eventDescription := ObjectiveProgressCreatedUpdatedStatusTemplate(itype, isProgressAvailableForToday, ctx.Request.User.ID)
 		out, err = w.onNewOrUpdatedItemAvailable(ctx, tc, newAndOldIssues, ProgressUpdateContext,
 			eventDescription, true)
 		// if err == nil {
