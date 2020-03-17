@@ -1640,7 +1640,8 @@ func onCapabilityCommunityEventCreateOrUpdateDialogSubmission(request slack.Inte
 			Description: desc, Advocate: advocate, CreatedBy: userID, CreatedAt: time.Now().Format(string(TimestampFormat))}
 	}
 	// Write entry to table
-	err := d.PutTableEntry(*newCc, capabilityCommunitiesTable)
+	err2 := d.PutTableEntry(*newCc, capabilityCommunitiesTable)
+	core.ErrorHandler(err2, name, fmt.Sprintf("Could not add entry to %s table", capabilityCommunitiesTable))
 	attachsWithActions := strategy.CapabilityCommunityViewAttachment(*mc, newCc, oldCc, true)
 	attachsWithNoActions := strategy.CapabilityCommunityViewAttachment(*mc, newCc, oldCc, false)
 	// Publish to the user
@@ -1661,12 +1662,14 @@ func onCapabilityCommunityEventCreateOrUpdateDialogSubmission(request slack.Inte
 	}
 	// Post strategy community entity to the table
 	// There is an index on channel id. Hence, it cannot be empty
-	strComm := strategy.StrategyCommunity{ID: newCc.ID, PlatformID: teamID.ToPlatformID(), Advocate: advocate,
-		Community: community.Capability, ChannelCreated: 0, ChannelID: "none",
+	strComm := strategy.StrategyCommunity{ID: newCc.ID, 
+		PlatformID: teamID.ToPlatformID(), Advocate: advocate,
+		Community: community.Capability, ChannelCreated: 0, 
+		ChannelID: "none",
 		AccountabilityPartner: userID, ParentCommunity: community.Strategy, ParentCommunityChannelID: channelID,
 		CreatedAt: time.Now().Format(string(TimestampFormat))}
-	err = d.PutTableEntry(strComm, strategyCommunitiesTable)
-	core.ErrorHandler(err, name, fmt.Sprintf("Could not add entry to %s table", strategyCommunitiesTable))
+	err3 := d.PutTableEntry(strComm, strategyCommunitiesTable)
+	core.ErrorHandler(err3, name, fmt.Sprintf("Could not add entry to %s table", strategyCommunitiesTable))
 	// Post to the advocate only during the creation
 	if !msgState.Update {
 		PostMsgToAdvocate(advocate, userID, community.Capability, name)
