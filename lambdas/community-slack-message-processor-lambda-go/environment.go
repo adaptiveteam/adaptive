@@ -67,7 +67,6 @@ var (
 	userDAO          = daosUser.NewDAOByTableName(d, namespace, schema.AdaptiveUsers.Name)
 	communityUserDAO = communityUser.NewDAOFromSchema(d, namespace, schema)
 	communityDAO     = utilsCommunity.NewDAOFromSchema(d, namespace, schema)
-	platformDAO      = utilsPlatform.NewDAOFromSchema(d, namespace, schema)
 	connGen          = daosCommon.DynamoDBConnectionGen{
 		Dynamo:          d,
 		TableNamePrefix: clientID,

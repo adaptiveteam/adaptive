@@ -27,6 +27,9 @@ func responseServerError(err error) (response events.APIGatewayProxyResponse) {
 	response = events.APIGatewayProxyResponse{
 		StatusCode: 500, // Server error
 		Body: errorMessage,
+		Headers: map[string]string{
+			"Content-type": "text/plain; charset=utf-8",
+		},
 	}
 	logger.WithError(err).Errorf(errorMessage)
 	return
