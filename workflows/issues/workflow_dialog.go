@@ -125,7 +125,7 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 	tc := getTypeClass(itype)
 	if err == nil {
 		dialogSituationID := DialogSituationIDWithoutIssueType(ctx.Data[dialogSituationIDKey])
-		eventDescription := ObjectiveCreatedUpdatedStatusTemplate(newAndOldIssues.Updated, ctx.Request.User.ID)
+		eventDescription := ObjectiveCreatedUpdatedStatusTemplate(itype, newAndOldIssues.Updated, ctx.Request.User.ID)
 		out, err = w.onNewOrUpdatedItemAvailable(ctx, tc, newAndOldIssues, dialogSituationID, eventDescription, false)
 	} else {
 		log.WithError(err).Error("OnDialogSubmitted: Couldn't create an " + ui.RichText(itype.Template()))
