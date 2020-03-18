@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/workflows/common"
 	issues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -20,18 +21,18 @@ func (w workflowImpl) textAnalysisInput(ctx *wf.EventHandlingContext, textExtrac
 	var newAndOldIssues NewAndOldIssues
 	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(*ctx) // userObjectiveByID(itemID)
 	err = errors.Wrapf(err, "textAnalysisInput/WorkflowContext.GetNewAndOldIssues")
+	if err != nil {
+		return
+	}
 	ctx.RuntimeData = runtimeData(newAndOldIssues)
 
 	itype := newAndOldIssues.NewIssue.GetIssueType()
 
 	if itype == "" {
-		err = errors.Wrapf(err, "textAnalysisInput/itype is empty")
+		err = errors.New("textAnalysisInput/itype is empty")
 		return
 	}
-	if err != nil {
-		return
-	}
-	context := w.GetDialogContext(dialogSituationID, itype)
+	context := common.GetDialogContext(dialogSituationID, itype)
 
 	text := textExtractor(newAndOldIssues)
 	analysisInput = utils.TextAnalysisInput{
