@@ -1,10 +1,11 @@
 package adaptive_utils_go
 
 import (
+	"github.com/pkg/errors"
+	"time"
 	"log"
 	"github.com/adaptiveteam/adaptive/daos/dialogEntry"
 	"github.com/adaptiveteam/adaptive/daos/common"
-	"errors"
 	"fmt"
 	"sort"
 
@@ -281,6 +282,12 @@ type TextAnalysisResults struct {
 	Summary              ui.RichText
 }
 
+type TextAnalysisResultsAsync struct {
+	TextAnalysisResults
+	Err error
+}
+type ChanTextAnalysisResultsAsync chan TextAnalysisResultsAsync
+
 // GetConversationID returns either channel id or user id whatever is not empty
 func GetConversationID(userID, channelID string) string {
 	if channelID != "" {
@@ -299,6 +306,29 @@ type ConversationContext struct {
 	ThreadTs          string
 }
 
+// AnalyzeTextAsync starts an asynchronous text analysis
+func AnalyzeTextAsync(input TextAnalysisInput, conn common.DynamoDBConnection) (out ChanTextAnalysisResultsAsync) {
+	out = make(chan TextAnalysisResultsAsync, 2)
+	go func(){
+		res, err2 := AnalyzeTextC(input)(conn)
+		out <- TextAnalysisResultsAsync{
+			TextAnalysisResults: res,
+			Err: err2,
+		}
+	}()
+	return
+}
+// Read reads results from the channel. Blocks if not ready.
+func (c ChanTextAnalysisResultsAsync) Read(timeout time.Duration) (result TextAnalysisResults, err error) {
+	select {
+	case  res := <- c:
+		result = res.TextAnalysisResults
+		err = res.Err
+	case <- time.After(timeout):
+		err = errors.Errorf("ChanTextAnalysisResultsAsync.Read timeout %v ms", timeout / time.Millisecond)
+	}	
+	return 
+}
 // AnalyzeTextC performs a few checks of the input text and produces some recommendations.
 // This is the same as AnalyzeText apart from using DynamoDBConnection instead of dialogFetcher.DAO
 func AnalyzeTextC(input TextAnalysisInput)func (common.DynamoDBConnection)(result TextAnalysisResults, err error) {
