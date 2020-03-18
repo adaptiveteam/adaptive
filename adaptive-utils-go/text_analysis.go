@@ -1,6 +1,9 @@
 package adaptive_utils_go
 
 import (
+	"log"
+	"github.com/adaptiveteam/adaptive/daos/dialogEntry"
+	"github.com/adaptiveteam/adaptive/daos/common"
 	"errors"
 	"fmt"
 	"sort"
@@ -296,6 +299,20 @@ type ConversationContext struct {
 	ThreadTs          string
 }
 
+// AnalyzeTextC performs a few checks of the input text and produces some recommendations.
+// This is the same as AnalyzeText apart from using DynamoDBConnection instead of dialogFetcher.DAO
+func AnalyzeTextC(input TextAnalysisInput)func (common.DynamoDBConnection)(result TextAnalysisResults, err error) {
+	return func (conn common.DynamoDBConnection)(result TextAnalysisResults, err error) {
+		dialogFetcherDao := dialogFetcher.NewDAO(conn.Dynamo, dialogEntry.TableName(conn.ClientID))
+		var errors []error
+		result, errors = AnalyzeText(dialogFetcherDao, input)
+		for _, e := range errors {
+			log.Printf("AnalyzeTextC ERROR: %v\n", e)
+			err = errors[0]
+		}
+		return
+	}
+}
 // AnalyzeText performs a few checks of the input text and produces some recommendations.
 func AnalyzeText(dialogFetcherDao dialogFetcher.DAO, input TextAnalysisInput) (result TextAnalysisResults, errors []error) {
 	recommendations, errList := nlp.GetImprovements(input.Text, nlp.English)
