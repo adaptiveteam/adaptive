@@ -20,6 +20,11 @@ func RecoverAsLogError(label string) {
 	}
 }
 
+// RecoverAsLogErrorf is a universal error recovery that logs error and
+func RecoverAsLogErrorf(format string, args ... interface{}) {
+	RecoverAsLogError(fmt.Sprintf(format, args...))
+}
+
 // RecoverToErrorVar recovers and places the recovered error into the given variable
 func RecoverToErrorVar(name string, err *error) {
 	err2 := recover()
