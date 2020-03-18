@@ -71,3 +71,9 @@ func (ctx EventHandlingContext)GetFlag(flag string) (value bool) {
 	_, value = ctx.Data[flag]
 	return
 }
+
+func (ctx EventHandlingContext) WithRuntimeData(rd interface {}) (out EventHandlingContext) {
+	out = ctx
+	out.RuntimeData = &rd
+	return
+}
