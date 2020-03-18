@@ -51,18 +51,20 @@ func (w workflowImpl) OnFieldsShown(textExtractor TextExtractor, dialogSituation
 		messageID := channelizeID(toMapperMessageID(ctx.TargetMessageID))
 
 		out, err = w.standardView(ctx)
-		viewItem := out.Messages[0]
-
-		var textAnalysisInput utils.TextAnalysisInput
-		textAnalysisInput, err = w.textAnalysisInput(&ctx, textExtractor, dialogSituationID)
 		if err == nil {
-			var resp wf.InteractiveMessage
-			resp, err = wf.AnalyseMessage(w.DialogFetcherDAO, ctx.Request, messageID,
-				textAnalysisInput, viewItem,
-			)
-			resp.OverrideOriginal = true
+			viewItem := out.Messages[0]
+
+			var textAnalysisInput utils.TextAnalysisInput
+			textAnalysisInput, err = w.textAnalysisInput(&ctx, textExtractor, dialogSituationID)
 			if err == nil {
-				out.Interaction.Messages = wf.InteractiveMessages(resp)
+				var resp wf.InteractiveMessage
+				resp, err = wf.AnalyseMessage(w.DialogFetcherDAO, ctx.Request, messageID,
+					textAnalysisInput, viewItem,
+				)
+				resp.OverrideOriginal = true
+				if err == nil {
+					out.Interaction.Messages = wf.InteractiveMessages(resp)
+				}
 			}
 		}
 		out.NextState = "done"

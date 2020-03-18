@@ -21,18 +21,17 @@ func (w workflowImpl) onNewOrUpdatedItemAvailable(ctx wf.EventHandlingContext,
 	// keeping the old item so that we'll be able to show it again after analysis.
 	ctx.RuntimeData = runtimeData(newAndOldIssues)
 	out, err = w.standardView(ctx)
-	if err != nil {
-		return
+	if err == nil {
+		out.ImmediateEvent = MessageIDAvailableEventInContext(dialogSituationID) // this is needed to post analysis
+		out = out.
+			WithPostponedEvent(
+				exchange.NotifyAboutUpdatesForIssue(newAndOldIssues, dialogSituationID),
+			).
+			WithRuntimeData(newAndOldIssues). // We also set output runtime date
+			WithResponse(
+				w.notifyStrategyIfNeeded(ctx, tc, newAndOldIssues, eventDescription, isShowingProgress)...
+			)
 	}
-	out.ImmediateEvent = MessageIDAvailableEventInContext(dialogSituationID) // this is needed to post analysis
-	out = out.
-		WithPostponedEvent(
-			exchange.NotifyAboutUpdatesForIssue(newAndOldIssues, dialogSituationID),
-		).
-		WithRuntimeData(newAndOldIssues). // We also set output runtime date
-		WithResponse(
-			w.notifyStrategyIfNeeded(ctx, tc, newAndOldIssues, eventDescription, isShowingProgress)...
-		)
 	return
 }
 
