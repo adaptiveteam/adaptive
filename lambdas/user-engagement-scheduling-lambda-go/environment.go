@@ -5,6 +5,7 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 )
 
 type Config struct {
@@ -22,27 +23,34 @@ type Config struct {
 	l                       *awsutils.LambdaRequest
 	d                       *awsutils.DynamoRequest
 	clientID                string
+	connGen                 daosCommon.DynamoDBConnectionGen
 }
 
 func readConfigFromEnvironment() Config {
 	region := utils.NonEmptyEnv("AWS_REGION")
 	namespace := utils.NonEmptyEnv("LOG_NAMESPACE")
+	d := awsutils.NewDynamo(region, "", namespace)
+	clientID := utils.NonEmptyEnv("CLIENT_ID")
 	return Config{
-		namespace:               namespace,
-		engScriptingLambdaArn:   utils.NonEmptyEnv("USER_ENGAGEMENT_SCRIPTING_LAMBDA_ARN"),
-		engSchedulerLambdaName:  utils.NonEmptyEnv("USER_ENGAGEMENT_SCHEDULER_LAMBDA_NAME"),
-		usersTable:              utils.NonEmptyEnv("USERS_TABLE_NAME"),
-		communityUsersTable:     utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME"),
-		usersScheduledTimeIndex: "PlatformIDAdaptiveScheduledTimeInUTCIndex",
-		usersZoneOffsetIndex:    "PlatformIDTimezoneOffsetIndex",
-		communityUsersUserIndex: utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX"),
-		clientConfigTable:       utils.NonEmptyEnv("CLIENT_CONFIG_TABLE_NAME"),
-		region:                  region,
-		cw:                      awsutils.NewCloudWatch(region, "", namespace),
-		l:                       awsutils.NewLambda(region, "", namespace),
-		d:                       awsutils.NewDynamo(region, "", namespace),
-		clientID: 				 utils.NonEmptyEnv("CLIENT_ID"),
-	}
+		namespace:                  namespace,
+		engScriptingLambdaArn:      utils.NonEmptyEnv("USER_ENGAGEMENT_SCRIPTING_LAMBDA_ARN"),
+		engSchedulerLambdaName:     utils.NonEmptyEnv("USER_ENGAGEMENT_SCHEDULER_LAMBDA_NAME"),
+		usersTable:                 utils.NonEmptyEnv("USERS_TABLE_NAME"),
+		communityUsersTable:        utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME"),
+		usersScheduledTimeIndex:    "PlatformIDAdaptiveScheduledTimeInUTCIndex",
+		usersZoneOffsetIndex:       "PlatformIDTimezoneOffsetIndex",
+		communityUsersUserIndex:    utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX"),
+		clientConfigTable:          utils.NonEmptyEnv("CLIENT_CONFIG_TABLE_NAME"),
+		region:                     region,
+		cw:                         awsutils.NewCloudWatch(region, "", namespace),
+		l:                          awsutils.NewLambda(region, "", namespace),
+		d:                          d,
+		clientID: 				    clientID,
+		connGen:                    daosCommon.DynamoDBConnectionGen{
+			                            Dynamo:     d,
+			                            TableNamePrefix:   clientID,
+		},
+ 	}
 }
 
 func invokeScriptingLambda(engage models.UserEngage, config Config) (err error) {
