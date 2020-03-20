@@ -65,7 +65,7 @@ func (d DAOImpl)FetchByContextSubject(
 	if len(result) == 1 {
 		rv = result[0]
 	} else if err == nil {
-		err = fmt.Errorf("expected one result but got %v", len(result))
+		err = fmt.Errorf("FetchByContextSubject(context=%s, subject=%s): expected one result but got %v", context, subject, len(result))
 	}
 
 	return rv, err
