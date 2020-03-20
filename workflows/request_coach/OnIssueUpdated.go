@@ -223,7 +223,8 @@ func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOut
 		view.OverrideOriginal = true
 
 		var feedbackButtonCaption ui.PlainText
-		if newAndOldIssues.NewIssue.PrefetchedData.Progress[0].PartnerComments == "" {
+		progresses := newAndOldIssues.NewIssue.PrefetchedData.Progress
+		if len(progresses) == 0 || progresses[0].PartnerComments == "" {
 			feedbackButtonCaption = "Provide feedback"
 		} else {
 			feedbackButtonCaption = "Update feedback"
