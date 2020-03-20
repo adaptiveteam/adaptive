@@ -82,16 +82,17 @@ func PresentTextAnalysisResults(conversationContext utils.ConversationContext,
 	message.Color = color // Update the original attachments with the new color
 
 	note := utils.RecommendationsMessage(analysisResults.TextAnalysisInput.Text, analysisResults.Summary, color)
-	attach := note.Attachments[0]
-	message.Thread = []InteractiveMessage{
-		{
-			PassiveMessage: PassiveMessage{
-				Color:          color,
-				Pretext:        ui.RichText(attach.Pretext),
-				AttachmentText: analysisResults.Summary,
-			},
-		},
+	pmsg := PassiveMessage{
+		Color:          color,
+		AttachmentText: analysisResults.Summary,
 	}
+	if len(note.Attachments) > 0 {
+		attach := note.Attachments[0]
+		pmsg.Pretext = ui.RichText(attach.Pretext)
+	}
+	message.Thread = []InteractiveMessage{{
+		PassiveMessage: pmsg,
+	}}
 	message.OverrideOriginal = true
 	// colorCodedOriginalMessageOverrideNote := models.PlatformSimpleNotification{
 	// 	Attachments: utils.RepaintAttachmentsWithColor(analysisResults.TextAnalysisInput.OriginalMessageAttachments, color)}
