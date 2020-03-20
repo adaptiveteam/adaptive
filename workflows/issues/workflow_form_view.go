@@ -24,7 +24,7 @@ func (w workflowImpl) textAnalysisInput(ctx *wf.EventHandlingContext, textExtrac
 	if err != nil {
 		return
 	}
-	ctx.RuntimeData = runtimeData(newAndOldIssues)
+	*ctx = (*ctx).WithRuntimeData(common.NewAndOldIssuesKey, newAndOldIssues)
 
 	itype := newAndOldIssues.NewIssue.GetIssueType()
 
