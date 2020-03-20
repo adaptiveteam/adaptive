@@ -26,6 +26,7 @@ const (
 	UpdateResponseContext           DialogSituationIDWithoutIssueType = issuesUtils.UpdateResponseContext
 	CoachingRequestRejectionContext DialogSituationIDWithoutIssueType = issuesUtils.CoachingRequestRejectionContext
 	ProgressUpdateContext           DialogSituationIDWithoutIssueType = issuesUtils.ProgressUpdateContext
+	ProgressUpdateResponseContext   DialogSituationIDWithoutIssueType = issuesUtils.ProgressUpdateResponseContext
 )
 
 type GlobalDialogContext = string
@@ -63,6 +64,11 @@ var contexts = map[DialogSituationIDWithoutIssueType]GlobalDialogContextByType{
 		Initiative: "",
 	},
 	ProgressUpdateContext: { // TODO: provide progress update contexts
+		IDO:        "dialog/ido/language-coaching/update",
+		SObjective: "dialog/strategy/language-coaching/objective/update",
+		Initiative: "dialog/strategy/language-coaching/initiative/update",
+	},
+	ProgressUpdateResponseContext: { // TODO: progress update response contexts
 		IDO:        "dialog/ido/language-coaching/update",
 		SObjective: "dialog/strategy/language-coaching/objective/update",
 		Initiative: "dialog/strategy/language-coaching/initiative/update",
