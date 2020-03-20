@@ -22,7 +22,7 @@ type EventHandlingContext struct {
 	// it might have a thread. So we should at most override the title message.
 	platform.TargetMessageID
 	// RuntimeData could be used to pass information between immediate state handlers
-	RuntimeData *interface{}
+	RuntimeData map[string]interface{}
 }
 
 // Reply sends simple text to the requesting user
@@ -72,8 +72,18 @@ func (ctx EventHandlingContext)GetFlag(flag string) (value bool) {
 	return
 }
 
-func (ctx EventHandlingContext) WithRuntimeData(rd interface {}) (out EventHandlingContext) {
+func (ctx EventHandlingContext) WithRuntimeData(name string, rd interface {}) (out EventHandlingContext) {
 	out = ctx
-	out.RuntimeData = &rd
+	if out.RuntimeData == nil {
+		out.RuntimeData = make(map[string]interface{})
+	}
+	out.RuntimeData[name] = rd
+	return
+}
+
+func (ctx EventHandlingContext) TryGetRuntimeData(name string) (rd interface{}, found bool) {
+	if ctx.RuntimeData != nil {
+		rd, found = ctx.RuntimeData[name]
+	}
 	return
 }
