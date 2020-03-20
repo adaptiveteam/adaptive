@@ -21,7 +21,7 @@ const NewAndOldIssuesKey = "NewAndOldIssuesKey"
 // starts analysis and request an immediate callback from workflow engine
 func (w workflowImpl) onNewOrUpdatedCoachCommentAvailable(ctx wf.EventHandlingContext, newAndOldIssues NewAndOldIssues) (out wf.EventOutput, err error) {
 	// p := newAndOldIssues.NewIssue.Progress[0]
-	analysisInput := w.textAnalysisInput(ctx, newAndOldIssues, ExtractProgressCoachComment, "")
+	analysisInput := w.textAnalysisInput(ctx, newAndOldIssues, ExtractProgressCoachComment, common.ProgressUpdateResponseContext)
 	analysisChan := utils.AnalyzeTextAsync(analysisInput, w.DynamoDBConnection)
 	out, err = w.standardView(ctx)
 	if err == nil {
