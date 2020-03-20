@@ -333,13 +333,15 @@ func (c ChanTextAnalysisResultsAsync) Read(timeout time.Duration) (result TextAn
 // This is the same as AnalyzeText apart from using DynamoDBConnection instead of dialogFetcher.DAO
 func AnalyzeTextC(input TextAnalysisInput)func (common.DynamoDBConnection)(result TextAnalysisResults, err error) {
 	return func (conn common.DynamoDBConnection)(result TextAnalysisResults, err error) {
+		log.Printf("INFO: AnalyzeTextC(%s)\n", input.Text)
 		dialogFetcherDao := dialogFetcher.NewDAO(conn.Dynamo, dialogEntry.TableName(conn.ClientID))
 		var errors []error
 		result, errors = AnalyzeText(dialogFetcherDao, input)
-		for _, e := range errors {
-			log.Printf("AnalyzeTextC ERROR: %v\n", e)
-			err = errors[0]
+		for i, e := range errors {
+			log.Printf("AnalyzeTextC ERROR[%d]: %v\n", i, e)
+			// err = errors[0]
 		}
+		log.Printf("INFO: AnalyzeTextC(%s) completed: %v\n", input.Text, result)
 		return
 	}
 }
