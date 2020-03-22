@@ -6,8 +6,8 @@ import (
 )
 
 const query = 
-`SELECT CONCAT(CAST(ROUND(sources/total*100,2) AS CHAR),'%') AS Given,
-       CONCAT(CAST(ROUND(targets/total*100,2) AS CHAR),'%') AS Received
+`SELECT sources/total*100 AS Given,
+        targets/total*100 AS Received
 FROM (SELECT COUNT(DISTINCT (user_feedback.source)) AS sources
       FROM user_feedback
       WHERE user_feedback.platform_id = ?
@@ -45,7 +45,7 @@ func QueryFeedbackStats(
 				platformID,
 			)
 			if queryResult != nil {
-				err = queryResult.Scan(&stats)
+				err = queryResult.Scan(&stats.Given, &stats.Received)
 			}
 		}
 		return
