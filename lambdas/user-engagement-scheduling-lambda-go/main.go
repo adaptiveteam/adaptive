@@ -30,7 +30,12 @@ import (
 
 var (
 	defaultMeetingTime = business_time.MeetingTime(9, 0)
-	globalScheduleTime = time.Date(0, 0, 0, 12, 0, 0, 0, time.UTC) // 12:00 UTC = 08:00 EDT
+	globalScheduleTime = func () time.Time { 
+		now := time.Now()
+		return time.Date(now.Year(), now.Month(), now.Day(), 
+		12, 0, // 12:00 UTC = 08:00 EDT
+		0, 0, time.UTC)
+	} 
 	logger             = alog.LambdaLogger(logrus.InfoLevel)
 )
 
@@ -170,31 +175,42 @@ func runScheduleForTeam(config Config, teamID models.TeamID) (err error) {
 
 func runGlobalScheduleForTeam(config Config, teamID models.TeamID) (err error) {
 	startUTCTime, endUTCTime := getCurrentQuarterHourInterval()
-	if globalScheduleTime.After(startUTCTime) &&
-		globalScheduleTime.Before(endUTCTime) {
+	scheduleTimeForToday := globalScheduleTime()
+	if scheduleTimeForToday.After(startUTCTime) &&
+		!scheduleTimeForToday.After(endUTCTime) {
+		logger.Infof("runGlobalScheduleForTeam(%s)", teamID.ToString())
 		year, quarter := core.CurrentYearQuarter()
 		rdsConfig := utilities.ReadRDSConfigFromEnv()
 		sqlConn := rdsConfig.SQLOpenUnsafe()
 		defer utilities.CloseUnsafe(sqlConn)
 		var stat stats.FeedbackStats
 		stat, err = stats.QueryFeedbackStats(teamID, year, quarter)(sqlConn)
-		message := ui.Sprintf(
-			`People who have given feedback - %0.2f%
-People who have received feedback - %0.2f%`, 
-			stat.Given, stat.Received)
-		conn := config.connGen.ForPlatformID(teamID.ToPlatformID())
-		var communities []adaptiveCommunity.AdaptiveCommunity
-		communities, err = adaptiveCommunity.ReadOrEmpty(teamID.ToPlatformID(), string(community.HR))(conn)
-		if len(communities) > 0 {
-			hr := communities[0]
-			slackAdapter := mapper.SlackAdapterForTeamID(conn)
-			slackAdapter.PostAsync(platform.Post(
-				platform.ConversationID(hr.ChannelID),
-				platform.Message(message),
-			))
-		} else {
-			logger.Warnf("HR community not found for team %s", teamID.ToString())
+		if err == nil {
+			message := ui.Sprintf(
+				`People who have given feedback - %0.2f%%
+People who have received feedback - %0.2f%%`, 
+				stat.Given, stat.Received)
+			logger.Info(message)
+			conn := config.connGen.ForPlatformID(teamID.ToPlatformID())
+			var communities []adaptiveCommunity.AdaptiveCommunity
+			communities, err = adaptiveCommunity.ReadOrEmpty(teamID.ToPlatformID(), string(community.HR))(conn)
+			if err == nil {
+				if len(communities) > 0 {
+					hr := communities[0]
+					slackAdapter := mapper.SlackAdapterForTeamID(conn)
+					post := platform.Post(
+						platform.ConversationID(hr.ChannelID),
+						platform.Message(message),
+					)
+					logger.Infof("Posting to %s: %v", hr.ChannelID, post)
+					_, err = slackAdapter.PostSync(post)
+				} else {
+					logger.Warnf("HR community not found for team %s", teamID.ToString())
+				}
+			}
 		}
+	} else {
+		logger.Infof("runGlobalScheduleForTeam(%s) - skipping. Today it's planned to %v", teamID.ToString(), scheduleTimeForToday)
 	}
 	return
 }
