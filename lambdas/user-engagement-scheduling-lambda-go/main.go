@@ -176,7 +176,7 @@ func runScheduleForTeam(config Config, teamID models.TeamID) (err error) {
 func runGlobalScheduleForTeam(config Config, teamID models.TeamID) (err error) {
 	startUTCTime, endUTCTime := getCurrentQuarterHourInterval()
 	scheduleTimeForToday := globalScheduleTime()
-	if scheduleTimeForToday.After(startUTCTime) &&
+	if !scheduleTimeForToday.Before(startUTCTime) &&
 		!scheduleTimeForToday.After(endUTCTime) {
 		logger.Infof("runGlobalScheduleForTeam(%s)", teamID.ToString())
 		year, quarter := core.CurrentYearQuarter()
