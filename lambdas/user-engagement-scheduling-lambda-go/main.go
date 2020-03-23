@@ -184,7 +184,7 @@ func runGlobalScheduleForTeam(config Config, teamID models.TeamID) (err error) {
 		sqlConn := rdsConfig.SQLOpenUnsafe()
 		defer utilities.CloseUnsafe(sqlConn)
 		var stat stats.FeedbackStats
-		stat, err = stats.QueryFeedbackStats(teamID, quarter, year)(sqlConn)
+		stat, err = stats.QueryFeedbackStats(teamID, year, quarter)(sqlConn)
 		if err == nil {
 			message := ui.Sprintf(
 				`People who have given feedback - %0.2f%%
