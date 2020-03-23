@@ -85,6 +85,7 @@ func (adm DynamicMenuSpecification) AddGroup(group GroupSpecification) (rv Dynam
 	return rv
 }
 
+// Build performs all checks and produces []ebm.MenuOptionGroup
 func (adm DynamicMenuSpecification) Build(userID string, date bt.Date) (rv []ebm.MenuOptionGroup) {
 	checkResults := adm.StripOutFunctions().Evaluate(userID, date)
 	for _, currentGroup := range adm {

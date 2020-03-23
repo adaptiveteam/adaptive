@@ -9,8 +9,8 @@ import (
 func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.FunctionBindings) (adm menu.DynamicMenuSpecification) {
 	p := menu.Profile{Map: profile}
 	adm = menu.NewAdaptiveDynamicMenu()
-	adm = adm.AddGroup(
-		menu.NewGroupSpecification("Urgent Responsibilities").
+	adm = adm.
+		AddGroup(menu.NewGroupSpecification("Urgent Responsibilities").
 			AddGroupOption(
 				// Enables the user to create the company vision
 				menu.NewAdaptiveDynamicMenuSpecification(
@@ -73,8 +73,7 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				AddOptionCheck(profile, acfn.InLastMonthOfQuarter, true).
 				AddOptionCheck(profile, acfn.TeamValuesExist, true),
 		),
-	).AddGroup(
-		menu.NewGroupSpecification("Responsibilities").
+	).AddGroup(menu.NewGroupSpecification("Responsibilities").
 			AddGroupOption(
 				// This fetches all IDO's
 				menu.NewAdaptiveDynamicMenuSpecification(
@@ -113,8 +112,7 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				AddOptionCheck(profile, acfn.InLastMonthOfQuarter, false).
 				AddOptionCheck(profile, acfn.TeamValuesExist, true),
 		),
-	).AddGroup(
-		menu.NewGroupSpecification("View").
+	).AddGroup(menu.NewGroupSpecification("View").
 			AddGroupOption(
 				// Presents the company vision
 				menu.NewAdaptiveDynamicMenuSpecification(
@@ -232,8 +230,7 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				"").
 				AddOptionCheck(profile, acfn.AdvocatesExist, true),
 		),
-	).AddGroup(
-		menu.NewGroupSpecification("Create").
+	).AddGroup(menu.NewGroupSpecification("Create").
 			AddGroupOption(
 				// Enables a user to create an IDO
 				menu.NewAdaptiveDynamicMenuSpecification(
@@ -330,8 +327,7 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				"").
 				AddOptionCheck(profile, acfn.InHRCommunity, true),
 		),
-	).AddGroup(
-		menu.NewGroupSpecification("Assign").
+	).AddGroup(menu.NewGroupSpecification("Assign").
 			AddGroupOption(
 				// Enables a user to assign an Objective to an Objective Community
 				menu.NewAdaptiveDynamicMenuSpecification(
@@ -342,16 +338,14 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 					AddOptionCheck(profile, acfn.ObjectivesExist, true).
 					AddOptionCheck(profile, acfn.InStrategyCommunity, true),
 			),
-	).AddGroup(
-		menu.NewGroupSpecification("Settings").
+	).AddGroup(menu.NewGroupSpecification("Settings").
 			AddGroupOption(
 				menu.NewAdaptiveDynamicMenuSpecification(
 					bindings["UserSettings"],
 					"Update",
 					""),
 			),
-	).AddGroup(
-		menu.NewGroupSpecification("Reports").
+	).AddGroup(menu.NewGroupSpecification("Reports").
 			AddGroupOption(
 				// Enables the user to see their last collaboration report
 				menu.NewAdaptiveDynamicMenuSpecification(

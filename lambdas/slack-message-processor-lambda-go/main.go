@@ -68,7 +68,8 @@ func InitAction(callbackId, userID string) []ebm.Attachment {
 	today := business_time.Today(loc)
 	dms := adm.AdaptiveDynamicMenu(aesc.ProductionProfile, bindings)
 	mog := dms.Build(userID, today)
-	dms.StripOutFunctions().Evaluate(userID, business_time.Today(loc))
+	// the following has already been done in dms.Build
+	// dms.StripOutFunctions().Evaluate(userID, business_time.Today(loc))
 
 	logger.Infof("AdaptiveDynamicMenu contains %d groups\n", len(mog))
 	attachAction1, _ := eb.NewAttachmentActionBuilder().
