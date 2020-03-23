@@ -1,7 +1,8 @@
 # Specify the provider and access details
 provider "aws" {
+  profile = "adaptive"
   region = var.aws_region
-  version = "~> 2.52.0"
+  version = "~> 2.0"
 }
 
 data "aws_caller_identity" "current" {
