@@ -1,8 +1,8 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 
@@ -30,13 +30,13 @@ import (
 
 var (
 	defaultMeetingTime = business_time.MeetingTime(9, 0)
-	globalScheduleTime = func () time.Time { 
+	globalScheduleTime = func() time.Time {
 		now := time.Now()
-		return time.Date(now.Year(), now.Month(), now.Day(), 
-		12, 0, // 12:00 UTC = 08:00 EDT
-		0, 0, time.UTC)
-	} 
-	logger             = alog.LambdaLogger(logrus.InfoLevel)
+		return time.Date(now.Year(), now.Month(), now.Day(),
+			12, 0, // 12:00 UTC = 08:00 EDT
+			0, 0, time.UTC)
+	}
+	logger = alog.LambdaLogger(logrus.InfoLevel)
 )
 
 func usersWithinScheduledPeriod(config Config, teamID models.TeamID, startUTCTime, endUTCTime string) (users []models.User) {
@@ -184,25 +184,25 @@ func runGlobalScheduleForTeam(config Config, teamID models.TeamID) (err error) {
 		sqlConn := rdsConfig.SQLOpenUnsafe()
 		defer utilities.CloseUnsafe(sqlConn)
 		var stat stats.FeedbackStats
-		stat, err = stats.QueryFeedbackStats(teamID, year, quarter)(sqlConn)
+		stat, err = stats.QueryFeedbackStats(teamID, quarter, year)(sqlConn)
 		if err == nil {
 			message := ui.Sprintf(
 				`People who have given feedback - %0.2f%%
-People who have received feedback - %0.2f%%`, 
+People who have received feedback - %0.2f%%`,
 				stat.Given, stat.Received)
 			logger.Info(message)
 			conn := config.connGen.ForPlatformID(teamID.ToPlatformID())
 			var communities []adaptiveCommunity.AdaptiveCommunity
-			communities, err = adaptiveCommunity.ReadOrEmpty(teamID.ToPlatformID(), string(community.HR))(conn)
+			communities, err = adaptiveCommunity.ReadOrEmpty(teamID.ToPlatformID(), string(community.User))(conn)
 			if err == nil {
 				if len(communities) > 0 {
-					hr := communities[0]
+					userComm := communities[0]
 					slackAdapter := mapper.SlackAdapterForTeamID(conn)
 					post := platform.Post(
-						platform.ConversationID(hr.ChannelID),
+						platform.ConversationID(userComm.ChannelID),
 						platform.Message(message),
 					)
-					logger.Infof("Posting to %s: %v", hr.ChannelID, post)
+					logger.Infof("Posting to %s: %v", userComm.ChannelID, post)
 					_, err = slackAdapter.PostSync(post)
 				} else {
 					logger.Warnf("HR community not found for team %s", teamID.ToString())
