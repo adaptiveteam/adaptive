@@ -1,10 +1,11 @@
 package strategy
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"fmt"
 	"log"
 	"strings"
-
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
@@ -12,6 +13,7 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -33,6 +35,7 @@ func platformIndexExpr(index string, teamID models.TeamID) awsutils.DynamoIndexE
 // If user is in strategy community, we return all objectives
 // Else we return those objectives associated with capability communities that the user is a part of
 // USED
+// Deprecated: use SelectFromStrategyObjectiveJoinCommunityWhereUserIDOrInStrategyCommunity
 func UserStrategyObjectives(userID string,
 	strategyObjectivesTable, strategyObjectivesPlatformIndex, userObjectivesTable string,
 	communityUsersTable, communityUsersUserCommunityIndex string) []models.StrategyObjective {
@@ -47,6 +50,37 @@ func UserStrategyObjectives(userID string,
 		log.Println(fmt.Sprintf("### User %s is not in strategy community, showing relevant objectives", userID))
 		return UserCommunityObjectives(userID, strategyObjectivesTable, strategyObjectivesPlatformIndex, userObjectivesTable,
 			communityUsersTable, communityUsersUserCommunityIndex)
+	}
+}
+
+// SelectFromStrategyObjectiveJoinCommunityWhereUserIDOrInStrategyCommunity - implements the following SQL:
+// SELECT * FROM _strategy_objective
+// WHERE _strategy_objective.user_id=$userID 
+//    OR IsUserInCommunity($userID, 'strategy')
+func SelectFromStrategyObjectiveJoinCommunityWhereUserIDOrInStrategyCommunity(userID string) func(conn daosCommon.DynamoDBConnection) (objs []models.StrategyObjective, err error) {
+	return func(conn daosCommon.DynamoDBConnection) (objs []models.StrategyObjective, err error) {
+		var isUserInStrategyCommunity bool
+		isUserInStrategyCommunity, err = SelectNonEmptyFromCommunityWhereUserIDCommunityID(userID, community.Strategy)(conn)
+		if err == nil {
+			if isUserInStrategyCommunity {
+				objs, err = strategyObjective.ReadByPlatformID(conn.PlatformID)(conn)
+			} else {
+				objs, err = SelectFromObjectivesJoinCommunityUsersWhereUserID(userID)(conn)
+			}
+		}
+		return 
+	}
+}
+
+// SelectNonEmptyFromCommunityWhereUserIDCommunityID - implements the following SQL:
+// SELECT NonEmpty(*) FROM _adaptive_community_user
+// WHERE _adaptive_community_user.user_id=$userID AND _adaptive_community_user.community=$community
+func SelectNonEmptyFromCommunityWhereUserIDCommunityID(userID string, communityID community.AdaptiveCommunity) func(conn daosCommon.DynamoDBConnection) (nonEmpty bool, err error) {
+	return func(conn daosCommon.DynamoDBConnection) (nonEmpty bool, err error) {
+		var users [] adaptiveCommunityUser.AdaptiveCommunityUser
+		users, err = adaptiveCommunityUser.ReadByUserIDCommunityID(userID, string(communityID))(conn)
+		nonEmpty = len(users) > 0
+		return
 	}
 }
 
@@ -65,6 +99,7 @@ func allStrategyObjectives(teamID models.TeamID, strategyObjectivesTable,
 
 // AllOpenStrategyObjectives returns a slice of open strategy objectives: capability, customer and financial objectives
 // USED
+// Deprecated: use SelectFromStrategyObjectiveJoinUserObjectiveWhereNotCompleted
 func AllOpenStrategyObjectives(teamID models.TeamID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
 	userObjectivesTable string) []models.StrategyObjective {
 	allObjs := allStrategyObjectives(teamID, strategyObjectivesTable, strategyObjectivesPlatformIndex)
@@ -86,7 +121,7 @@ func AllOpenStrategyObjectives(teamID models.TeamID, strategyObjectivesTable, st
 				res = append(res, each)
 			}
 		} else {
-			log.Printf("AllOpenStrategyObjectives, error for userObj(id=%s) %v", id, err2)
+			log.Printf("AllOpenStrategyObjectives, error for userObj(id=%s) %+v", id, err2)
 		}
 	}
 	return res
