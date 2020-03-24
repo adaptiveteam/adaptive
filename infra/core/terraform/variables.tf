@@ -2,6 +2,10 @@ variable "aws_region" {
   description = "The AWS region to create things in."
 }
 
+variable "profile" {
+  description = "Named AWS profile to use for deployment"
+}
+
 variable "environment" {
   description = "Environment"
   type = string
