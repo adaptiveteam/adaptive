@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/workflows/common"
 	"github.com/pkg/errors"
 	"log"
 	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
@@ -31,7 +32,7 @@ func setIssue(ctx *wf.EventHandlingContext, issue Issue) {
 		log.Printf("INVALID(1): issueID is empty %v\n", issue)
 	}
 	ctx.Data[issueTypeKey] = string(issue.GetIssueType())
-	ctx.RuntimeData = runtimeData(newAndOldIssues)
+	*ctx = ctx.WithRuntimeData(common.NewAndOldIssuesKey, newAndOldIssues)
 }
 
 func (w workflowImpl) queryFromPredicate(issueType IssueType, issueFilterFactory IssuePredicateFactory) IssueQueryFactory {

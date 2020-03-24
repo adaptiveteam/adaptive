@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"github.com/adaptiveteam/adaptive/core-utils-go"
 	// "github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
 
@@ -43,26 +44,6 @@ type Environment struct {
 // MaxImmediateSteps is used to limit possible damage in case of errors
 const MaxImmediateSteps = 3
 
-func (w Template) recoverToErrorVar(logInfof LogInfof, err *error) {
-	if err2 := recover(); err2 != nil {
-		if err != nil {
-			logInfof("Before recoverToErrorVar err = %+v", *err)
-		}
-		switch err2.(type) {
-		case error:
-			err3 := err2.(error)
-			err4 := errors.Wrap(err3, "Recover from panic in workflow HandleRequest")
-			err = &err4
-			logInfof("recoverToErrorVar: %+v", err3)
-		case string:
-			err3 := err2.(string)
-			err4 := errors.New("Recover from string-panic in workflow HandleRequest: " + err3)
-			err = &err4
-			logInfof("recoverToErrorVar: %+v", *err)
-		}
-	}
-}
-
 // Validate checks if the template is correct
 func (w Template) Validate() (err error) {
 	if w.Parser == nil {
@@ -77,7 +58,7 @@ func (w Template) Validate() (err error) {
 // the incoming request.
 func (w Template) GetRequestHandler(env Environment) RequestHandler {
 	return func(actionPath models.RelActionPath, np models.NamespacePayload4) (furtherActions []TriggerImmediateEventForAnotherUser, err error) {
-		defer w.recoverToErrorVar(env.LogInfof, &err)
+		defer core_utils_go.RecoverToErrorVar("GetRequestHandler", &err)
 		err = w.Validate()
 		if err == nil {
 			env.LogInfof("Action path: %s", actionPath.Encode())
