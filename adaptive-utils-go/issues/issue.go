@@ -108,5 +108,6 @@ const (
 	UpdateContext                   DialogSituationIDWithoutIssueType = "update"
 	UpdateResponseContext           DialogSituationIDWithoutIssueType = "update-response"
 	CoachingRequestRejectionContext DialogSituationIDWithoutIssueType = "coaching-request-rejection"
-	ProgressUpdateContext           DialogSituationIDWithoutIssueType = "progress-update"
+	ProgressUpdateContext           DialogSituationIDWithoutIssueType = UpdateContext
+	ProgressUpdateResponseContext   DialogSituationIDWithoutIssueType = UpdateResponseContext
 )

@@ -366,7 +366,7 @@ func CreateObjectiveWorkflow_OnDialogSubmitted(ctx wf.EventHandlingContext) (out
 		err = nil // we want to show error interaction and we have logged the error
 	}
 	out.KeepOriginal = true
-	out.RuntimeData = runtimeData(oldItem) // keeping the old item so that we'll be able to show it again after analysis.
+	out = out.WithRuntimeData(StrategyObjectiveKey, oldItem) // keeping the old item so that we'll be able to show it again after analysis.
 
 	return
 }
@@ -481,7 +481,7 @@ func toMapperMessageID(id platform.TargetMessageID) mapper.MessageID {
 		Ts:             id.Ts,
 	}
 }
-
+const StrategyObjectiveKey = "StrategyObjective"
 // CreateObjectiveWorkflow_OnFieldsShown is triggered when
 // the message with objective information has been shown.
 // Now we want to run an analysis.
@@ -495,10 +495,11 @@ func CreateObjectiveWorkflow_OnFieldsShown(ctx wf.EventHandlingContext) (out wf.
 	item := strategy.StrategyObjectiveByID(ctx.TeamID, itemID, strategyObjectivesTable)
 	oldItem := item
 	newIssue := UserObjectiveFromStrategyObjective(&item, item.CapabilityCommunityIDs[0], ctx.TeamID)
-	if ctx.RuntimeData == nil {
-		logger.Infof("runtime data is empty")
+	oldItemI, ok := ctx.TryGetRuntimeData(StrategyObjectiveKey)
+	if ok {
+		oldItem = oldItemI.(models.StrategyObjective)
 	} else {
-		oldItem = (*ctx.RuntimeData).(models.StrategyObjective)
+		logger.Infof("runtime data is empty - no StrategyObjective")
 	}
 	oldIssue := UserObjectiveFromStrategyObjective(&oldItem, oldItem.CapabilityCommunityIDs[0], ctx.TeamID)
 	// item, err := strategyObjectiveDAO.Read(itemID)

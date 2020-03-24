@@ -15,8 +15,8 @@ type MeaningCloud struct {
 const (
 	baseURL string = "https://api.meaningcloud.com/"
 	// TODO: replace these with Terraform provided environment variables
-	deepCategorizationURL = baseURL + "/deepcategorization-1.0/post"
-	sentimentAnalysisURL  = baseURL + "/sentiment-2.1/post"
+	deepCategorizationURL = baseURL + "/deepcategorization-1.0"
+	sentimentAnalysisURL  = baseURL + "/sentiment-2.1"
 	summaryURL            = baseURL + "/summarization-1.0"
 	ofJson                = `json`
 	globalMeaningCloudKey = "d677938b7bf41ba18b7fbffb18ad6730"

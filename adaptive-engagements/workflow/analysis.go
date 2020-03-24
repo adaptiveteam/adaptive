@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/pkg/errors"
 
@@ -11,6 +12,31 @@ import (
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/nlopes/slack"
 )
+
+// AnalyseMessageС performs all typical operations to post standard analysis.
+func AnalyseMessageС(
+	request slack.InteractionCallback,
+	messageID chan mapper.MessageID,
+	input utils.TextAnalysisInput,
+	originalMessage InteractiveMessage,
+) func (common.DynamoDBConnection) (message InteractiveMessage, err error) {
+	return func (conn common.DynamoDBConnection) (message InteractiveMessage, err error) {
+		// Once we receive the analysis from Meaning Cloud on the user's feedback, we post that result to the original message's thread
+		var analysis utils.TextAnalysisResults
+		analysis, err = utils.AnalyzeTextC(input)(conn)
+		if err == nil {
+			message = originalMessage
+			if analysis.Summary == "" { // if Summary is empty, we don't show it.
+				err = errors.New("Analysis summary is empty")
+			} else {
+				msgID := <-messageID // waiting for message id of the original message to become available
+				ctx := conversationContext(request, msgID)
+				message = PresentTextAnalysisResults(ctx, analysis, originalMessage)
+			}
+		}
+		return
+	}
+}
 
 // AnalyseMessage performs all typical operations to post standard analysis.
 func AnalyseMessage(
@@ -56,16 +82,17 @@ func PresentTextAnalysisResults(conversationContext utils.ConversationContext,
 	message.Color = color // Update the original attachments with the new color
 
 	note := utils.RecommendationsMessage(analysisResults.TextAnalysisInput.Text, analysisResults.Summary, color)
-	attach := note.Attachments[0]
-	message.Thread = []InteractiveMessage{
-		{
-			PassiveMessage: PassiveMessage{
-				Color:          color,
-				Pretext:        ui.RichText(attach.Pretext),
-				AttachmentText: analysisResults.Summary,
-			},
-		},
+	pmsg := PassiveMessage{
+		Color:          color,
+		AttachmentText: analysisResults.Summary,
 	}
+	if len(note.Attachments) > 0 {
+		attach := note.Attachments[0]
+		pmsg.Pretext = ui.RichText(attach.Pretext)
+	}
+	message.Thread = []InteractiveMessage{{
+		PassiveMessage: pmsg,
+	}}
 	message.OverrideOriginal = true
 	// colorCodedOriginalMessageOverrideNote := models.PlatformSimpleNotification{
 	// 	Attachments: utils.RepaintAttachmentsWithColor(analysisResults.TextAnalysisInput.OriginalMessageAttachments, color)}
