@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/workflows/common"
 	"time"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -77,13 +78,13 @@ func (InitiativeImpl) Empty() (issue Issue) {
 	return
 }
 func (IDOImpl) CloseoutDisagreementContext() string {
-	return contexts[CloseoutDisagreementContext][IDO]
+	return common.GetDialogContext(CloseoutDisagreementContext, IDO)
 }
 func (SObjectiveImpl) CloseoutDisagreementContext() string {
-	return contexts[CloseoutDisagreementContext][SObjective]
+	return common.GetDialogContext(CloseoutDisagreementContext, SObjective)
 }
 func (InitiativeImpl) CloseoutDisagreementContext() string {
-	return contexts[CloseoutDisagreementContext][Initiative]
+	return common.GetDialogContext(CloseoutDisagreementContext, Initiative)
 }
 
 func (IDOImpl) IssueTypeName() ui.PlainText        { return "Individual Development Objective" }
