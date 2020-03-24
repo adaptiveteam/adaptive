@@ -203,11 +203,11 @@ func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOut
 			"You might want to provide some valuable feedback on this update.",
 			engCommon.TaggedUser(issue.UserObjective.UserID),
 			issue.GetIssueType().Template())
-	case utilsIssues.ProgressUpdateContext:
-		notificationText = ui.Sprintf("%s has updated progress on the below %s. "+
-			"You might want to provide some valuable feedback on this update.",
-			engCommon.TaggedUser(issue.UserObjective.UserID),
-			issue.GetIssueType().Template())
+	// case utilsIssues.ProgressUpdateContext:
+	// 	notificationText = ui.Sprintf("%s has updated progress on the below %s. "+
+	// 		"You might want to provide some valuable feedback on this update.",
+	// 		engCommon.TaggedUser(issue.UserObjective.UserID),
+	// 		issue.GetIssueType().Template())
 	default:
 		// no text
 	}

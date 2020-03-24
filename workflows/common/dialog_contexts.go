@@ -63,16 +63,16 @@ var contexts = map[DialogSituationIDWithoutIssueType]GlobalDialogContextByType{
 		SObjective: "",
 		Initiative: "",
 	},
-	ProgressUpdateContext: { // TODO: provide progress update contexts
-		IDO:        "dialog/ido/language-coaching/update",
-		SObjective: "dialog/strategy/language-coaching/objective/update",
-		Initiative: "dialog/strategy/language-coaching/initiative/update",
-	},
-	ProgressUpdateResponseContext: { // TODO: progress update response contexts
-		IDO:        "dialog/ido/language-coaching/update",
-		SObjective: "dialog/strategy/language-coaching/objective/update",
-		Initiative: "dialog/strategy/language-coaching/initiative/update",
-	},
+	// ProgressUpdateContext: { // TODO: provide progress update contexts
+	// 	IDO:        "dialog/ido/language-coaching/update",
+	// 	SObjective: "dialog/strategy/language-coaching/objective/update",
+	// 	Initiative: "dialog/strategy/language-coaching/initiative/update",
+	// },
+	// ProgressUpdateResponseContext: { // TODO: progress update response contexts
+	// 	IDO:        "dialog/ido/language-coaching/update",
+	// 	SObjective: "dialog/strategy/language-coaching/objective/update",
+	// 	Initiative: "dialog/strategy/language-coaching/initiative/update",
+	// },
 }
 
 // GetDialogContext returns dialog context.
