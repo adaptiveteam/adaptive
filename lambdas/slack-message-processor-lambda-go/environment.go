@@ -73,24 +73,9 @@ var (
 	// platformAdapter  = mapper.SlackAdapter2(platformTokenDAO)
 )
 
-type RDSConfig struct {
-	Driver           string
-	ConnectionString string
-}
+type RDSConfig = utilities.RDSConfig
 
-// ReadRDSConfigFromEnv read config from env
-func ReadRDSConfigFromEnv() RDSConfig {
-	rdsHost := utils.NonEmptyEnv("RDS_HOST")
-	GlobalRDSConfig := RDSConfig{Driver: "mysql", ConnectionString: utilities.ConnectionString(
-		rdsHost,
-		utils.NonEmptyEnv("RDS_USER"),
-		utils.NonEmptyEnv("RDS_PASSWORD"),
-		utils.NonEmptyEnv("RDS_PORT"),
-		utils.NonEmptyEnv("RDS_DB_NAME"),
-	)}
-	return GlobalRDSConfig
-
-}
+var ReadRDSConfigFromEnv = utilities.ReadRDSConfigFromEnv
 
 func globalConnection(teamID models.TeamID) daosCommon.DynamoDBConnection {
 	return connGen.ForPlatformID(teamID.ToPlatformID())
