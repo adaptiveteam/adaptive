@@ -519,15 +519,22 @@ func PostMsgToCommunity(commID community.AdaptiveCommunity, teamID models.TeamID
 		Attachments: attachs})
 }
 
-func PostMsgToAdvocate(coordinator, userID string, community community.AdaptiveCommunity, purpose string) {
+func PostMsgToAdvocate(coordinator, userID string, comm community.AdaptiveCommunity, purpose string) {
+	label := strings.Title(community.AdaptiveCommunityShow(comm))
 	if coordinator != userID {
 		// Post a notification to the creator of the community that a notification has been sent to coordinator
 		text := fmt.Sprintf("I have sent a notification to <@%s> to create a *private channel* and associate it with `%s %s Community` by inviting Adaptive into that channel",
-			coordinator, purpose, strings.Title(string(community)))
+			coordinator, purpose, label)
 		publish(models.PlatformSimpleNotification{UserId: userID, Message: text})
 	}
-	textWithPrefix := fmt.Sprintf("Hello, <@%s>. You have been assigned as a coordinator for the `%s %s Community` by <@%s>. Please create a *private channel*, invite Adaptive into the *private channel* using `/invite @adaptive`, and associate the channel with this new community. Finally, invite the team members to this channel by using the `/invite @user`.",
-		coordinator, purpose, strings.Title(string(community)), userID)
+	textWithPrefix := fmt.Sprintf(
+		"Hello, <@%s>. You have been assigned as a coordinator for the " +
+		"`%s` %s Community by <@%s>. " +
+		"Please create a *private channel*, invite Adaptive into the *private channel* " +
+		"using `/invite @adaptive`, and associate the channel with this new community. " +
+		"Finally, invite the team members to this channel by using the `/invite @user`.",
+		coordinator, purpose, 
+		label, userID)
 	publish(models.PlatformSimpleNotification{UserId: coordinator, Message: textWithPrefix})
 }
 
