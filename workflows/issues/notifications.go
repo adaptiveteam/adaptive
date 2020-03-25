@@ -5,6 +5,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
+	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	engIssues"github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 )
@@ -19,20 +20,19 @@ func (w workflowImpl) onNewOrUpdatedItemAvailable(ctx wf.EventHandlingContext,
 	isShowingProgress bool,
 ) (out wf.EventOutput, err error) {
 	// keeping the old item so that we'll be able to show it again after analysis.
-	ctx.RuntimeData = runtimeData(newAndOldIssues)
+	ctx = ctx.WithRuntimeData(wfCommon.NewAndOldIssuesKey, newAndOldIssues)
 	out, err = w.standardView(ctx)
-	if err != nil {
-		return
+	if err == nil {
+		out.ImmediateEvent = MessageIDAvailableEventInContext(dialogSituationID) // this is needed to post analysis
+		out = out.
+			WithPostponedEvent(
+				exchange.NotifyAboutUpdatesForIssue(newAndOldIssues, dialogSituationID),
+			).
+			WithRuntimeData(wfCommon.NewAndOldIssuesKey, newAndOldIssues). // We also set output runtime date
+			WithResponse(
+				w.notifyStrategyIfNeeded(ctx, tc, newAndOldIssues, eventDescription, isShowingProgress)...
+			)
 	}
-	out.ImmediateEvent = MessageIDAvailableEventInContext(dialogSituationID) // this is needed to post analysis
-	out = out.
-		WithPostponedEvent(
-			exchange.NotifyAboutUpdatesForIssue(newAndOldIssues, dialogSituationID),
-		).
-		WithRuntimeData(newAndOldIssues). // We also set output runtime date
-		WithResponse(
-			w.notifyStrategyIfNeeded(ctx, tc, newAndOldIssues, eventDescription, isShowingProgress)...
-		)
 	return
 }
 

@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/workflows/common"
 	issues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -20,18 +21,18 @@ func (w workflowImpl) textAnalysisInput(ctx *wf.EventHandlingContext, textExtrac
 	var newAndOldIssues NewAndOldIssues
 	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(*ctx) // userObjectiveByID(itemID)
 	err = errors.Wrapf(err, "textAnalysisInput/WorkflowContext.GetNewAndOldIssues")
-	ctx.RuntimeData = runtimeData(newAndOldIssues)
+	if err != nil {
+		return
+	}
+	*ctx = (*ctx).WithRuntimeData(common.NewAndOldIssuesKey, newAndOldIssues)
 
 	itype := newAndOldIssues.NewIssue.GetIssueType()
 
 	if itype == "" {
-		err = errors.Wrapf(err, "textAnalysisInput/itype is empty")
+		err = errors.New("textAnalysisInput/itype is empty")
 		return
 	}
-	if err != nil {
-		return
-	}
-	context := w.GetDialogContext(dialogSituationID, itype)
+	context := common.GetDialogContext(dialogSituationID, itype)
 
 	text := textExtractor(newAndOldIssues)
 	analysisInput = utils.TextAnalysisInput{
@@ -50,18 +51,20 @@ func (w workflowImpl) OnFieldsShown(textExtractor TextExtractor, dialogSituation
 		messageID := channelizeID(toMapperMessageID(ctx.TargetMessageID))
 
 		out, err = w.standardView(ctx)
-		viewItem := out.Messages[0]
-
-		var textAnalysisInput utils.TextAnalysisInput
-		textAnalysisInput, err = w.textAnalysisInput(&ctx, textExtractor, dialogSituationID)
 		if err == nil {
-			var resp wf.InteractiveMessage
-			resp, err = wf.AnalyseMessage(w.DialogFetcherDAO, ctx.Request, messageID,
-				textAnalysisInput, viewItem,
-			)
-			resp.OverrideOriginal = true
+			viewItem := out.Messages[0]
+
+			var textAnalysisInput utils.TextAnalysisInput
+			textAnalysisInput, err = w.textAnalysisInput(&ctx, textExtractor, dialogSituationID)
 			if err == nil {
-				out.Interaction.Messages = wf.InteractiveMessages(resp)
+				var resp wf.InteractiveMessage
+				resp, err = wf.AnalyseMessage(w.DialogFetcherDAO, ctx.Request, messageID,
+					textAnalysisInput, viewItem,
+				)
+				resp.OverrideOriginal = true
+				if err == nil {
+					out.Interaction.Messages = wf.InteractiveMessages(resp)
+				}
 			}
 		}
 		out.NextState = "done"

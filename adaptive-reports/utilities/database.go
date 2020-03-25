@@ -2,10 +2,11 @@ package utilities
 
 import (
 	"database/sql"
-	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"log"
 	"strconv"
+
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 type Table map[string]string
@@ -16,8 +17,9 @@ type Database struct {
 
 // WrapDB converts an existing database connection to our type
 func WrapDB(db *sql.DB) *Database {
-	return &Database{db:db}
+	return &Database{db: db}
 }
+
 // ConnectionString concatenates all arguments into a single connection string
 func ConnectionString(
 	endPoint,
@@ -25,11 +27,11 @@ func ConnectionString(
 	password,
 	port,
 	database string) string {
-	return userName+":"+password+"@tcp("+endPoint+":"+port+")/"+database
+	return userName + ":" + password + "@tcp(" + endPoint + ":" + port + ")/" + database
 }
 
-func SqlOpenUnsafe(driver,
-	connectionString string) (*sql.DB) {
+func SQLOpenUnsafe(driver,
+	connectionString string) *sql.DB {
 	db, err := sql.Open(driver, connectionString)
 	if err != nil {
 		log.Panicf("Error creating database: %+v", err)
@@ -45,13 +47,13 @@ func NewDatabase(
 	port,
 	database string,
 ) *Database {
-	db := SqlOpenUnsafe(driver, ConnectionString(
+	db := SQLOpenUnsafe(driver, ConnectionString(
 		endPoint,
 		userName,
 		password,
 		port,
 		database))
-	return &Database{db:db}
+	return &Database{db: db}
 }
 
 func CloseUnsafe(db *sql.DB) {
