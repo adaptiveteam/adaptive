@@ -17,6 +17,16 @@ const (
 	Competency = common.Competency
 )
 
+// AdaptiveCommunityShow - 
+func AdaptiveCommunityShow(community AdaptiveCommunity) (res string) {
+	switch community {
+	case Capability: res = "Objective"
+	default:
+		res = string(community)
+	}
+	return
+}
+
 var (
 	NonStrategyCommunityList = []string{string(Admin), string(HR), string(Coaching), string(User), string(Competency)}
 )
