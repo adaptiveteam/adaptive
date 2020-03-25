@@ -25,7 +25,12 @@ func RecoverAsFalse(name string, res *bool) {
 // RecoverAsLogError is a universal error recovery that logs error and
 func RecoverAsLogError(label string) {
 	if err2 := recover(); err2 != nil {
-		log.Printf("IGNORING ERROR in %s: %+v\n", label, err2)
+		switch err2.(type) {
+		case error:
+			log.Printf("IGNORING ERROR (error) in %s: %+v\n", label, err2.(error))
+		default:
+			log.Printf("IGNORING ERROR (unknown type) in %s: %+v\n", label, err2)
+		}
 	}
 }
 
