@@ -127,6 +127,13 @@ const (
 	UberCoach                  = "uber_coach"
 )
 
+// OnCommentsSubmitted starts the following sequence of steps
+// - start analysis in go-routine;
+// - show message and request immediate event when message id is ready;
+// - when message id is received (OnNewOrUpdatedCoachCommentAvailableOnMessageIDAvailableEvent)
+//   it waits for analysis results at most 2 seconds;
+// - overrides message with the colored message and puts analysis into thread.
+// So two processes runs asynchronously in parallel - publishing to Slack and analysis.
 func (w workflowImpl) OnCommentsSubmitted() wf.Handler {
 	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 		issueID := exchange.GetIssueID(ctx)
@@ -138,7 +145,6 @@ func (w workflowImpl) OnCommentsSubmitted() wf.Handler {
 			WithField("dialogSituation", dialogSituation).
 			WithField("Handler", "OnCommentsSubmitted")
 		log.Info("Start")
-		// var newAndOldIssues NewAndOldIssues
 		ctx.SetFlag(exchange.IsShowingProgressKey, true) // enable show progress. This will make sure that progress is prefetched
 		var newAndOldIssues issues.NewAndOldIssues
 		newAndOldIssues, err = wfCommon.WorkflowContext(w).GetNewAndOldIssues(ctx)
@@ -155,19 +161,7 @@ func (w workflowImpl) OnCommentsSubmitted() wf.Handler {
 			if err != nil {
 				return
 			}
-			out, err = w.standardView(ctx)
-			out.KeepOriginal = false
-			out = out.
-				WithInteractiveMessage(wf.InteractiveMessage{
-					PassiveMessage: wf.PassiveMessage{
-						Text:             ui.Sprintf("Thank you for providing the feedback. I'll send your comments to <@%s>", newAndOldIssues.NewIssue.UserID),
-						OverrideOriginal: false, // we don't want to override the same message again. `view` will override the original message.
-					},
-				}).
-				WithPostponedEvent(
-					exchange.NotifyOwnerAboutFeedbackOnUpdatesForIssue(newAndOldIssues.NewIssue),
-				)
-			// w.AdaptiveLogger.Infof("len(InteractiveMessages)=%d", len(out.Messages))
+			out, err = w.onNewOrUpdatedCoachCommentAvailable(ctx, newAndOldIssues)
 		}
 		return
 	}
@@ -209,11 +203,11 @@ func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOut
 			"You might want to provide some valuable feedback on this update.",
 			engCommon.TaggedUser(issue.UserObjective.UserID),
 			issue.GetIssueType().Template())
-	case utilsIssues.ProgressUpdateContext:
-		notificationText = ui.Sprintf("%s has updated progress on the below %s. "+
-			"You might want to provide some valuable feedback on this update.",
-			engCommon.TaggedUser(issue.UserObjective.UserID),
-			issue.GetIssueType().Template())
+	// case utilsIssues.ProgressUpdateContext:
+	// 	notificationText = ui.Sprintf("%s has updated progress on the below %s. "+
+	// 		"You might want to provide some valuable feedback on this update.",
+	// 		engCommon.TaggedUser(issue.UserObjective.UserID),
+	// 		issue.GetIssueType().Template())
 	default:
 		// no text
 	}
@@ -229,7 +223,8 @@ func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOut
 		view.OverrideOriginal = true
 
 		var feedbackButtonCaption ui.PlainText
-		if newAndOldIssues.NewIssue.PrefetchedData.Progress[0].PartnerComments == "" {
+		progresses := newAndOldIssues.NewIssue.PrefetchedData.Progress
+		if len(progresses) == 0 || progresses[0].PartnerComments == "" {
 			feedbackButtonCaption = "Provide feedback"
 		} else {
 			feedbackButtonCaption = "Update feedback"

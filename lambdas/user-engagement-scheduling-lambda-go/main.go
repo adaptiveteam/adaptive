@@ -1,12 +1,21 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
+	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
+
+	// "database/sql"
 	"context"
 	"fmt"
 	"log"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/adaptiveteam/adaptive/adaptive-reports/stats"
+	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
@@ -15,12 +24,19 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	_ "github.com/adaptiveteam/adaptive/daos"
 	"github.com/sirupsen/logrus"
 )
 
 var (
 	defaultMeetingTime = business_time.MeetingTime(9, 0)
-	logger             = alog.LambdaLogger(logrus.InfoLevel)
+	globalScheduleTime = func() time.Time {
+		now := time.Now()
+		return time.Date(now.Year(), now.Month(), now.Day(),
+			12, 0, // 12:00 UTC = 08:00 EDT
+			0, 0, time.UTC)
+	}
+	logger = alog.LambdaLogger(logrus.InfoLevel)
 )
 
 func usersWithinScheduledPeriod(config Config, teamID models.TeamID, startUTCTime, endUTCTime string) (users []models.User) {
@@ -63,12 +79,14 @@ func absoluteOffsetFromUTC(nowTime time.Time, defaultTime time.Time) int {
 }
 
 func HandleRequest(ctx context.Context) (err error) {
+	defer core.RecoverAsLogError("user-engagement-scheduling-lambda-go")
+	logger = logger.WithLambdaContext(ctx)
 	defer func() {
-		if err2 := recover(); err2 != nil {
-			err = fmt.Errorf("error in user-engagement-scheduling-lambda-go %v", err2)
+		if err != nil {
+			logger.Errorf("ERROR HandleRequest: %+v\n", err)
+			err = nil
 		}
 	}()
-	logger = logger.WithLambdaContext(ctx)
 	config := readConfigFromEnvironment()
 	// Query all the client configs
 	var clientConfigs []models.ClientPlatformToken
@@ -77,63 +95,122 @@ func HandleRequest(ctx context.Context) (err error) {
 		for _, clientConfig := range clientConfigs {
 			// Query users for a client based on platform id
 			teamID := models.ParseTeamID(clientConfig.PlatformID)
-
-			now := time.Now().UTC()
-			// rounded to nearest hour quarter
-			nowMinute := math.Floor(float64(now.Minute() / 15))
-			// Dynamo index 'INBETWEEN' takes both inclusive, so we are reducing 1 minute on end, and taking to 59 seconds
-			// an example would be, 10:00:00 AM to 10:14:59 AM
-			hourQuarterStartMinute := int(15 * nowMinute)
-			hourQuarterEndMinute := int(15*(nowMinute+1)) - 1
-			startUTCTime := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), hourQuarterStartMinute,
-				0, 0, time.UTC)
-			endUTCTime := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), hourQuarterEndMinute,
-				59, 0, time.UTC)
-
-			fmt.Println(fmt.Sprintf("Invoking user schedules for %s UTC", startUTCTime.String()))
-			// Querying for users who explicitly set the time
-			usersToAsk1 := usersWithinScheduledPeriod(config, teamID, timeInHrMin(startUTCTime), timeInHrMin(endUTCTime))
-			log.Println(fmt.Sprintf("No. of users invoked with scheduled time: %d", len(usersToAsk1)))
-			// Querying for others that have the default time and should be invoked now
-			offsetEnd := absoluteOffsetFromUTC(startUTCTime, time.Time(defaultMeetingTime))
-			offsetStart := absoluteOffsetFromUTC(endUTCTime, time.Time(defaultMeetingTime))
-			usersToAsk2 := usersWithinOffsetRange(config, teamID, offsetStart, offsetEnd)
-			var usersToAsk2Filtered []models.User
-			// Filtering out the users who have explicitly set scheduled time same as default time since these are part of `usersToAsk1`
-			for _, each := range usersToAsk2 {
-				// also filtering out the users whose display name begins with 'adaptive' since they are community related
-				if each.AdaptiveScheduledTimeInUTC == "" && !strings.HasPrefix(each.DisplayName, "adaptive") {
-					usersToAsk2Filtered = append(usersToAsk2Filtered, each)
-				}
+			err = runScheduleForTeam(config, teamID)
+			if err != nil {
+				logger.WithError(err).Errorf("HandleRequest.runScheduleForTeam")
 			}
-			log.Println(fmt.Sprintf("Offset range to look for users with no scheduled time: [%d, %d]", offsetStart, offsetEnd))
-			log.Println(fmt.Sprintf("No. of users invoked with default time: %d", len(usersToAsk2Filtered)))
+			err = runGlobalScheduleForTeam(config, teamID)
+			if err != nil {
+				logger.WithError(err).Errorf("HandleRequest.runGlobalScheduleForTeam")
+			}
+		}
+	}
+	return
+}
 
-			for _, user := range append(usersToAsk1, usersToAsk2Filtered...) {
-				// Engage with the user only if the user is a part of an Adaptive community (exludes Admin Community)
-				userCommunities := strategy.QueryCommunityUserIndex(user.ID, config.communityUsersTable, config.communityUsersUserIndex)
-				if len(userCommunities) == 1 && userCommunities[0].CommunityId == string(community.Admin) {
-					logger.Infof("%s user belongs only to Admin Community, not invoking schedules for this user", user.ID)
-				} else if len(userCommunities) > 0 {
-					engage := models.UserEngage{
-						UserID: user.ID,
-						Date:   "", // current date
-						TeamID: teamID,
-					}
-					switch teamID.AppID {
-					//					case EmbursePlatformID, GeigsenPlatformID:
-					//						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, teamID, config)
-					case IvanPlatformID, StagingPlatformID:
-						emulateDates(TestDateShiftConfig, time.Now(), user.ID, teamID, config)
-					default:
-					}
-					err = invokeScriptingLambda(engage, config)
-					if err != nil {
-						logger.WithError(err).Errorf("Could not invoke scripting lambda for %s user in %v platform", engage.UserID, teamID)
-					}
+func getCurrentQuarterHourInterval() (startUTCTime, endUTCTime time.Time) {
+	now := time.Now().UTC()
+	// rounded to nearest hour quarter
+	hourQuarterStartMinute := int(math.Floor(float64(now.Minute()/15)) * 15)
+	// Dynamo index 'INBETWEEN' takes both inclusive, so we are reducing 1 minute on end, and taking to 59 seconds
+	// an example would be, 10:00:00 AM to 10:14:59 AM
+	hourQuarterEndMinute := hourQuarterStartMinute + 14
+	startUTCTime = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(),
+		hourQuarterStartMinute, 0,
+		0, time.UTC)
+	endUTCTime = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(),
+		hourQuarterEndMinute, 59,
+		0, time.UTC)
+	return
+}
+
+func runScheduleForTeam(config Config, teamID models.TeamID) (err error) {
+	startUTCTime, endUTCTime := getCurrentQuarterHourInterval()
+
+	fmt.Println(fmt.Sprintf("Invoking user schedules for [%s, %s] UTC", startUTCTime.String(), endUTCTime.String()))
+	// Querying for users who explicitly set the time
+	usersToAsk1 := usersWithinScheduledPeriod(config, teamID, timeInHrMin(startUTCTime), timeInHrMin(endUTCTime))
+	log.Println(fmt.Sprintf("No. of users to be invoked with the scheduled time: %d", len(usersToAsk1)))
+	// Querying for others that have the default time and should be invoked now
+	offsetEnd := absoluteOffsetFromUTC(startUTCTime, time.Time(defaultMeetingTime))
+	offsetStart := absoluteOffsetFromUTC(endUTCTime, time.Time(defaultMeetingTime))
+	usersToAsk2 := usersWithinOffsetRange(config, teamID, offsetStart, offsetEnd)
+	var usersToAsk2Filtered []models.User
+	// Filtering out the users who have explicitly set scheduled time same as default time since these are part of `usersToAsk1`
+	for _, each := range usersToAsk2 {
+		// also filtering out the users whose display name begins with 'adaptive' since they are community related
+		if each.AdaptiveScheduledTimeInUTC == "" && !strings.HasPrefix(each.DisplayName, "adaptive") {
+			usersToAsk2Filtered = append(usersToAsk2Filtered, each)
+		}
+	}
+	log.Println(fmt.Sprintf("Offset range to look for users with no scheduled time: [%d, %d]", offsetStart, offsetEnd))
+	log.Println(fmt.Sprintf("No. of users invoked with default time: %d", len(usersToAsk2Filtered)))
+
+	for _, user := range append(usersToAsk1, usersToAsk2Filtered...) {
+		// Engage with the user only if the user is a part of an Adaptive community (exludes Admin Community)
+		userCommunities := strategy.QueryCommunityUserIndex(user.ID, config.communityUsersTable, config.communityUsersUserIndex)
+		if len(userCommunities) == 1 && userCommunities[0].CommunityId == string(community.Admin) {
+			logger.Infof("%s user belongs only to Admin Community, not invoking schedules for this user", user.ID)
+		} else if len(userCommunities) > 0 {
+			engage := models.UserEngage{
+				UserID: user.ID,
+				Date:   "", // current date
+				TeamID: teamID,
+			}
+			switch teamID.AppID {
+			//					case EmbursePlatformID, GeigsenPlatformID:
+			//						emulateDates(EmburseDateShiftConfig, time.Now(), user.ID, teamID, config)
+			case IvanPlatformID, StagingPlatformID:
+				emulateDates(TestDateShiftConfig, time.Now(), user.ID, teamID, config)
+			default:
+			}
+			err = invokeScriptingLambda(engage, config)
+			if err != nil {
+				logger.WithError(err).Errorf("Could not invoke scripting lambda for %s user in %v platform", engage.UserID, teamID)
+			}
+		}
+	}
+	return
+}
+
+func runGlobalScheduleForTeam(config Config, teamID models.TeamID) (err error) {
+	startUTCTime, endUTCTime := getCurrentQuarterHourInterval()
+	scheduleTimeForToday := globalScheduleTime()
+	if !scheduleTimeForToday.Before(startUTCTime) &&
+		!scheduleTimeForToday.After(endUTCTime) {
+		logger.Infof("runGlobalScheduleForTeam(%s)", teamID.ToString())
+		year, quarter := core.CurrentYearQuarter()
+		rdsConfig := utilities.ReadRDSConfigFromEnv()
+		sqlConn := rdsConfig.SQLOpenUnsafe()
+		defer utilities.CloseUnsafe(sqlConn)
+		var stat stats.FeedbackStats
+		stat, err = stats.QueryFeedbackStats(teamID, year, quarter)(sqlConn)
+		if err == nil {
+			message := ui.Sprintf(
+				`People who have given feedback - %0.2f%%
+People who have received feedback - %0.2f%%`,
+				stat.Given, stat.Received)
+			logger.Info(message)
+			conn := config.connGen.ForPlatformID(teamID.ToPlatformID())
+			var communities []adaptiveCommunity.AdaptiveCommunity
+			communities, err = adaptiveCommunity.ReadOrEmpty(teamID.ToPlatformID(), string(community.User))(conn)
+			if err == nil {
+				if len(communities) > 0 {
+					userComm := communities[0]
+					slackAdapter := mapper.SlackAdapterForTeamID(conn)
+					post := platform.Post(
+						platform.ConversationID(userComm.ChannelID),
+						platform.Message(message),
+					)
+					logger.Infof("Posting to %s: %v", userComm.ChannelID, post)
+					_, err = slackAdapter.PostSync(post)
+				} else {
+					logger.Warnf("HR community not found for team %s", teamID.ToString())
 				}
 			}
 		}
+	} else {
+		logger.Infof("runGlobalScheduleForTeam(%s) - skipping. Today it's planned to %v", teamID.ToString(), scheduleTimeForToday)
 	}
 	return
 }

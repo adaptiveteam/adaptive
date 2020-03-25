@@ -83,16 +83,17 @@ func queryUserCommIndex(userID, communityID string, communityUsersTable,
 		communityUsersTable, communityUsersUserCommunityIndex))
 	return rels
 }
-
+func recoverAsFalse(name string, res *bool) {
+	if err2 := recover(); err2 != nil {
+		log.Printf("%s got an error %+v", name, err2)
+		*res = false
+	}
+	return
+} 
 // IsUserInCommunity checks if a user is part of an Adaptive Community
 func IsUserInCommunity(userID string, communityUsersTable, communityUsersUserCommunityIndex string,
 	community AdaptiveCommunity) (res bool) {
-	defer func() {
-		if err2 := recover(); err2 != nil {
-			log.Printf("IsUserInCommunity got an error %+v", err2)
-			res = false
-		}
-	}()
+	defer recoverAsFalse("IsUserInCommunity", &res)
 	rels := queryUserCommIndex(userID, string(community), communityUsersTable, communityUsersUserCommunityIndex)
 	res = len(rels) > 0
 	return

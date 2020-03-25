@@ -60,11 +60,11 @@ func (m MeaningCloud) GetTextCategories(key string, value string, l LanguageCode
 					}
 				}
 			} else {
-				fmt.Println("Error in GetTextCategoriesURL key="+key+", value="+value, response, err)
+				fmt.Println("Error in GetTextCategories key="+key+", value="+value, response, err)
 			}
 		}
 	} else {
-		err = errors.New("TextCategories: Expected txt or url but instead got key=" + key)
+		err = errors.New("GetTextCategories: Expected txt or url but instead got key=" + key)
 	}
 
 	return rv, err
@@ -108,7 +108,7 @@ func (m MeaningCloud) GetTextSentiment(key string, value string, l LanguageCode)
 					}
 				}
 			} else {
-				fmt.Println("Error in GetTextCategoriesURL", response, err)
+				fmt.Printf("ERROR in MeaningCloud) GetTextSentiment: response=%v\nerr=\n%+v\n", response, err)
 			}
 		} else {
 			rv = textSentiment{
@@ -156,7 +156,7 @@ func (m MeaningCloud) GetSummary(numSentences int, key string, value string, l L
 					}
 				}
 			} else {
-				fmt.Println("Error in GetTextCategoriesURL", response, err)
+				fmt.Println("Error in GetSummary", response, err)
 			}
 		}
 	} else {

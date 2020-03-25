@@ -112,63 +112,6 @@ func formatObjectivesGroup(capabilityObjectives []models.StrategyObjective) (res
 	return
 }
 
-type GlobalDialogContext = string
-type GlobalDialogContextByType = map[IssueType]GlobalDialogContext
-
-var contexts = map[DialogSituationIDWithoutIssueType]GlobalDialogContextByType{
-	DescriptionContext: {
-		IDO:        "dialog/ido/language-coaching/description",
-		SObjective: "",
-		Initiative: "",
-	},
-	CloseoutAgreementContext: {
-		IDO:        "dialog/ido/language-coaching/close-out-agreement",
-		SObjective: "dialog/strategy/language-coaching/objective/close-out-agreement",
-		Initiative: "dialog/strategy/language-coaching/initiative/close-out-agreement",
-	},
-	CloseoutDisagreementContext: {
-		IDO:        "dialog/ido/language-coaching/close-out-disagreement",
-		SObjective: "dialog/strategy/language-coaching/objective/close-out-disagreement",
-		Initiative: "dialog/strategy/language-coaching/initiative/close-out-disagreement",
-	},
-	UpdateContext: {
-		IDO:        "dialog/ido/language-coaching/update",
-		SObjective: "dialog/strategy/language-coaching/objective/update",
-		Initiative: "dialog/strategy/language-coaching/initiative/update",	
-	},
-	UpdateResponseContext: {
-		IDO:        "dialog/ido/language-coaching/update-response",
-		SObjective: "dialog/strategy/language-coaching/objective/update-response",
-		Initiative: "dialog/strategy/language-coaching/initiative/update-response",
-	},
-	CoachingRequestRejectionContext: {
-		IDO:        "dialog/ido/language-coaching/coaching-request-rejection",
-		SObjective: "",
-		Initiative: "",
-	},
-	ProgressUpdateContext: { // TODO: provide progress update contexts
-		IDO:        "dialog/ido/language-coaching/update",
-		SObjective: "dialog/strategy/language-coaching/objective/update",
-		Initiative: "dialog/strategy/language-coaching/initiative/update",	
-	},
-}
-// GetDialogContext returns dialog context. 
-// In case of errors logs, and returns empty context.
-func (w workflowImpl) GetDialogContext(dialogSituationID DialogSituationIDWithoutIssueType, itype IssueType) (context string) {
-	contextsForSituation, ok := contexts[dialogSituationID]
-	if ok {
-		context, ok = contextsForSituation[itype]
-		if !ok { w.AdaptiveLogger.
-			WithField("dialogSituationID", string(dialogSituationID)).
-			WithField("itype", string(itype)).
-			Info("Missing dialog context")
-		}
-	} else { w.AdaptiveLogger.
-		WithField("dialogSituationID", string(dialogSituationID)).
-		Info("Missing dialog situation")
-	}
-	return
-}
 const (
 	BlueDiamondEmoji = ":small_blue_diamond:"
 )
@@ -194,4 +137,3 @@ func ObjectiveProgressCreatedUpdatedStatusTemplate(issueType IssueType, progress
 	text = ui.Sprintf("Below %s's progress comment has been %s by <@%s>", issueType.Template(), verb, userID)
 	return
 }
-
