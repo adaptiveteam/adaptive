@@ -84,11 +84,3 @@ func (i InterfaceStream)FlatMapF(f func (interface{}) InterfaceStream) Interface
 		)
 	}
 }
-
-// // AsStrategyObjectiveSlice casts each element to StrategyObjective
-// func (is InterfaceSlice)AsStrategyObjectiveSlice() (res []strategyObjective.StrategyObjective) {
-// 	for _, i := range is {
-// 		res = append(res, i.(strategyObjective.StrategyObjective))
-// 	}
-// 	return
-// }
