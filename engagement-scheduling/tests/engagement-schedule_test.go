@@ -77,7 +77,7 @@ func TestActivateEngagements(t *testing.T) {
 				target:     target,
 			},
 			wantRv: []string{
-				"Reminder to update Individual Improvement Objectives",
+				"Reminder to update Individual Development Objectives",
 				"Reminder to update Initiatives",
 				"Reminder to update Objectives",
 			},
@@ -109,7 +109,7 @@ func TestActivateEngagements(t *testing.T) {
 				targetType: "user",
 			},
 			wantRv: []string{
-				"Reminder to update Individual Improvement Objectives",
+				"Reminder to update Individual Development Objectives",
 				"Reminder to update Initiatives",
 				"Reminder to update Objectives",
 			},

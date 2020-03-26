@@ -7,6 +7,7 @@ import (
 
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
+	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
 	"github.com/pkg/errors"
 
 	common "github.com/adaptiveteam/adaptive/adaptive-engagements/common"
@@ -140,7 +141,7 @@ func (w workflowImpl) OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out 
 	var newAndOldIssues NewAndOldIssues
 	ctx.SetFlag(isShowingProgressKey, true) // enable show progress. This will make sure that progress is prefetched
 	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
-	ctx.RuntimeData = runtimeData(newAndOldIssues)
+	ctx = ctx.WithRuntimeData(wfCommon.NewAndOldIssuesKey, newAndOldIssues)
 	uo := newAndOldIssues.NewIssue.UserObjective
 	var progress userObjectiveProgress.UserObjectiveProgress
 	progress, err = extractObjectiveProgressFromContext(ctx, uo)
@@ -159,7 +160,7 @@ func (w workflowImpl) OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out 
 	if err != nil {
 		return
 	}
-	ctx.RuntimeData = runtimeData(newAndOldIssues)
+	ctx = ctx.WithRuntimeData(wfCommon.NewAndOldIssuesKey, newAndOldIssues)
 	// attachs := viewProgressAttachment(mc,
 	// 	ui.PlainText(Sprintf("This is your reported progress for the below %s", typLabel)),
 	// 	"",
@@ -171,7 +172,7 @@ func (w workflowImpl) OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out 
 	if err == nil {
 		ctx.SetFlag(isShowingProgressKey, true)
 
-		eventDescription := ObjectiveProgressCreatedUpdatedStatusTemplate(isProgressAvailableForToday, ctx.Request.User.ID)
+		eventDescription := ObjectiveProgressCreatedUpdatedStatusTemplate(itype, isProgressAvailableForToday, ctx.Request.User.ID)
 		out, err = w.onNewOrUpdatedItemAvailable(ctx, tc, newAndOldIssues, ProgressUpdateContext,
 			eventDescription, true)
 		// if err == nil {
@@ -186,7 +187,7 @@ func (w workflowImpl) OnProgressFormSubmitted(ctx wf.EventHandlingContext) (out 
 		)
 		err = nil // we want to show error interaction
 	}
-	out.RuntimeData = runtimeData(newAndOldIssues)
+	ctx = ctx.WithRuntimeData(wfCommon.NewAndOldIssuesKey, newAndOldIssues)
 	return
 }
 
@@ -337,7 +338,7 @@ func (w workflowImpl) OnFeedbackOnUpdates()wf.Handler {
 		if err != nil {
 			return
 		}
-		ctx.RuntimeData = runtimeData(newAndOldIssues)
+		ctx = ctx.WithRuntimeData(wfCommon.NewAndOldIssuesKey, newAndOldIssues)
 		var outView wf.EventOutput
 		outView, err = w.standardView(ctx)
 		out = out.

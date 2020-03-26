@@ -19,7 +19,7 @@ IDO Creation reminders
 func IDOCreateReminder(fc checks.CheckResultMap, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
 		fc,
-		"Reminder to create Individual Improvement Objectives",
+		"Reminder to create Individual Development Objectives",
 		).AddScheduleFunctionCheck(
 		fcn.IDOsExistForMe,
 		false,
@@ -39,7 +39,7 @@ func IDOUpdateReminder(fc checks.CheckResultMap, _ bt.Date) (rv string) {
 	// Starting the last business day of the second week of the first quarter with  a preference for earlier
 	rv = utils.ScheduleEntry(
 		fc,
-		"Reminder to update Individual Improvement Objectives",
+		"Reminder to update Individual Development Objectives",
 	).AddScheduleFunctionCheck(
 		fcn.StaleIDOsExistForMe,
 		true,

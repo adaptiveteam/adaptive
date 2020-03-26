@@ -35,6 +35,11 @@ const (
 )
 // UpdateShownState -
 const UpdateShownState wf.State = "UpdateShownState"
+const (
+	// MessageIDAvailableEvent -
+	MessageIDAvailableEvent wf.Event = "MessageIDAvailableEvent"
+)
+
 // DialogShownState -
 const DialogShownState wf.State = "DialogShownState"
 // Workflow is a public interface of workflow template.
@@ -69,10 +74,12 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 				{State: InitState, Event: exchange.IssueUpdatedEvent}:         wf.SimpleHandler(w.OnIssueUpdated(), UpdateShownState),
 				{State: FormShownState, Event: ConfirmedEvent}:                wf.SimpleHandler(w.OnConfirmed(), wf.DoneState),
 				{State: FormShownState, Event: RejectedEvent}:                 wf.SimpleHandler(w.OnRejected(), wf.DoneState),
+				
 				{State: UpdateShownState, Event: ConfirmedEvent}:              wf.SimpleHandler(w.OnProvideFeedback(), DialogShownState),
 				{State: UpdateShownState, Event: RejectedEvent}:               wf.SimpleHandler(w.OnDismiss(), wf.DoneState),
 				{State: UpdateShownState, Event: engIssues.DetailsEvent}:      wf.SimpleHandler(w.OnDetails, UpdateShownState),
 				{State: UpdateShownState, Event: engIssues.ProgressShowEvent}: wf.SimpleHandler(w.OnProgressShow, UpdateShownState),
+				{State: UpdateShownState, Event: MessageIDAvailableEvent}:     wf.SimpleHandler(w.OnNewOrUpdatedCoachCommentAvailableOnMessageIDAvailableEvent, UpdateShownState),//wf.DoneState),
 				{State: DialogShownState, Event: wf.DialogSubmittedEvent}:     wf.SimpleHandler(w.OnCommentsSubmitted(), UpdateShownState),
 				
 			},

@@ -17,6 +17,8 @@ type WorkflowContext struct {
 	alog.AdaptiveLogger
 	daosCommon.DynamoDBConnection
 }
+
+const NewAndOldIssuesKey = "NewAndOldIssues"
 // GetNewAndOldIssues loads issue if necessary
 func (w WorkflowContext)GetNewAndOldIssues(ctx wf.EventHandlingContext) (newAndOldIssues exchange.NewAndOldIssues, err error) {
 	issueID := exchange.GetIssueID(ctx)
@@ -29,7 +31,8 @@ func (w WorkflowContext)GetNewAndOldIssues(ctx wf.EventHandlingContext) (newAndO
 		WithField("issueID", issueID).
 		WithField("IssueTypeFromContext", itype)
 	log.Info("getNewAndOldIssues")
-	if ctx.RuntimeData == nil {
+	newAndOldIssuesI, ok := ctx.RuntimeData[NewAndOldIssuesKey]
+	if !ok {
 		isShowingProgress := ctx.GetFlag(exchange.IsShowingProgressKey)
 		log.Infof("GetNewAndOldIssues: runtime data is empty. Reading from database. isShowingProgress=%v", isShowingProgress)
 		newAndOldIssues, err = issuesUtils.ReadNewAndOldIssuesAndPrefetch(itype, issueID, isShowingProgress)(w.DynamoDBConnection)
@@ -39,7 +42,7 @@ func (w WorkflowContext)GetNewAndOldIssues(ctx wf.EventHandlingContext) (newAndO
 		}
 		// NB: CANNOT modify input context! ctx.RuntimeData = runtimeData(newAndOldIssues)
 	} else {
-		newAndOldIssues = (*ctx.RuntimeData).(exchange.NewAndOldIssues)
+		newAndOldIssues = newAndOldIssuesI.(exchange.NewAndOldIssues)
 	}
 	err = errors.Wrap(err, "{getNewAndOldIssues}")
 	return

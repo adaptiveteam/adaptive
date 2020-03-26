@@ -145,7 +145,8 @@ func AllStrategyCommunities(teamID models.TeamID) []strategy.StrategyCommunity {
 
 func dialogFromSurvey(teamID models.TeamID, userID string, message slack.InteractionCallback, survey ebm.AttachmentActionSurvey, callbackID string,
 	contextId string, update bool, selected string) (err error) {
-	token := platformDAO.GetPlatformTokenUnsafe(teamID)
+	token, err2 := platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
+	core.ErrorHandler(err2, "dialogFromSurvey", "Could not obtain token")
 	if token != "" {
 		api := slack.New(token)
 		survState := func() string {
@@ -518,15 +519,22 @@ func PostMsgToCommunity(commID community.AdaptiveCommunity, teamID models.TeamID
 		Attachments: attachs})
 }
 
-func PostMsgToAdvocate(coordinator, userID string, community community.AdaptiveCommunity, purpose string) {
+func PostMsgToAdvocate(coordinator, userID string, comm community.AdaptiveCommunity, purpose string) {
+	label := strings.Title(community.AdaptiveCommunityShow(comm))
 	if coordinator != userID {
 		// Post a notification to the creator of the community that a notification has been sent to coordinator
 		text := fmt.Sprintf("I have sent a notification to <@%s> to create a *private channel* and associate it with `%s %s Community` by inviting Adaptive into that channel",
-			coordinator, purpose, strings.Title(string(community)))
+			coordinator, purpose, label)
 		publish(models.PlatformSimpleNotification{UserId: userID, Message: text})
 	}
-	textWithPrefix := fmt.Sprintf("Hello, <@%s>. You have been assigned as a coordinator for the `%s %s Community` by <@%s>. Please create a *private channel*, invite Adaptive into the *private channel* using `/invite @adaptive`, and associate the channel with this new community. Finally, invite the team members to this channel by using the `/invite @user`.",
-		coordinator, purpose, strings.Title(string(community)), userID)
+	textWithPrefix := fmt.Sprintf(
+		"Hello, <@%s>. You have been assigned as a coordinator for the " +
+		"`%s` %s Community by <@%s>. " +
+		"Please create a *private channel*, invite Adaptive into the *private channel* " +
+		"using `/invite @adaptive`, and associate the channel with this new community. " +
+		"Finally, invite the team members to this channel by using the `/invite @user`.",
+		coordinator, purpose, 
+		label, userID)
 	publish(models.PlatformSimpleNotification{UserId: coordinator, Message: textWithPrefix})
 }
 
@@ -1640,7 +1648,8 @@ func onCapabilityCommunityEventCreateOrUpdateDialogSubmission(request slack.Inte
 			Description: desc, Advocate: advocate, CreatedBy: userID, CreatedAt: time.Now().Format(string(TimestampFormat))}
 	}
 	// Write entry to table
-	err := d.PutTableEntry(*newCc, capabilityCommunitiesTable)
+	err2 := d.PutTableEntry(*newCc, capabilityCommunitiesTable)
+	core.ErrorHandler(err2, name, fmt.Sprintf("Could not add entry to %s table", capabilityCommunitiesTable))
 	attachsWithActions := strategy.CapabilityCommunityViewAttachment(*mc, newCc, oldCc, true)
 	attachsWithNoActions := strategy.CapabilityCommunityViewAttachment(*mc, newCc, oldCc, false)
 	// Publish to the user
@@ -1661,12 +1670,14 @@ func onCapabilityCommunityEventCreateOrUpdateDialogSubmission(request slack.Inte
 	}
 	// Post strategy community entity to the table
 	// There is an index on channel id. Hence, it cannot be empty
-	strComm := strategy.StrategyCommunity{ID: newCc.ID, PlatformID: teamID.ToPlatformID(), Advocate: advocate,
-		Community: community.Capability, ChannelCreated: 0, ChannelID: "none",
+	strComm := strategy.StrategyCommunity{ID: newCc.ID, 
+		PlatformID: teamID.ToPlatformID(), Advocate: advocate,
+		Community: community.Capability, ChannelCreated: 0, 
+		ChannelID: "none",
 		AccountabilityPartner: userID, ParentCommunity: community.Strategy, ParentCommunityChannelID: channelID,
 		CreatedAt: time.Now().Format(string(TimestampFormat))}
-	err = d.PutTableEntry(strComm, strategyCommunitiesTable)
-	core.ErrorHandler(err, name, fmt.Sprintf("Could not add entry to %s table", strategyCommunitiesTable))
+	err3 := d.PutTableEntry(strComm, strategyCommunitiesTable)
+	core.ErrorHandler(err3, name, fmt.Sprintf("Could not add entry to %s table", strategyCommunitiesTable))
 	// Post to the advocate only during the creation
 	if !msgState.Update {
 		PostMsgToAdvocate(advocate, userID, community.Capability, name)

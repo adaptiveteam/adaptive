@@ -37,7 +37,8 @@ func channelMembersWithoutPagination(api *slack.Client, channelID string) []stri
 }
 
 func channelMembers(channelID string, teamID models.TeamID) []string {
-	platformToken := platformDAO.GetPlatformTokenUnsafe(teamID)
+	platformToken, err2 := platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
+	core.ErrorHandler(err2, "channelMembers", "Could not obtain token")
 	api := slack.New(platformToken)
 	// DO NOT USE groups.Read()
 	// https://api.slack.com/methods/conversations.list

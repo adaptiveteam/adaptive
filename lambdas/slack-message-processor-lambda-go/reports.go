@@ -18,7 +18,7 @@ import (
 func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf *bytes.Buffer, reportname string, err error) {
 	defer recoverToErrorVar("onStrategyPerformanceReport", &err)
 	customerID := teamID.ToString()
-	db := utilities.SqlOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
+	db := utilities.SQLOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
 	defer utilities.CloseUnsafe(db)
 	var file *excelize.File
 
@@ -45,7 +45,7 @@ func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf
 
 func onIDOPerformanceReport(RDSConfig RDSConfig, userID string) (buf *bytes.Buffer, reportname string, err error) {
 	defer recoverToErrorVar("onIDOPerformanceReport", &err)
-	db := utilities.SqlOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
+	db := utilities.SQLOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
 	defer utilities.CloseUnsafe(db)
 	var file *excelize.File
 

@@ -216,8 +216,7 @@ func CreateIDOWorkflow_OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Ev
 		err = nil // we want to show error interaction
 	}
 	out.KeepOriginal = true
-	i := interface{}(oldItem)
-	out.RuntimeData = &i // keeping the old item so that we'll be able to show it again after analysis.
+	out = out.WithRuntimeData(UserObjectiveKey, oldItem) // keeping the old item so that we'll be able to show it again after analysis.
 	out.DataOverride[itemIDKey] = item.ID
 
 	// Coach notifications
@@ -335,6 +334,7 @@ func toMapperMessageID(id platform.TargetMessageID) mapper.MessageID {
 	}
 }
 
+const UserObjectiveKey = "UserObjective"
 // CreateIDOWorkflow_OnFieldsShown is triggered when
 // the message with objective information has been shown.
 // Now we want to run an analysis.
@@ -351,10 +351,11 @@ func CreateIDOWorkflow_OnFieldsShown(ctx wf.EventHandlingContext) (out wf.EventO
 	}
 	item := userObjectiveByID(itemID)
 	oldItem := item
-	if ctx.RuntimeData == nil {
-		logger.Infof("runtime data is empty")
+	oldItemI, ok := ctx.TryGetRuntimeData(UserObjectiveKey)
+	if ok {
+		oldItem = oldItemI.(models.UserObjective)
 	} else {
-		oldItem = (*ctx.RuntimeData).(models.UserObjective)
+		logger.Infof("runtime data is empty")
 	}
 	// item, err2 := UserObjectiveDAO.Read(itemID)
 	if err == nil {

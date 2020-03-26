@@ -115,10 +115,9 @@ func (b PlatformAPIImpl) PostSync(response platform.Response) (id MessageID, err
 
 // PostSyncUnsafe posts message and panics in case of errors
 func (b PlatformAPIImpl) PostSyncUnsafe(response platform.Response) (id MessageID) {
-	id, err := b.PostSync(response)
-	if err != nil {
-		log.Printf("Error posting message %v to Slack: %v\n", response, err)
-		panic(err)
+	id, err2 := b.PostSync(response)
+	if err2 != nil {
+		log.Panicf("Error posting Response(type = %s) %v to Slack: %+v\n", response.Type, response, err2)
 	}
 	return id
 }
