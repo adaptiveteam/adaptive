@@ -29,7 +29,7 @@ core-clean:
 # core-zips: $(CORE_LAMBDA_ZIPS)
 
 ${ADAPTIVE_BIN}: go.mod go.sum $(shell find . -name "*.go" -print)
-	go build -o ${ADAPTIVE_BIN}
+	GOOS=linux GOARCH=amd64 go build -o ${ADAPTIVE_BIN}
 
 adaptive-build: ${ADAPTIVE_BIN}
 

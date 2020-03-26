@@ -4,8 +4,14 @@ import (
 	"fmt"
 	"log"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
+var zlogger = func()*zap.Logger{
+	res, err2 := zap.NewProduction()
+	ErrorHandler(err2, "zap", "logger initialization")
+	return res
+}()
 // ErrorHandler is a universal handler that logs error and then panics unless err is nil
 func ErrorHandler(err error, namespace, msg string) {
 	if err != nil {
@@ -16,6 +22,11 @@ func ErrorHandler(err error, namespace, msg string) {
 // RecoverAsFalse recovers from panic and returns false
 func RecoverAsFalse(name string, res *bool) {
 	if err2 := recover(); err2 != nil {
+		switch err2.(type){
+		case error:
+			zlogger.Error(name, zap.Error(err2.(error)))
+		default:
+		}
 		log.Printf("IGNORING ERROR in %s (returning false): %+v", name, err2)
 		*res = false
 	}
@@ -25,6 +36,11 @@ func RecoverAsFalse(name string, res *bool) {
 // RecoverAsLogError is a universal error recovery that logs error and
 func RecoverAsLogError(label string) {
 	if err2 := recover(); err2 != nil {
+		switch err2.(type){
+		case error:
+			zlogger.Error(label, zap.Error(err2.(error)))
+		default:
+		}
 		log.Printf("IGNORING ERROR in %s: %+v\n", label, err2)
 	}
 }
