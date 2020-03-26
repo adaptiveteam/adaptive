@@ -21,6 +21,19 @@ func (p InterfacePager)Drain() (sl InterfaceSlice, err error) {
 	return
 }
 
+// IsEmpty fetches the first page and makes sure it's empty
+func (p InterfacePager)IsEmpty() (fl bool, err error) {
+	var sl InterfaceSlice
+	sl, _, err = p.Page()
+	fl = len(sl) == 0
+	return
+}
+// NonEmpty fetches the first page and makes sure it's non empty
+func (p InterfacePager)NonEmpty() (fl bool, err error) {
+	fl, err = p.IsEmpty()
+	fl = !fl
+	return
+}
 // InterfacePagerPure constructs pager that will emit the given values
 func InterfacePagerPure(slice ... interface{}) (ip InterfacePager) {
 	return InterfacePagerFromSlice(slice)
