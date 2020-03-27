@@ -85,10 +85,10 @@ func (i InterfaceStream)FlatMapF(f func (interface{}) InterfaceStream) Interface
 	}
 }
 
-// // AsStrategyObjectiveSlice casts each element to StrategyObjective
-// func (is InterfaceSlice)AsStrategyObjectiveSlice() (res []strategyObjective.StrategyObjective) {
-// 	for _, i := range is {
-// 		res = append(res, i.(strategyObjective.StrategyObjective))
-// 	}
-// 	return
-// }
+// NonEmpty constructs a one-element stream that contains a single boolean value.
+// it's true if the original stream has values and false otherwise.
+func (i InterfaceStream)NonEmpty()InterfaceStream {
+	return func(conn DynamoDBConnection) pagination.InterfacePager {
+		return i.Run(conn).NonEmptyPager()
+	}
+}
