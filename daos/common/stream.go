@@ -100,3 +100,9 @@ func (i InterfaceStream)All()(InterfaceStream) {
 		return i.Run(conn).All()
 	}
 }
+// Unchunk makes stream return data element-by-element. Each chunk will contain just one element.
+func (i InterfaceStream)Unchunk()(InterfaceStream) {
+	return func(conn DynamoDBConnection) pagination.InterfacePager {
+		return i.Run(conn).Unchunk()
+	}
+}
