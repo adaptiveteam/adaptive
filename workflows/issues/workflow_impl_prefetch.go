@@ -84,7 +84,9 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 			w.AdaptiveLogger.
 				WithField("capCommID", capCommID).
 				Infof("prefetchIssueWithoutProgress, prefetching AlignedCapabilityCommunity by CapabilityCommunityIDs[0]")
-			issue.PrefetchedData.AlignedCapabilityCommunity, err = CapabilityCommunityRead(capCommID)(w.DynamoDBConnection)
+			if capCommID != "" {
+				issue.PrefetchedData.AlignedCapabilityCommunity, err = CapabilityCommunityRead(capCommID)(w.DynamoDBConnection)
+			}
 		}
 		// splits := strings.Split(issue.UserObjective.ID, "_")
 		// if len(splits) == 2 {
