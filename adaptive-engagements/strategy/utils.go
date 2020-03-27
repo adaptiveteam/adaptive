@@ -326,7 +326,7 @@ func InitiativeCommunityByID(teamID models.TeamID, ID, table string) (res Strate
 
 // StrategyVision returns vision for platform ID or nil if absent
 func StrategyVision(teamID models.TeamID, visionTable string) (res *models.VisionMission) {
-	log.Println("### In StrategyVision: teamID: " + teamID.ToString())
+	// log.Println("### In StrategyVision: teamID: " + teamID.ToString())
 	// Query for the vision
 	params := map[string]*dynamodb.AttributeValue{
 		"platform_id": dynString(teamID.ToString()),

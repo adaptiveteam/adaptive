@@ -63,8 +63,8 @@ func SubscribedCommunities(channel string, communitiesTable, channelIndex string
 func queryUserCommIndex(userID, communityID string, communityUsersTable,
 	communityUsersUserCommunityIndex string) []interface{} {
 	var rels []interface{}
-	log.Printf("queryUserCommIndex(userID=%s, communityID=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s)",
-		userID, communityID, communityUsersTable, communityUsersUserCommunityIndex)
+	// log.Printf("queryUserCommIndex(userID=%s, communityID=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s)",
+	// 	userID, communityID, communityUsersTable, communityUsersUserCommunityIndex)
 
 	err := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(communityUsersTable, awsutils.DynamoIndexExpression{
 		IndexName: communityUsersUserCommunityIndex,
@@ -74,8 +74,8 @@ func queryUserCommIndex(userID, communityID string, communityUsersTable,
 			":c": communityID,
 		},
 	}, map[string]string{}, true, -1, &rels)
-	log.Printf("queryUserCommIndex(userID=%s, communityID=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s) result=%+v",
-		userID, communityID, communityUsersTable, communityUsersUserCommunityIndex, err)
+	// log.Printf("queryUserCommIndex(userID=%s, communityID=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s) result=%+v",
+	// 	userID, communityID, communityUsersTable, communityUsersUserCommunityIndex, err)
 	if err != nil {
 		log.Printf("queryUserCommIndex err=%+v", err)
 	}

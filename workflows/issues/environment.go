@@ -3,6 +3,7 @@ package issues
 import (
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	strategy "github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
+	utilsIssues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	userObjectiveProgress "github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
@@ -87,12 +88,12 @@ type StrategyInitiativeCommunityDAO interface {
 func SelectFromIssuesWhereTypeAndUserIDStrategyObjectives(ids []string) func(conn DynamoDBConnection) (objectives []models.StrategyObjective, err error) {
 	return func(conn DynamoDBConnection) (objectives []models.StrategyObjective, err error) {
 		for _, each := range ids {
-			var obj models.StrategyObjective
-			obj, err = StrategyObjectiveRead(each)(conn)
+			var sos []models.StrategyObjective
+			sos, err = utilsIssues.StrategyObjectiveReadOrEmpty(each)(conn)
 			if err != nil {
 				return
 			}
-			objectives = append(objectives, obj)
+			objectives = append(objectives, sos...)
 		}
 		return
 	}

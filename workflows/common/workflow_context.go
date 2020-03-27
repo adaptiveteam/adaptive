@@ -27,14 +27,14 @@ func (w WorkflowContext)GetNewAndOldIssues(ctx wf.EventHandlingContext) (newAndO
 		err = errors.Errorf("issueType is not defined in the context: CallbackID=%s, data is %v", ctx.Request.CallbackID, wf.ShowData(ctx.Data))
 		return
 	}
-	log := w.AdaptiveLogger.
-		WithField("issueID", issueID).
-		WithField("IssueTypeFromContext", itype)
-	log.Info("getNewAndOldIssues")
+	// log := w.AdaptiveLogger.
+	// 	WithField("issueID", issueID).
+	// 	WithField("IssueTypeFromContext", itype)
+	// log.Info("getNewAndOldIssues")
 	newAndOldIssuesI, ok := ctx.RuntimeData[NewAndOldIssuesKey]
 	if !ok {
 		isShowingProgress := ctx.GetFlag(exchange.IsShowingProgressKey)
-		log.Infof("GetNewAndOldIssues: runtime data is empty. Reading from database. isShowingProgress=%v", isShowingProgress)
+		// log.Infof("GetNewAndOldIssues: runtime data is empty. Reading from database. isShowingProgress=%v", isShowingProgress)
 		newAndOldIssues, err = issuesUtils.ReadNewAndOldIssuesAndPrefetch(itype, issueID, isShowingProgress)(w.DynamoDBConnection)
 		if err != nil { 
 			err = errors.Wrapf(err, "getNewAndOldIssues/w.IssueDAO.ReadNewAndOldIssuesAndPrefetch")
