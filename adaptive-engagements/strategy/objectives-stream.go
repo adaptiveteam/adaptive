@@ -235,7 +235,7 @@ func SelectFromObjectivesWhereCommunitiesStream(communityIDs []string)  (stm dao
 			func (conn daosCommon.DynamoDBConnection) func (i interface{}) (bool, error) {
 				return func (i interface{}) (res bool, err error) {
 					so := i.(strategyObjective.StrategyObjective)
-					return hasIntersectionWithCommunityIDs(so.CapabilityCommunityIDs)
+					return hasIntersectionWithCommunityIDs(so.CapabilityCommunityIDs), nil
 				}
 			},
 		)
