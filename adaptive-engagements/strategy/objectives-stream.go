@@ -1,6 +1,9 @@
 package strategy
 
 import (
+	"github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/pagination"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -28,13 +31,19 @@ func AsStrategyObjectiveSlice(is pagination.InterfaceSlice) (res []strategyObjec
 	}
 	return
 }
-// AsInterfaceSlice casts each element to interface {}
-func AsInterfaceSlice(sos []strategyObjective.StrategyObjective) (res pagination.InterfaceSlice) {
+// StrategyObjective_AsInterfaceSlice casts each element to interface {}
+func StrategyObjective_AsInterfaceSlice(sos []strategyObjective.StrategyObjective) (res pagination.InterfaceSlice) {
 	for _, so := range sos {
 		res = append(res, so)
 	}
 	return
-
+}
+// AdaptiveCommunityUser_AsInterfaceSlice casts each element to interface {}
+func AdaptiveCommunityUser_AsInterfaceSlice(sos []adaptiveCommunityUser.AdaptiveCommunityUser) (res pagination.InterfaceSlice) {
+	for _, so := range sos {
+		res = append(res, so)
+	}
+	return
 }
 // DynamoDBKey - key
 type DynamoDBKey = map[string]*dynamodb.AttributeValue
@@ -47,6 +56,15 @@ func StrategyObjectiveKey(i interface{}) DynamoDBKey {
 	return map[string]*dynamodb.AttributeValue{ 
 		string(strategyObjective.PlatformID): daosCommon.DynS(string(so.PlatformID)),
 		string(strategyObjective.ID):         daosCommon.DynS(so.ID),
+	}
+}
+
+// AdaptiveCommunityUserKey retrieves key of the instance
+func AdaptiveCommunityUserKey(i interface{}) DynamoDBKey {
+	acu := i.(adaptiveCommunityUser.AdaptiveCommunityUser)
+	return map[string]*dynamodb.AttributeValue{ 
+		string(adaptiveCommunityUser.ChannelID): daosCommon.DynS(string(acu.ChannelID)),
+		string(adaptiveCommunityUser.UserID):    daosCommon.DynS(acu.UserID),
 	}
 }
 // InterfaceQueryPager constructs a pager that will be yielding pages using 
@@ -84,7 +102,8 @@ func InterfaceQueryPager(
 			}
 		} 
 		if (queryInput.Limit == nil || *queryInput.Limit > 0) && err == nil {
-			ip = readByPlatformIDPager(conn, queryInput)
+			ip = InterfaceQueryPager(conn, queryInput,
+				sliceOfEntities, asInterfaceSlice, keyExtractor)
 		} else {
 			ip = pagination.InterfacePagerPure()
 		}
@@ -92,14 +111,6 @@ func InterfaceQueryPager(
 	}
 }
 
-func readByPlatformIDPager(conn daosCommon.DynamoDBConnection, queryInput dynamodb.QueryInput) func()  (sl pagination.InterfaceSlice, ip pagination.InterfacePager, err error) {
-	var instances []models.StrategyObjective
-	return InterfaceQueryPager(conn, queryInput,
-		instances,
-		func (i interface{}) pagination.InterfaceSlice {return  AsInterfaceSlice(i.([]models.StrategyObjective))},
-		StrategyObjectiveKey,
-	)
-}
 // StrategyObjective_ReadByPlatformIDStream create stream that will 
 // read all strategy objectives for platform id
 func StrategyObjective_ReadByPlatformIDStream() (stm daosCommon.InterfaceStream) {
@@ -115,7 +126,12 @@ func StrategyObjective_ReadByPlatformIDStream() (stm daosCommon.InterfaceStream)
 			// https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html
 			ScanIndexForward:          aws.Bool(true),
 		}
-		return readByPlatformIDPager(conn, queryInput)
+		var instances []models.StrategyObjective
+		return InterfaceQueryPager(conn, queryInput,
+			instances,
+			func (i interface{}) pagination.InterfaceSlice {return  StrategyObjective_AsInterfaceSlice(i.([]models.StrategyObjective))},
+			StrategyObjectiveKey,
+		)
 	}
 	return	
 }
@@ -132,5 +148,113 @@ func SelectFromStrategyObjectiveJoinUserObjectiveWhereNotCompletedStream() (stm 
 			so := i.(strategyObjective.StrategyObjective)
 			return IsStrategyObjectiveNotCompleted(so)(conn)
 		}
+	})
+}
+
+// SelectFromStrategyObjectiveJoinCommunityWhereUserIDOrInStrategyCommunityStream - stream-basedimplementation of the following SQL:
+// SELECT * FROM _strategy_objective
+// WHERE _strategy_objective.user_id=$userID 
+//    OR IsUserInCommunity($userID, 'strategy')
+func SelectFromStrategyObjectiveJoinCommunityWhereUserIDOrInStrategyCommunityStream(userID string) (stm daosCommon.InterfaceStream) {
+	var isUserInStrategyCommunity daosCommon.InterfaceStream
+	isUserInStrategyCommunity = SelectNonEmptyFromCommunityWhereUserIDCommunityIDStream(userID, community.Strategy)
+	return isUserInStrategyCommunity.FlatMapF(
+		func (b interface{}) (res daosCommon.InterfaceStream) {
+			isUserInStrategyCommunity := b.(bool)
+			if isUserInStrategyCommunity {
+				res = StrategyObjective_ReadByPlatformIDStream()
+			} else {
+				res = SelectFromObjectivesJoinCommunityUsersWhereUserIDStream(userID)
+			}
+			return
+		},
+	)
+}
+func AdaptiveCommunityUser_ReadByUserIDCommunityIDStream(userID string, communityID community.AdaptiveCommunity) (stm daosCommon.InterfaceStream) {
+	userIDCommunityIDIndex := string(adaptiveCommunityUser.UserIDCommunityIDIndex)
+	stm = func (conn daosCommon.DynamoDBConnection) pagination.InterfacePager {
+		queryInput:= dynamodb.QueryInput{
+			TableName:                 aws.String(adaptiveCommunityUser.TableName(conn.ClientID)),
+			KeyConditionExpression:    aws.String(string(adaptiveCommunityUser.UserID + " = :a0" + " and " + adaptiveCommunityUser.CommunityID + " = :a1")),
+			IndexName:                 &userIDCommunityIDIndex,
+			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+				":a0": daosCommon.DynS(string(userID)),
+				":a1": daosCommon.DynS(string(communityID)),
+			},
+			// https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html
+			ScanIndexForward:          aws.Bool(true),
+		}
+		var instances []adaptiveCommunityUser.AdaptiveCommunityUser
+		return InterfaceQueryPager(conn, queryInput,
+			instances,
+			func (i interface{}) pagination.InterfaceSlice {return  AdaptiveCommunityUser_AsInterfaceSlice(i.([]adaptiveCommunityUser.AdaptiveCommunityUser))},
+			AdaptiveCommunityUserKey,
+		)
+	}
+	return	
+}
+
+func AdaptiveCommunityUser_ReadByUserIDStream(userID string) (stm daosCommon.InterfaceStream) {
+	userIDIndex := string(adaptiveCommunityUser.UserIDIndex)
+	stm = func (conn daosCommon.DynamoDBConnection) pagination.InterfacePager {
+		queryInput:= dynamodb.QueryInput{
+			TableName:                 aws.String(adaptiveCommunityUser.TableName(conn.ClientID)),
+			KeyConditionExpression:    aws.String(string(adaptiveCommunityUser.UserID + " = :a0")),
+			IndexName:                 &userIDIndex,
+			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+				":a0": daosCommon.DynS(string(userID)),
+			},
+			// https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html
+			ScanIndexForward:          aws.Bool(true),
+		}
+		var instances []adaptiveCommunityUser.AdaptiveCommunityUser
+		return InterfaceQueryPager(conn, queryInput,
+			instances,
+			func (i interface{}) pagination.InterfaceSlice {return  AdaptiveCommunityUser_AsInterfaceSlice(i.([]adaptiveCommunityUser.AdaptiveCommunityUser))},
+			AdaptiveCommunityUserKey,
+		)
+	}
+	return	
+}
+// SelectNonEmptyFromCommunityWhereUserIDCommunityIDStream - stream-based implementation of SQL:
+// SELECT NonEmpty(*) FROM _adaptive_community_user
+// WHERE _adaptive_community_user.user_id=$userID AND _adaptive_community_user.community=$community
+// NB: the stream contains exactly 1 element of boolean type.
+func SelectNonEmptyFromCommunityWhereUserIDCommunityIDStream(userID string, communityID community.AdaptiveCommunity) (stm daosCommon.InterfaceStream) {
+	s := AdaptiveCommunityUser_ReadByUserIDCommunityIDStream(userID, communityID)
+	return s.NonEmpty()
+}
+// SelectFromObjectivesWhereCommunitiesStream - stream-based implementation of the following SQL:
+// SELECT _strategy_objective.* 
+// FROM _strategy_objective 
+// WHERE _strategy_objective.community_ids CONTAINS SOME OF communityIDs
+func SelectFromObjectivesWhereCommunitiesStream(communityIDs []string)  (stm daosCommon.InterfaceStream) {
+	hasIntersectionWithCommunityIDs := core_utils_go.IsIntersectionNonEmpty(communityIDs)
+	return StrategyObjective_ReadByPlatformIDStream().
+		FilterF(
+			func (conn daosCommon.DynamoDBConnection) func (i interface{}) (bool, error) {
+				return func (i interface{}) (res bool, err error) {
+					so := i.(strategyObjective.StrategyObjective)
+					return hasIntersectionWithCommunityIDs(so.CapabilityCommunityIDs)
+				}
+			},
+		)
+}
+// SelectFromObjectivesJoinCommunityUsersWhereUserIDStream - stream-based implementation of SQL:
+// SELECT _strategy_objective.* 
+// FROM _strategy_objective JOIN _adaptive_community_user ON _strategy_objective.community_ids CONTAINS _adaptive_community_user.id
+// WHERE _adaptive_community_user.user_id=$userID
+func SelectFromObjectivesJoinCommunityUsersWhereUserIDStream(userID string)  (res daosCommon.InterfaceStream) {
+	communityUsers := AdaptiveCommunityUser_ReadByUserIDStream(userID)
+	
+	return communityUsers.
+	Map(func (i interface{}) interface{} { 
+		acu := i.(adaptiveCommunityUser.AdaptiveCommunityUser)
+		return acu.CommunityID
+	}).
+	All().
+	FlatMapF(func (i interface{}) daosCommon.InterfaceStream {
+		communityIDs := i.([]string)
+		return SelectFromObjectivesWhereCommunitiesStream(communityIDs)
 	})
 }
