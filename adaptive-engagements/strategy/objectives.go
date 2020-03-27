@@ -1,9 +1,12 @@
 package strategy
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	"github.com/adaptiveteam/adaptive/daos/userObjective"
+	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"fmt"
 	"strings"
-
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
@@ -129,6 +132,56 @@ func UserCapabilityCommunityInitiatives(userID string,
 		}
 	}
 	return op
+}
+
+// SelectFromStrategyObjectiveJoinUserObjectiveWhereNotCompleted implements SQL with JOIN
+// SELECT _strategy_objective.* 
+// FROM _strategy_objective JOIN _user_objective ON _strategy_objective.id=_user_objective.id
+// WHERE _user_objective.Completed=0
+func SelectFromStrategyObjectiveJoinUserObjectiveWhereNotCompleted() func (conn daosCommon.DynamoDBConnection) (objs []models.StrategyObjective, err error) {
+	return func (conn daosCommon.DynamoDBConnection) (objs []models.StrategyObjective, err error) {
+		var allObjs []models.StrategyObjective
+		allObjs, err = strategyObjective.ReadByPlatformID(conn.PlatformID)(conn)
+		if err == nil {
+			for _, so := range allObjs {
+				var uos []userObjective.UserObjective
+				uos, err = userObjective.ReadOrEmpty(so.ID)(conn)
+				if len(uos) > 0 && uos[0].Completed == 0{
+					objs = append(objs, so)
+				}
+			}
+		}
+		return
+	}
+}
+// SelectFromObjectivesJoinCommunityUsersWhereUserID - implements SQL:
+// SELECT _strategy_objective.* 
+// FROM _strategy_objective JOIN _adaptive_community_user ON _strategy_objective.community_ids CONTAINS _adaptive_community_user.id
+// WHERE _adaptive_community_user.user_id=$userID
+func SelectFromObjectivesJoinCommunityUsersWhereUserID(userID string) func (conn daosCommon.DynamoDBConnection) (objs []models.StrategyObjective, err error) {
+	return func (conn daosCommon.DynamoDBConnection) (objs []models.StrategyObjective, err error) {
+		var acus []adaptiveCommunityUser.AdaptiveCommunityUser
+		acus, err = adaptiveCommunityUser.ReadByUserID(userID)(conn)
+		if err == nil {
+			communities := mapACUCommunityIDDistinct(acus)
+			var sos []strategyObjective.StrategyObjective
+			sos, err = SelectFromStrategyObjectiveJoinUserObjectiveWhereNotCompleted()(conn)
+			hasIntersectionWithCommunities := core.IsIntersectionNonEmpty(communities)
+			for _, so := range sos {
+				if hasIntersectionWithCommunities(so.CapabilityCommunityIDs) {
+					objs = append(objs, so)
+				}
+			}
+		}
+		return
+	}
+}
+
+func mapACUCommunityIDDistinct(acus []adaptiveCommunityUser.AdaptiveCommunityUser) (res []string) {
+	for _, acu := range acus {
+		res = append(res, acu.CommunityID)
+	}
+	return core.Distinct(res)
 }
 
 // UserCommunityObjectives lists all capability objectives that are associated with capability communities that the user is a part of
