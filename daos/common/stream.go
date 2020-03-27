@@ -84,3 +84,11 @@ func (i InterfaceStream)FlatMapF(f func (interface{}) InterfaceStream) Interface
 		)
 	}
 }
+
+// NonEmpty constructs a one-element stream that contains a single boolean value.
+// it's true if the original stream has values and false otherwise.
+func (i InterfaceStream)NonEmpty()InterfaceStream {
+	return func(conn DynamoDBConnection) pagination.InterfacePager {
+		return i.Run(conn).NonEmptyPager()
+	}
+}

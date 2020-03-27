@@ -28,6 +28,29 @@ func (p InterfacePager)IsEmpty() (fl bool, err error) {
 	fl = len(sl) == 0
 	return
 }
+
+// NonEmptyPager returns a one element pager of booleans.
+// The first and only element of this pager is true when the original pager has some elements.
+func (p InterfacePager)NonEmptyPager() InterfacePager {
+	return func() (sl InterfaceSlice, ip InterfacePager, err error) {
+		sl, ip, err = p()
+		ip = emptyPage
+		sl = []interface{}{len(sl) > 0}
+		return
+	}
+}
+// ToPages returns sequence of pages of the original pager. 
+// Each page will contain exactly one element (InterfaceSlice) until finish.
+func (p InterfacePager)ToPages() InterfacePager {
+	return func() (sl InterfaceSlice, ip InterfacePager, err error) {
+		sl, ip, err = p()
+		ip = emptyPage
+		if len(sl) > 0 {
+			sl = InterfaceSlice{sl}
+		}
+		return
+	}
+}
 // NonEmpty fetches the first page and makes sure it's non empty
 func (p InterfacePager)NonEmpty() (fl bool, err error) {
 	fl, err = p.IsEmpty()
