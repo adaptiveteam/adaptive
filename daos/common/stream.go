@@ -92,3 +92,11 @@ func (i InterfaceStream)NonEmpty()InterfaceStream {
 		return i.Run(conn).NonEmptyPager()
 	}
 }
+
+// All creates a stream that will contain one element - a slice
+// with all elements of the original stream. NB: the slice might very well be empty
+func (i InterfaceStream)All()(InterfaceStream) {
+	return func(conn DynamoDBConnection) pagination.InterfacePager {
+		return i.Run(conn).All()
+	}
+}

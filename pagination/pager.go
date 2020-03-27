@@ -193,3 +193,15 @@ func (p InterfacePager)FlatMap(f func (interface{}) InterfacePager) InterfacePag
 		return
 	}
 }
+
+// All - reads all records as a single array. 
+// the first fetch will yield exactly one element
+// which will be the array with all elements of the original pager.
+func (p InterfacePager)All()(InterfacePager) {
+	return func() (sl InterfaceSlice, ip InterfacePager, err error) {
+		sl, err = p.Drain()
+		sl = []interface{}{sl}
+		ip = emptyPage
+		return
+	}
+}
