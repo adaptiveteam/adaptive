@@ -14,19 +14,16 @@ import (
 	// "github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	// "github.com/adaptiveteam/adaptive/daos/strategyInitiative"
-	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
-
+	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 
 	// "github.com/adaptiveteam/adaptive/daos/visionMission"
 	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
-
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 
 	// "github.com/adaptiveteam/adaptive/engagement-builder/ui"
-
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	// objectives "github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	strategy "github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
@@ -392,8 +389,11 @@ func StrategyInitiativeCreateOrUpdate(si models.StrategyInitiative) func(conn Dy
 	}
 }
 
-func StrategyObjectiveRead(id string) func(conn DynamoDBConnection) (res models.StrategyObjective, err error) {
-	return func(conn DynamoDBConnection) (res models.StrategyObjective, err error) {
+// StrategyObjectiveReadOrEmpty attempts to find the strategy objective.
+// Since we have corrupted DB structure, we not always find it. Hence we have to
+// skip not found objectives.
+func StrategyObjectiveReadOrEmpty(id string) func(conn DynamoDBConnection) (res []models.StrategyObjective, err error) {
+	return func(conn DynamoDBConnection) (res []models.StrategyObjective, err error) {
 		defer core.RecoverToErrorVar("StrategyObjectiveDynamoDBConnection.Read", &err)
 		id2 := id
 		i := strings.Index(id2, "_")
@@ -401,11 +401,10 @@ func StrategyObjectiveRead(id string) func(conn DynamoDBConnection) (res models.
 			log.Printf("WARN: StrategyObjectiveDynamoDBConnection) Read: ID has '_': %s\n", id)
 			id2 = id[0:i]
 		}
-
-		log.Printf("StrategyObjectiveDynamoDBConnection) Read: reading id2=%s\n", id2)
-		res = strategy.StrategyObjectiveByID(models.ParseTeamID(conn.PlatformID), id2, strategyObjectiveTableName(conn.ClientID))
-		if res.ID != id2 {
-			err = fmt.Errorf("couldn't find StrategyObjectiveByID(id2=%s, id=%s). Instead got ID=%s", id2, id, res.ID)
+		// log.Printf("StrategyObjectiveDynamoDBConnection) Read: reading id2=%s\n", id2)
+		res, err = strategyObjective.ReadOrEmpty(conn.PlatformID, id2)(conn)
+		if len(res) > 0 && res[0].ID != id2 {
+			err = fmt.Errorf("couldn't find StrategyObjectiveByID(id2=%s, id=%s). Instead got ID=%s", id2, id, res[0].ID)
 		}
 		return
 	}
@@ -451,9 +450,13 @@ func Read(issueType IssueType, issueID string) func(conn DynamoDBConnection) (is
 			}
 		case SObjective:
 			// dao := strategyObjective.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
-			issue.StrategyObjective, err = StrategyObjectiveRead(issueID)(conn)
-			if err == nil && len(objs) == 0 {
-				issue.UserObjective, err = UserObjectiveFromStrategyObjective(issue.StrategyObjective)(conn)
+			var sos []strategyObjective.StrategyObjective
+			sos, err = StrategyObjectiveReadOrEmpty(issueID)(conn)
+			if len(sos) > 0 {
+				issue.StrategyObjective = sos[0]
+				if err == nil && len(objs) == 0 {
+					issue.UserObjective, err = UserObjectiveFromStrategyObjective(issue.StrategyObjective)(conn)
+				}
 			}
 		case Initiative:
 			// dao := strategyInitiative.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
@@ -484,9 +487,10 @@ func Save(issue Issue) func(conn DynamoDBConnection) (err error) {
 
 				err = StrategyObjectiveCreateOrUpdate(issue.StrategyObjective)(conn)
 				if err == nil {
-					var so models.StrategyObjective
-					so, err = StrategyObjectiveRead(issue.StrategyObjective.ID)(conn)
-					if err == nil {
+					var sos []models.StrategyObjective
+					sos, err = StrategyObjectiveReadOrEmpty(issue.StrategyObjective.ID)(conn)
+					if err == nil && len(sos) > 0{
+						so := sos[0]
 						if so.ID == issue.StrategyObjective.ID {
 							log.Printf("DynamoDBConnection) Saved successfully SObjective(so.ID=%s)%+v\n", issue.StrategyObjective.ID, err)
 						} else {
@@ -605,7 +609,11 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 		if issueRef.StrategyAlignmentEntityID != "" {
 			switch issueRef.StrategyAlignmentEntityType {
 			case userObjective.ObjectiveStrategyObjectiveAlignment:
-				issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
+				var sos []strategyObjective.StrategyObjective
+				sos, err = StrategyObjectiveReadOrEmpty(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
+				if len(sos) > 0 {
+					issueRef.PrefetchedData.AlignedCapabilityObjective = sos[0]
+				}
 			case userObjective.ObjectiveStrategyInitiativeAlignment:
 				issueRef.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
 			case userObjective.ObjectiveCompetencyAlignment:
@@ -652,7 +660,11 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 			}
 			capObjID := issueRef.StrategyInitiative.CapabilityObjective
 			if capObjID != "" {
-				issueRef.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveRead(capObjID)(DynamoDBConnection)
+				var sos []strategyObjective.StrategyObjective
+				sos, err = StrategyObjectiveReadOrEmpty(capObjID)(DynamoDBConnection)
+				if len(sos) > 0 {
+					issueRef.PrefetchedData.AlignedCapabilityObjective = sos[0]
+				}
 			}
 		default:
 		}
