@@ -205,3 +205,20 @@ func (p InterfacePager)All()(InterfacePager) {
 		return
 	}
 }
+
+// Unchunk changes pager to return data element-by-element.
+// Each page will contain only one element.
+func (p InterfacePager)Unchunk()(InterfacePager) {
+	return func() (sl InterfaceSlice, ip InterfacePager, err error) {
+		sl, ip, err = p()
+		if err == nil && len(sl) > 0 {
+			sl = []interface{}{sl[0]}
+			tail := sl[1:]
+			ip = InterfacePagerConcat(
+				InterfacePagerFromSlice(tail).Unchunk(), 
+				ip,
+			)
+		}
+		return
+	}
+}
