@@ -6,12 +6,11 @@ import (
 	"github.com/adaptiveteam/adaptive/business-time"
 	"fmt"
 	"time"
-
+	utilsIssues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 )
 
@@ -34,7 +33,7 @@ func StaleObjectivesQueryIDO(userID string) IssueQuery {
 			userObjectivesProgressTableName(conn.ClientID))
 		for _, uo := range userObjs {
 			fmt.Printf("Converting UserObjective to Issue: id=%s, name=%s\n", uo.ID, uo.Name)
-			issues = append(issues, Issue{UserObjective: convertModelsUserObjectiveToUserObjective(uo)})
+			issues = append(issues, Issue{UserObjective: uo})
 		}
 		return
 	}
@@ -52,31 +51,39 @@ func StaleObjectivesQuerySObjectives(userID string) IssueQuery {
 			userObjectivesUserIDIndex,
 			userObjectivesProgressTableName(conn.ClientID), 0)
 		for _, uo := range userObjs {
-			var issue Issue
+			var moreIssues []Issue
 			// log.Printf("found strategy objective. uo.ID=%s\n", uo.ID)
-			issue, err = FillInSObjective(convertModelsUserObjectiveToUserObjective(uo))(conn)
-			if err != nil { return }
-			issues = append(issues, issue)
+			moreIssues, err = FillInSObjective(uo)(conn)
+			if err != nil { 
+				return 
+			}
+			if len(moreIssues) == 0 {
+				log.Printf("ERROR: couldn't find StrategyObjective for ID=%s", uo.ID)
+			}
+			issues = append(issues, moreIssues...)
 		}
 		return
 	}
 }
 
-func FillInSObjective(userObj userObjective.UserObjective) func (conn DynamoDBConnection) (issue Issue, err error) {
-	return func (conn DynamoDBConnection) (issue Issue, err error) {
+func FillInSObjective(userObj userObjective.UserObjective) func (conn DynamoDBConnection) (issues [] Issue, err error) {
+	return func (conn DynamoDBConnection) (issues [] Issue, err error) {
 		id := userObj.ID
 		i := strings.Index(id, "_")
 		if i >= 0 {
 			log.Printf("WARN: ID has '_': %s\n", id)
 			id = id[0:i]
 		}
-		var so models.StrategyObjective
-		so, err = StrategyObjectiveRead(id)(conn)
+		var sos []models.StrategyObjective
+		sos, err = utilsIssues.StrategyObjectiveReadOrEmpty(id)(conn)
 
 		if err == nil {
-			issue = Issue{
-				UserObjective: userObj,
-				StrategyObjective: so,
+			if len(sos) > 0 {
+				issue := Issue{
+					UserObjective: userObj,
+					StrategyObjective: sos[0],
+				}
+				issues = []Issue{issue}
 			}
 		}
 		return
@@ -116,7 +123,7 @@ func StaleObjectivesQueryInitiative(userID string) IssueQuery {
 			userObjectivesProgressTableName(conn.ClientID), 0)
 		for _, uo := range userObjs {
 			var issue Issue
-			issue, err = FillInInitiative(convertModelsUserObjectiveToUserObjective(uo))(conn)
+			issue, err = FillInInitiative(uo)(conn)
 			if err != nil { return }
 			issues = append(issues, issue)
 		}
@@ -136,39 +143,6 @@ func StaleObjectivesQuery(ctx wf.EventHandlingContext) (query IssueQuery) {
 		query = StaleObjectivesQueryInitiative(ctx.Request.User.ID)
 	}
 	return
-}
-
-func convertModelsUserObjectiveToUserObjective(muo models.UserObjective) userObjective.UserObjective {
-	createdAtTime, err2 := core.ISODateLayout.Parse(muo.CreatedDate)
-	if err2 != nil {
-		fmt.Printf("INVALID: Couldn't convert date %+v\n", err2)
-		createdAtTime = time.Now()
-	}
-	createdAt := core.ISODateLayout.Format(createdAtTime)
-	return userObjective.UserObjective{
-		ID:                            muo.ID,
-		UserID:                        muo.UserID,
-		Name:                          muo.Name,
-		PlatformID:                    muo.PlatformID,
-		Description:                   muo.Description,
-		AccountabilityPartner:         muo.AccountabilityPartner,
-		Accepted:                      muo.Accepted,
-		ObjectiveType:                 userObjective.DevelopmentObjectiveType(muo.ObjectiveType),
-		StrategyAlignmentEntityID:     muo.StrategyAlignmentEntityID,
-		StrategyAlignmentEntityType:   userObjective.AlignedStrategyType(muo.StrategyAlignmentEntityType),
-		Quarter:                       muo.Quarter,
-		Year:                          muo.Year,
-		CreatedDate:                   muo.CreatedDate,
-		ExpectedEndDate:               muo.ExpectedEndDate,
-		Completed:                     muo.Completed,
-		PartnerVerifiedCompletion:     muo.PartnerVerifiedCompletion,
-		CompletedDate:                 muo.CompletedDate,
-		PartnerVerifiedCompletionDate: muo.PartnerVerifiedCompletionDate,
-		Comments:                      muo.Comments,
-		Cancelled:                     muo.Cancelled,
-		CreatedAt:                     createdAt,
-		ModifiedAt:                    "",
-	}
 }
 
 // AdvocacyIssuesQuery queries issues for which the current user is the advocate.
@@ -204,10 +178,13 @@ func AdvocacyIssuesQuerySObjectives(userID string) IssueQuery {
 			userObjectivesTableName(conn.ClientID),
 			userObjectivesTypeIndex, 0)
 		for _, uo := range userObjs {
-			var issue Issue
-			issue, err = FillInSObjective(convertModelsUserObjectiveToUserObjective(uo))(conn)
+			var moreIssues []Issue
+			moreIssues, err = FillInSObjective(uo)(conn)
 			if err != nil { return }
-			issues = append(issues, issue)
+			if len(moreIssues) == 0 {
+				log.Printf("WARN Couldn't FillInSObjective for uo.ID=%s\n",uo.ID)
+			}
+			issues = append(issues, moreIssues...)
 		}
 		return
 	}
@@ -229,8 +206,7 @@ func AdvocacyIssuesQueryInitiative(userID string) IssueQuery {
 		fmt.Printf("len(userObjs): %d\n", len(userObjs))
 		for _, uo := range userObjs {
 			var issue Issue
-			issue, err = FillInInitiative(
-				convertModelsUserObjectiveToUserObjective(uo))(conn)
+			issue, err = FillInInitiative(uo)(conn)
 			if err != nil { return }
 			issues = append(issues, issue)
 		}
