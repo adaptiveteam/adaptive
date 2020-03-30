@@ -1,0 +1,12 @@
+[
+  {
+    "source": "greg",
+    "target": "chris",
+    "topic": "skill",
+    "type": "performance",
+    "rating": 10,
+    "comments": "As this quarter you were no longer facilitating our board meetings, our primary interactions were around slack bot features, hiro/validation, labs-team newscaster and speculator and coaching.  I will leave coaching to the coaching survey.  I jest about the newscaster/speculation -but your communication of all things factual, hopeful, and speculative was very helpful, and as this is part of your role, I am completely satisfied.  You were also very responsive in regards to new bot development and guiding us to appropriate venues for bug report, or helping to unstick blocked/stuck things.  I suppose one might say you are the oil for the engine.  ",
+    "quarter": 1,
+    "year": 2019
+  }
+]
