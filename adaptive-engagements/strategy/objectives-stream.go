@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	// "log"
 	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
@@ -67,28 +68,38 @@ func AdaptiveCommunityUserKey(i interface{}) DynamoDBKey {
 		string(adaptiveCommunityUser.UserID):    daosCommon.DynS(acu.UserID),
 	}
 }
+// Queryable is a type class for an entity T 
+type Queryable interface {
+	// PointerToSliceOfEntities returns *[]T
+	PointerToSliceOfEntities() interface{}
+	// AsInterfaceSlice casts input to []T and then converts each entity to []interface{}
+	AsInterfaceSlice(interface{}) pagination.InterfaceSlice
+	// KeyExtractor extracts Key from T
+	KeyExtractor(interface{}) DynamoDBKey
+}
 // InterfaceQueryPager constructs a pager that will be yielding pages using 
 // DynamoDB Query.
-// sliceOfEntities = []models.StrategyObjective
+// sliceOfEntities = &[]models.StrategyObjective
 // asInterfaceSlice = AsInterfaceSlice
 // keyExtractor = StrategyObjectiveKey
 // TODO: combine these into a type class
 func InterfaceQueryPager(
 	conn daosCommon.DynamoDBConnection, 
 	queryInput dynamodb.QueryInput,
-	sliceOfEntities interface{},
-	asInterfaceSlice func (interface{}) pagination.InterfaceSlice,
-	keyExtractor KeyExtractor,
+	queryable Queryable,
 	) pagination.InterfacePager {
 	return func() (sl pagination.InterfaceSlice, ip pagination.InterfacePager, err error) {
 		if queryInput.Limit == nil || *queryInput.Limit > 0 {
 			// var instances []models.StrategyObjective
+			sliceOfEntities := queryable.PointerToSliceOfEntities()
 			err = conn.Dynamo.QueryInternal(queryInput, sliceOfEntities)
 			if err == nil {
-				sl = asInterfaceSlice(sliceOfEntities)
+				// log.Printf("sliceOfEntities=%v", sliceOfEntities)
+				sl = queryable.AsInterfaceSlice(sliceOfEntities)
 				if len(sl) > 0 {
 					last := sl[len(sl) - 1]
-					queryInput.ExclusiveStartKey = keyExtractor(last)
+					// log.Printf("last=%v", last)
+					queryInput.ExclusiveStartKey = queryable.KeyExtractor(last)
 				}
 				if queryInput.Limit != nil {
 					if int64(len(sl)) > *queryInput.Limit {
@@ -102,13 +113,31 @@ func InterfaceQueryPager(
 			}
 		} 
 		if (queryInput.Limit == nil || *queryInput.Limit > 0) && err == nil {
-			ip = InterfaceQueryPager(conn, queryInput,
-				sliceOfEntities, asInterfaceSlice, keyExtractor)
+			ip = InterfaceQueryPager(conn, queryInput, queryable)
 		} else {
 			ip = pagination.InterfacePagerPure()
 		}
 		return
 	}
+}
+
+// StrategyObjective_QueryableImpl Queryable implementation for StrategyObjective
+type StrategyObjective_QueryableImpl struct {}
+
+// PointerToSliceOfEntities returns *[]T
+func (StrategyObjective_QueryableImpl)PointerToSliceOfEntities() interface{} {
+	var instances []models.StrategyObjective
+	return &instances
+}
+
+// AsInterfaceSlice casts input to []T and then converts each entity to []interface{}
+func (StrategyObjective_QueryableImpl)AsInterfaceSlice(i interface{}) pagination.InterfaceSlice {
+	return StrategyObjective_AsInterfaceSlice(*i.(*[]models.StrategyObjective))
+}
+
+// KeyExtractor extracts Key from T
+func (StrategyObjective_QueryableImpl)KeyExtractor(i interface{}) DynamoDBKey {
+	return StrategyObjectiveKey(i)
 }
 
 // StrategyObjective_ReadByPlatformIDStream create stream that will 
@@ -126,12 +155,7 @@ func StrategyObjective_ReadByPlatformIDStream() (stm daosCommon.InterfaceStream)
 			// https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html
 			ScanIndexForward:          aws.Bool(true),
 		}
-		var instances []models.StrategyObjective
-		return InterfaceQueryPager(conn, queryInput,
-			instances,
-			func (i interface{}) pagination.InterfaceSlice {return  StrategyObjective_AsInterfaceSlice(i.([]models.StrategyObjective))},
-			StrategyObjectiveKey,
-		)
+		return InterfaceQueryPager(conn, queryInput, StrategyObjective_QueryableImpl{})
 	}
 	return	
 }
@@ -170,6 +194,27 @@ func SelectFromStrategyObjectiveJoinCommunityWhereUserIDOrInStrategyCommunityStr
 		},
 	)
 }
+
+// AdaptiveCommunityUser_QueryableImpl Queryable implementation for AdaptiveCommunityUser
+type AdaptiveCommunityUser_QueryableImpl struct {}
+
+// PointerToSliceOfEntities returns *[]T
+func (AdaptiveCommunityUser_QueryableImpl)PointerToSliceOfEntities() interface{} {
+	var instances []adaptiveCommunityUser.AdaptiveCommunityUser
+	return &instances
+}
+
+// AsInterfaceSlice casts input to []T and then converts each entity to []interface{}
+func (AdaptiveCommunityUser_QueryableImpl)AsInterfaceSlice(i interface{}) pagination.InterfaceSlice {
+	return AdaptiveCommunityUser_AsInterfaceSlice(*i.(*[]adaptiveCommunityUser.AdaptiveCommunityUser))
+}
+
+// KeyExtractor extracts Key from T
+func (AdaptiveCommunityUser_QueryableImpl)KeyExtractor(i interface{}) DynamoDBKey {
+	return AdaptiveCommunityUserKey(i)
+}
+
+
 func AdaptiveCommunityUser_ReadByUserIDCommunityIDStream(userID string, communityID community.AdaptiveCommunity) (stm daosCommon.InterfaceStream) {
 	userIDCommunityIDIndex := string(adaptiveCommunityUser.UserIDCommunityIDIndex)
 	stm = func (conn daosCommon.DynamoDBConnection) pagination.InterfacePager {
@@ -183,13 +228,8 @@ func AdaptiveCommunityUser_ReadByUserIDCommunityIDStream(userID string, communit
 			},
 			// https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html
 			ScanIndexForward:          aws.Bool(true),
-		}
-		var instances []adaptiveCommunityUser.AdaptiveCommunityUser
-		return InterfaceQueryPager(conn, queryInput,
-			instances,
-			func (i interface{}) pagination.InterfaceSlice {return  AdaptiveCommunityUser_AsInterfaceSlice(i.([]adaptiveCommunityUser.AdaptiveCommunityUser))},
-			AdaptiveCommunityUserKey,
-		)
+		}	
+		return InterfaceQueryPager(conn, queryInput, AdaptiveCommunityUser_QueryableImpl{})
 	}
 	return	
 }
@@ -207,12 +247,7 @@ func AdaptiveCommunityUser_ReadByUserIDStream(userID string) (stm daosCommon.Int
 			// https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html
 			ScanIndexForward:          aws.Bool(true),
 		}
-		var instances []adaptiveCommunityUser.AdaptiveCommunityUser
-		return InterfaceQueryPager(conn, queryInput,
-			instances,
-			func (i interface{}) pagination.InterfaceSlice {return  AdaptiveCommunityUser_AsInterfaceSlice(i.([]adaptiveCommunityUser.AdaptiveCommunityUser))},
-			AdaptiveCommunityUserKey,
-		)
+		return InterfaceQueryPager(conn, queryInput, AdaptiveCommunityUser_QueryableImpl{})
 	}
 	return	
 }
