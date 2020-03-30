@@ -74,9 +74,9 @@ func (w workflowImpl) OnFieldsShown(textExtractor TextExtractor, dialogSituation
 }
 
 func (w workflowImpl) standardView(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-	w.AdaptiveLogger.Info("standardView")
+	// w.AdaptiveLogger.Info("standardView")
 	isShowingProgress := ctx.GetFlag(isShowingProgressKey)
-	w.AdaptiveLogger.Infof("standardView: isShowingProgress=%v", isShowingProgress)
+	// w.AdaptiveLogger.Infof("standardView: isShowingProgress=%v", isShowingProgress)
 	var newAndOldIssues NewAndOldIssues
 	newAndOldIssues, err = w.WorkflowContext.GetNewAndOldIssues(ctx)
 	if err != nil {
