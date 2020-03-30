@@ -46,13 +46,9 @@ func AdaptiveCommunityUser_AsInterfaceSlice(sos []adaptiveCommunityUser.Adaptive
 	}
 	return
 }
-// DynamoDBKey - key
-type DynamoDBKey = map[string]*dynamodb.AttributeValue
-// KeyExtractor obtains key value from the given instance
-type KeyExtractor = func(interface{}) DynamoDBKey
 
 // StrategyObjectiveKey retrieves key of the instance
-func StrategyObjectiveKey(i interface{}) DynamoDBKey {
+func StrategyObjectiveKey(i interface{}) daosCommon.DynamoDBKey {
 	so := i.(strategyObjective.StrategyObjective)
 	return map[string]*dynamodb.AttributeValue{ 
 		string(strategyObjective.PlatformID): daosCommon.DynS(string(so.PlatformID)),
@@ -61,22 +57,14 @@ func StrategyObjectiveKey(i interface{}) DynamoDBKey {
 }
 
 // AdaptiveCommunityUserKey retrieves key of the instance
-func AdaptiveCommunityUserKey(i interface{}) DynamoDBKey {
+func AdaptiveCommunityUserKey(i interface{}) daosCommon.DynamoDBKey {
 	acu := i.(adaptiveCommunityUser.AdaptiveCommunityUser)
 	return map[string]*dynamodb.AttributeValue{ 
 		string(adaptiveCommunityUser.ChannelID): daosCommon.DynS(string(acu.ChannelID)),
 		string(adaptiveCommunityUser.UserID):    daosCommon.DynS(acu.UserID),
 	}
 }
-// Queryable is a type class for an entity T 
-type Queryable interface {
-	// PointerToSliceOfEntities returns *[]T
-	PointerToSliceOfEntities() interface{}
-	// AsInterfaceSlice casts input to []T and then converts each entity to []interface{}
-	AsInterfaceSlice(interface{}) pagination.InterfaceSlice
-	// KeyExtractor extracts Key from T
-	KeyExtractor(interface{}) DynamoDBKey
-}
+
 // InterfaceQueryPager constructs a pager that will be yielding pages using 
 // DynamoDB Query.
 // sliceOfEntities = &[]models.StrategyObjective
@@ -86,7 +74,7 @@ type Queryable interface {
 func InterfaceQueryPager(
 	conn daosCommon.DynamoDBConnection, 
 	queryInput dynamodb.QueryInput,
-	queryable Queryable,
+	queryable daosCommon.Queryable,
 	) pagination.InterfacePager {
 	return func() (sl pagination.InterfaceSlice, ip pagination.InterfacePager, err error) {
 		if queryInput.Limit == nil || *queryInput.Limit > 0 {
@@ -136,7 +124,7 @@ func (StrategyObjective_QueryableImpl)AsInterfaceSlice(i interface{}) pagination
 }
 
 // KeyExtractor extracts Key from T
-func (StrategyObjective_QueryableImpl)KeyExtractor(i interface{}) DynamoDBKey {
+func (StrategyObjective_QueryableImpl)KeyExtractor(i interface{}) daosCommon.DynamoDBKey {
 	return StrategyObjectiveKey(i)
 }
 
@@ -210,7 +198,7 @@ func (AdaptiveCommunityUser_QueryableImpl)AsInterfaceSlice(i interface{}) pagina
 }
 
 // KeyExtractor extracts Key from T
-func (AdaptiveCommunityUser_QueryableImpl)KeyExtractor(i interface{}) DynamoDBKey {
+func (AdaptiveCommunityUser_QueryableImpl)KeyExtractor(i interface{}) daosCommon.DynamoDBKey {
 	return AdaptiveCommunityUserKey(i)
 }
 
