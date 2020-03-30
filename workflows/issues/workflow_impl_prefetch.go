@@ -49,21 +49,23 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 		if err != nil { return }
 	}
 
-	switch issue.StrategyAlignmentEntityType {
-	case userObjective.ObjectiveStrategyObjectiveAlignment:
-		issue.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
-	case userObjective.ObjectiveStrategyInitiativeAlignment:
-		issue.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
-	case userObjective.ObjectiveCompetencyAlignment:
-		issue.PrefetchedData.AlignedCompetency, err = CompetencyRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
-	}
-	if err != nil {
-		w.AdaptiveLogger.
-			WithError(err).
-			WithField("issue.StrategyAlignmentEntityType", issue.StrategyAlignmentEntityType).
-			WithField("issue.StrategyAlignmentEntityID", issue.StrategyAlignmentEntityID).
-			Infof("prefetchIssueWithoutProgress, couldn't load issue.PrefetchedData.Aligned*")
-		err = nil
+	if issue.StrategyAlignmentEntityID != "" {
+		switch issue.StrategyAlignmentEntityType {
+		case userObjective.ObjectiveStrategyObjectiveAlignment:
+			issue.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
+		case userObjective.ObjectiveStrategyInitiativeAlignment:
+			issue.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
+		case userObjective.ObjectiveCompetencyAlignment:
+			issue.PrefetchedData.AlignedCompetency, err = CompetencyRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
+		}
+		if err != nil {
+			w.AdaptiveLogger.
+				WithError(err).
+				WithField("issue.StrategyAlignmentEntityType", issue.StrategyAlignmentEntityType).
+				WithField("issue.StrategyAlignmentEntityID", issue.StrategyAlignmentEntityID).
+				Infof("prefetchIssueWithoutProgress, couldn't load issue.PrefetchedData.Aligned*")
+			err = nil
+		}
 	}
 
 	itype := issue.GetIssueType()
