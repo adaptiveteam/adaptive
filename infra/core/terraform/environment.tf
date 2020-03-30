@@ -60,7 +60,7 @@ locals {
 
     CLIENT_CONFIG_TABLE_NAME                = aws_dynamodb_table.client_config_dynamodb_table.name
     USER_COMMUNITY_TABLE_NAME               = aws_dynamodb_table.user_communities.name
-    USER_COMMUNITY_PLATFORM_INDEX           = var.user_community_platform_dynamo_index
+    # USER_COMMUNITY_PLATFORM_INDEX           = var.user_community_platform_dynamo_index
 
     USER_ENGAGEMENT_SCHEDULER_LAMBDA_PREFIX = var.user_engagement_scheduler_lambda_prefix
 

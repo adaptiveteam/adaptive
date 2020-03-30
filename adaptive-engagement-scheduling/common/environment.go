@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -15,7 +16,7 @@ var (
 	UserTable                         = utils.NonEmptyEnv("USERS_TABLE_NAME")
 	UsersPlatformIndex                = utils.NonEmptyEnv("USERS_PLATFORM_INDEX")
 	CommunityUsersTable               = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
-	CommunityUsersCommunityIndex      = utils.NonEmptyEnv("COMMUNITY_USERS_COMMUNITY_INDEX")
+	CommunityUsersCommunityIndex      = string(adaptiveCommunityUser.PlatformIDCommunityIDIndex)
 	CoachingRelationshipsTable        = utils.NonEmptyEnv("COACHING_RELATIONSHIPS_TABLE_NAME")
 	CoachingRelationshipsCoacheeIndex = "CoacheeQuarterYearIndex"
 	CoachQuarterYearIndex             = utils.NonEmptyEnv("COACHING_RELATIONSHIPS_COACH_QUARTER_YEAR_INDEX")

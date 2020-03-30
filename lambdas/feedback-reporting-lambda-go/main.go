@@ -56,7 +56,7 @@ var (
 	table                     = utils.NonEmptyEnv("ADAPTIVE_USER_FEEDBACK_TABLE")
 	reportBucket              = utils.NonEmptyEnv("FEEDBACK_REPORTS_BUCKET_NAME")
 	userProfileLambda         = utils.NonEmptyEnv("USER_PROFILE_LAMBDA_NAME")
-	feedbackTargetIndex       = utils.NonEmptyEnv("FEEDBACK_TARGET_INDEX")
+	feedbackTargetIndex       = "QuarterYearTargetIndex"
 	platformNotificationTopic = utils.NonEmptyEnv("PLATFORM_NOTIFICATION_TOPIC")
 	sns                       = awsutils.NewSNS(region, "", namespace)
 	clientID                  = utils.NonEmptyEnv("CLIENT_ID")

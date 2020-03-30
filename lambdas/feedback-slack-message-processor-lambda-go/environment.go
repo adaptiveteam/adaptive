@@ -1,6 +1,8 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -24,10 +26,10 @@ var (
 	sns                         = awsutils.NewSNS(region, "", namespace)
 	d                           = awsutils.NewDynamo(region, "", namespace)
 
-	communitiesTable             = utils.NonEmptyEnv("USER_COMMUNITY_TABLE")
-	communityPlatformIndex       = utils.NonEmptyEnv("USER_COMMUNITY_PLATFORM_INDEX")
-	communityUsersTable          = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE")
-	communityUsersCommunityIndex = utils.NonEmptyEnv("COMMUNITY_USERS_COMMUNITY_INDEX")
+	communitiesTable             = utils.NonEmptyEnv("USER_COMMUNITY_TABLE_NAME")
+	communityPlatformIndex       = string(adaptiveCommunity.PlatformIDIndex)
+	communityUsersTable          = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
+	communityUsersCommunityIndex = string(adaptiveCommunityUser.PlatformIDCommunityIDIndex)
 
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
 
