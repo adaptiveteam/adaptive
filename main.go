@@ -24,7 +24,11 @@ import (
 	userQuery "github.com/adaptiveteam/adaptive/lambdas/user-query-lambda-go"
 	userSettings "github.com/adaptiveteam/adaptive/lambdas/user-settings-lambda-go"
 	userSetup "github.com/adaptiveteam/adaptive/lambdas/user-setup-lambda-go"
-
+	feedbackAnalysis "github.com/adaptiveteam/adaptive/lambdas/feedback-analysis-lambda-go"
+	feedbackReporting "github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
+	feedbackReportPosting "github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
+	feedbackSetup "github.com/adaptiveteam/adaptive/lambdas/feedback-setup-lambda-go"
+	feedbackSlackMessageProcessor "github.com/adaptiveteam/adaptive/lambdas/feedback-slack-message-processor-lambda-go"
 	_ "github.com/adaptiveteam/adaptive/daos" // call init to rename table suffixes
 	ls "github.com/aws/aws-lambda-go/lambda"
 )
@@ -71,7 +75,17 @@ func main() {
 	case "entity-bootstrapping":
 		ls.Start(entityBootstrap.HandleRequest)
 	case "entity-streaming":
-		ls.Start(entityStreaming.HandleRequest)	
+		ls.Start(entityStreaming.HandleRequest)
+	case "feedback-analysis":
+		ls.Start(feedbackAnalysis.HandleRequest)
+	case "feedback-reporting":
+		ls.Start(feedbackReporting.HandleRequest)
+	case "feedback-report-posting":
+		ls.Start(feedbackReportPosting.HandleRequest)
+	case "feedback-setup":
+		ls.Start(feedbackSetup.HandleRequest)
+	case "feedback-slack-message-processor":
+		ls.Start(feedbackSlackMessageProcessor.HandleRequest)
 	default:
 		log.Printf("Unknown role %s", role)
 	}
