@@ -70,3 +70,10 @@ func RecoverToErrorVar(name string, err *error) {
 		}
 	}
 }
+
+// Go starts go-routine in a safe way.
+// see `protect` function in https://golang.org/ref/spec#Handling_panics
+func Go(name string, g func()) {
+	defer RecoverAsLogError(name)
+	g()
+}
