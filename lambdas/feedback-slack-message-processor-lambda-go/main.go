@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"fmt"
 	"context"
 	"encoding/json"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
@@ -24,7 +25,7 @@ import (
 
 func publish(msg models.PlatformSimpleNotification) {
 	_, err := sns.Publish(msg, platformNotificationTopic)
-	logger.WithField("error", err).Errorf("Could not publish message to %s topic", platformNotificationTopic)
+	core.ErrorHandler(err, "publish", fmt.Sprintf("publish(): Could not publish message to %s topic", platformNotificationTopic))
 }
 
 func respond(teamID models.TeamID, responses ...platform.Response) {
@@ -34,8 +35,10 @@ func respond(teamID models.TeamID, responses ...platform.Response) {
 			TeamID:   teamID,
 			Response: response,
 		}
+		// publish(presp)
 		_, err := sns.Publish(presp, platformNotificationTopic)
-		logger.WithField("error", err).Errorf("Could not publish message to %s topic", platformNotificationTopic)
+		core.ErrorHandler(err, "respond", fmt.Sprintf("respond(): Could not publish message to %s topic", platformNotificationTopic))
+		// logger.WithField("error", err).Errorf("Could not publish message to %s topic", platformNotificationTopic)
 	}
 }
 

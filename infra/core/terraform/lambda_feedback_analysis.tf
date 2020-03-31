@@ -30,26 +30,9 @@ module "feedback_analysis_lambda" {
 
 // for event based triggering
 data "aws_iam_policy_document" "feedback_analysis_policy" {
-  # statement {
-  #   actions   = [
-  #     "dynamodb:Query",]
-  #   resources = ["${aws_dynamodb_table.adaptive_dialog_content.arn}/index/*"]
-  # }
-
-  # statement {
-  #   actions   = [
-  #     "dynamodb:GetItem",
-  #   ]
-  #   resources = [
-  #     "arn:aws:dynamodb:${local.region}:${data.aws_caller_identity.current.account_id}:table/${local.adaptive_values_table_name}",
-  #   ]
-  # }
-
   statement {
     actions   = ["lambda:InvokeFunction",]
-    resources = [
-      "arn:aws:lambda:${local.region}:${data.aws_caller_identity.current.account_id}:function:${module.user_profile_lambda.function_name}",
-    ]
+    resources = [module.user_profile_lambda.function_arn]
   }
 
   statement {

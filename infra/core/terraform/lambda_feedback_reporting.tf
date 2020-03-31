@@ -34,35 +34,6 @@ resource "aws_iam_role_policy_attachment" "feedback_reporting_lambda_read_all_ta
 }
 
 data "aws_iam_policy_document" "feedback_reporting_policy" {
-  # statement {
-  #   actions   = [
-  #     "dynamodb:DescribeTable",
-  #     "dynamodb:GetItem",
-  #     "dynamodb:Query",]
-  #   resources = [
-  #     local.user_feedback_table_arn, "${local.user_feedback_table_arn}/index/*",
-  #     local.adaptive_values_table_arn,
-  #   ]
-  # }
-
-  # statement {
-  #   actions   = ["dynamodb:GetItem",]
-  #   resources = [
-  #     local.adaptive_dialog_table_arn,
-  #     // TODO: use real table name for dialog aliases. Do not calculate name.
-  #     "arn:aws:dynamodb:${local.region}:${data.aws_caller_identity.current.account_id}:table/${local.adaptive_dialog_table_name}_alias",
-  #   ]
-  # }
-
-  # statement {
-  #   actions   = [
-  #     "dynamodb:Query",]
-  #   resources = [
-  #     "${local.adaptive_dialog_table_arn}/index/*",
-  #     "${local.adaptive_values_table_arn}/index/*",
-  #   ]
-  # }
-
   statement {
     actions   = [
       "s3:PutObject",

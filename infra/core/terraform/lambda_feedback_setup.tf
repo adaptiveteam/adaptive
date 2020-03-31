@@ -43,40 +43,15 @@ data "aws_iam_policy_document" "feedback_setup_policy" {
       "dynamodb:GetItem",
       "dynamodb:DeleteItem",
       "dynamodb:UpdateItem",]
-    resources = [
-      "arn:aws:dynamodb:${local.region}:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.adaptive_user_engagements_dynamo_table.name}",]
+    resources = [aws_dynamodb_table.adaptive_user_engagements_dynamo_table.arn]
   }
 
-  # statement {
-  #   actions   = ["dynamodb:Query",]
-  #   resources = [
-  #     "${local.users_table_arn}/index/*",
-  #     "arn:aws:dynamodb:${local.region}:${data.aws_caller_identity.current.account_id}:table/${local.adaptive_values_table_name}",
-  #     "arn:aws:dynamodb:${local.region}:${data.aws_caller_identity.current.account_id}:table/${local.adaptive_values_table_name}/index/*",
-  #     "arn:aws:dynamodb:${local.region}:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.adaptive_user_feedback_dynamodb_table.name}",
-  #     "${local.user_feedback_table_arn}/index/*",
-  #   ]
-  # }
-
-  # statement {
-  #   actions   = [
-  #     "dynamodb:DescribeTable",
-  #     "dynamodb:PutItem",
-  #     "dynamodb:GetItem",]
-  #   resources = [local.user_feedback_table_arn,]
-  # }
-
-  # statement {
-  #   actions   = [
-  #     "dynamodb:DescribeTable",
-  #     "dynamodb:GetItem",
-  #     "dynamodb:Query",
-  #   ]
-  #   resources = [
-  #     "arn:aws:dynamodb:${local.region}:${data.aws_caller_identity.current.account_id}:table/${local.adaptive_values_table_name}",
-  #     local.users_table_arn,
-  #   ]
-  # }
+  statement {
+    actions   = ["dynamodb:PutItem", 
+      "dynamodb:DeleteItem",
+      "dynamodb:UpdateItem",]
+    resources = [aws_dynamodb_table.adaptive_user_feedback_dynamodb_table.arn,]
+  }
 
   statement {
     actions   = ["lambda:InvokeFunction",]
@@ -96,13 +71,6 @@ data "aws_iam_policy_document" "feedback_setup_policy" {
     actions   = ["SNS:Publish"]
     resources = [aws_sns_topic.platform_notification.arn,]
   }
-
-  # statement {
-  #   actions = ["dynamodb:GetItem","dynamodb:Query","dynamodb:DescribeTable", "dynamodb:Scan"]
-  #   resources = [
-  #     local.client_config_table_arn,
-  #   ]
-  # }
 
 }
 

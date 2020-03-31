@@ -39,8 +39,7 @@ data "aws_iam_policy_document" "feedback_report_posting_policy" {
   }
 
   statement {
-    actions   = [
-      "lambda:InvokeFunction",]
+    actions   = ["lambda:InvokeFunction"]
     resources = [
       module.feedback_reporting_lambda.function_arn,
       module.user_profile_lambda.function_arn,
