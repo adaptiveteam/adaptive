@@ -2,14 +2,15 @@ package engagement_scheduling
 
 import (
 	"fmt"
-	bt "github.com/adaptiveteam/adaptive/business-time"
-	"github.com/adaptiveteam/adaptive/checks"
-	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
-	models "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
 	"log"
 	"sort"
 	"sync"
 	"time"
+
+	bt "github.com/adaptiveteam/adaptive/business-time"
+	"github.com/adaptiveteam/adaptive/checks"
+	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
+	models "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
 )
 
 // ActivateEngagementsOnDay will run through the provided crosswalk to determine
@@ -17,17 +18,17 @@ import (
 // The function returns a list of all of the engagement descriptions for which
 // test_engagements were generated.
 func ActivateEngagementsOnDay(
-//  The map of function check results
+	//  The map of function check results
 	checkFunctionMap checks.CheckFunctionMap,
-// The day to check
+	// The day to check
 	date bt.Date,
-// The specific crosswalk funtion to use
+	// The specific crosswalk funtion to use
 	scheduledEngagements func() []models.CrossWalk,
-// The holidays currently specified by the customer
+	// The holidays currently specified by the customer
 	holidays bt.Holidays,
-// The location of the user
+	// The location of the user
 	location *time.Location,
-// Ths specific user or channel name to send the test_engagements to
+	// Ths specific user or channel name to send the test_engagements to
 	target string,
 ) (rv []string) {
 	// Only activate engagements if the date is a business day
@@ -50,10 +51,11 @@ func ActivateEngagementsOnDay(
 		businessDay := allEngagements[len(allEngagements)-1]
 		wg.Add(len(businessDay.Engagements))
 		for _, e := range businessDay.Engagements {
-			go func(e models.CrossWalkName, wg *sync.WaitGroup) {
+			e2 := e // this creates a new variable to be used in closure. e itself is reused in iterations!
+			core_utils_go.Go("Engagement: "+e.Name, func() {
 				defer wg.Done()
-				e.Functions.Engagement(date, target)
-			}(e, &wg)
+				e2.Functions.Engagement(date, target)
+			})
 		}
 
 		wg.Wait()
@@ -94,7 +96,7 @@ func GenerateScheduleOfEngagements(
 	wg := &sync.WaitGroup{}
 	for i := 0; i <= daysOut; i++ {
 		wg.Add(1)
-		go runDay(
+		core_utils_go.Go(fmt.Sprintf("%d: runDay(date=%v)", i, date) , func(){ runDay(
 				checkFunctionMap,
 				date,
 				endDate,
@@ -104,7 +106,7 @@ func GenerateScheduleOfEngagements(
 				target,
 				constructedDays,
 				wg,
-			)
+		)})
 		date = date.AddTime(0, 0, 1)
 	}
 
@@ -153,10 +155,10 @@ func GetEngagementsOnDay(
 	wg := &sync.WaitGroup{}
 	wg.Add(len(engagements))
 	for _, s := range engagements {
-		go checkSchedule(checkResultMap, date, s, wg, engagementChannel)
+		core_utils_go.Go("checkSchedule", func() { checkSchedule(checkResultMap, date, s, wg, engagementChannel) })
 	}
 
-	go monitorScheduleCheck(wg, engagementChannel)
+	core_utils_go.Go("monitorScheduleCheck", func() { monitorScheduleCheck(wg, engagementChannel) })
 
 	for e := range engagementChannel {
 		rv = append(rv, e)
@@ -200,7 +202,7 @@ func (s ScheduleCheck) AddScheduleFunctionCheck(functionCheck string, expectedVa
 func (s ScheduleCheck) AddScheduleBooleanCheck(booleanCheck, expectedValue bool) (rv ScheduleCheck) {
 	rv.profile = s.profile
 
-	if len(s.Message) > 0 && expectedValue == booleanCheck{
+	if len(s.Message) > 0 && expectedValue == booleanCheck {
 		rv.Message = s.Message
 	} else {
 		rv.Message = ""

@@ -88,7 +88,7 @@ func syncCommunityUserProfiles(users []string, api *slack.Client, event models.C
 	for _, user := range users {
 		// Add adaptive user
 		wg.Add(1)
-		go syncCommunityUserAsync(user, api, event, wg, ec, teamID)
+		core.Go("syncCommunityUserAsync", func (){syncCommunityUserAsync(user, api, event, wg, ec, teamID)})
 	}
 
 	// Wait for all of the users to be added. 
@@ -115,7 +115,7 @@ func deactivateUsers(userIDs []string) []error {
 
 	for _, userID := range userIDs {
 		wg.Add(1)
-		go deactivateUserAsync(userID, wg, ec)
+		core.Go("deactivateUserAsync", func(){ deactivateUserAsync(userID, wg, ec)})
 	}
 	wg.Wait()
 	close(ec)
