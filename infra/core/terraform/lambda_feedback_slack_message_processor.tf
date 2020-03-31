@@ -19,21 +19,6 @@ module "feedback_slack_message_processor_lambda" {
   environment_variables = merge(local.environment_variables, {
     LAMBDA_ROLE   = "feedback-slack-message-processor"
     LOG_NAMESPACE = "feedback-slack-message-processor"
-    CLIENT_ID                           = local.client_id
-    # COACHING_RELATIONSHIPS_TABLE_NAME   = local.coaching_relationships_dynamo_table_name
-    # USER_OBJECTIVES_TABLE_NAME          = local.user_objectives_table_name
-    # USER_OBJECTIVES_PROGRESS_TABLE      = local.user_objectives_progress_table_name
-    USER_FEEDBACK_SETUP_LAMBDA_NAME     = module.feedback_setup_lambda.function_name
-    FEEDBACK_REPORTING_LAMBDA_NAME      = module.feedback_reporting_lambda.function_name
-    FEEDBACK_REPORT_POSTING_LAMBDA_NAME = module.feedback_report_posting_lambda.function_name
-    PLATFORM_NOTIFICATION_TOPIC         = aws_sns_topic.platform_notification.arn
-    LOG_NAMESPACE                       = "feedback-slack-message-processor"
-
-    # USER_COMMUNITY_TABLE            = local.user_communities_table_name
-    # USER_COMMUNITY_PLATFORM_INDEX   = local.user_community_platform_dynamo_index
-    # COMMUNITY_USERS_TABLE           = local.dynamo_community_users_table_name
-    # COMMUNITY_USERS_COMMUNITY_INDEX = local.dynamo_community_users_community_index
-    USER_ENGAGEMENTS_TABLE_NAME     = aws_dynamodb_table.adaptive_user_engagements_dynamo_table.name
   })
 
   // Attach extra policy

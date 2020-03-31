@@ -19,7 +19,6 @@ module "feedback_analysis_lambda" {
   environment_variables = merge(local.environment_variables, {
     LAMBDA_ROLE   = "feedback-analysis"
     LOG_NAMESPACE = "feedback-analysis"
-    CLIENT_ID                             = var.client_id
   })
 
   // Attach extra policy

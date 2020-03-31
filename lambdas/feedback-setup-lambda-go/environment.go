@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/userFeedback"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	evalues "github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -17,7 +18,7 @@ var (
 	namespace                        = utils.NonEmptyEnv("LOG_NAMESPACE")
 	clientID                         = utils.NonEmptyEnv("CLIENT_ID")
 	d                                = awsutils.NewDynamo(utils.NonEmptyEnv("AWS_REGION"), "", namespace)
-	feedbackTable                    = utils.NonEmptyEnv("ADAPTIVE_USER_FEEDBACK_TABLE")
+	feedbackTable                    = userFeedback.TableName(clientID)
 	engagementTable                  = utils.NonEmptyEnv("USER_ENGAGEMENTS_TABLE_NAME")
 	feedbackAnalysisLambda           = utils.NonEmptyEnv("FEEDBACK_ANALYSIS_LAMBDA")
 	region                           = utils.NonEmptyEnv("AWS_REGION")

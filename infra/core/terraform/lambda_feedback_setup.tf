@@ -19,11 +19,6 @@ module "feedback_setup_lambda" {
   environment_variables = merge(local.environment_variables, {
     LAMBDA_ROLE   = "feedback-setup"
     LOG_NAMESPACE = "feedback-setup"
-    CLIENT_ID                           = local.client_id
-    USER_ENGAGEMENTS_TABLE_NAME         = aws_dynamodb_table.adaptive_user_engagements_dynamo_table.name
-    ADAPTIVE_USER_FEEDBACK_TABLE        = aws_dynamodb_table.adaptive_user_feedback_dynamodb_table.name
-    FEEDBACK_ANALYSIS_LAMBDA            = module.feedback_analysis_lambda.function_name
-    FEEDBACK_REPORT_POSTING_LAMBDA_NAME = module.feedback_report_posting_lambda.function_name
   })
 
   // Attach extra policy

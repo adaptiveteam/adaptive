@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/userFeedback"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -22,6 +23,7 @@ import (
 	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	ls "github.com/aws/aws-lambda-go/lambda"
 	"github.com/sirupsen/logrus"
+	_ "github.com/adaptiveteam/adaptive/daos"
 )
 
 type Coaching struct {
@@ -53,13 +55,13 @@ var (
 	region                    = utils.NonEmptyEnv("AWS_REGION")
 	D                         = awsutils.NewDynamo(region, "", namespace)
 	s                         = awsutils.NewS3(region, "", namespace)
-	table                     = utils.NonEmptyEnv("ADAPTIVE_USER_FEEDBACK_TABLE")
+	clientID                  = utils.NonEmptyEnv("CLIENT_ID")
+	table                     = userFeedback.TableName(clientID)
 	reportBucket              = utils.NonEmptyEnv("FEEDBACK_REPORTS_BUCKET_NAME")
 	userProfileLambda         = utils.NonEmptyEnv("USER_PROFILE_LAMBDA_NAME")
-	feedbackTargetIndex       = "QuarterYearTargetIndex"
+	feedbackTargetIndex       = string(userFeedback.QuarterYearTargetIndex)
 	platformNotificationTopic = utils.NonEmptyEnv("PLATFORM_NOTIFICATION_TOPIC")
 	sns                       = awsutils.NewSNS(region, "", namespace)
-	clientID                  = utils.NonEmptyEnv("CLIENT_ID")
 	dialogTable               = utils.NonEmptyEnv("DIALOG_TABLE")
 
 	dns       = common.DynamoNamespace{Dynamo: D, Namespace: namespace}

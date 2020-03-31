@@ -19,10 +19,6 @@ module "feedback_report_posting_lambda" {
   environment_variables = merge(local.environment_variables, {
     LAMBDA_ROLE   = "feedback-report-posting"
     LOG_NAMESPACE = "feedback-report-posting"
-    CLIENT_ID                      = local.client_id
-    USER_ENGAGEMENTS_TABLE_NAME    = aws_dynamodb_table.adaptive_user_engagements_dynamo_table.name
-    REPORTS_BUCKET_NAME            = aws_s3_bucket.adaptive-feedback-reports-bucket.bucket
-    FEEDBACK_REPORTING_LAMBDA_NAME = module.feedback_reporting_lambda.function_name
   })
 
   // Attach extra policy
