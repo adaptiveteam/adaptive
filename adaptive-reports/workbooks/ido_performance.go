@@ -1,6 +1,7 @@
 package workbooks
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/dialogEntry"
 	"fmt"
 
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
@@ -74,10 +75,9 @@ func CreateIDOWorkbook(
 				styles.Styles,
 			)
 
-			dialog, err := dialogDAO.FetchByAlias("report-instructions", "instructions", "ido")
-			if err != nil {
-				fmt.Println(errors.Wrap(err, "error querying instructions for IDO performance report"))
-			}
+			var dialog dialogEntry.DialogEntry
+			dialog, err = dialogDAO.FetchByAlias("report-instructions", "instructions", "ido")
+			err = errors.Wrap(err, "error querying instructions for IDO performance report")
 			utilities2.CreateInstructions(
 				f,
 				instructions,
