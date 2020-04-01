@@ -1,6 +1,6 @@
 package queries
 
-const StrategyStatus = `
+const SelectStrategyStatusByPlatformID = `
 SELECT objective.id                                                                                                   AS 'objective_id',
        initiative_updates.id                                                                                          AS 'initiative_id',
        objective.name                                                                                                 AS 'Objective Name',

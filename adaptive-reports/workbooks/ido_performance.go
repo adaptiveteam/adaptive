@@ -26,7 +26,7 @@ func CreateIDOWorkbook(
 	if err == nil {
 		qm := utilities.NewQueryMap().
 			AddToQuery("ido",
-				queries.IDOs,
+				queries.SelectIDOsByUserID,
 				userID,
 			)
 

@@ -1,6 +1,6 @@
 package queries
 
-const AlignmentSummary = `
+const SelectAlignmentSummaryByPlatformID = `
 SELECT user_objective.id,
        CASE
            WHEN objective.name is not null THEN objective.name

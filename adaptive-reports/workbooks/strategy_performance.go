@@ -3,6 +3,7 @@ package workbooks
 import (
 	"fmt"
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
+	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/models"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/queries"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
@@ -14,7 +15,7 @@ import (
 )
 
 func CreateStrategyWorkbook(
-	teamID string,
+	platformID common.PlatformID,
 	db *utilities.Database,
 	dialogDAO fetch_dialog.DAO,
 	properties *excel.DocProperties,
@@ -25,21 +26,21 @@ func CreateStrategyWorkbook(
 	if err == nil {
 		qm := utilities.NewQueryMap().
 			AddToQuery("strategy",
-				queries.StrategyStatus,
-				teamID,
+				queries.SelectStrategyStatusByPlatformID,
+				string(platformID),
 			).AddToQuery(
 				"alignment",
-				queries.AlignmentSummary,
-				teamID,
+				queries.SelectAlignmentSummaryByPlatformID,
+				string(platformID),
 			).AddToQuery(
-			"vision",
-			queries.Vision,
-				teamID,
+				"vision",
+				queries.SelectVisionByPlatformID,
+				string(platformID),
 			).AddToQuery(
-			"competencies",
-			queries.Competencies,
-			teamID,
-		)
+				"competencies",
+				queries.SelectCompetenciesByPlatformID,
+				string(platformID),
+			)
 		queryResults, err := utilities.RunQueries(db, &qm)
 
 		if err == nil {

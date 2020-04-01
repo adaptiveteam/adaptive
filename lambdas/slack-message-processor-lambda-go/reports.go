@@ -17,7 +17,7 @@ import (
 
 func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf *bytes.Buffer, reportname string, err error) {
 	defer recoverToErrorVar("onStrategyPerformanceReport", &err)
-	customerID := teamID.ToString()
+	platformID := teamID.ToPlatformID()
 	db := utilities.SQLOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
 	defer utilities.CloseUnsafe(db)
 	var file *excelize.File
@@ -26,7 +26,7 @@ func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf
 
 	reportname = "Strategic Performance"
 	file, err = workbooks.CreateStrategyWorkbook(
-		customerID,
+		platformID,
 		utilities.WrapDB(db),
 		dialogFetcherDAO,
 		utilities2.CreateDocumentProperties(
