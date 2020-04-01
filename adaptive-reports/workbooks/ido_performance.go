@@ -25,14 +25,12 @@ func CreateIDOWorkbook(
 	f = excel.NewFile()
 	err = f.SetDocProps(properties)
 	if err == nil {
-		qm := utilities.NewQueryMap().
-			AddToQuery("ido",
-				queries.SelectIDOsByUserID,
-				userID,
-			)
+		qm := utilities.InvokeQueries(
+			utilities.InvokeQuery("ido", queries.SelectIDOsByUserID, userID),
+		)
 
 		var queryResults utilities.QueryResultMap
-		queryResults, err = utilities.RunQueries(db, &qm)
+		queryResults, err = qm.Run(db)
 
 		if err == nil {
 			allIDOs := models.CreateIDOs(

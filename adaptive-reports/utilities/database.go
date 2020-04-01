@@ -141,77 +141,53 @@ type Query struct {
 	arguments []string
 }
 
-type QueryMap map[string]*Query
-
-func NewQueryMap() *QueryMap {
-	qm := make(QueryMap)
-	return &qm
-}
-
-func (qm QueryMap) AddToQuery(name, query string, arguments ...string) QueryMap {
-	q := Query{
-		query:     query,
-		arguments: arguments,
-	}
-	qm[name] = &q
-	return qm
-}
 
 type QueryResult struct {
-	columns []string
-	rows    [][]string
-	table   Table
+	Columns []string
+	Rows    [][]string
+	Table
 }
 
 func (q QueryResult) GetColumns() []string {
-	return q.columns
+	return q.Columns
 }
 
 func (q QueryResult) GetRows() [][]string {
-	return q.rows
+	return q.Rows
 }
 
 func (q QueryResult) GetTable() Table {
-	return q.table
+	return q.Table
 }
 
 type QueryResultMap map[string]QueryResult
 
-func RunQueries(
+func (queries QueryInvocations)Run(
 	db *Database,
-	queries *QueryMap,
 ) (rv QueryResultMap, err error) {
 	type results struct {
 		purpose     string
 		queryResult QueryResult
 	}
 
-	r := make(chan results, len(*queries))
+	r := make(chan results, len(queries))
 	var errGroup errgroup.Group
-	for k, v := range *queries {
-		key := k
-		value := v.query
+	for _, q := range queries {
+		q2 := q
 		errGroup.Go(func() error {
-			query := value
-			arguments := make([]interface{}, len(v.arguments))
-			for i, v := range v.arguments {
-				arguments[i] = v
-			}
-			columns, rows, table, tableErr := db.GetTable(query, arguments...)
+			columns, rows, table, tableErr := db.GetTable(q2.SQL, q2.ArgumentValues...)
 			if tableErr == nil {
 				n := results{
-					purpose: key,
+					purpose: q2.Name,
 					queryResult: QueryResult{
-						columns: columns,
-						rows:    rows,
-						table:   table,
+						Columns: columns,
+						Rows:    rows,
+						Table:   table,
 					},
 				}
 				r <- n
-			} else {
-				return tableErr
 			}
-			return nil
+			return tableErr
 		})
 	}
 
