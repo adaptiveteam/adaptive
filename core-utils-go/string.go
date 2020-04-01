@@ -80,3 +80,25 @@ func ClipString(str string, prefixLength int, suffix string) string {
 	}
 	return fmt.Sprintf("%s%s", str[0:prefixLength-len(suffix)], suffix)
 }
+
+// SliceToSet converts slice of strings to a set of strings
+func SliceToSet(strs []string) (set map[string]struct{}) {
+	set = make(map[string]struct{}, len(strs))
+	for _, s := range strs {
+		set[s] = struct{}{}
+	}
+	return
+}
+
+// IsIntersectionNonEmpty checks if intersection is not empty
+func IsIntersectionNonEmpty(as []string) func (bs []string) bool {
+	setA := SliceToSet(as)
+	return func (bs []string) bool {
+		for _, b := range bs {
+			if _,ok := setA[b]; ok {
+				return ok
+			}
+		}
+		return false
+	}
+}

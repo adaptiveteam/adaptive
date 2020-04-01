@@ -4,7 +4,6 @@ import (
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
 
@@ -308,28 +307,6 @@ func CompetencyReadAll() func(conn DynamoDBConnection) (res []adaptiveValue.Adap
 		dao := adaptiveValue.NewDAOByTableName(conn.Dynamo, "CompetencyDynamoDBConnection", competenciesTableName(conn.ClientID))
 		res, err = dao.ReadByPlatformID(conn.PlatformID)
 		err = errors.Wrapf(err, "CompetencyDynamoDBConnection) ReadAll(conn.PlatformID=%s)", conn.PlatformID)
-		return
-	}
-}
-
-// type StrategyObjectiveDynamoDBConnection DynamoDBConnection
-
-func StrategyObjectiveRead(id string) func(conn DynamoDBConnection) (res models.StrategyObjective, err error) {
-	return func(conn DynamoDBConnection) (res models.StrategyObjective, err error) {
-		defer core.RecoverToErrorVar("StrategyObjectiveDynamoDBConnection.Read", &err)
-		id2 := id
-		i := strings.Index(id2, "_")
-		if i >= 0 {
-			log.Printf("WARN: StrategyObjectiveDynamoDBConnection) Read: ID has '_': %s\n", id)
-			id2 = id[0:i]
-		}
-
-		log.Printf("StrategyObjectiveDynamoDBConnection) Read: reading id2=%s\n", id2)
-		res = strategy.StrategyObjectiveByID(models.ParseTeamID(conn.PlatformID), id2, 
-			strategyObjectivesTableName(conn.ClientID))
-		if res.ID != id2 {
-			err = fmt.Errorf("couldn't find StrategyObjectiveByID(id2=%s, id=%s). Instead got ID=%s", id2, id, res.ID)
-		}
 		return
 	}
 }

@@ -16,6 +16,7 @@ import (
 	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/postponedEvent"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 )
 
 /* IDO Checks */
@@ -121,12 +122,18 @@ func ObjectivesExist(userID string, date business_time.Date) (res bool) {
 	if logEnabled {
 		log.Printf("Checking ObjectivesExist for userID=%s, date=%v\n", userID, date)
 	}
-	objs := strategy.UserStrategyObjectives(userID, strategyObjectivesTableName, strategyObjectivesPlatformIndex,
-		userObjectivesTable, communityUsersTable, communityUsersUserCommunityIndex)
+	platformID := UserIDToPlatformID(userDAO)(userID)
+	conn := daosCommon.CreateConnectionFromEnv(platformID)
+	objs, err2 := strategy.SelectFromStrategyObjectiveJoinCommunityWhereUserIDOrInStrategyCommunity(userID)(conn)
+	if err2 == nil {
+		res = len(objs) > 0
+	} else {
+		log.Printf("ERROR ObjectivesExist: %+v\n", err2)
+	}
 	if logEnabled {
 		log.Println("Checked ObjectivesExist: ", len(objs))
 	}
-	return len(objs) > 0
+	return 
 }
 
 // Is the user the advocate for any objectives?

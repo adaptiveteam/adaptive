@@ -76,7 +76,7 @@ func (functions CheckFunctionMap) Evaluate(userID string, date bt.Date) (rv Chec
 		if out.err != nil {
 			log.Printf("Evaluate(%d): Error in CheckFunctionMap) Evaluate of function %s: %+v\n", id, out.name, out.err)
 		}
-		if out.deltaT > 50 * time.Millisecond {
+		if out.deltaT > 100 * time.Millisecond {
 			log.Printf("CheckFunctionMap.Evaluate(%d): Evaluate of function %s took %v\n", id, out.name, out.deltaT)
 		}
 		rv[out.name] = out.result
@@ -85,7 +85,7 @@ func (functions CheckFunctionMap) Evaluate(userID string, date bt.Date) (rv Chec
 	}
 	deltaTime := time.Since(start)
 	if deltaTime > time.Second {
-		log.Printf("CheckFunctionMap.Evaluate took %v. Here is the list of individual checks:\n", deltaTime)
+		log.Printf("WARN: CheckFunctionMap.Evaluate took %v. Here is the list of individual checks:\n", deltaTime)
 		for _, out := range outputs {
 			log.Printf("%s: %v ms\n", out.name, out.deltaT / time.Millisecond)
 		}

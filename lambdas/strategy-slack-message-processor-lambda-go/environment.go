@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -15,7 +16,7 @@ var (
 	userProfileLambda            = utils.NonEmptyEnv("USER_PROFILE_LAMBDA_NAME")
 	communityUsersTable          = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
 	communityUsersUserIndex      = utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX")
-	communityUsersCommunityIndex = utils.NonEmptyEnv("COMMUNITY_USERS_COMMUNITY_INDEX")
+	communityUsersCommunityIndex = string(adaptiveCommunityUser.PlatformIDCommunityIDIndex)
 	namespace                    = utils.NonEmptyEnv("LOG_NAMESPACE")
 	region                       = utils.NonEmptyEnv("AWS_REGION")
 

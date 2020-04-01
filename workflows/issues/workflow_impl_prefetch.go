@@ -1,13 +1,12 @@
 package issues
 
 import (
-	// "github.com/adaptiveteam/adaptive/workflows/exchange"
+	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/pkg/errors"
-	// "strings"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	userObjective "github.com/adaptiveteam/adaptive/daos/userObjective"
-	// issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
+	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 )
 
 // getNewAndOldIssues loads issue if necessary
@@ -34,10 +33,10 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 	issue *Issue,
 	) (err error ) {
 	
-	w.AdaptiveLogger.
+	log := w.AdaptiveLogger.
 		WithField("issue.UserObjective.ID",issue.UserObjective.ID).
-		WithField("issue.StrategyObjective.ID",issue.StrategyObjective.ID).
-		Info("prefetchIssueWithoutProgress")
+		WithField("issue.StrategyObjective.ID",issue.StrategyObjective.ID)
+	log.Info("prefetchIssueWithoutProgress")
 	if issue.UserObjective.AccountabilityPartner != "none" && 
 		issue.UserObjective.AccountabilityPartner != "requested" && 
 		issue.UserObjective.AccountabilityPartner != "" {
@@ -49,21 +48,29 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 		if err != nil { return }
 	}
 
-	switch issue.StrategyAlignmentEntityType {
-	case userObjective.ObjectiveStrategyObjectiveAlignment:
-		issue.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
-	case userObjective.ObjectiveStrategyInitiativeAlignment:
-		issue.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
-	case userObjective.ObjectiveCompetencyAlignment:
-		issue.PrefetchedData.AlignedCompetency, err = CompetencyRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
-	}
-	if err != nil {
-		w.AdaptiveLogger.
-			WithError(err).
-			WithField("issue.StrategyAlignmentEntityType", issue.StrategyAlignmentEntityType).
-			WithField("issue.StrategyAlignmentEntityID", issue.StrategyAlignmentEntityID).
-			Infof("prefetchIssueWithoutProgress, couldn't load issue.PrefetchedData.Aligned*")
-		err = nil
+	if issue.StrategyAlignmentEntityID != "" {
+		switch issue.StrategyAlignmentEntityType {
+		case userObjective.ObjectiveStrategyObjectiveAlignment:
+			var sos []strategyObjective.StrategyObjective
+			sos, err = issuesUtils.StrategyObjectiveReadOrEmpty(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
+			if len(sos) > 0 {
+				issue.PrefetchedData.AlignedCapabilityObjective = sos[0]
+			} else {
+				log.Warnf("IGNORE ERROR: Couldn't find StrategyObjective ID=%s", issue.StrategyAlignmentEntityID)
+			}
+		case userObjective.ObjectiveStrategyInitiativeAlignment:
+			issue.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
+		case userObjective.ObjectiveCompetencyAlignment:
+			issue.PrefetchedData.AlignedCompetency, err = CompetencyRead(issue.StrategyAlignmentEntityID)(w.DynamoDBConnection)
+		}
+		if err != nil {
+			w.AdaptiveLogger.
+				WithError(err).
+				WithField("issue.StrategyAlignmentEntityType", issue.StrategyAlignmentEntityType).
+				WithField("issue.StrategyAlignmentEntityID", issue.StrategyAlignmentEntityID).
+				Infof("prefetchIssueWithoutProgress, couldn't load issue.PrefetchedData.Aligned*")
+			err = nil
+		}
 	}
 
 	itype := issue.GetIssueType()
@@ -77,7 +84,9 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 			w.AdaptiveLogger.
 				WithField("capCommID", capCommID).
 				Infof("prefetchIssueWithoutProgress, prefetching AlignedCapabilityCommunity by CapabilityCommunityIDs[0]")
-			issue.PrefetchedData.AlignedCapabilityCommunity, err = CapabilityCommunityRead(capCommID)(w.DynamoDBConnection)
+			if capCommID != "" {
+				issue.PrefetchedData.AlignedCapabilityCommunity, err = CapabilityCommunityRead(capCommID)(w.DynamoDBConnection)
+			}
 		}
 		// splits := strings.Split(issue.UserObjective.ID, "_")
 		// if len(splits) == 2 {
@@ -98,7 +107,13 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 		}
 		capObjID := issue.StrategyInitiative.CapabilityObjective
 		if capObjID != "" {
-			issue.PrefetchedData.AlignedCapabilityObjective, err = StrategyObjectiveRead(capObjID)(w.DynamoDBConnection)
+			var sos []strategyObjective.StrategyObjective
+			sos, err = issuesUtils.StrategyObjectiveReadOrEmpty(capObjID)(w.DynamoDBConnection)
+			if len(sos) > 0 {
+				issue.PrefetchedData.AlignedCapabilityObjective = sos[0]
+			} else {
+				log.Warnf("IGNORE ERROR 2: Couldn't find StrategyObjective capObjID=%s", capObjID)
+			}
 		}
 	default:
 		w.AdaptiveLogger.WithField("issue.ID", issue.UserObjective.ID).Info("Not aligned with any strategy")

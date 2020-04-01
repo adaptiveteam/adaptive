@@ -225,7 +225,7 @@ func marshalAttributes(attributes map[string]interface{}) (m map[string]*dynamod
 
 func (d *DynamoRequest) QueryTableWithExpr(table string, condExpr string, attrNames map[string]string,
 	params map[string]*dynamodb.AttributeValue, scanForward bool, limit int, out interface{}) (err error) {
-	qi := &dynamodb.QueryInput{
+	qi := dynamodb.QueryInput{
 		TableName:                 aws.String(table),
 		KeyConditionExpression:    aws.String(condExpr),
 		ExpressionAttributeValues: params,
@@ -238,11 +238,7 @@ func (d *DynamoRequest) QueryTableWithExpr(table string, condExpr string, attrNa
 	if limit > 0 {
 		qi.Limit = aws.Int64(int64(limit))
 	}
-	result, err2 := d.svc.Query(qi)
-	err = err2
-	if err == nil {
-		err = dynamodbattribute.UnmarshalListOfMaps(result.Items, out)
-	}
+	err = d.QueryInternal(qi, out)
 	err = errors.Wrapf(err, "QueryTableWithExpr(table=%s, condExpr=%s, params=%v) ", table, condExpr, params)
 	if err != nil {
 		d.errorLog(err)
@@ -257,7 +253,7 @@ func (d *DynamoRequest) QueryTableWithIndex(table string, indexExpr DynamoIndexE
 
 	indexAttributesMarshalled, err = marshalAttributes(indexExpr.Attributes)
 	if err == nil {
-		ip := &dynamodb.QueryInput{
+		qi := dynamodb.QueryInput{
 			TableName:                 aws.String(table),
 			KeyConditionExpression:    aws.String(indexExpr.Condition),
 			ExpressionAttributeValues: indexAttributesMarshalled,
@@ -266,22 +262,18 @@ func (d *DynamoRequest) QueryTableWithIndex(table string, indexExpr DynamoIndexE
 		}
 
 		if indexExpr.IndexName != "" {
-			ip.IndexName = aws.String(indexExpr.IndexName)
+			qi.IndexName = aws.String(indexExpr.IndexName)
 		}
 
 		if len(attrNamesMapped) > 0 {
-			ip.ExpressionAttributeNames = attrNamesMapped
+			qi.ExpressionAttributeNames = attrNamesMapped
 		}
 
 		if limit > 0 {
-			ip.Limit = aws.Int64(int64(limit))
+			qi.Limit = aws.Int64(int64(limit))
 		}
 
-		result, err2 := d.svc.Query(ip)
-		err = err2
-		if err == nil {
-			err = dynamodbattribute.UnmarshalListOfMaps(result.Items, out)
-		}
+		err = d.QueryInternal(qi, out)
 	}
 	err = errors.Wrapf(err, "QueryTableWithIndex(table=%s, indexExpr=%v) ", table, indexExpr)
 	if err != nil {
@@ -290,15 +282,32 @@ func (d *DynamoRequest) QueryTableWithIndex(table string, indexExpr DynamoIndexE
 	return
 }
 
+// QueryInternal sends QueryInput to DynamoDB and converts results to `out` which should be 
+// slice of structs.
+func (d *DynamoRequest) QueryInternal(qi dynamodb.QueryInput, out interface{}) (err error) {
+	result, err2 := d.svc.Query(&qi)
+	err = err2
+	if err == nil {
+		err = dynamodbattribute.UnmarshalListOfMaps(result.Items, out)
+	}
+	return
+}
+
 func (d *DynamoRequest) ScanTable(table string, out interface{}) (err error) {
-	res, err2 := d.svc.Scan(&dynamodb.ScanInput{
+	err = d.ScanTableInternal(dynamodb.ScanInput{
 		TableName: aws.String(table),
-	})
+	}, out)
+	return
+}
+
+// ScanTableInternal runs Scan for the given input and unmarshals results to the list of structs
+func (d *DynamoRequest) ScanTableInternal(si dynamodb.ScanInput, out interface{}) (err error) {
+	res, err2 := d.svc.Scan(&si)
 	err = err2
 	if err == nil {
 		err = dynamodbattribute.UnmarshalListOfMaps(res.Items, &out)
 	}
-	err = errors.Wrapf(err, "ScanTable(table=%s) ", table)
+	err = errors.Wrapf(err, "ScanTable(table=%s) ", *si.TableName)
 	if err != nil {
 		d.errorLog(err)
 	}
