@@ -1,6 +1,7 @@
 package nlp
 
 import (
+	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"log"
 	"sync"
 )
@@ -19,15 +20,14 @@ func predicateToOptional(f func(string)bool, improvementID ImprovementID)func(st
 
 func optionalToGoRoutine(f func(string)[]ImprovementID, text string) func (improvements chan ImprovementID, wg *sync.WaitGroup) {
 	return lazyToGoRoutine(func()[]ImprovementID{return f(text)})
-	// func (text string, improvementsChannel chan ImprovementID, wg *sync.WaitGroup) {
-	// 	defer wg.Done()
-	// 	improvements := f(text)
-	// 	for _, improvementID := range improvements {
-	// 		improvementsChannel <- improvementID
-	// 	}
-	// }
 }
-
+// GoPredicate starts the provided predicate in a protected Go-routine
+func GoPredicate(f func(string)bool, improvementID ImprovementID, text string, improvements chan ImprovementID, wg *sync.WaitGroup) {
+	core_utils_go.Go(
+		string(improvementID), 
+		func() { optionalToGoRoutine(predicateToOptional(f, improvementID), text)(improvements, wg) },
+	)
+}
 func lazyToGoRoutine(f func()[]ImprovementID) func (improvements chan ImprovementID, wg *sync.WaitGroup) {
 	return func (improvementsChannel chan ImprovementID, wg *sync.WaitGroup) {
 		defer wg.Done()

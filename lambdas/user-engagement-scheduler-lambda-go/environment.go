@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
@@ -13,7 +14,7 @@ var (
 	userTable                    = utils.NonEmptyEnv("USERS_TABLE_NAME")
 	usersPlatformIndex           = utils.NonEmptyEnv("USERS_PLATFORM_INDEX")
 	communityUsersTable          = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
-	communityUsersCommunityIndex = utils.NonEmptyEnv("COMMUNITY_USERS_COMMUNITY_INDEX")
+	communityUsersCommunityIndex = string(adaptiveCommunityUser.PlatformIDCommunityIDIndex)
 	// coachingRelationshipsTable        = utils.NonEmptyEnv("COACHING_RELATIONSHIPS_TABLE_NAME")
 	coachingRelationshipsCoacheeIndex = "CoacheeQuarterYearIndex"
 	coachQuarterYearIndex             = utils.NonEmptyEnv("COACHING_RELATIONSHIPS_COACH_QUARTER_YEAR_INDEX")
