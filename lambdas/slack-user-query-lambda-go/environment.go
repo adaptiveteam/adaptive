@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -27,9 +28,9 @@ var (
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 
 	userCommunityTable           = utils.NonEmptyEnv("USER_COMMUNITY_TABLE_NAME")
-	userCommunityPlatformIndex   = utils.NonEmptyEnv("USER_COMMUNITY_PLATFORM_INDEX")
+	userCommunityPlatformIndex   = string(adaptiveCommunity.PlatformIDIndex)
 	communityUsersTable          = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
-	communityUsersCommunityIndex = utils.NonEmptyEnv("COMMUNITY_USERS_COMMUNITY_INDEX")
+	communityUsersCommunityIndex = adaptiveCommunityUser.PlatformIDCommunityIDIndex
 
 	adaptiveCommunityUserDAO = adaptiveCommunityUser.NewDAOByTableName(d, namespace, communityUsersTable)
 )
