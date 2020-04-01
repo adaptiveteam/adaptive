@@ -1,6 +1,8 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/slackTeam"
+	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
@@ -83,31 +85,58 @@ func HandleRequest(ctx context.Context) (err error) {
 	logger = logger.WithLambdaContext(ctx)
 	defer func() {
 		if err != nil {
-			logger.Errorf("ERROR HandleRequest: %+v\n", err)
+			logger.WithError(err).Errorf("ERROR HandleRequest: %+v\n", err)
 			err = nil
 		}
 	}()
 	config := readConfigFromEnvironment()
-	// Query all the client configs
-	var clientConfigs []models.ClientPlatformToken
-	err = config.d.ScanTable(config.clientConfigTable, &clientConfigs)
+
+	var teamIDs []models.TeamID
+	teamIDs, err = getTeamIDsFromClientConfigs(config)
 	if err == nil {
-		for _, clientConfig := range clientConfigs {
-			// Query users for a client based on platform id
-			teamID := models.ParseTeamID(clientConfig.PlatformID)
-			err = runScheduleForTeam(config, teamID)
-			if err != nil {
-				logger.WithError(err).Errorf("HandleRequest.runScheduleForTeam")
-			}
-			err = runGlobalScheduleForTeam(config, teamID)
-			if err != nil {
-				logger.WithError(err).Errorf("HandleRequest.runGlobalScheduleForTeam")
+		var teamIDs2 []models.TeamID
+		teamIDs2, err = getTeamIDsFromSlackTeams(config)
+		teamIDs = append(teamIDs, teamIDs2...)
+		// Query all the client configs
+		if err == nil {
+			for _, teamID := range teamIDs {
+				err = runScheduleForTeam(config, teamID)
+				if err != nil {
+					logger.WithError(err).Errorf("HandleRequest.runScheduleForTeam")
+				}
+				err = runGlobalScheduleForTeam(config, teamID)
+				if err != nil {
+					logger.WithError(err).Errorf("HandleRequest.runGlobalScheduleForTeam")
+				}
 			}
 		}
 	}
 	return
 }
 
+func getTeamIDsFromClientConfigs(config Config) (teamIDs []models.TeamID, err error) {
+	// Query all the client configs
+	var clientConfigs []models.ClientPlatformToken
+	err = config.d.ScanTable(clientPlatformToken.TableName(config.clientID), &clientConfigs)
+	if err == nil {
+		for _, clientConfig := range clientConfigs {
+			teamID := models.ParseTeamID(clientConfig.PlatformID)
+			teamIDs = append(teamIDs, teamID)
+		}
+	}
+	return
+}
+func getTeamIDsFromSlackTeams(config Config) (teamIDs []models.TeamID, err error) {
+	var slackTeams []slackTeam.SlackTeam
+	err = config.d.ScanTable(slackTeam.TableName(config.clientID), &slackTeams)
+	if err == nil {
+		for _, slackTeam := range slackTeams {
+			teamID := models.ParseTeamID(slackTeam.TeamID)
+			teamIDs = append(teamIDs, teamID)
+		}
+	}
+	return
+}
 func getCurrentQuarterHourInterval() (startUTCTime, endUTCTime time.Time) {
 	now := time.Now().UTC()
 	// rounded to nearest hour quarter
@@ -124,6 +153,7 @@ func getCurrentQuarterHourInterval() (startUTCTime, endUTCTime time.Time) {
 	return
 }
 
+// Query users for a client based on platform id
 func runScheduleForTeam(config Config, teamID models.TeamID) (err error) {
 	startUTCTime, endUTCTime := getCurrentQuarterHourInterval()
 
