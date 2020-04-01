@@ -34,7 +34,7 @@ func CreateStrategyWorkbook(
 		queryResults, err := qm.Run(db)
 
 		if err == nil {
-			allObjectives, allInitiatives := models.CreateObjectives(
+			allObjectives, allInitiatives := models.ConvertTableToObjectivesAndInitiatives(
 				queryResults["strategy"].GetTable(),
 				len(queryResults["strategy"].GetRows()),
 			)

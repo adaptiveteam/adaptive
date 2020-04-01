@@ -136,7 +136,7 @@ func (c Initiative) GetIndex() int {
 	return c.Index
 }
 
-func CreateObjectives(table utilities.Table, rows int) (
+func ConvertTableToObjectivesAndInitiatives(table utilities.Table, rows int) (
 	objectivesMap Objectives,
 	initiativesMap Initiatives,
 ) {
