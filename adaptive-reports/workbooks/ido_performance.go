@@ -38,18 +38,11 @@ func CreateIDOWorkbook(
 				queryResults["ido"].GetTable(),
 				len(queryResults["ido"].GetRows()),
 			)
-			instructions,
-				summaryIDO,
-				detailsIDO,
-				activeIDOs,
-				closedIDOs := ido.CreateIDOWorksheets(
-				f,
-				"instructions",
-				"IDO Summary",
-				"IDO Details",
-				"Active IDO Updates",
-				"Closed IDO Updates",
-			)
+			instructions := ido.CreateIDOWorksheet(f, "instructions")
+			summaryIDO := ido.CreateIDOWorksheet(f, "IDO Summary")
+			detailsIDO := ido.CreateIDOWorksheet(f, "IDO Details")
+			activeIDOs := ido.CreateIDOWorksheet(f, "Active IDO Updates")
+			closedIDOs := ido.CreateIDOWorksheet(f, "Closed IDO Updates")
 
 			ido.CreateIDOUpdates(
 				f,
