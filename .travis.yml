@@ -48,7 +48,7 @@ script:
   
   # - pushd infra/core/terraform; pwd; ./backends/init.sh; popd
 
-  - make core-build
+  - make adaptive-build
   # - $GOPATH/bin/goveralls -service=travis-pro
   # - docker-compose up -d
   - make test-with-localstack
