@@ -10,6 +10,7 @@ data "aws_iam_policy_document" "read_all_tables" {
       aws_dynamodb_table.adaptive_dialog_content.arn,
       aws_dynamodb_table.adaptive_dialog_aliases.arn,
       aws_dynamodb_table.adaptive_user_engagements_dynamo_table.arn,
+      aws_dynamodb_table.adaptive_user_feedback_dynamodb_table.arn,
       aws_dynamodb_table.adaptive_users_dynamodb_table.arn,
       aws_dynamodb_table.adaptive_value_dynamodb_table.arn,
       aws_dynamodb_table.client_config_dynamodb_table.arn,
@@ -30,6 +31,7 @@ data "aws_iam_policy_document" "read_all_tables" {
       aws_dynamodb_table.slack_team_dynamodb_table.arn,
 
       aws_dynamodb_table.coaching_rejections.arn,
+
     ]
   }
   statement {

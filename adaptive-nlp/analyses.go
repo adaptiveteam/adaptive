@@ -1,6 +1,7 @@
 package nlp
 
 import (
+	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"time"
 	"fmt"
 	"log"
@@ -45,15 +46,15 @@ var defaultTimeout = 5000*time.Millisecond
 
 func waitWithTimeout(wg *sync.WaitGroup, dur time.Duration) {
 	readiness := make(chan struct{}, 2)
-	go func(){
+	core_utils_go.Go("wg.Wait", func(){
 		wg.Wait()
 		readiness <- struct{}{}
-	}()
-	go func(){
+	})
+	core_utils_go.Go("timer", func(){
 		timer := time.NewTimer(dur)
 		<- timer.C
 		readiness <- struct{}{}
-	}()
+	})
 	<- readiness
 }
 
@@ -63,18 +64,15 @@ func (c Connections)GetImprovements(text string, lc LanguageCode) ([]Improvement
 	const checksCount = 5
 	improvementsChannel := make(chan ImprovementID, checksCount)
 	errorsChannel := make(chan error, checksCount)
-	tooShort := optionalToGoRoutine(predicateToOptional(GetTooShort, TooShort), text)
-	tooLong := optionalToGoRoutine(predicateToOptional(GetTooLong, TooLong), text)
-	wordsToAvoid := optionalToGoRoutine(predicateToOptional(GetWordsToAvoid, WordsToAvoid), text)
 	if len(text) > 0 {
 		wg := &sync.WaitGroup{}
 		// There are totally checksCount goroutines from below
 		wg.Add(checksCount)
-		go tooShort(improvementsChannel, wg)
-		go tooLong(improvementsChannel, wg)
-		go wordsToAvoid(improvementsChannel, wg)
-		go c.actionableGo(text, lc, improvementsChannel, errorsChannel, wg)
-		go c.sentimentGo(text, lc, improvementsChannel, errorsChannel, wg)
+		GoPredicate(GetTooShort, TooShort, text, improvementsChannel, wg)
+		GoPredicate(GetTooLong, TooLong, text, improvementsChannel, wg)
+		GoPredicate(GetWordsToAvoid, WordsToAvoid, text, improvementsChannel, wg)
+		core_utils_go.Go(string(Actionable), func () { c.actionableGo(text, lc, improvementsChannel, errorsChannel, wg)})
+		core_utils_go.Go("SentimentGo", func () { c.sentimentGo(text, lc, improvementsChannel, errorsChannel, wg)})
 		waitWithTimeout(wg, defaultTimeout)
 	}
 	close(errorsChannel)
