@@ -1,7 +1,6 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/userFeedback"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	evalues "github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -11,6 +10,8 @@ import (
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/userFeedback"
 	"github.com/nlopes/slack"
 )
 
@@ -41,6 +42,10 @@ var (
 	}
 	feedbackDAO = feedback.NewDAOFromSchema(d, namespace, schema)
 	userDao     = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	connGen     = daosCommon.DynamoDBConnectionGen{
+		Dynamo:          d,
+		TableNamePrefix: clientID,
+	}
 )
 
 func userTokenSyncUnsafe(userID string) string {

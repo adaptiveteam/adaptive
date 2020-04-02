@@ -1,12 +1,12 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/userFeedback"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
@@ -17,7 +17,6 @@ import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	ls "github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/nlopes/slack"
 	"github.com/sirupsen/logrus"
 	"log"
@@ -57,7 +56,7 @@ func surveyElems(dimension, dimensionDesc string, rating, comments string) []ebm
 		ebm.NewTextArea(Feedback, "Advice for the upcoming quarter",
 			ui.PlainText(core.ClipString(dimensionDesc, 150, "...")), ui.PlainText(comments)),
 		{
-			Label:    fmt.Sprintf("%s assessment for current quarter", strings.Title(dimension)),
+			Label:    fmt.Sprintf("%s assessment for the current quarter", strings.Title(dimension)),
 			Name:     ConfidenceFactor,
 			ElemType: models.MenuSelectType,
 			Options:  confidenceValues,
@@ -166,11 +165,11 @@ func feedbackRequestEngagement(target string, mc models.MessageCallback, userId,
 	utils.AddEng(eng, engagementTable, d, namespace)
 }
 
-func feedbackEngagementAttachment(value models.AdaptiveValue,
+func feedbackEngagementAttachment(teamID models.TeamID, value models.AdaptiveValue,
 	mc models.MessageCallback,
 	details bool) *ebm.Attachment {
 	var existingFeedback string
-	op, err := existingFeedbackOnDimension(mc, value)
+	op, err := existingFeedbackOnDimension(teamID, mc, value)
 	if err == nil {
 		if op.Feedback != "" {
 			existingFeedback = fmt.Sprintf("[%s] %s", coaching.Feedback360RatingMap[op.ConfidenceFactor], op.Feedback)
@@ -207,7 +206,7 @@ func feedbackEngagement(value models.AdaptiveValue, mc models.MessageCallback, u
 		priority = models.UrgentPriority
 	}
 
-	attach := feedbackEngagementAttachment(value, mc, false)
+	attach := feedbackEngagementAttachment(teamID, value, mc, false)
 
 	engagement := eb.NewEngagementBuilder().
 		Id(callbackId).
@@ -325,13 +324,13 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 				case string(models.Ignore):
 					notes = cancelEngagementHandler(request, mc)
 				case MoreDetails, LessDetails:
-					notes = onShowDetailsToggle(mc, request, act)
+					notes = onShowDetailsToggle(teamID, mc, request, act)
 				default:
 					value, found, err2 := valuesDao.Read(act)
 					if err2 == nil && found {
 						logger.Infof("Retrieved value with id %s: %v", act, value)
 						// this corresponds to the engagements for each of the dimensions
-						notes = feedbackDimensionHandler(request, mc, action.Value, value)
+						notes = feedbackDimensionHandler(request, teamID, mc, action.Value, value)
 					} else if err2 != nil {
 							logger.Errorf("Could not read value with id %s: %v", act, err2)
 					} else {
@@ -438,23 +437,20 @@ func feedbackRequestNowHandler(
 	return []models.PlatformSimpleNotification{overrideOriginalMessage(request, "")}
 }
 
-func existingFeedbackOnDimension(mc models.MessageCallback, value models.AdaptiveValue) (op models.UserFeedback, err error) {
-	key := mc.WithAction(value.ID).Sprint()
-	// Query the feedback table. If this has already been answered, get the confidence factor and script associated with the id
-	params := map[string]*dynamodb.AttributeValue{
-		"id": daosCommon.DynS(key),
+func existingFeedbackOnDimension(teamID models.TeamID, mc models.MessageCallback, value models.AdaptiveValue) (op models.UserFeedback, err error) {
+	key := mc.WithAction(value.ID).ToCallbackID()
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	var feedbacks []userFeedback.UserFeedback
+	feedbacks, err = userFeedback.ReadOrEmpty(key)(conn)
+	if len(feedbacks) > 0 {
+		op = feedbacks[0]
 	}
-	var found bool
-	found, err = d.GetItemOrEmptyFromTable(feedbackTable, params, &op)
-	if !found {
-		op = models.UserFeedback{}
-	}
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table for default values", feedbackTable))
 	return
 }
 
 func feedbackDimensionHandler(
 	request slack.InteractionCallback,
+	teamID models.TeamID,
 	mc models.MessageCallback,
 	actionValue string,
 	value models.AdaptiveValue) []models.PlatformSimpleNotification {
@@ -470,7 +466,7 @@ func feedbackDimensionHandler(
 	// 	},
 	// }
 	// var op models.UserFeedback
-	op, err := existingFeedbackOnDimension(mc, value)
+	op, err := existingFeedbackOnDimension(teamID, mc, value)
 	// err := d.QueryTable(feedbackTable, params, &op)
 	// core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table for default values", feedbackTable))
 	// Open a survey associated with the engagement
@@ -680,11 +676,11 @@ func askDialogSubmissionHandler(
 	}
 }
 
-func onShowDetailsToggle(mc models.MessageCallback, request slack.InteractionCallback, act string) []models.PlatformSimpleNotification {
+func onShowDetailsToggle(teamID models.TeamID, mc models.MessageCallback, request slack.InteractionCallback, act string) []models.PlatformSimpleNotification {
 	details := act == MoreDetails
 	valueID := strings.TrimPrefix(mc.Action, fmt.Sprintf("%s_", Ask))
 	value := valuesDao.ReadUnsafe(valueID)
-	attach := feedbackEngagementAttachment(value, mc, details)
+	attach := feedbackEngagementAttachment(teamID, value, mc, details)
 	return []models.PlatformSimpleNotification{
 		{UserId: request.User.ID,
 			Channel:     request.Channel.ID,
