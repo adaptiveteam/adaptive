@@ -124,14 +124,14 @@ func ObjectivesExist(userID string, date business_time.Date) (res bool) {
 	}
 	platformID := UserIDToPlatformID(userDAO)(userID)
 	conn := daosCommon.CreateConnectionFromEnv(platformID)
-	objs, err2 := strategy.SelectFromStrategyObjectiveJoinCommunityWhereUserIDOrInStrategyCommunity(userID)(conn)
-	if err2 == nil {
-		res = len(objs) > 0
-	} else {
-		log.Printf("ERROR ObjectivesExist: %+v\n", err2)
+	pager := strategy.SelectFromStrategyObjectiveJoinCommunityWhereUserIDOrInStrategyCommunityStream(userID)(conn)
+	var err error
+	res, err = pager.NonEmpty()
+	if err != nil {
+		log.Printf("ERROR ObjectivesExist: %+v\n", err)
 	}
 	if logEnabled {
-		log.Println("Checked ObjectivesExist: ", len(objs))
+		log.Println("Checked ObjectivesExist: ", res)
 	}
 	return 
 }
