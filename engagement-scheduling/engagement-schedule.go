@@ -9,8 +9,9 @@ import (
 
 	bt "github.com/adaptiveteam/adaptive/business-time"
 	"github.com/adaptiveteam/adaptive/checks"
-	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
 	models "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
+
+	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
 )
 
 // ActivateEngagementsOnDay will run through the provided crosswalk to determine
@@ -44,7 +45,7 @@ func ActivateEngagementsOnDay(
 		location,
 		0,
 	)
-	log.Print("All engagements: ", allEngagements)
+	// log.Print("All engagements: ", allEngagements)
 
 	if len(allEngagements) > 0 {
 		// All we really care about is the last day because that is the business day
@@ -64,7 +65,7 @@ func ActivateEngagementsOnDay(
 	} else {
 		rv = make([]string, 0)
 	}
-	log.Print("Activated engagements for day ", date.DateToString(string(core_utils_go.ISODateLayout)), rv)
+	// log.Print("Activated engagements for day ", date.DateToString(string(core_utils_go.ISODateLayout)), rv)
 	return rv
 }
 
@@ -96,7 +97,8 @@ func GenerateScheduleOfEngagements(
 	wg := &sync.WaitGroup{}
 	for i := 0; i <= daysOut; i++ {
 		wg.Add(1)
-		core_utils_go.Go(fmt.Sprintf("%d: runDay(date=%v)", i, date) , func(){ runDay(
+		core_utils_go.Go(fmt.Sprintf("%d: runDay(date=%v)", i, date), func() {
+			runDay(
 				checkFunctionMap,
 				date,
 				endDate,
@@ -106,7 +108,8 @@ func GenerateScheduleOfEngagements(
 				target,
 				constructedDays,
 				wg,
-		)})
+			)
+		})
 		date = date.AddTime(0, 0, 1)
 	}
 
