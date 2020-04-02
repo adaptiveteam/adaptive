@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/pkg/errors"
@@ -85,7 +86,13 @@ func (w workflowImpl)prefetchIssueWithoutProgress(
 				WithField("capCommID", capCommID).
 				Infof("prefetchIssueWithoutProgress, prefetching AlignedCapabilityCommunity by CapabilityCommunityIDs[0]")
 			if capCommID != "" {
-				issue.PrefetchedData.AlignedCapabilityCommunity, err = CapabilityCommunityRead(capCommID)(w.DynamoDBConnection)
+				var comms []capabilityCommunity.CapabilityCommunity
+				comms, err = issuesUtils.CapabilityCommunityReadOrEmpty(capCommID)(w.DynamoDBConnection)
+				if len(comms) > 0 {
+					issue.PrefetchedData.AlignedCapabilityCommunity = comms[0]
+				} else {
+					log.Warnf("IGNORE ERROR 3: Couldn't find CapabilityCommunity capCommID=%s", capCommID)
+				}
 			}
 		}
 		// splits := strings.Split(issue.UserObjective.ID, "_")
