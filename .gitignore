@@ -58,3 +58,4 @@ infra/core/bin/
 infra/core/dump/
 dump/
 dynamodump/
+adaptive-reports/performance-report/test-reports/
