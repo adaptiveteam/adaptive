@@ -129,7 +129,7 @@ func TestActivateEngagements(t *testing.T) {
 				time.UTC,
 				0,
 			)
-			if len(engagements) == 1 {
+			if len(engagements) >= 1 {
 				tests = append(
 					tests,
 					struct {

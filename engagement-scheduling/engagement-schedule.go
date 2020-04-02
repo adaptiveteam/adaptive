@@ -33,7 +33,7 @@ func ActivateEngagementsOnDay(
 	target string,
 ) (rv []string) {
 	// Only activate engagements if the date is a business day
-	var wg sync.WaitGroup
+	wg := &sync.WaitGroup{}
 	var allEngagements models.ScheduledEngagementList
 
 	allEngagements = GenerateScheduleOfEngagements(
@@ -50,10 +50,10 @@ func ActivateEngagementsOnDay(
 	if len(allEngagements) > 0 {
 		// All we really care about is the last day because that is the business day
 		businessDay := allEngagements[len(allEngagements)-1]
-		wg.Add(len(businessDay.Engagements))
 		for _, e := range businessDay.Engagements {
+			wg.Add(1)
 			e2 := e // this creates a new variable to be used in closure. e itself is reused in iterations!
-			core_utils_go.Go("Engagement: "+e.Name, func() {
+			core_utils_go.Go("Engagement: "+e2.Name, func() {
 				defer wg.Done()
 				e2.Functions.Engagement(date, target)
 			})
@@ -97,10 +97,11 @@ func GenerateScheduleOfEngagements(
 	wg := &sync.WaitGroup{}
 	for i := 0; i <= daysOut; i++ {
 		wg.Add(1)
+		date2 := date
 		core_utils_go.Go(fmt.Sprintf("%d: runDay(date=%v)", i, date), func() {
 			runDay(
 				checkFunctionMap,
-				date,
+				date2,
 				endDate,
 				scheduledEngagements,
 				holidays,
@@ -156,9 +157,10 @@ func GetEngagementsOnDay(
 	rv = make(models.CrossWalkNameList, 0)
 	engagementChannel := make(chan models.CrossWalkName)
 	wg := &sync.WaitGroup{}
-	wg.Add(len(engagements))
 	for _, s := range engagements {
-		core_utils_go.Go("checkSchedule", func() { checkSchedule(checkResultMap, date, s, wg, engagementChannel) })
+		wg.Add(1)
+		s2 := s
+		core_utils_go.Go("checkSchedule", func() { checkSchedule(checkResultMap, date, s2, wg, engagementChannel) })
 	}
 
 	core_utils_go.Go("monitorScheduleCheck", func() { monitorScheduleCheck(wg, engagementChannel) })
