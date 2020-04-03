@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
@@ -17,10 +18,10 @@ import (
 func createStrategySummary(
 	db *utilities.Database,
 	dao fetch_dialog.DAO,
-	teamID string,
+	platformID common.PlatformID,
 ) (file *excel.File, err error) {
 	file, err = workbooks.CreateStrategyWorkbook(
-		teamID,
+		platformID,
 		db,
 		dao,
 		utilities2.CreateDocumentProperties(
@@ -71,7 +72,7 @@ func TestCreateWorkbooks(t *testing.T) {
 		os.Getenv("port"),
 		os.Getenv("database"),
 	)
-	teamID := "ANT7U58AG"
+	teamID := common.PlatformID("ANT7U58AG")
 	userIDs := map[string]string {
 		"April":"U38KRFVTQ",
 		"Morgan":"UMA5H21FZ",

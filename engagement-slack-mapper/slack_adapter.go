@@ -1,6 +1,7 @@
 package engagement_slack_mapper
 
 import (
+	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"fmt"
 	"github.com/nlopes/slack"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -31,7 +32,7 @@ func SlackAdapter(platformToken string) PlatformAdapter {
 
 // PostAsync posts message and forgets about it.
 func (s SlackAPIAdapterImpl)PostAsync(psn models.PlatformSimpleNotification) {
-	go s.PostSyncUnsafe(psn)
+	core_utils_go.Go("PostSyncUnsafe", func(){ s.PostSyncUnsafe(psn)})
 }
 
 // MessageID identifies message that has been posted.
@@ -96,7 +97,7 @@ func GetConversationID(psn models.PlatformSimpleNotification) (postTo string) {
 
 // PostManyAsync posts a few messages in async mode
 func (s SlackAPIAdapterImpl)PostManyAsync(psns ...models.PlatformSimpleNotification) {
-	go s.PostManySyncUnsafe(psns...)
+	core_utils_go.Go("PostManySyncUnsafe", func(){s.PostManySyncUnsafe(psns...)})
 }
 
 // PostManySync posts a few messages synchronously

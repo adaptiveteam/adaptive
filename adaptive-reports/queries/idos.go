@@ -1,6 +1,6 @@
 package queries
 
-const IDOs = `
+const SelectIDOsByUserID = `
 SELECT
 
 user_objective.completed,

@@ -1,6 +1,6 @@
 package queries
 
-const Vision = `
+const SelectVisionByPlatformID = `
 select
 
 vision.vision,

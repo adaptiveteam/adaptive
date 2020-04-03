@@ -2,6 +2,7 @@ package workbooks
 
 import (
 	"fmt"
+
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/models"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/queries"
@@ -9,12 +10,13 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/styles"
 	utilities2 "github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/utilities"
-	"github.com/adaptiveteam/adaptive/dialog-fetcher"
+	"github.com/adaptiveteam/adaptive/daos/common"
+	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/pkg/errors"
 )
 
 func CreateStrategyWorkbook(
-	teamID string,
+	platformID common.PlatformID,
 	db *utilities.Database,
 	dialogDAO fetch_dialog.DAO,
 	properties *excel.DocProperties,
@@ -23,27 +25,16 @@ func CreateStrategyWorkbook(
 	f = excel.NewFile()
 	err = f.SetDocProps(properties)
 	if err == nil {
-		qm := utilities.NewQueryMap().
-			AddToQuery("strategy",
-				queries.StrategyStatus,
-				teamID,
-			).AddToQuery(
-				"alignment",
-				queries.AlignmentSummary,
-				teamID,
-			).AddToQuery(
-			"vision",
-			queries.Vision,
-				teamID,
-			).AddToQuery(
-			"competencies",
-			queries.Competencies,
-			teamID,
+		qm := utilities.InvokeQueries(
+			utilities.InvokeQuery("strategy", queries.SelectStrategyStatusByPlatformID, string(platformID)),
+			utilities.InvokeQuery("alignment", queries.SelectAlignmentSummaryByPlatformID, string(platformID)),
+			utilities.InvokeQuery("vision", queries.SelectVisionByPlatformID, string(platformID)),
+			utilities.InvokeQuery("competencies", queries.SelectCompetenciesByPlatformID, string(platformID)),
 		)
-		queryResults, err := utilities.RunQueries(db, &qm)
+		queryResults, err := qm.Run(db)
 
 		if err == nil {
-			allObjectives, allInitiatives := models.CreateObjectives(
+			allObjectives, allInitiatives := models.ConvertTableToObjectivesAndInitiatives(
 				queryResults["strategy"].GetTable(),
 				len(queryResults["strategy"].GetRows()),
 			)
@@ -65,7 +56,7 @@ func CreateStrategyWorkbook(
 				"Competencies",
 			)
 
-			dialog,err := dialogDAO.FetchByAlias("report-instructions", "instructions", "strategy")
+			dialog, err := dialogDAO.FetchByAlias("report-instructions", "instructions", "strategy")
 			if err != nil {
 				fmt.Println(errors.Wrap(err, "error querying instructions for strategy performance report"))
 			}

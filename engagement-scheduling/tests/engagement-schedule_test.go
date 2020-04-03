@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"fmt"
+	"github.com/adaptiveteam/adaptive/engagement-scheduling/test_engagements"
 	"github.com/adaptiveteam/adaptive/checks"
 	es "github.com/adaptiveteam/adaptive/engagement-scheduling"
 	"github.com/adaptiveteam/adaptive/engagement-scheduling/test_checks"
@@ -47,10 +47,10 @@ func TestCreateQuarterlySchedule(t *testing.T) {
 		quarterEnd.DaysBetween(quarterStart),
 	)
 
-	fmt.Println("Schedule of Engagements for all users.")
+	test_engagements.Println("Schedule of Engagements for all users.")
 	schedule := es.PrettyPrintSchedule(allUsersSchedule)
 	for _,s := range schedule {
-		fmt.Println(s)
+		test_engagements.Println(s)
 	}
 }
 
@@ -129,32 +129,33 @@ func TestActivateEngagements(t *testing.T) {
 				time.UTC,
 				0,
 			)
-			if len(engagements) != 1 {
+			if len(engagements) >= 1 {
+				tests = append(
+					tests,
+					struct {
+						name   string
+						args   args
+						wantRv []string
+					}{
+						name: date.DateToString("2006-01-02"),
+						args: args{
+							date:       date,
+							holidays:   holidays,
+							target:     target,
+							targetType: "user",
+						},
+						wantRv: es.GetEngagementNames(
+							engagements[0].Engagements,
+						),
+					},
+				)
+			} else {
 				t.Errorf(
 					"Expected one engagement but got %v for date %v",
 					len(engagements),
 					date.DateToString("2006-01-02"),
 				)
 			}
-			tests = append(
-				tests,
-				struct {
-					name   string
-					args   args
-					wantRv []string
-				}{
-					name: date.DateToString("2006-01-02"),
-					args: args{
-						date:       date,
-						holidays:   holidays,
-						target:     target,
-						targetType: "user",
-					},
-					wantRv: es.GetEngagementNames(
-						engagements[0].Engagements,
-					),
-				},
-			)
 		}
 		date = date.AddTime(0, 0, 1)
 	}
