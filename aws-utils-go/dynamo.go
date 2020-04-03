@@ -293,6 +293,19 @@ func (d *DynamoRequest) QueryInternal(qi dynamodb.QueryInput, out interface{}) (
 	return
 }
 
+// QueryInternalWithLog sends QueryInput to DynamoDB and converts results to `out` which should be 
+// slice of structs.
+func (d *DynamoRequest) QueryInternalWithLog(qi dynamodb.QueryInput, out interface{}) (err error) {
+	result, err2 := d.svc.Query(&qi)
+	err = err2
+	if err == nil {
+		d.log.Infof("QueryInternal: Before unmarshall result=%v", result)
+		err = dynamodbattribute.UnmarshalListOfMaps(result.Items, out)
+		d.log.Infof("QueryInternal: After unmarshall out=%v", out)
+	}
+	return
+}
+
 func (d *DynamoRequest) ScanTable(table string, out interface{}) (err error) {
 	err = d.ScanTableInternal(dynamodb.ScanInput{
 		TableName: aws.String(table),
