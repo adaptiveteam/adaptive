@@ -63,9 +63,9 @@ func (functions CheckFunctionMap) Evaluate(userID string, date bt.Date) (rv Chec
 			userID:   userID,
 			date:     date,
 		}
-		go func(input checkResultIn, outChannel chan checkResultOut) {
-			outChannel <- SafeWrapCheckFunction(input)
-		}(input1, outChannel)
+		core.Go("Wrap(" + input1.name + ")", func() {
+			outChannel <- SafeWrapCheckFunction(input1)
+		})
 	}
 	names := SliceToSet(filteredFunctionNames)
 	outputs := []checkResultOut{}
