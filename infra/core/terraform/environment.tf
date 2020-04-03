@@ -60,7 +60,7 @@ locals {
 
     CLIENT_CONFIG_TABLE_NAME                = aws_dynamodb_table.client_config_dynamodb_table.name
     USER_COMMUNITY_TABLE_NAME               = aws_dynamodb_table.user_communities.name
-    USER_COMMUNITY_PLATFORM_INDEX           = var.user_community_platform_dynamo_index
+    # USER_COMMUNITY_PLATFORM_INDEX           = var.user_community_platform_dynamo_index
 
     USER_ENGAGEMENT_SCHEDULER_LAMBDA_PREFIX = var.user_engagement_scheduler_lambda_prefix
 
@@ -74,10 +74,15 @@ locals {
     USER_ENGAGEMENT_SCRIPTING_LAMBDA_NAME   = local.user_engagement_scripting_lambda_function_name
     USER_PROFILE_LAMBDA_NAME                = local.user_profile_lambda_function_name
 
+
     FEEDBACK_REPORTING_LAMBDA_NAME          = local.reporting_lambda_name
     FEEDBACK_REPORT_POSTING_LAMBDA_NAME     = local.report_posting_lambda_name
-    
+    FEEDBACK_ANALYSIS_LAMBDA            = local.feedback_analysis_function_name
+    USER_FEEDBACK_SETUP_LAMBDA_NAME     = local.feedback_setup_function_name
+
+    FEEDBACK_REPORTS_BUCKET_NAME = aws_s3_bucket.adaptive-feedback-reports-bucket.bucket
 
     STRATEGY_INITIATIVE_COMMUNITIES_TABLE_NAME = aws_dynamodb_table.initiative_communities.name
+
   }
 }
