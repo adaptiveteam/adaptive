@@ -309,13 +309,13 @@ type ConversationContext struct {
 // AnalyzeTextAsync starts an asynchronous text analysis
 func AnalyzeTextAsync(input TextAnalysisInput, conn common.DynamoDBConnection) (out ChanTextAnalysisResultsAsync) {
 	out = make(chan TextAnalysisResultsAsync, 2)
-	go func(){
+	core.Go("AnalyzeTextC", func(){
 		res, err2 := AnalyzeTextC(input)(conn)
 		out <- TextAnalysisResultsAsync{
 			TextAnalysisResults: res,
 			Err: err2,
 		}
-	}()
+	})
 	return
 }
 // Read reads results from the channel. Blocks if not ready.

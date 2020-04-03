@@ -1,6 +1,7 @@
 package engagement_slack_mapper
 
 import (
+	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/pkg/errors"
 	"log"
 
@@ -125,7 +126,7 @@ func (b PlatformAPIImpl) PostSyncUnsafe(response platform.Response) (id MessageI
 // PostAsync posts message asynchronously and logs error in case of errors
 func (b PlatformAPIImpl) PostAsync(response platform.Response) (messageID chan MessageID) {
 	messageID = make(chan MessageID, 1)
-	go func() {
+	core_utils_go.Go("PostAsync", func() {
 		msgID := &MessageID{}
 		defer func() {
 			messageID <- *msgID
@@ -135,7 +136,7 @@ func (b PlatformAPIImpl) PostAsync(response platform.Response) (messageID chan M
 			}
 		}()
 		*msgID = b.PostSyncUnsafe(response)
-	}()
+	})
 	return
 }
 
