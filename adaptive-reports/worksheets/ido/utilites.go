@@ -13,7 +13,7 @@ func completedString(b bool) (rv string) {
 	return rv
 }
 
-func getUpdateRow(ido *models.IDO, allIDOs models.IDOs) (rv int) {
+func getUpdateRow(ido models.IDO, allIDOs models.IDOs) (rv int) {
 	for i := 0; i < len(allIDOs) && ido.Name() != allIDOs[i].Name(); i++ {
 		if ido.Completed() == allIDOs[i].Completed() {
 			rv = rv + len(allIDOs[i].Updates())

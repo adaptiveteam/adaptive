@@ -2,8 +2,8 @@ package models
 
 import "github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
 
-type Objectives map[string]*Objective
-type Initiatives map[string]*Initiative
+type Objectives map[string]Objective
+type Initiatives map[string]Initiative
 
 type Objective struct {
 	ObjectiveName        string
@@ -17,7 +17,7 @@ type Objective struct {
 	ObjectiveEndDate     string
 	PercentTimeLeft      string
 	Index                int
-	Initiatives          []*Initiative
+	Initiatives          []Initiative
 }
 
 type Initiative struct {
@@ -157,10 +157,10 @@ func CreateObjectives(table utilities.Table, rows int) (
 			PercentTimeLeft:       table.GetValue("Initiative Time Left", i),
 			ObjectiveID:           objectiveID,
 		}
-		initiativesMap[table.GetValue("initiative_id", i)] = &newInitiative
+		initiativesMap[table.GetValue("initiative_id", i)] = newInitiative
 		o, ok := objectivesMap[objectiveID]
 		if !ok {
-				o = &Objective{
+				o = Objective{
 					ObjectiveName:        table.GetValue("Objective Name", i),
 					ObjectiveDescription: table.GetValue("Objective Description", i),
 					ObjectiveType:        table.GetValue("Objective Type", i),
@@ -172,13 +172,15 @@ func CreateObjectives(table utilities.Table, rows int) (
 					ObjectiveEndDate:     table.GetValue("Objective End Date", i),
 					PercentTimeLeft:      table.GetValue("Objective Time Left", i),
 
-					Initiatives: []*Initiative {
-						&newInitiative,
+					Initiatives: []Initiative {
+						newInitiative,
 					},
 				}
 				objectivesMap[objectiveID] = o
 		} else {
-			objectivesMap[objectiveID].Initiatives = append(objectivesMap[objectiveID].Initiatives, &newInitiative)
+			o = objectivesMap[objectiveID]
+			o.Initiatives = append(o.Initiatives, newInitiative)
+			objectivesMap[objectiveID] = o
 		}
 	}
 	return objectivesMap, initiativesMap
