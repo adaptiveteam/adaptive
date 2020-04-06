@@ -59,5 +59,8 @@ var userCrosswalk = []models.CrossWalk{
 		Report reminders
 		------------------------------------------------------------------------------------
 	*/
-	models.NewCrossWalk(schedules.ProduceIndividualReports, engagements.ProduceIndividualReports), // ac.ReportExists
+	models.NewCrossWalk(schedules.GenerateIndividualReports, engagements.GenerateIndividualReports),
+	models.NewCrossWalk(schedules.NotifyOnAbsentFeedback, engagements.NotifyOnAbsentFeedback),
+	models.NewCrossWalk(schedules.DeliverIndividualReports, engagements.DeliverIndividualReports),
+	
 }
