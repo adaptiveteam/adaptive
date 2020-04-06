@@ -3,6 +3,7 @@
 package business_time
 
 import (
+	"github.com/stretchr/testify/assert"
 	"bytes"
 	"container/ring"
 	"encoding/json"
@@ -4086,4 +4087,14 @@ func Test_date_GetDayOfWeekInMonth(t *testing.T) {
 			}
 		}
 	}
+}
+
+func Test_DayOfSundayWeek(t *testing.T) {
+	d := NewDate(2020,4,15)
+	
+	firstMonday := d.GetDayOfSundayWeek1InQuarter(1, Monday)
+	assert.Equal(t, firstMonday, NewDate(2020,4,6), "firstMonday should be Apr.4")
+
+	preLastWednesday := d.GetDayOfSundayWeek1InQuarter(-2, Wednesday)
+	assert.Equal(t, preLastWednesday, NewDate(2020,6,24), "preLastWednesday should be June.24")
 }
