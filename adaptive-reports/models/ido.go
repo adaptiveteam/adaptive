@@ -5,8 +5,8 @@ import (
 	"strconv"
 )
 
-type IDOs []*IDO
-type IDOUpdates []*IDOUpdate
+type IDOs []IDO
+type IDOUpdates []IDOUpdate
 
 type IDO struct {
 	name                 string
@@ -19,7 +19,7 @@ type IDO struct {
 	focusedOnDescription string
 	isA                  string
 	driving              string
-	updates              []*IDOUpdate
+	updates              []IDOUpdate
 }
 
 func NewIDO(
@@ -33,8 +33,8 @@ func NewIDO(
 	focusedOnDescription string,
 	isA string,
 	driving string,
-) *IDO {
-	return &IDO{
+) IDO {
+	return IDO{
 		name:          name,
 		description:   description,
 		advocate:      advocate,
@@ -72,7 +72,7 @@ func (I *IDO) FocusedOnDescription() string {
 	return I.focusedOnDescription
 }
 
-func (I *IDO) Updates() []*IDOUpdate {
+func (I *IDO) Updates() []IDOUpdate {
 	return I.updates
 }
 
@@ -129,21 +129,19 @@ func (I IDOUpdate) UpdateDate() string {
 }
 
 func CreateIDOUpdateAndInsertIntoIDO(
-	ido *IDO,
 	updateDate string,
 	advocateStatus string,
 	advocateComments string,
 	coachStatus string,
 	coachComments string,
-) (rv *IDOUpdate) {
-	rv = &IDOUpdate{
+) (rv IDOUpdate) {
+	rv = IDOUpdate{
 		updateDate:       updateDate,
 		advocateStatus:   advocateStatus,
 		advocateComments: advocateComments,
 		coachStatus:      coachStatus,
 		coachComments:    coachComments,
 	}
-	ido.updates = append(ido.updates, rv)
 	return rv
 }
 
@@ -157,7 +155,7 @@ func CreateIDOs(table utilities.Table, rows int) (
 		idoName := table.GetValue("ido_name", i)
 		if currentIDO == nil || currentIDO.Name() != idoName {
 			completed, _ := strconv.ParseBool(table.GetValue("completed", i))
-			currentIDO = NewIDO(
+			ido := NewIDO(
 				table.GetValue("ido_name", i),
 				table.GetValue("ido_description", i),
 				table.GetValue("advocate", i),
@@ -169,18 +167,19 @@ func CreateIDOs(table utilities.Table, rows int) (
 				table.GetValue("is_a", i),
 				table.GetValue("driving", i),
 			)
-
-			idoList = append(idoList, currentIDO)
+			currentIDO = &ido
+			idoList = append(idoList, *currentIDO)
 		}
 
-		CreateIDOUpdateAndInsertIntoIDO(
-			currentIDO,
+		upd := CreateIDOUpdateAndInsertIntoIDO(
 			table.GetValue("updated_at", i),
 			table.GetValue("advocate_status", i),
 			table.GetValue("advocate_comments", i),
 			table.GetValue("coach_status", i),
 			table.GetValue("coach_comments", i),
 		)
+		currentIDO.updates = append(currentIDO.updates, upd)
+		idoList[len(idoList) - 1] = *currentIDO
 	}
 
 	return idoList

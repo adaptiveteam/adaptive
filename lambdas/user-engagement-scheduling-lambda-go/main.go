@@ -104,10 +104,10 @@ func HandleRequest(ctx context.Context) (err error) {
 				if err != nil {
 					logger.WithError(err).Errorf("HandleRequest.runScheduleForTeam")
 				}
-				err = runGlobalScheduleForTeam(config, teamID)
-				if err != nil {
-					logger.WithError(err).Errorf("HandleRequest.runGlobalScheduleForTeam")
-				}
+				// err = runGlobalScheduleForTeam(config, teamID)
+				// if err != nil {
+				// 	logger.WithError(err).Errorf("HandleRequest.runGlobalScheduleForTeam")
+				// }
 			}
 		}
 	}

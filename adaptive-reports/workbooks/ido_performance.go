@@ -1,6 +1,7 @@
 package workbooks
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/dialogEntry"
 	"fmt"
 
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
@@ -24,32 +25,23 @@ func CreateIDOWorkbook(
 	f = excel.NewFile()
 	err = f.SetDocProps(properties)
 	if err == nil {
-		qm := utilities.NewQueryMap().
-			AddToQuery("ido",
-				queries.IDOs,
-				userID,
-			)
+		qm := utilities.InvokeQueries(
+			utilities.InvokeQuery("ido", queries.SelectIDOsByUserID, userID),
+		)
 
 		var queryResults utilities.QueryResultMap
-		queryResults, err = utilities.RunQueries(db, &qm)
+		queryResults, err = qm.Run(db)
 
 		if err == nil {
 			allIDOs := models.CreateIDOs(
 				queryResults["ido"].GetTable(),
 				len(queryResults["ido"].GetRows()),
 			)
-			instructions,
-				summaryIDO,
-				detailsIDO,
-				activeIDOs,
-				closedIDOs := ido.CreateIDOWorksheets(
-				f,
-				"instructions",
-				"IDO Summary",
-				"IDO Details",
-				"Active IDO Updates",
-				"Closed IDO Updates",
-			)
+			instructions := ido.CreateIDOWorksheet(f, "instructions")
+			summaryIDO := ido.CreateIDOWorksheet(f, "IDO Summary")
+			detailsIDO := ido.CreateIDOWorksheet(f, "IDO Details")
+			activeIDOs := ido.CreateIDOWorksheet(f, "Active IDO Updates")
+			closedIDOs := ido.CreateIDOWorksheet(f, "Closed IDO Updates")
 
 			ido.CreateIDOUpdates(
 				f,
@@ -81,10 +73,9 @@ func CreateIDOWorkbook(
 				styles.Styles,
 			)
 
-			dialog, err := dialogDAO.FetchByAlias("report-instructions", "instructions", "ido")
-			if err != nil {
-				fmt.Println(errors.Wrap(err, "error querying instructions for IDO performance report"))
-			}
+			var dialog dialogEntry.DialogEntry
+			dialog, err = dialogDAO.FetchByAlias("report-instructions", "instructions", "ido")
+			err = errors.Wrap(err, "error querying instructions for IDO performance report")
 			utilities2.CreateInstructions(
 				f,
 				instructions,

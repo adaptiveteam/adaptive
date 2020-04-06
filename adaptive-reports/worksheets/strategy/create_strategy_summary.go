@@ -207,7 +207,7 @@ func CreateStrategySummary(
 					"Initiative",
 					f,
 					styles,
-					*currentInitiative,
+					currentInitiative,
 				)
 			}
 
@@ -268,7 +268,7 @@ func CreateStrategySummary(
 			"Objective",
 			f,
 			styles,
-			currentObjective,
+			&currentObjective,
 		)
 
 		// Now we need to decorate this sheet with Objective specific data

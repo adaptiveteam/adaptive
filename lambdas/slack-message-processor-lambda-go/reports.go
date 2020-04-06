@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"bytes"
 
 	"github.com/pkg/errors"
@@ -17,7 +18,7 @@ import (
 
 func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf *bytes.Buffer, reportname string, err error) {
 	defer recoverToErrorVar("onStrategyPerformanceReport", &err)
-	customerID := teamID.ToString()
+	platformID := teamID.ToPlatformID()
 	db := utilities.SQLOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
 	defer utilities.CloseUnsafe(db)
 	var file *excelize.File
@@ -26,7 +27,7 @@ func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf
 
 	reportname = "Strategic Performance"
 	file, err = workbooks.CreateStrategyWorkbook(
-		customerID,
+		platformID,
 		utilities.WrapDB(db),
 		dialogFetcherDAO,
 		utilities2.CreateDocumentProperties(
@@ -44,7 +45,7 @@ func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf
 }
 
 func onIDOPerformanceReport(RDSConfig RDSConfig, userID string) (buf *bytes.Buffer, reportname string, err error) {
-	defer recoverToErrorVar("onIDOPerformanceReport", &err)
+	defer core_utils_go.RecoverToErrorVar("onIDOPerformanceReport", &err)
 	db := utilities.SQLOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
 	defer utilities.CloseUnsafe(db)
 	var file *excelize.File
@@ -67,6 +68,7 @@ func onIDOPerformanceReport(RDSConfig RDSConfig, userID string) (buf *bytes.Buff
 	if err == nil {
 		buf, err = file.WriteToBuffer()
 	}
+	err = errors.Wrap(err, "onIDOPerformanceReport")
 	return
 }
 
