@@ -19,6 +19,13 @@ func ErrorHandler(err error, namespace, msg string) {
 	}
 }
 
+// ErrorHandlerf is a universal handler that logs error and then panics unless err is nil
+func ErrorHandlerf(err error, namespace, format string, args ... interface{}) {
+	if err != nil {
+		panic(errors.Wrapf(err, "ERROR in '%s': %s\n", namespace, fmt.Sprintf(format, args...)))
+	}
+}
+
 // RecoverAsFalse recovers from panic and returns false
 func RecoverAsFalse(name string, res *bool) {
 	if err2 := recover(); err2 != nil {
