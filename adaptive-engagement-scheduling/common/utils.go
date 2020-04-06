@@ -29,6 +29,7 @@ var (
 	ProductionProfile = checks.CheckFunctionMap{
 		// Feedback
 		acfn.FeedbackGivenThisQuarter: ac.FeedbackGivenForTheQuarter,
+		acfn.FeedbackForThePreviousQuarterExists: ac.FeedbackForThePreviousQuarterExists,
 		acfn.InLastMonthOfQuarter: func(userID string, date business_time.Date) (rv bool) {
 			return date.GetMonth()%3 == 0
 		},
