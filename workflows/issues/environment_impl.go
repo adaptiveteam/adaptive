@@ -342,19 +342,6 @@ func StrategyCommunityRead(id string) func(conn DynamoDBConnection) (res strateg
 	}
 }
 
-// CapabilityCommunityRead -
-func CapabilityCommunityRead(id string) func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
-	return func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
-		defer core.RecoverToErrorVar("CapabilityCommunityDynamoDBConnection.Read", &err)
-		res = strategy.CapabilityCommunityByID(models.ParseTeamID(conn.PlatformID), id, 
-			capabilityCommunitiesTableName(conn.ClientID))
-		if res.ID != id {
-			err = fmt.Errorf("couldn't find CapabilityCommunityByID(id=%s). Instead got ID=%s", id, res.ID)
-		}
-		return
-	}
-}
-
 // type StrategyInitiativeDynamoDBConnection DynamoDBConnection
 
 func StrategyInitiativeRead(id string) func(conn DynamoDBConnection) (res models.StrategyInitiative, err error) {

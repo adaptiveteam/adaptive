@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -410,6 +411,18 @@ func StrategyObjectiveReadOrEmpty(id string) func(conn DynamoDBConnection) (res 
 	}
 }
 
+// CapabilityCommunityReadOrEmpty -
+func CapabilityCommunityReadOrEmpty(id string) func(conn DynamoDBConnection) (res []models.CapabilityCommunity, err error) {
+	return func(conn DynamoDBConnection) (res [] models.CapabilityCommunity, err error) {
+		defer core.RecoverToErrorVar("CapabilityCommunityReadOrEmpty", &err)
+		res, err = capabilityCommunity.ReadOrEmpty(conn.PlatformID, id)(conn)
+		if len(res) > 0 && res[0].ID != id {
+			err = fmt.Errorf("couldn't find CapabilityCommunityByID(id=%s). Instead got ID=%s", id, res[0].ID)
+		}
+		return
+	}
+}
+
 func StrategyObjectiveCreateOrUpdate(so models.StrategyObjective) func(conn DynamoDBConnection) (err error) {
 	return func(conn DynamoDBConnection) (err error) {
 		if so.ID == "" {
@@ -633,7 +646,12 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 			// already prefetched?
 			if len(issueRef.StrategyObjective.CapabilityCommunityIDs) > 0 {
 				capCommID := issueRef.StrategyObjective.CapabilityCommunityIDs[0]
-				issueRef.PrefetchedData.AlignedCapabilityCommunity, err = CapabilityCommunityRead(capCommID)(DynamoDBConnection)
+				var comms [] capabilityCommunity.CapabilityCommunity
+				comms, err = CapabilityCommunityReadOrEmpty(capCommID)(DynamoDBConnection)
+				if len(comms) > 0 {
+					issueRef.PrefetchedData.AlignedCapabilityCommunity = comms[0]
+				}
+				
 			}
 			// splits := strings.Split(issueRef.UserObjective.ID, "_")
 			// if len(splits) == 2 {
@@ -681,18 +699,6 @@ func PrefetchManyIssuesWithoutProgress(issues []Issue) func(DynamoDBConnection) 
 				return
 			}
 			prefetchedIssues = append(prefetchedIssues, issue)
-		}
-		return
-	}
-}
-
-// CapabilityCommunityRead -
-func CapabilityCommunityRead(id string) func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
-	return func(conn DynamoDBConnection) (res models.CapabilityCommunity, err error) {
-		defer core.RecoverToErrorVar("CapabilityCommunityRead", &err)
-		res = strategy.CapabilityCommunityByID(models.ParseTeamID(conn.PlatformID), id, models.CapabilityCommunitiesTableName(conn.ClientID))
-		if res.ID != id {
-			err = fmt.Errorf("couldn't find CapabilityCommunityByID(id=%s). Instead got ID=%s", id, res.ID)
 		}
 		return
 	}
