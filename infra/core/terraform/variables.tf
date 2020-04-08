@@ -288,7 +288,6 @@ variable "feedback_target_quarter_year_index" {
   default = "QuarterYearTargetIndex"
 }
 
-variable "RDS_HOST" {}
 variable "RDS_USER" {
   default = "user"
 }
