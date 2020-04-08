@@ -1,0 +1,4 @@
+bucket="enterprise-state.adaptiveteam.io"
+key="core.tfstate"
+region="us-west-2"
+dynamodb_table="enterprise-adaptive-state"
