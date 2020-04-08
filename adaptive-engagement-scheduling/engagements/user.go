@@ -2,7 +2,6 @@ package engagements
 
 import (
 	"github.com/adaptiveteam/adaptive/workflows"
-	// wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"encoding/json"
@@ -214,7 +213,7 @@ func ReminderToProvideCoachingFeedback(date bt.Date, target string) {
 		Year:   strconv.Itoa(year),
 	}
 	teamID := strategy.UserIDToTeamID(UserDAO)(target)
-	UserConfirmEng(EngagementTable, teamID, mc, string(text), "", false, Dns)
+	UserConfirmEng(teamID, mc, string(text), "", false, Dns)
 }
 
 func UserSelectEngagement(mc models.MessageCallback, users, filter []string, userID string,
@@ -230,10 +229,17 @@ Report reminders
 ------------------------------------------------------------------------------------
 */
 
-// ProduceIndividualReports is meant to trigger the engagements that
-// sends out a the individual coaching reports to each users.
-func ProduceIndividualReports(date bt.Date, target string) {
-	UserCollaborationReportAsk(target, date)
+// GenerateIndividualReports generates an individual coaching report
+func GenerateIndividualReports(date bt.Date, target string) {
+	// year := date.GetPreviousQuarterYear()
+	// month := date.GetMonth()
+	userID := target
+	// mc := models.MessageCallback{Module: "feedback", Source: userID, Topic: "report", Action: ViewCollaborationReport,
+	// 	Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
+	userEngageByt, _ := json.Marshal(models.UserEngage{UserID: userID, 
+		IsNew: false, Update: true, Date: date.DateToString(time.RFC3339)})
+	_, err := L.InvokeFunction(FeedbackReportLambda, userEngageByt, true)
+	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportLambda))
 }
 
 // utility methods
@@ -265,17 +271,17 @@ func ObjectiveProgressUpdateAsk(userID, action, message string) { // ViewObjecti
 	year, month := core.CurrentYearMonth()
 	mc := models.MessageCallback{Module: "objectives", Source: userID, Topic: "init", Action: action,
 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-	UserConfirmEng(EngagementTable, teamID, mc, message, "Update Objectives", false, Dns)
+	UserConfirmEng(teamID, mc, message, "Update Objectives", false, Dns)
 }
 
-func UserConfirmEng(table string, teamID models.TeamID, mc models.MessageCallback, title, fallback string,
+func UserConfirmEng(teamID models.TeamID, mc models.MessageCallback, title, fallback string,
 	urgent bool, dns common.DynamoNamespace) {
 	eng := utils.MakeUserEngagement(mc, title, "", fallback, mc.Source,
 		userConfirmAttachmentActions(mc),
 		[]ebm.AttachmentField{}, urgent, dns.Namespace,
 		time.Now().Unix(), models.UserEngagementCheckWithValue{},
 		teamID)
-	utils.AddEng(eng, table, dns.Dynamo, dns.Namespace)
+	utils.AddEng(eng, EngagementTable, dns.Dynamo, dns.Namespace)
 }
 
 func userConfirmAttachmentActions(mc models.MessageCallback) []ebm.AttachmentAction {
@@ -285,21 +291,79 @@ func userConfirmAttachmentActions(mc models.MessageCallback) []ebm.AttachmentAct
 	}
 }
 
-// EngageProduceIndividualReports
-func UserCollaborationReportAsk(userID string, date bt.Date) {
-	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
-	userEngageByt, _ := json.Marshal(models.UserEngage{UserID: userID, 
-		IsNew: false, Update: true, Date: date.DateToString(time.RFC3339)})
-	_, err := L.InvokeFunction(FeedbackReportLambda, userEngageByt, true)
-	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportLambda))
+func isFeedbackExistsForUser(userID string, date bt.Date) func (daosCommon.DynamoDBConnection) (bool, error) {
+	return  func (conn daosCommon.DynamoDBConnection) (res bool, err error) {
+		q := date.GetPreviousQuarter()
+		y := date.GetPreviousQuarterYear()
+		var feedbacks []models.UserFeedback
+		feedbacks, err = coaching.FeedbackReceivedForTheQuarter(userID, q, y)(conn)
+		res = len(feedbacks) > 0
+		return
+	}
+}
 
+// // DeliverIndividualReports is meant to trigger the engagements that
+// // sends out an individual coaching reports to each users.
+// func DeliverIndividualReports(date bt.Date, target string) {
+// 	DeliverIndividualReports(target, date)
+// }
+
+
+// DeliverIndividualReports - deliver individual reports. This function should only be
+// triggered if the report already exists.
+func DeliverIndividualReports(date bt.Date, userID string) {
+	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
+	// conn := daosCommon.CreateConnectionGenFromEnv().ForPlatformID(teamID.ToPlatformID())
+	// feedbackExist, err2 := isFeedbackExistsForUser(userID, date)(conn)
+	// if err2 == nil {
 	year := date.GetPreviousQuarterYear()
 	month := date.GetMonth()
 	mc := models.MessageCallback{Module: "feedback", Source: userID, Topic: "report", Action: ViewCollaborationReport,
 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-	UserConfirmEng(EngagementTable, teamID, mc,
-		fmt.Sprintf("It's that time of the year to review your collabaration report. Would you like to see it?"),
-		"", false, Dns)
+	// if feedbackExist {
+	engage := models.UserEngage{UserID: userID, 
+		IsNew: false, Update: true, Date: date.DateToString(time.RFC3339)}
+	userEngageByt, err2 := json.Marshal(engage)
+	if err2 == nil {
+		_, err2 = L.InvokeFunction(FeedbackReportLambda, userEngageByt, true)
+		if err2 == nil {
+			UserConfirmEng(teamID, mc,
+				fmt.Sprintf("It's that time of the year to review your collabaration report. Would you like to see it?"),
+				"", false, Dns)
+		}
+	}
+	if err2 != nil {
+		log.Printf("IGNORING ERROR in DeliverIndividualReports: %+v\n", err2)
+	}
+	return
+}
+
+// NotifyOnAbsentFeedback -
+func NotifyOnAbsentFeedback(date bt.Date, userID string) {
+	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
+	conn := daosCommon.CreateConnectionGenFromEnv().ForPlatformID(teamID.ToPlatformID())
+	feedbackExist, err2 := isFeedbackExistsForUser(userID, date)(conn)
+	if err2 == nil {
+		if !feedbackExist {
+			year := date.GetPreviousQuarterYear()
+			month := date.GetMonth()
+
+			mc := models.MessageCallback{Module: "feedback", Source: userID, Topic: "report", Action: ViewCollaborationReport,
+				Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
+			eng := utils.MakeUserEngagement(mc, 
+				"You did not receive any feedback last quarter so I do not have a report for you. "+
+				"Talk with your colleagues and consider using the Request Feedback feature this quarter.",
+				"", "No feedback last quarter", mc.Source,
+				[]ebm.AttachmentAction{}, []ebm.AttachmentField{}, 
+				false, "NotifyOnAbsentFeedback",
+				time.Now().Unix(), models.UserEngagementCheckWithValue{},
+				teamID,
+			)
+			utils.AddEng(eng, EngagementTable, conn.Dynamo, "NotifyOnAbsentFeedback")
+		} else {
+			log.Printf("WARN: NotifyOnAbsentFeedback but feedback exists for user %s", userID)
+		}
+	}	
 }
 
 func UserCloseObjectivesAsk(userID, text string) {
@@ -309,7 +373,7 @@ func UserCloseObjectivesAsk(userID, text string) {
 		year, month := core.CurrentYearMonth()
 		mc := models.MessageCallback{Module: "objectives", Source: userID, Topic: "init", Action: ViewOpenObjectives,
 			Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-		UserConfirmEng(EngagementTable, teamID, mc, text, "", true, Dns)
+		UserConfirmEng(teamID, mc, text, "", true, Dns)
 	}
 }
 

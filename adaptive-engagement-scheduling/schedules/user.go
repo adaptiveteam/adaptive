@@ -310,14 +310,44 @@ Report reminders
 ------------------------------------------------------------------------------------
 */
 
-// ProduceIndividualReports is meant to trigger the engagements that
-// sends out a the individual coaching reports to each users.
-func ProduceIndividualReports(fc checks.CheckResultMap, date bt.Date) (rv string) {
-	// Last business day of the first week of the first quarter
-	if date.GetDayOfWeekInQuarter(1, bt.Friday) == date {
+// GenerateIndividualReports is meant to trigger the engagements that
+// generate an individual coaching reports to each users.
+func GenerateIndividualReports(fc checks.CheckResultMap, date bt.Date) (rv string) {
+	if date == date.GetFirstDayOfQuarter() {
 		rv = utils.ScheduleEntry(
 			fc,
-			"Produce and deliver individual reports",
+			"Generate individual reports if there is some feedback",
+		).AddScheduleFunctionCheck(
+			fcn.FeedbackForThePreviousQuarterExists,
+			true,
+		).Message
+	}
+	return
+}
+
+// NotifyOnAbsentFeedback - notifies user if they haven't received any feedback for the previous quarter.
+func NotifyOnAbsentFeedback(fc checks.CheckResultMap, date bt.Date) (rv string) {
+	if date == date.GetFirstDayOfQuarter() {
+		rv = utils.ScheduleEntry(
+			fc,
+			"Notify if there is no feedback",
+		).AddScheduleFunctionCheck(
+			fcn.FeedbackForThePreviousQuarterExists,
+			false,
+		).Message
+	}
+	return
+}
+
+// DeliverIndividualReports is meant to trigger the engagements that
+// sends out the individual coaching reports to each user.
+func DeliverIndividualReports(fc checks.CheckResultMap, date bt.Date) (rv string) {
+	// Last business day of the first full week of the quarter
+	if date.GetDayOfSundayWeek1InQuarter(1, bt.Friday) == date {
+		rv = utils.ScheduleEntry(
+			fc,
+			"Deliver individual reports",
+			// we perform all the checks inside that function.
 		).AddScheduleFunctionCheck(
 			fcn.CollaborationReportExists,
 			true,

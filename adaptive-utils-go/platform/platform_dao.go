@@ -148,6 +148,17 @@ func GetTeamIDForUser(dynamo *awsutils.DynamoRequest, clientID string, userID st
 	}
 	return 
 }
+// GetConnectionForUserFromEnv reads environment variables 
+// and retrieves team id for the user
+func GetConnectionForUserFromEnv(userID string) (conn common.DynamoDBConnection, err error) {
+	connGen := common.CreateConnectionGenFromEnv()
+	var teamID models.TeamID
+	teamID, err = GetTeamIDForUser(connGen.Dynamo, connGen.TableNamePrefix, userID)
+	if err == nil {
+		conn = connGen.ForPlatformID(teamID.ToPlatformID())
+	}
+	return
+}
 
 var _ = func () int {
 	globalTokenCache = InitLocalCache(globalTokenCache)
