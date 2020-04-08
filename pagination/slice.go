@@ -30,3 +30,11 @@ func (is InterfaceSlice)AsInterfacePagerSlice() (res []InterfacePager) {
 func (is InterfaceSlice)AsInterfaceSlice() (res []interface{}) {
 	return is
 }
+
+// StringsToInterfaceSlice - []string to []interface{}
+func StringsToInterfaceSlice(strs []string) (res InterfaceSlice) {
+	for _, s := range strs {
+		res = append(res, s)
+	}
+	return
+}
