@@ -6,7 +6,7 @@ module "reporting_db" {
   name = var.RDS_DB_NAME
 
   engine            = "mysql"
-  engine_version    = "8.0.16"
+  engine_version    = "8.0.17"
   instance_class    = "db.t2.micro"
   allocated_storage = 5
 
