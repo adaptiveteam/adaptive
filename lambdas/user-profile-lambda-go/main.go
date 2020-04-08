@@ -14,10 +14,11 @@ import (
 )
 
 func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models.UserToken, err error) {
-	defer core.RecoverToErrorVar("profile-lambda", &err)
+	defer core.RecoverAsLogError("profile-lambda")
 	defer func() {
 		if err != nil {
-			log.Printf("Error in user-profile-lambda:%v\n", err)
+			log.Printf("Error in user-profile-lambda:%+v\n", err)
+			err = nil
 		}
 	}()
 	log.Printf("HandleRequest UserID='%s', TeamID='%s'\n", engage.UserID, engage.TeamID.ToString())
