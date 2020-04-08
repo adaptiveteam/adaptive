@@ -22,7 +22,11 @@ func SlackGetConversationsPager(api *slack.Client, conversationParams slack.GetC
 		if err == nil {
 			sl = SlackChannelsToInterfaces(channels)
 			conversationParams.Cursor = cursor
-			ip = SlackGetConversationsPager(api, conversationParams)
+			if cursor == "" {
+				ip = pagination.InterfacePagerPure()
+			} else {
+				ip = SlackGetConversationsPager(api, conversationParams)
+			}
 		}
 		return
 	}
@@ -37,7 +41,11 @@ func SlackGetUsersInConversationPager(api *slack.Client, params slack.GetUsersIn
 		if err == nil {
 			sl = pagination.StringsToInterfaceSlice(users)
 			params.Cursor = cursor
-			ip = SlackGetUsersInConversationPager(api, params)
+			if cursor == "" {
+				ip = pagination.InterfacePagerPure()
+			} else {
+				ip = SlackGetUsersInConversationPager(api, params)
+			}
 		}
 		return
 	}
