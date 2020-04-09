@@ -41,6 +41,10 @@ module "community_slack_message_processor_lambda" {
 
 data "aws_iam_policy_document" "community-slack-message-processor-policy" {
   statement {
+    actions = ["secretsmanager:GetSecretValue"]
+    resources = ["*"] // arn:aws:secretsmanager:us-east-1:221851954636:secret:dev/unidoc.license.key-G78wDL
+  }
+  statement {
     actions   = [
       "dynamodb:PutItem",
       "dynamodb:DeleteItem",

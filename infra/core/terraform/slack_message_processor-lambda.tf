@@ -40,7 +40,6 @@ module "slack_message_processor_lambda" {
 }
 
 data "aws_iam_policy_document" "slack_message_processor_dynamo_write_policy" {
-   
   statement {
     actions = ["secretsmanager:GetSecretValue"]
     resources = ["*"] // arn:aws:secretsmanager:us-east-1:221851954636:secret:dev/unidoc.license.key-G78wDL
