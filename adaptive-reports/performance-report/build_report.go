@@ -28,6 +28,7 @@ func buildReport(
 	competencyDao values.DAO,
 	logger logger.AdaptiveLogger,
 ) (tags map[string]string, err error) {
+	SetUniDocGlobalLicenseIfAvailable()
 	c := creator.New()
 
 	fm, err := getFontMap()
