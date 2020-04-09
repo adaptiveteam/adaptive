@@ -63,12 +63,17 @@ var userCrosswalk = []models.CrossWalk{
 	*/
 	models.NewCrossWalk(schedules.GenerateIndividualReports, engagements.GenerateIndividualReports),
 	models.CrontabLine(
-		cron.S().
-			Every(cron.Quarter).
+		cron.Q().
+			InRange(cron.FullWeek, 1, 1).
+			OnWeekDay(time.Thursday),
+		"Produce individual reports if feedback is present", 
+		engagements.GenerateIndividualReports),
+	models.CrontabLine(
+		cron.Q().
 			InRange(cron.FullWeek, 1, 1).
 			OnWeekDay(time.Friday),
-		"Produce and deliver individual reports or notify if feedback is absent", 
-		engagements.ProduceAndDeliverIndividualReportsOrNotifyOnAbsentFeedback),
+		"Deliver individual reports or notify if feedback is absent", 
+		engagements.DeliverIndividualReportsOrNotifyOnAbsentFeedback),
 	// models.NewCrossWalk(schedules.DeliverIndividualReports, engagements.DeliverIndividualReports),
 	
 }
