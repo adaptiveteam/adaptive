@@ -1,6 +1,8 @@
 package crosswalks
 
 import (
+	"time"
+	"github.com/adaptiveteam/adaptive/cron"
 	"github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/engagements"
 	"github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/schedules"
 	models "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
@@ -60,7 +62,13 @@ var userCrosswalk = []models.CrossWalk{
 		------------------------------------------------------------------------------------
 	*/
 	models.NewCrossWalk(schedules.GenerateIndividualReports, engagements.GenerateIndividualReports),
-	models.NewCrossWalk(schedules.NotifyOnAbsentFeedback, engagements.NotifyOnAbsentFeedback),
-	models.NewCrossWalk(schedules.DeliverIndividualReports, engagements.DeliverIndividualReports),
+	models.CrontabLine(
+		cron.S().
+			Every(cron.Quarter).
+			InRange(cron.FullWeek, 1, 1).
+			OnWeekDay(time.Friday),
+		"Produce and deliver individual reports or notify if feedback is absent", 
+		engagements.ProduceAndDeliverIndividualReportsOrNotifyOnAbsentFeedback),
+	// models.NewCrossWalk(schedules.DeliverIndividualReports, engagements.DeliverIndividualReports),
 	
 }

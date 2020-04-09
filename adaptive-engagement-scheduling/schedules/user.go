@@ -356,3 +356,16 @@ func DeliverIndividualReports(fc checks.CheckResultMap, date bt.Date) (rv string
 
 	return rv
 }
+
+// EveryQuarterOnSecondWeekOnFriday - 
+func EveryQuarterOnSecondWeekOnFriday(fc checks.CheckResultMap, date bt.Date) (rv string) {
+	// Last business day of the first full week of the quarter
+	if date.GetDayOfSundayWeek1InQuarter(1, bt.Friday) == date {
+		rv = utils.ScheduleEntry(
+			fc,
+			"Last business day of the first full week of the quarter", // "Every quarter on the second week on Friday",
+		).Message
+	}
+
+	return rv
+}

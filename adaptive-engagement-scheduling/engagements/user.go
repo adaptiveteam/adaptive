@@ -364,6 +364,9 @@ func NotifyOnAbsentFeedback(date bt.Date, userID string) {
 			log.Printf("WARN: NotifyOnAbsentFeedback but feedback exists for user %s", userID)
 		}
 	}	
+	if err2 != nil {
+		log.Printf("IGNORING ERROR in NotifyOnAbsentFeedback: %+v\n", err2)
+	}
 }
 
 func UserCloseObjectivesAsk(userID, text string) {
@@ -388,4 +391,22 @@ func userOpenObjectives(userID string) []models.UserObjective {
 		}
 	}
 	return openObjs
+}
+
+// ProduceAndDeliverIndividualReportsOrNotifyOnAbsentFeedback -
+func ProduceAndDeliverIndividualReportsOrNotifyOnAbsentFeedback(date bt.Date, userID string) {
+	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
+	conn := daosCommon.CreateConnectionGenFromEnv().ForPlatformID(teamID.ToPlatformID())
+	feedbackExist, err2 := isFeedbackExistsForUser(userID, date)(conn)
+	if err2 == nil {
+		if feedbackExist {
+			GenerateIndividualReports(date, userID)
+			DeliverIndividualReports(date, userID)
+		} else {
+			NotifyOnAbsentFeedback(date, userID)
+		}
+	}
+	if err2 != nil {
+		log.Printf("IGNORING ERROR in ProduceAndDeliverIndividualReportsOrNotifyOnAbsentFeedback: %+v\n", err2)
+	}
 }
