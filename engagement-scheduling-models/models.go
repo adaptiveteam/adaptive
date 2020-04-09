@@ -3,6 +3,7 @@ package engagement_scheduling_models
 import (
 	bt "github.com/adaptiveteam/adaptive/business-time"
 	"github.com/adaptiveteam/adaptive/checks"
+	"github.com/adaptiveteam/adaptive/cron"
 )
 
 type ScheduleFunction func(resultMap checks.CheckResultMap, date bt.Date) (rv string)
@@ -22,6 +23,19 @@ type CrossWalkName struct {
 
 func NewCrossWalk(schedule ScheduleFunction, engagement EngagementFunction) CrossWalk {
 	return CrossWalk{Schedule: schedule, Engagement: engagement}
+}
+
+// CrontabLine constructs a CrossWalk from cron-like schedule
+func CrontabLine(schedule cron.Schedule, engagementName string, engagement EngagementFunction) CrossWalk {
+	return CrossWalk{
+		Schedule: func(resultMap checks.CheckResultMap, date bt.Date) (rv string){
+			if schedule.IsOnSchedule(date.DateToTimeMidnight()) {
+				rv = engagementName
+			}
+			return
+		}, 
+		Engagement: engagement,
+	}
 }
 
 // ScheduledEngagement is the the structure used to capture the egagements on a given day
