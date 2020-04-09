@@ -24,6 +24,7 @@ func SetUniDocGlobalLicenseIfAvailable() {
 	}
 }
 
-func init() {
-	SetUniDocGlobalLicenseIfAvailable()
-}
+// NB: We cannot use `init` because many lambdas don't have access to SM
+// func init() {
+// 	SetUniDocGlobalLicenseIfAvailable()
+// }
