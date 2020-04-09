@@ -96,6 +96,15 @@ func (s Schedule)InRange(period Period, start, end int) (res Schedule) {
 	return
 }
 
+// InDayRange creates a range of week days
+func (s Schedule)InDayRange(from, to time.Weekday) (res Schedule) {
+	return s.InRange(WeekDay, int(from), int(to))
+}
+// OnWeekDay is on particular week day 
+func (s Schedule)OnWeekDay(day time.Weekday) (res Schedule) {
+	return s.InDayRange(day, day)
+}
+
 // toSliceOfParentsOrdered unwraps parents and returns the list of
 // schedules starting from the very first schedule
 func (s Schedule) toSliceOfParentsOrdered() (slice []Schedule) {

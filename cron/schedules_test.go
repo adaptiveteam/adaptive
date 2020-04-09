@@ -60,7 +60,7 @@ func Test_GetPositionC(t *testing.T) {
 	assert.Equal(t, 6, с_mawMax)
 }
 
-func Test_IsOnSchedule(t *testing.T) {
+func Test_IsOnScheduleA(t *testing.T) {
 	a := time.Date(2020, 4, 7, 0,0,0,0,time.UTC)
 	
 	assert.True(t, cron.S().IsOnSchedule(a))
@@ -73,4 +73,14 @@ func Test_IsOnSchedule(t *testing.T) {
 	assert.False(t, cron.S().Every(cron.Month).InRange(cron.AnyWeek, 1, 1).InRange(cron.WeekDay, 2, 2).IsOnSchedule(a))
 	assert.True(t, cron.S().Every(cron.Month).InRange(cron.AnyWeek, 2, 2).InRange(cron.WeekDay, 2, 2).IsOnSchedule(a))
 
+}
+
+func Test_IsOnScheduleB(t *testing.T) {
+	b := time.Date(2020, 4, 10, 0,0,0,0,time.UTC)
+	
+	assert.True(t, cron.S().
+		Every(cron.Quarter).
+		InRange(cron.FullWeek, 1, 1).
+		OnWeekDay(time.Friday).
+		IsOnSchedule(b))
 }
