@@ -136,3 +136,7 @@ data "aws_iam_policy_document" "strategy_slack_policy" {
   }
 }
 
+resource "aws_iam_role_policy_attachment" "strategy_slack_lambda_read_all_tables" {
+  role       = module.strategy_slack_lambda.role_name
+  policy_arn = aws_iam_policy.read_all_tables.arn
+}
