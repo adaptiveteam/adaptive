@@ -3,6 +3,7 @@
 package business_time
 
 import (
+	"github.com/pkg/errors"
 	"encoding/json"
 	"math"
 	"sort"
@@ -27,6 +28,7 @@ type Date interface {
 	GetFirstDayOfQuarter() Date
 	GetLastWeekDayOfQuarter() Date
 	GetFirstWeekDayOfQuarter() Date
+	GetDayOfSundayWeek1InQuarter(sundayWeek int, day int) (date Date)
 	GetDayOfWeekInQuarter(week int, day int) Date
 	GetDayOfWeekInMonth(week int, day int) Date
 	GetFirstDayOfMonth() Date
@@ -232,11 +234,30 @@ func NewDate(year int, month int, day int) Date {
 // NewDateFromQuarter is a simple helper function to create a new date from just
 // quarter and year information.
 func NewDateFromQuarter(quarter int, year int) Date {
-	month := quarter*3 - 2
-	day := 1
-	return NewDate(year, month, day)
+	return FirstDateOfQuarter(quarter, year)
 }
 
+// FirstDateOfQuarter returns the first date of the quarter
+func FirstDateOfQuarter(quarter int, year int) Date {
+	if quarter < 1 || quarter > 4 {
+		panic("FirstDateOfQuarter: quarter should be within [1,4]")
+	}
+	month1 := quarter * 3 - 2
+	day := 1
+	return NewDate(year, month1, day)
+}
+
+// LastDateOfQuarter returns the last date of the quarter
+// It calculates the first date of the next quarter 
+// and then subtracts 1 day.
+func LastDateOfQuarter(quarter int, year int) Date {
+	if quarter < 1 || quarter > 4 {
+		panic("LastDateOfQuarter: quarter should be within [1,4]")
+	}
+	month1Plus3 := quarter * 3 + 1
+	day := 1
+	return NewDate(year, month1Plus3, day).AddTime(0,0,-1)
+}
 // Today creates a date with just the year, month, day or the current date in the given timezone.
 // If the zone is invalid the function will use the timezone of the current server (UTC in AWS).
 func Today(l *time.Location) Date {
@@ -428,6 +449,16 @@ func (h holidays) Len() int {
 /* The following functions are meant to are meant to work with business days */
 /*****************************************************************************/
 
+// FirstDateOfQuarter returns the first date of the quarter
+func (d date)FirstDateOfQuarter() Date {
+	return FirstDateOfQuarter(d.GetQuarter(), d.GetYear())
+}
+
+// LastDateOfQuarter returns the last date of the quarter
+func (d date)LastDateOfQuarter() Date {
+	return LastDateOfQuarter(d.GetQuarter(), d.GetYear())
+}
+
 // IsBusinessDay returns whether or not the given day is a designated business day
 func (d date) IsBusinessDay(h Holidays, l *time.Location) bool {
 	day := d.DayOfWeek()
@@ -598,6 +629,7 @@ func (d date) GetFirstBusinessDayOfQuarter(h Holidays, location *time.Location) 
 // the quarter.  If the week is negative it starts from the end of the quarter.
 // The parameter day should be between 0 and 6, where 0 is Sunday.
 // The parameter forward is whether you want to adjust forward or back.
+// Deprecated: the first week is 0
 func (d date) GetDayOfWeekInQuarter(week int, day int) (rv Date) {
 	var dayInWeek Date
 	quarter := NewDateFromQuarter(d.GetQuarter(), d.GetYear())
@@ -613,7 +645,38 @@ func (d date) GetDayOfWeekInQuarter(week int, day int) (rv Date) {
 	}
 	return rv
 }
+// GetSundayDateInQuarter1 - returns date of sunday.
+// if sunday index is > 0 then it's started from the first sunday (1) of the quarter
+// if sunday index is < 0 then it's counted from the last sunday (-1) of the quarter
+// if sunday index == 0 then it panics.
+func (d date) GetSundayDateInQuarter1(sundayIndex1 int) (date Date) {
+	if sundayIndex1 == 0 {
+		panic(errors.New("GetSundayDateInQuarter1 does not allow 0"))
+	} else if sundayIndex1 > 0 {
+		firstDay := d.FirstDateOfQuarter()
+		firstDayDayOfWeek := firstDay.DayOfWeek()
+		deltaToSunday := 0 
+		if firstDayDayOfWeek > 0 {
+			deltaToSunday = 7 - firstDayDayOfWeek
+		}
+		date = firstDay.AddTime(0, 0, deltaToSunday + 7 * (sundayIndex1 - 1))
+	} else {
+		lastDay := d.LastDateOfQuarter()
+		lastDayDayOfWeek := lastDay.DayOfWeek()
+		deltaToSunday := -lastDayDayOfWeek 
+		date = lastDay.AddTime(0, 0, deltaToSunday + 7 * (sundayIndex1 + 1))
+	}
+	return
+}
 
+// GetDayOfWeek1InQuarter - returns date of the given day in the
+// n-th week that includes Sunday. The first week has number 1 (there might be a few days before sunday though).
+// One may use negative week indices to get week counted from the end 
+// of quarter. In this case the week with index -1 might be incomplete.
+func (d date) GetDayOfSundayWeek1InQuarter(sundayWeek int, day int) (date Date) {
+	date = d.GetSundayDateInQuarter1(sundayWeek).AddTime(0, 0, day)
+	return
+}
 // GetFirstBusinessDayOfWeekInMonth returns the date of the desired business day in
 // the month of the given day.
 func (d date) GetDayOfWeekInMonth(week int, day int) (rv Date) {

@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/pagination"
 	"github.com/pkg/errors"
 	"encoding/json"
 	"fmt"
@@ -17,60 +18,22 @@ import (
 	"strconv"
 )
 
-func channelMembersWithoutPagination(api *slack.Client, channelID string) []string {
-	// DO NOT USE groups.Read()
-	// https://api.slack.com/methods/conversations.list
-	groups, _, err := api.GetConversations(&slack.GetConversationsParameters{
-		ExcludeArchived: "false",
-		Types: []string{
-			"public_channel",
-			"private_channel",
-		}})
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not get slack user groups"))
-	for _, each := range groups {
-		if each.ID == channelID {
-			members, _, _ := api.GetUsersInConversation(&slack.GetUsersInConversationParameters{ChannelID: channelID})
-			return members
-		}
-	}
-	return []string{}
+func channelMembersWithPagination(api *slack.Client, channelID string) (users []string, err error) {
+	var all pagination.InterfaceSlice
+	params := slack.GetUsersInConversationParameters{ChannelID: channelID}
+	all, err = SlackGetUsersInConversationPager(api, params).
+		Drain()
+	users = all.AsStringSlice()
+	return 
 }
 
-func channelMembers(channelID string, teamID models.TeamID) []string {
+func channelMembers(channelID string, teamID models.TeamID) (users []string) {
 	platformToken, err2 := platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
 	core.ErrorHandler(err2, "channelMembers", "Could not obtain token")
 	api := slack.New(platformToken)
-	// DO NOT USE groups.Read()
-	// https://api.slack.com/methods/conversations.list
-	conversationParams := &slack.GetConversationsParameters{
-		ExcludeArchived: "true",
-		Types: []string{
-			// TODO: Including public channels here is taking time.
-			// "public_channel",
-			"private_channel",
-		}}
-
-	for {
-		groups, cursor, err := api.GetConversations(conversationParams)
-		if err == nil {
-			for _, each := range groups {
-				if each.ID == channelID {
-					// TODO: Handle pagination here
-					members, _, err2 := api.GetUsersInConversation(&slack.GetUsersInConversationParameters{ChannelID: channelID})
-					if err2 != nil {
-						logger.WithField("namespace", namespace).WithField("error", err2).
-							Errorf("Could not get users in conversation in %s channel for %s platform", channelID, teamID)
-					}
-					return members
-				} else if cursor != "" {
-					conversationParams.Cursor = cursor
-				}
-			}
-		} else {
-			logger.WithField("namespace", namespace).WithField("error", err).
-				Errorf("Could not get conversations in %s channel for %s platform", channelID, teamID)
-		}
-	}
+	users, err2 = channelMembersWithPagination(api, channelID)
+	core.ErrorHandler(err2, "channelMembers", "Could not GetUsersInConversationParameters for channelID=" + channelID)
+	return
 }
 
 func writeEngagement(eng models.UserEngagement) {

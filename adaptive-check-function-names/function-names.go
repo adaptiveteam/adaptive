@@ -4,6 +4,7 @@ package adaptive_check_function_names
 const (
 	// Feedback tests
 	FeedbackGivenThisQuarter = "FeedbackGivenThisQuarter"
+	FeedbackForThePreviousQuarterExists = "FeedbackForThePreviousQuarterExists"
 	InLastMonthOfQuarter     = "InLastMonthOfQuarter"
 
 	CoacheesExist                             = "CoacheesExist"

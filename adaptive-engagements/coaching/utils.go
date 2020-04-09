@@ -1,10 +1,12 @@
 package coaching
 
 import (
+	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	"github.com/adaptiveteam/adaptive/daos/userFeedback"
 	"fmt"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	// utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
@@ -71,7 +73,14 @@ func FeedbackGivenForTheQuarter(userID string, quarter, year int, feedbackTable,
 	}, map[string]string{"#source": "source"}, true, -1, &res)
 	return res, err
 }
-
+// FeedbackReceivedForTheQuarter -
+func FeedbackReceivedForTheQuarter(userID string, quarter, year int) func (conn daosCommon.DynamoDBConnection) (res []models.UserFeedback, err error) {
+	return func (conn daosCommon.DynamoDBConnection) (res []models.UserFeedback, err error) {
+		qyr := fmt.Sprintf("%d:%d", quarter, year)
+		res, err = userFeedback.ReadByQuarterYearTarget(qyr, userID)(conn)
+		return 
+	}
+}
 // ReportExists checks if feedback report exists in a bucket with a key
 func ReportExists(bucket, key string) bool {
 	return common.DeprecatedGetGlobalS3().ObjectExists(bucket, key)
