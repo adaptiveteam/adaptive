@@ -12,6 +12,6 @@ var (
 )
 
 // TitleTemplate template for report title
-func TitleTemplate(userID string) ui.PlainText {
-	return ui.PlainText(fmt.Sprintf("Performance Report for <@%s>", userID))
+func TitleTemplate(displayName string) ui.PlainText {
+	return ui.PlainText(fmt.Sprintf("Performance Report for %s", displayName))
 }
