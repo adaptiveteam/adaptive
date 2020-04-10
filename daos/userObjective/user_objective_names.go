@@ -24,6 +24,8 @@ const (
 	PartnerVerifiedCompletionDate FieldName = "partner_verified_completion_date"
 	Comments FieldName = "comments"
 	Cancelled FieldName = "cancelled"
+	CreatedBy FieldName = "created_by"
+	ModifiedBy FieldName = "modified_by"
 )
 
 type IndexName string
