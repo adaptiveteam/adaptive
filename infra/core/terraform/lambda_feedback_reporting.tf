@@ -35,6 +35,10 @@ resource "aws_iam_role_policy_attachment" "feedback_reporting_lambda_read_all_ta
 
 data "aws_iam_policy_document" "feedback_reporting_policy" {
   statement {
+    actions = ["secretsmanager:GetSecretValue"]
+    resources = ["*"] // arn:aws:secretsmanager:us-east-1:221851954636:secret:dev/unidoc.license.key-G78wDL
+  }
+  statement {
     actions   = [
       "s3:PutObject",
       "s3:PutObjectAcl",]
