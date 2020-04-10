@@ -135,6 +135,7 @@ func (IDOImpl) ExtractFromContext(ctx wf.EventHandlingContext, id string, update
 	newIssue.UserObjective = userObjective.UserObjective{
 		ID:                          issueID,
 		UserID:                      userID,
+		CreatedBy:                   userID,
 		Name:                        objName,
 		Description:                 objDescription,
 		AccountabilityPartner:       partner,
@@ -148,12 +149,15 @@ func (IDOImpl) ExtractFromContext(ctx wf.EventHandlingContext, id string, update
 		newIssue.UserObjective.Year = oldIssue.UserObjective.Year
 		newIssue.UserObjective.Quarter = oldIssue.UserObjective.Quarter
 		newIssue.UserObjective.CreatedDate = oldIssue.UserObjective.CreatedDate
+		newIssue.UserObjective.CreatedBy = oldIssue.UserObjective.CreatedBy
 	} else {
 		year, quarter := core.CurrentYearQuarter()
 		newIssue.UserObjective.Year = year
 		newIssue.UserObjective.Quarter = quarter
 		newIssue.UserObjective.CreatedDate = core.ISODateLayout.Format(time.Now())
 	}
+	newIssue.UserObjective.ModifiedBy = userID
+
 	return
 }
 
