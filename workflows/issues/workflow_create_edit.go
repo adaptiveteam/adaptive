@@ -1,24 +1,10 @@
 package issues
 
 import (
-	// alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
-	// "encoding/json"
-	// "fmt"
-	// "github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	// "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
-	// "github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
-	// "github.com/thoas/go-funk"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
-	// utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	// core "github.com/adaptiveteam/adaptive/core-utils-go"
-	// ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
-	// mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
-	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
-	// "log"
 )
 
 func (w workflowImpl)OnCreateItem(isFromMainMenu bool, itype IssueType) wf.Handler {

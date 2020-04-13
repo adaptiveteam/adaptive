@@ -24,8 +24,8 @@ type StrategyInitiative struct  {
 	Budget string `json:"budget"`
 	ExpectedEndDate string `json:"expected_end_date"`
 	CapabilityObjective string `json:"capability_objective"`
-	CreatedBy string `json:"created_by"`
-	ModifiedBy string `json:"modified_by"`
+	CreatedBy string `json:"created_by,omitempty"`
+	ModifiedBy string `json:"modified_by,omitempty"`
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
 	// Automatically maintained field
@@ -45,8 +45,6 @@ func (strategyInitiative StrategyInitiative)CollectEmptyFields() (emptyFields []
 	if strategyInitiative.Budget == "" { emptyFields = append(emptyFields, "Budget")}
 	if strategyInitiative.ExpectedEndDate == "" { emptyFields = append(emptyFields, "ExpectedEndDate")}
 	if strategyInitiative.CapabilityObjective == "" { emptyFields = append(emptyFields, "CapabilityObjective")}
-	if strategyInitiative.CreatedBy == "" { emptyFields = append(emptyFields, "CreatedBy")}
-	if strategyInitiative.ModifiedBy == "" { emptyFields = append(emptyFields, "ModifiedBy")}
 	ok = len(emptyFields) == 0
 	return
 }

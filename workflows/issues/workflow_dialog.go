@@ -95,6 +95,15 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 	if isCoachRequestNeeded {
 		postponedEvents = w.requestCoach(ctx, newAndOldIssues)
 	}
+	newAdvocate := newAndOldIssues.NewIssue.UserObjective.UserID
+	oldAdvocate := newAndOldIssues.OldIssue.UserObjective.UserID
+	isCoacheeRequestNeeded := 
+		!utilsUser.IsSpecialOrEmptyUserID(newAdvocate) &&
+			!newAndOldIssues.Updated ||
+			(newAdvocate != oldAdvocate)
+	if isCoacheeRequestNeeded {
+		postponedEvents = append(postponedEvents, w.requestCoachee(ctx, newAndOldIssues)...)
+	}
 	var responses []platform.Response
 	shouldNotifyOldCoach := !utilsUser.IsSpecialOrEmptyUserID(oldAP) && newAndOldIssues.Updated && newAP != oldAP
 	if shouldNotifyOldCoach {
@@ -189,12 +198,28 @@ func findStrategyCommunityConversation(w workflowImpl, ctx wf.EventHandlingConte
 
 func (w workflowImpl) requestCoach(ctx wf.EventHandlingContext, newAndOldIssues NewAndOldIssues) (postponedEvents []wf.PostponeEventForAnotherUser) {
 	newAP := newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner
-	if !utilsUser.IsSpecialOrEmptyUserID(newAP) {
+	if !utilsUser.IsSpecialOrEmptyUserID(newAP) && 
+	newAP != ctx.Request.User.ID {// it's a different user
 		postponedEvents = []wf.PostponeEventForAnotherUser{
 			ex.RequestCoach(
 				newAndOldIssues.NewIssue.GetIssueType(),
 				newAndOldIssues.NewIssue.UserObjective.ID,
 				newAndOldIssues.NewIssue.UserObjective.AccountabilityPartner,
+			),
+		}
+	}
+	return
+}
+
+func (w workflowImpl) requestCoachee(ctx wf.EventHandlingContext, newAndOldIssues NewAndOldIssues) (postponedEvents []wf.PostponeEventForAnotherUser) {
+	newAdvocate := newAndOldIssues.NewIssue.UserObjective.UserID
+	if !utilsUser.IsSpecialOrEmptyUserID(newAdvocate) && 
+	newAdvocate != ctx.Request.User.ID {// it's a different user
+		postponedEvents = []wf.PostponeEventForAnotherUser{
+			ex.RequestCoachee(
+				newAndOldIssues.NewIssue.GetIssueType(),
+				newAndOldIssues.NewIssue.UserObjective.ID,
+				newAdvocate,
 			),
 		}
 	}

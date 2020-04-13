@@ -72,6 +72,7 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 			FSA: map[struct {wf.State; wf.Event}]wf.Handler{
 				{State: InitState, Event: ""}:                                 w.OnCoachRequested(),
 				{State: InitState, Event: exchange.IssueUpdatedEvent}:         wf.SimpleHandler(w.OnIssueUpdated(), UpdateShownState),
+				{State: InitState, Event: exchange.RequestCoacheeEvent}:       wf.SimpleHandler(w.OnCoacheeRequested(), wf.DoneState),
 				{State: FormShownState, Event: ConfirmedEvent}:                wf.SimpleHandler(w.OnConfirmed(), wf.DoneState),
 				{State: FormShownState, Event: RejectedEvent}:                 wf.SimpleHandler(w.OnRejected(), wf.DoneState),
 				
@@ -93,12 +94,8 @@ func (w workflowImpl) GetNamedTemplate() wf.NamedTemplate {
 // as well as Issue type
 func (w workflowImpl) OnCoachRequested() wf.Handler {
 	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
-		issueID := ctx.Data[IssueIDKey]
-		issueType := issues.IssueType(ctx.Data[IssueTypeKey])
-		log := w.AdaptiveLogger.WithField("issueID", issueID).WithField("issueType", issueType).WithField("Handler", "OnCoachRequested")
-		log.Info("Start")
 		var issue issues.Issue
-		issue, err = issues.Read(issueType, issueID)(w.DynamoDBConnection)
+		issue, err = w.readIssueFromContext(ctx)
 		if err != nil {
 			return
 		}
@@ -108,7 +105,7 @@ func (w workflowImpl) OnCoachRequested() wf.Handler {
 				PassiveMessage: wf.PassiveMessage{
 					AttachmentText: ui.Sprintf("%s is requesting your coaching for the below %s. "+
 						"Are you available to partner with and guide your colleague with this effort?",
-						engCommon.TaggedUser(issue.UserObjective.UserID),
+						engCommon.TaggedUser(issue.UserObjective.ModifiedBy),
 						issue.GetIssueType().Template()),
 					Fields: shortViewFields(issue),
 				},
@@ -119,7 +116,7 @@ func (w workflowImpl) OnCoachRequested() wf.Handler {
 			})
 			out.NextState = FormShownState
 		} else {
-			log.WithField("AccountabilityPartner", ap).Info("AccountabilityPartner already assigned")
+			w.AdaptiveLogger.WithField("AccountabilityPartner", ap).Info("AccountabilityPartner already assigned")
 			out.NextState = wf.DoneState
 		}
 		return
@@ -207,4 +204,39 @@ func (w workflowImpl) OnRejected() wf.Handler {
 		}
 		return
 	}
+}
+
+func (w workflowImpl) OnCoacheeRequested() wf.Handler {
+	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+		var issue issues.Issue
+		issue, err = w.readIssueFromContext(ctx)
+		if err != nil {
+			return
+		}
+		adv := issue.UserObjective.UserID
+ 		if adv != "" && adv != issue.UserObjective.ModifiedBy {
+			out = out.WithInteractiveMessage(wf.InteractiveMessage{
+				PassiveMessage: wf.PassiveMessage{
+					AttachmentText: ui.Sprintf("%s has assigned you as the advocate for the below %s. ",
+						engCommon.TaggedUser(issue.UserObjective.ModifiedBy),
+						issue.GetIssueType().Template(),
+					),
+					Fields: shortViewFields(issue),
+				},
+			})
+		} else {
+			w.AdaptiveLogger.WithField("Advocate (coachee)", adv).Info("Advocate doesn't need a notification")
+		}
+		out.NextState = wf.DoneState
+		return
+	}
+}
+
+func (w workflowImpl)readIssueFromContext(ctx wf.EventHandlingContext) (issue Issue, err error) {
+	issueID := ctx.Data[IssueIDKey]
+	issueType := issues.IssueType(ctx.Data[IssueTypeKey])
+	log := w.AdaptiveLogger.WithField("issueID", issueID).WithField("issueType", issueType)
+	log.Info("Reading the issue from context")
+	issue, err = issues.Read(issueType, issueID)(w.DynamoDBConnection)
+	return
 }

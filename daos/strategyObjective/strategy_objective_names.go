@@ -12,7 +12,7 @@ const (
 	Targets FieldName = "targets"
 	ObjectiveType FieldName = "objective_type"
 	Advocate FieldName = "advocate"
-	CapabilityCommunityIDs FieldName = "capability_community_id"
+	CapabilityCommunityIDs FieldName = "capability_community_ids"
 	ExpectedEndDate FieldName = "expected_end_date"
 	CreatedBy FieldName = "created_by"
 )
@@ -20,5 +20,5 @@ const (
 type IndexName string
 const (
 	PlatformIDIndex IndexName = "PlatformIDIndex"
-	CapabilityCommunityIDIndex IndexName = "CapabilityCommunityIDIndex"
+	CapabilityCommunityIDsIndex IndexName = "CapabilityCommunityIDsIndex"
 )
