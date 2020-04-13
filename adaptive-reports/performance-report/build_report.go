@@ -2,7 +2,7 @@ package collaboration_report
 
 import (
 	"fmt"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/values"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/unidoc/unipdf/v3/creator"
@@ -25,18 +25,18 @@ func buildReport(
 // Name and location for where to store the file.
 	FileName string,
 	dialogDao fetch_dialog.DAO,
-	competencyDao values.DAO,
 	logger logger.AdaptiveLogger,
+	conn daosCommon.DynamoDBConnection,
 ) (tags map[string]string, err error) {
 	SetUniDocGlobalLicenseIfAvailable()
 	c := creator.New()
 
 	fm, err := getFontMap()
 	if err == nil {
-		received, err := newCoachingListFromStream(ReceivedBytes, competencyDao)
+		received, err := newCoachingListFromStream(ReceivedBytes, conn)
 		if err == nil {
 			logger.WithField("received", &received).Infof("Retrieved received feedback")
-			given, err := newCoachingListFromStream(GivenBytes, competencyDao)
+			given, err := newCoachingListFromStream(GivenBytes, conn)
 			if err == nil {
 				logger.WithField("given", &given).Infof("Retrieved given feedback")
 

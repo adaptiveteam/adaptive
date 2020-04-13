@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	"context"
 	"fmt"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -28,10 +29,13 @@ func HandleRequest(ctx context.Context, uf models.UserFeedback) (err error) {
 	// feedback edit. So, we append 'ask_' as prefix to this attachment
 	mc.Set("Action", fmt.Sprintf("ask_%s", uf.ValueID))
 
-	var value models.AdaptiveValue
-	var found bool
-	value, found, err = valuesDao.Read(uf.ValueID)
+	conn := connGen.ForPlatformID(uf.PlatformID)
+	var values [] models.AdaptiveValue
+	values, err = adaptiveValue.ReadOrEmpty(uf.ValueID)(conn)
+	values = adaptiveValue.AdaptiveValueFilterActive(values)
+	found := len(values) > 0
 	if err == nil && found {
+		value := values[0]
 		attach, err := FeedbackAttachmentTemplate(*mc, uf, value)
 		if err == nil {
 			utils.ECAnalysis(uf.Feedback, FeedbackDialogContext, "Feedback", dialogTable,

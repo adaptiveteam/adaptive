@@ -1,10 +1,10 @@
 package competencies
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	"context"
 	"fmt"
 	"log"
-	"sort"
 	"strings"
 
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -127,6 +127,7 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 
 	action := request.ActionCallback.AttachmentActions[0]
 	platform.Debug(request, "Action: "+action.Name)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	notes := responses()
 	// 'menu_list' is for the options that are presented to the userID
 	switch action.Name {
@@ -134,10 +135,10 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 		selectedOption := action.SelectedOptions[0].Value
 		switch selectedOption {
 		case AdaptiveValuesListMenuItem:
-			notes = detailedListMenuItemFunc(request, teamID)
+			notes = detailedListMenuItemFunc(request, teamID)(conn)
 			// notes = append(notes, clearRequestMessage(request)...) // do not clear original message. It'll be replaced with invite to thread.
 		case AdaptiveValuesSimpleListMenuItem:
-			notes = listMenuItemFunc(request, teamID)
+			notes = listMenuItemFunc(request, teamID)(conn)
 			notes = append(notes, clearRequestMessage(request)...) // clear original message
 		case AdaptiveValuesCreateNewMenuItem:
 			notes = createNewAdaptiveValueMenuItemAndClearOriginalMessageAfterwards(request, teamID)
@@ -147,9 +148,9 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 		}
 	// case ModifyAdaptiveValueAction:
 	case DeleteAdaptiveValueAction(InThread):
-		notes = onDeleteButtonClicked(request, action.Value)
+		notes = onDeleteButtonClicked(request, action.Value)(conn)
 	case DeleteAdaptiveValueAction(InChat):
-		notes = onDeleteButtonClicked(request, action.Value)
+		notes = onDeleteButtonClicked(request, action.Value)(conn)
 	case EditAdaptiveValueAction(InThread):
 		notes = onEditButtonClicked(request, teamID, action.Value, InThread)
 	case EditAdaptiveValueAction(InChat):
@@ -159,7 +160,7 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 	case CreateAdaptiveValueAction(InChat):
 		notes = onCreateAction(request, teamID, noMessageOverrideTs, InChat)
 	case ModifyListAdaptiveValueAction:
-		notes = detailedListMenuItemFunc(request, teamID)
+		notes = detailedListMenuItemFunc(request, teamID)(conn)
 	default:
 		platform.Debug(request, "unknown action "+action.Name)
 	}
@@ -169,13 +170,14 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 func dispatchSlackDialogSubmissionCallback(request slack.InteractionCallback,
 	dialog slack.DialogSubmissionCallback, teamID models.TeamID) {
 	platform.Debug(request, "Got filled form")
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	mc := utils.MessageCallbackParseUnsafe(request.CallbackID, AdaptiveValuesNamespace)
 	notes := responses()
 	switch mc.Action {
 	case SubmitNewAdaptiveValueAction(InThread):
-		notes = onSubmitNewButtonClicked(request, dialog, teamID, InThread)
+		notes = onSubmitNewButtonClicked(request, dialog, teamID, InThread)(conn)
 	case SubmitNewAdaptiveValueAction(InChat):
-		notes = onSubmitNewButtonClicked(request, dialog, teamID, InChat)
+		notes = onSubmitNewButtonClicked(request, dialog, teamID, InChat)(conn)
 	case SubmitUpdatedAdaptiveValueAction(InThread):
 		notes = onSubmitUpdatedButtonClicked(request, dialog, teamID, InThread)
 	case SubmitUpdatedAdaptiveValueAction(InChat):
@@ -187,29 +189,28 @@ func dispatchSlackDialogSubmissionCallback(request slack.InteractionCallback,
 }
 
 // listMenuItemFunc renders the list of adaptiveValues directly in chat.
-func listMenuItemFunc(request slack.InteractionCallback, teamID models.TeamID) []models.PlatformSimpleNotification {
-	platform.Debug(request, "Listing adaptive values 2 ...")
-	adaptiveValues := adaptiveValuesTableDao.ForPlatformID(teamID.ToPlatformID()).AllUnsafe()
-	sort.Slice(adaptiveValues, func(i, j int) bool {
-		return adaptiveValues[i].Name < adaptiveValues[j].Name
-	})
-	adaptiveValueItems := mapAdaptiveValueString(adaptiveValues, RenderAdaptiveValueItem)
-	listOfItems := strings.Join(adaptiveValueItems, "\n")
-	mc := callbackID(request.User.ID, ModifyListAdaptiveValueAction)
+func listMenuItemFunc(request slack.InteractionCallback, teamID models.TeamID) func (conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
+	return func (conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
+		platform.Debug(request, "Listing adaptive values 2 ...")
+		adaptiveValues := evalues.ReadAndSortAllAdaptiveValues(conn)
+		adaptiveValueItems := mapAdaptiveValueString(adaptiveValues, RenderAdaptiveValueItem)
+		listOfItems := strings.Join(adaptiveValueItems, "\n")
+		mc := callbackID(request.User.ID, ModifyListAdaptiveValueAction)
 
-	attachment := eb.NewAttachmentBuilder().
-		Title(AdaptiveValuesTemplate(AdaptiveValuesListTitleSubject)).
-		Text(listOfItems).
-		Actions([]ebm.AttachmentAction{
-			modifyListAdaptiveValueAction(request),
-			addAnotherAdaptiveValueAction(request, InChat),
-		}).
-		CallbackId(mc.ToCallbackID()).
-		ToAttachment()
-	p := utils.InteractionCallbackSimpleResponse(request, "") // RenderAdaptiveValueItem(h)
-	p.Attachments = []ebm.Attachment{attachment}
+		attachment := eb.NewAttachmentBuilder().
+			Title(AdaptiveValuesTemplate(AdaptiveValuesListTitleSubject)).
+			Text(listOfItems).
+			Actions([]ebm.AttachmentAction{
+				modifyListAdaptiveValueAction(request),
+				addAnotherAdaptiveValueAction(request, InChat),
+			}).
+			CallbackId(mc.ToCallbackID()).
+			ToAttachment()
+		p := utils.InteractionCallbackSimpleResponse(request, "") // RenderAdaptiveValueItem(h)
+		p.Attachments = []ebm.Attachment{attachment}
 
-	return responses(p)
+		return responses(p)
+	}
 }
 
 func mapAdaptiveValueString(vs []models.AdaptiveValue, f func(models.AdaptiveValue) string) []string {
@@ -299,29 +300,27 @@ func adaptiveValueEditChatMessage(request slack.InteractionCallback, slackConver
 }
 
 // detailedListMenuItemFunc sends the list of adaptiveValues to thread
-func detailedListMenuItemFunc(request slack.InteractionCallback, teamID models.TeamID) []models.PlatformSimpleNotification {
-	platform.Debug(request, "Listing competencies...")
-	adaptiveValues := adaptiveValuesTableDao.ForPlatformID(teamID.ToPlatformID()).
-		AllUnsafe()
-	sort.Slice(adaptiveValues, func(i, j int) bool {
-		return adaptiveValues[i].Name < adaptiveValues[j].Name
-	})
-	adaptiveValueItems := mapAdaptiveValuePlatformSimpleNotification(adaptiveValues,
-		adaptiveValueEditChatMessage(request, InThread))
-	replacementMessage := utils.InteractionCallbackOverrideRequestMessage(request,
-		AdaptiveValuesTemplate(InviteToListOfAdaptiveValuesSubject))
-	ts := time.Now()
-	for _, item := range adaptiveValueItems {
-		ts = ts.Add(time.Millisecond)
-		item.Ts = core.TimestampLayout.Format(ts)
-	}
+func detailedListMenuItemFunc(request slack.InteractionCallback, teamID models.TeamID) func (conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
+	return func (conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
+		platform.Debug(request, "Listing competencies...")
+		adaptiveValues := evalues.ReadAndSortAllAdaptiveValues(conn)
+		adaptiveValueItems := mapAdaptiveValuePlatformSimpleNotification(adaptiveValues,
+			adaptiveValueEditChatMessage(request, InThread))
+		replacementMessage := utils.InteractionCallbackOverrideRequestMessage(request,
+			AdaptiveValuesTemplate(InviteToListOfAdaptiveValuesSubject))
+		ts := time.Now()
+		for _, item := range adaptiveValueItems {
+			ts = ts.Add(time.Millisecond)
+			item.Ts = core.TimestampLayout.Format(ts)
+		}
 
-	threadMessages := append(responses(
-		replacementMessage,
-		//	title,
-	),
-		adaptiveValueItems...)
-	return threadMessages
+		threadMessages := append(responses(
+			replacementMessage,
+			//	title,
+		),
+			adaptiveValueItems...)
+		return threadMessages
+	}
 }
 
 func convertFormToAdaptiveValue(request slack.InteractionCallback, teamID models.TeamID, form map[string]string) models.AdaptiveValue {
@@ -398,50 +397,54 @@ func onSubmitNewButtonClicked(
 	dialog slack.DialogSubmissionCallback,
 	teamID models.TeamID,
 	slackConversationKind SlackConversationKind,
-) (resp []models.PlatformSimpleNotification) {
-	resp, ok := ensureUserHasWriteAccessToValues(request)
-	if ok {
-		platform.Debug(request, "Creating adaptiveValue "+dialog.Submission["Name"])
-		adaptiveValue := convertFormToAdaptiveValue(request, teamID, dialog.Submission)
-		adaptiveValuesTableDao.ForPlatformID(teamID.ToPlatformID()).Create(adaptiveValue)
-		platform.Debug(request, "Created adaptiveValue "+adaptiveValue.Name)
+) func(conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification) {
+	return  func(conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification) {
+		resp, ok := ensureUserHasWriteAccessToValues(request)
+		if ok {
+			platform.Debug(request, "Creating adaptiveValue "+dialog.Submission["Name"])
+			av := convertFormToAdaptiveValue(request, teamID, dialog.Submission)
+			av.PlatformID = teamID.ToPlatformID()
+			adaptiveValue.CreateUnsafe(av)(conn)
+			platform.Debug(request, "Created adaptiveValue "+av.Name)
 
-		convID := conversationID(request)
-		platform.Debug(request, "teamID = "+teamID.ToString())
-		slackAdapter := slackAPI(teamID)
+			convID := conversationID(request)
+			platform.Debug(request, "teamID = "+teamID.ToString())
+			slackAdapter := slackAPI(teamID)
 
-		clearMessageOptionalTs := dialog.State
-		if clearMessageOptionalTs != "" {
-			slackAdapter.PostAsync(plat.Delete(plat.MessageID(convID, clearMessageOptionalTs)))
+			clearMessageOptionalTs := dialog.State
+			if clearMessageOptionalTs != "" {
+				slackAdapter.PostAsync(plat.Delete(plat.MessageID(convID, clearMessageOptionalTs)))
+			}
+
+			valueViewAttachment := adaptiveValueInlineViewAttachment(request, av, slackConversationKind)
+			messageID := slackAdapter.PostAsync(
+				plat.Post(convID, plat.Message("", valueViewAttachment)),
+			)
+			// meanwhile we'll perform analysis of the new competency description
+			resp = analyseMessage(request, messageID, utils.TextAnalysisInput{
+				Text:                       av.Description,
+				OriginalMessageAttachments: []ebm.Attachment{valueViewAttachment},
+				Namespace:                  namespace,
+				Context:                    AdaptiveValuesDialogContext,
+			})
 		}
-
-		valueViewAttachment := adaptiveValueInlineViewAttachment(request, adaptiveValue, slackConversationKind)
-		messageID := slackAdapter.PostAsync(
-			plat.Post(convID, plat.Message("", valueViewAttachment)),
-		)
-		// meanwhile we'll perform analysis of the new competency description
-		resp = analyseMessage(request, messageID, utils.TextAnalysisInput{
-			Text:                       adaptiveValue.Description,
-			OriginalMessageAttachments: []ebm.Attachment{valueViewAttachment},
-			Namespace:                  namespace,
-			Context:                    AdaptiveValuesDialogContext,
-		})
+		return
 	}
-	return
 }
 
-func onDeleteButtonClicked(request slack.InteractionCallback, id string) (resp []models.PlatformSimpleNotification) {
-	resp, ok := ensureUserHasWriteAccessToValues(request)
-	if ok {
-		err := adaptiveValuesTableDao.Delete(id)
-		platform.ErrorHandler(request, fmt.Sprintf("Could not delete %s", id), err)
-		resp = responses(
-			utils.InteractionCallbackOverrideRequestMessage(request, AdaptiveValuesTemplate(DeletedAdaptiveValueNoticeSubject)),
-		)
+func onDeleteButtonClicked(request slack.InteractionCallback, id string) func (conn daosCommon.DynamoDBConnection)(resp []models.PlatformSimpleNotification) {
+	return  func (conn daosCommon.DynamoDBConnection)(resp []models.PlatformSimpleNotification) {
+		resp, ok := ensureUserHasWriteAccessToValues(request)
+		if ok {
+			err2 := adaptiveValue.Deactivate(id)(conn)
+			platform.ErrorHandler(request, fmt.Sprintf("Could not deactivate %s", id), err2)
+			resp = responses(
+				utils.InteractionCallbackOverrideRequestMessage(request, AdaptiveValuesTemplate(DeletedAdaptiveValueNoticeSubject)),
+			)
+		}
+		return
 	}
-	return
 }
-
 // func getOverrideMessageTs(request slack.InteractionCallback,
 // 	slackConversationKind SlackConversationKind,
 // ) (overrideMessageTs string) {
@@ -463,7 +466,8 @@ func onEditButtonClicked(
 	resp, ok := ensureUserHasWriteAccessToValues(request)
 	if ok {
 		// ut := retrieveUserToken(request)
-		adaptiveValue := adaptiveValuesTableDao.ReadUnsafe(id)
+		conn := connGen.ForPlatformID(teamID.ToPlatformID())
+		adaptiveValue := adaptiveValue.ReadUnsafe(id)(conn)
 		platform.Debug(request, "Found adaptiveValue: "+adaptiveValue.Name)
 		mc := callbackID(request.User.ID, SubmitUpdatedAdaptiveValueAction(slackConversationKind))
 		mc.Target = id
@@ -504,20 +508,22 @@ func onSubmitUpdatedButtonClicked(
 	teamID models.TeamID,
 	slackConversationKind SlackConversationKind,
 ) (resp []models.PlatformSimpleNotification) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	resp, ok := ensureUserHasWriteAccessToValues(request)
 	if ok {
 		platform.Debug(request, "Updating adaptiveValue "+dialog.Submission["Name"])
 		mc := utils.MessageCallbackParseUnsafe(request.CallbackID, AdaptiveValuesNamespace)
-		adaptiveValue := convertFormToAdaptiveValue(request, teamID, dialog.Submission)
-		adaptiveValue.ID = mc.Target // we saved id in Target
-		err := adaptiveValuesTableDao.Update(adaptiveValue)
-		platform.ErrorHandler(request, "Updating adaptiveValue", err)
+		av := convertFormToAdaptiveValue(request, teamID, dialog.Submission)
+		av.DeactivatedAt = "" // after update we remove deactivation.
+		av.ID = mc.Target // we saved id in Target
+		err2 := adaptiveValue.CreateOrUpdate(av)(conn)
+		platform.ErrorHandler(request, "Updating adaptiveValue", err2)
 		platform.Debug(request, "Updated adaptiveValue "+dialog.Submission["Name"])
 		conn := globalConnection(teamID)
 		slackAdapter := mapper.SlackAdapterForTeamID(conn)
 		convID := conversationID(request)
-		messageForThread := plat.Message("", adaptiveValueInlineViewAttachment(request, adaptiveValue, InThread))
-		messageForChatSpace := plat.Message("", adaptiveValueInlineViewAttachment(request, adaptiveValue, InChat))
+		messageForThread := plat.Message("", adaptiveValueInlineViewAttachment(request, av, InThread))
+		messageForChatSpace := plat.Message("", adaptiveValueInlineViewAttachment(request, av, InChat))
 		overrideMessageOptionalTs := dialog.State
 		oldMsgID := plat.TargetMessageID{Ts: overrideMessageOptionalTs, ConversationID: convID}
 		var msg plat.Response
@@ -537,8 +543,8 @@ func onSubmitUpdatedButtonClicked(
 		// If we are in thread, we also post the updated message into the thread,
 		// overriding the message
 		analysisInput := utils.TextAnalysisInput{
-			Text:                       adaptiveValue.Description,
-			OriginalMessageAttachments: []ebm.Attachment{adaptiveValueInlineViewAttachment(request, adaptiveValue, InChat)},
+			Text:                       av.Description,
+			OriginalMessageAttachments: []ebm.Attachment{adaptiveValueInlineViewAttachment(request, av, InChat)},
 			Namespace:                  namespace,
 			Context:                    AdaptiveValuesDialogContext,
 		}
