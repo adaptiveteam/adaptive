@@ -29,7 +29,7 @@ type StrategyObjective struct  {
 	// community id not require d for customer/financial objectives
 	CapabilityCommunityIDs []string `json:"capability_community_ids,omitempty"`
 	ExpectedEndDate string `json:"expected_end_date"`
-	CreatedBy string `json:"created_by"`
+	CreatedBy string `json:"created_by,omitempty"`
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
 	// Automatically maintained field
@@ -47,7 +47,6 @@ func (strategyObjective StrategyObjective)CollectEmptyFields() (emptyFields []st
 	if strategyObjective.Targets == "" { emptyFields = append(emptyFields, "Targets")}
 	if strategyObjective.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
 	if strategyObjective.ExpectedEndDate == "" { emptyFields = append(emptyFields, "ExpectedEndDate")}
-	if strategyObjective.CreatedBy == "" { emptyFields = append(emptyFields, "CreatedBy")}
 	ok = len(emptyFields) == 0
 	return
 }

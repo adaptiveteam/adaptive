@@ -54,6 +54,8 @@ type UserObjective struct  {
 	Comments string `json:"comments,omitempty"`
 	// 1 for true, 0 for false
 	Cancelled int `json:"cancelled"`
+	CreatedBy string `json:"created_by,omitempty"`
+	ModifiedBy string `json:"modified_by,omitempty"`
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
 	// Automatically maintained field
@@ -377,8 +379,10 @@ func allParams(userObjective UserObjective, old UserObjective) (params map[strin
 	if userObjective.PartnerVerifiedCompletionDate != old.PartnerVerifiedCompletionDate { params[":a17"] = common.DynS(userObjective.PartnerVerifiedCompletionDate) }
 	if userObjective.Comments != old.Comments { params[":a18"] = common.DynS(userObjective.Comments) }
 	if userObjective.Cancelled != old.Cancelled { params[":a19"] = common.DynN(userObjective.Cancelled) }
-	if userObjective.CreatedAt != old.CreatedAt { params[":a20"] = common.DynS(userObjective.CreatedAt) }
-	if userObjective.ModifiedAt != old.ModifiedAt { params[":a21"] = common.DynS(userObjective.ModifiedAt) }
+	if userObjective.CreatedBy != old.CreatedBy { params[":a20"] = common.DynS(userObjective.CreatedBy) }
+	if userObjective.ModifiedBy != old.ModifiedBy { params[":a21"] = common.DynS(userObjective.ModifiedBy) }
+	if userObjective.CreatedAt != old.CreatedAt { params[":a22"] = common.DynS(userObjective.CreatedAt) }
+	if userObjective.ModifiedAt != old.ModifiedAt { params[":a23"] = common.DynS(userObjective.ModifiedAt) }
 	return
 }
 func updateExpression(userObjective UserObjective, old UserObjective) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -405,8 +409,10 @@ func updateExpression(userObjective UserObjective, old UserObjective) (expr stri
 	if userObjective.PartnerVerifiedCompletionDate != old.PartnerVerifiedCompletionDate { updateParts = append(updateParts, "partner_verified_completion_date = :a17"); params[":a17"] = common.DynS(userObjective.PartnerVerifiedCompletionDate);  }
 	if userObjective.Comments != old.Comments { updateParts = append(updateParts, "comments = :a18"); params[":a18"] = common.DynS(userObjective.Comments);  }
 	if userObjective.Cancelled != old.Cancelled { updateParts = append(updateParts, "cancelled = :a19"); params[":a19"] = common.DynN(userObjective.Cancelled);  }
-	if userObjective.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a20"); params[":a20"] = common.DynS(userObjective.CreatedAt);  }
-	if userObjective.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a21"); params[":a21"] = common.DynS(userObjective.ModifiedAt);  }
+	if userObjective.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a20"); params[":a20"] = common.DynS(userObjective.CreatedBy);  }
+	if userObjective.ModifiedBy != old.ModifiedBy { updateParts = append(updateParts, "modified_by = :a21"); params[":a21"] = common.DynS(userObjective.ModifiedBy);  }
+	if userObjective.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a22"); params[":a22"] = common.DynS(userObjective.CreatedAt);  }
+	if userObjective.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a23"); params[":a23"] = common.DynS(userObjective.ModifiedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return

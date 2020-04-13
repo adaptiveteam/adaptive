@@ -441,12 +441,21 @@ val objectiveTypeField = ("ObjectiveType".camel :: DevelopmentObjectiveType.type
 val nameField = "Name".camel :: string
 val descriptionField = "Description".camel :: string
 
+val StrategyObjectiveType = TypeAlias("StrategyObjectiveType".camel, string)
+// TODO: rename field in DB and then remove `dbName` 
+val capabilityCommunityIDsField = (spacedName("capability community IDs") :: optionStringArray).
+    dbName(spacedName("capability community IDs")) \\ "community id not require d for customer/financial objectives"
+val createdByField = "CreatedBy".camel :: optionString
+val modifiedByField = "ModifiedBy".camel :: optionString
+val advocateField = "Advocate".camel :: string
+val initiativeCommunityIDField = "InitiativeCommunityID".camel :: string
+
 val UserObjective = Entity(
     "UserObjective".camel,
     List(idField),
     List(
         platformIdField,
-        userIdField, 
+        userIdField, // advocateField,
         nameField,
         descriptionField,
         accountabilityPartnerField,
@@ -463,9 +472,23 @@ val UserObjective = Entity(
         "CompletedDate".camel :: optionTimestamp,
         "PartnerVerifiedCompletionDate".camel :: optionTimestamp,
         "Comments".camel :: optionString, 
-        ("Cancelled".camel :: int) \\ "1 for true, 0 for false"    
-    ),
-    Nil, List(CreatedModifiedTimesTrait)
+        ("Cancelled".camel :: int) \\ "1 for true, 0 for false",
+
+        // TODO: add strategy objective and strategy initiative fields:
+        // "AsMeasuredBy".camel :: optionString,
+        // "Targets".camel :: optionString,
+        // // objectiveTypeField,
+        // // capabilityCommunityIDsField,
+        // //
+        // "DefinitionOfVictory".camel :: optionString,
+        // initiativeCommunityIDField,
+        // "Budget".camel :: optionString,
+        // "CapabilityObjective".camel :: optionString,
+        createdByField,
+        modifiedByField
+    ), 
+    Nil, 
+    List(CreatedModifiedTimesTrait)
 )
 
 val UserObjectiveTable = Table(
@@ -571,12 +594,6 @@ val ClientPlatformTokenTable = Table(ClientPlatformToken,
 )
 val ClientPlatformTokenPackage = defaultPackage(ClientPlatformTokenTable, imports)
 
-val StrategyObjectiveType = TypeAlias("StrategyObjectiveType".camel, string)
-// TODO: rename field in DB and then remove `dbName` 
-val capabilityCommunityIDsField = (spacedName("capability community IDs") :: optionStringArray).
-    dbName(spacedName("capability community IDs")) \\ "community id not require d for customer/financial objectives"
-val createdByField = "CreatedBy".camel :: string
-val advocateField = "Advocate".camel :: string
 val StrategyObjective = Entity(
     "StrategyObjective".camel, 
     List(
@@ -592,7 +609,7 @@ val StrategyObjective = Entity(
         advocateField,
         capabilityCommunityIDsField,
         "ExpectedEndDate".camel :: timestamp,
-        "CreatedBy".camel :: string
+        createdByField
     ), Nil, List(CreatedModifiedTimesTrait))
 
 val StrategyObjectiveTable = Table(StrategyObjective,
@@ -655,8 +672,6 @@ val TypedObjectiveTable = Table(TypedObjective,
 
 val TypedObjectivePackage = defaultPackage(TypedObjectiveTable, allEntitySpecificImports(TypedObjective))
 
-val initiativeCommunityIDField = "InitiativeCommunityID".camel :: string
-
 val StrategyInitiative = Entity(
     "StrategyInitiative".camel, 
     List(
@@ -675,7 +690,7 @@ val StrategyInitiative = Entity(
         //createdAtField,
         createdByField,
         //"ModifiedAt".camel :: timestamp,
-        "ModifiedBy".camel :: string
+        modifiedByField
     ), Nil, List(CreatedModifiedTimesTrait))
 
 val StrategyInitiativeTable = Table(StrategyInitiative, 
