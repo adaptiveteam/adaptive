@@ -150,7 +150,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 		filepath := fmt.Sprintf("/tmp/%s.pdf", userID)
 		user := userDAO.ReadUnsafe(userID)
 		_, err = apr.BuildReportWithCustomValues(received, given, user.DisplayName, quarter, year, filepath,
-			fetch_dialog.NewDAO(dns.Dynamo, dialogTable), logger, conn)
+			fetch_dialog.NewDAO(dns.Dynamo, dialogTable), logger, apr.GetCompetencyImpl(conn))
 		if err == nil {
 			err = s.AddFile(filepath, reportBucket, fmt.Sprintf("%s/%d/%d/performance_report.pdf", reportFor, year,
 				quarter))

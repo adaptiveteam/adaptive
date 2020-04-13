@@ -4,7 +4,6 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
 )
 
@@ -24,7 +23,7 @@ func BuildReport(
 	// Name and location for where to store the file.
 	FileName string,
 	logger logger.AdaptiveLogger,
-	conn daosCommon.DynamoDBConnection,
+	getCompetencyUnsafe GetCompetencyUnsafe,
 ) (tags map[string]string, err error) {
 	dynamo := awsutils.NewDynamo(utils.NonEmptyEnv("AWS_REGION"), "", "dialog")
 	dialogTableName := utils.NonEmptyEnv("DIALOG_TABLE")
@@ -38,7 +37,7 @@ func BuildReport(
 		FileName,
 		globalDao,
 		logger,
-		conn,
+		getCompetencyUnsafe,
 	)
 	return tags, err
 }
@@ -58,8 +57,8 @@ func BuildReportWithCustomValues(
 	// Name and location for where to store the file.
 	FileName string,
 	dialogDao fetch_dialog.DAO,
-	logger logger.AdaptiveLogger,
-	conn daosCommon.DynamoDBConnection,
+	logger logger.AdaptiveLogger, 
+	getCompetencyUnsafe GetCompetencyUnsafe,
 ) (tags map[string]string, err error) {
 	tags, err = buildReport(
 		ReceivedBytes,
@@ -70,7 +69,7 @@ func BuildReportWithCustomValues(
 		FileName,
 		dialogDao,
 		logger,
-		conn,
+		getCompetencyUnsafe,
 	)
 	return tags, err
 }

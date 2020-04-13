@@ -97,7 +97,17 @@ func (c coachingList) index(i int) coaching {
 	return c[i]
 }
 
-func newCoachingListFromStream(stream []byte, conn daosCommon.DynamoDBConnection) (rv coachingList, err error) {
+type GetCompetencyUnsafe = func (competencyID string) []adaptiveValue.AdaptiveValue
+
+func GetCompetencyImpl(conn daosCommon.DynamoDBConnection) GetCompetencyUnsafe {
+	return func (competencyID string) (competencies []adaptiveValue.AdaptiveValue) {
+		competencies = adaptiveValue.ReadOrEmptyUnsafe(competencyID)(conn)
+		competencies = adaptiveValue.AdaptiveValueFilterActive(competencies)
+		return
+	}
+}
+
+func newCoachingListFromStream(stream []byte, getCompetencyUnsafe GetCompetencyUnsafe) (rv coachingList, err error) {
 	rv = make(coachingList, 0)
 	var feedbackValueMappedList []coaching
 	err = nil
@@ -105,8 +115,7 @@ func newCoachingListFromStream(stream []byte, conn daosCommon.DynamoDBConnection
 		err = json.Unmarshal(stream, &rv)
 	}
 	for _, each := range rv {
-		competencies := adaptiveValue.ReadOrEmptyUnsafe(each.Topic)(conn)
-		competencies = adaptiveValue.AdaptiveValueFilterActive(competencies)
+		competencies := getCompetencyUnsafe(each.Topic)
 		for _, competency := range competencies {
 			feedbackMapped := coaching{
 				Source:   each.Source,
