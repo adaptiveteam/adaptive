@@ -217,9 +217,10 @@ func (w workflowImpl) OnCoacheeRequested() wf.Handler {
  		if adv != "" && adv != issue.UserObjective.ModifiedBy {
 			out = out.WithInteractiveMessage(wf.InteractiveMessage{
 				PassiveMessage: wf.PassiveMessage{
-					AttachmentText: ui.Sprintf("%s is requesting that you become the advocate for the below %s. ",
+					AttachmentText: ui.Sprintf("%s has assigned you as the advocate for the below %s. ",
 						engCommon.TaggedUser(issue.UserObjective.ModifiedBy),
-						issue.GetIssueType().Template()),
+						issue.GetIssueType().Template(),
+					),
 					Fields: shortViewFields(issue),
 				},
 			})
