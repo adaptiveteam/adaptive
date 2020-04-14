@@ -14,39 +14,33 @@ import (
 )
 
 func TestBuildReportFullData_Test(t *testing.T) {
-	received, err := readCoachingsFromJSON("test-data/test-data.json")
-	given := make([]byte, 0)
+	received, err := readCoachingsFromJSON("test-data/test-data.json", MockGetCompetency)
 	l := logger.LambdaLogger(logrus.InfoLevel)
 	if err == nil {
-		_, err = BuildReportWithCustomValues(
+		_, err = BuildReportWithCustomValuesTyped(
 			received,
-			given,
 			"Christopher Creel",
 			1,
 			2019,
 			"test-reports/adaptive.pdf",
 			createTestDao(),
 			l,
-			MockGetCompetency,
 		)
 	}
 }
 
 func TestBuildReportIncompleteData(t *testing.T) {
-	received, err := readCoachingsFromJSON("test-data/test-incomplete-data.json")
-	given := make([]byte, 0)
+	received, err := readCoachingsFromJSON("test-data/test-incomplete-data.json", MockGetCompetency)
 	l := logger.LambdaLogger(logrus.InfoLevel)
 	if err == nil {
-		_, err = BuildReportWithCustomValues(
+		_, err = BuildReportWithCustomValuesTyped(
 			received,
-			given,
 			"Christopher Creel",
 			1,
 			2019,
 			"test-reports/adaptive-incomplete.pdf",
 			createTestDao(),
 			l,
-			MockGetCompetency,
 		)
 	}
 }
