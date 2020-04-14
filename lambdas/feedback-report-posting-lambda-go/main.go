@@ -36,7 +36,8 @@ func postTo(engage models.UserEngage) (postTo string) {
 }
 
 func downloadReportContents(engage models.UserEngage) (contents []byte, err error) {
-	key, err := coaching.UserReportIDForPreviousQuarter(engage)
+	t, err := core.ISODateLayout.Parse(engage.Date)
+	key, err := coaching.UserReportIDForPreviousQuarter(t, coaching.ReportFor(engage.UserID, engage.TargetID))
 	if err == nil {
 		logger.Infof("Report id for %s user: %s", engage.UserID, key)
 		// Check if the report exists
@@ -54,7 +55,7 @@ func downloadReportContents(engage models.UserEngage) (contents []byte, err erro
 }
 
 func sendReport(engage models.UserEngage, targetUserDisplayName string, contents []byte) (err error) {
-	reportFor := coaching.ReportFor(engage)
+	reportFor := coaching.ReportFor(engage.UserID, engage.TargetID)
 	postTo := postTo(engage)
 	// Upload the file only for non-empty content
 	if len(contents) > 0 {
@@ -83,7 +84,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) {
 	logger.WithField("payload", engage).Infof("Starting...")
 	contents, err := downloadReportContents(engage)
 	if err == nil {
-		targetUserDisplayName, err := getDisplayName(engage.TeamID, coaching.ReportFor(engage))
+		targetUserDisplayName, err := getDisplayName(engage.TeamID, coaching.ReportFor(engage.UserID, engage.TargetID))
 		if err == nil {
 			err = sendReport(engage, targetUserDisplayName, contents)
 		}

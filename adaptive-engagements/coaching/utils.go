@@ -1,6 +1,7 @@
 package coaching
 
 import (
+	"time"
 	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/daos/userFeedback"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
-	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
 
 // func UserDNPlatform(userId string, userProfileLambda, region string, dns common.DynamoNamespace) (string, models.TeamID) {
@@ -87,24 +87,21 @@ func ReportExists(bucket, key string) bool {
 }
 
 // UserReportIDForPreviousQuarter constructs key to look for in S3 for a user for the last quarter
-func UserReportIDForPreviousQuarter(engage models.UserEngage) (key string, err error) {
-	t, err := core.ISODateLayout.Parse(engage.Date)
-	if err == nil {
-		var y, m, d = t.Date()
-		bt := business_time.NewDate(y, int(m), d)
-		year := bt.GetPreviousQuarterYear()
-		quarter := bt.GetPreviousQuarter()
-		key = fmt.Sprintf("%s/%d/%d/%s", ReportFor(engage), year, quarter, ReportName)
-	}
+func UserReportIDForPreviousQuarter(date time.Time, reportForUserID string) (key string, err error) {
+	var y, m, d = date.Date()
+	bt := business_time.NewDate(y, int(m), d)
+	year := bt.GetPreviousQuarterYear()
+	quarter := bt.GetPreviousQuarter()
+	key = fmt.Sprintf("%s/%d/%d/%s", reportForUserID, year, quarter, ReportName)
 	return
 }
 
 // ReportFor returns the user or channel, where to post report in
-func ReportFor(engage models.UserEngage) (reportFor string) {
-	if engage.TargetID == "" {
-		reportFor = engage.UserID
+func ReportFor(userID, targetID string) (reportFor string) {
+	if targetID == "" {
+		reportFor = userID
 	} else {
-		reportFor = engage.TargetID
+		reportFor = targetID
 	}
 	return
 }
