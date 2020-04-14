@@ -1,12 +1,12 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
-	"github.com/adaptiveteam/adaptive/daos/slackTeam"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
+	"github.com/adaptiveteam/adaptive/daos/slackTeam"
 	"log"
 	"net/url"
 	"reflect"
@@ -27,8 +27,8 @@ import (
 	aesc "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
-	holidaysLambda "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
 	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
+	holidaysLambda "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
@@ -124,7 +124,7 @@ func helloMessage(userID, channelID string, teamID models.TeamID) {
 	rels := strategy.QueryCommunityUserIndex(userID, communityUsersTable, communityUsersUserIndex)
 	if len(rels) > 0 {
 		// api := slack.New(platformTokenDAO.GetPlatformTokenUnsafe(models.TeamID(teamID)))
-		//history, err2 := getChannelHistory(api, channelID)
+		// history, err2 := getChannelHistory(api, channelID)
 		// if err2 != nil || !isThereVeryRecentHiResponse(history) {
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
 			Attachments: InitAction("init_message", userID)})
@@ -157,7 +157,7 @@ func helloMessage(userID, channelID string, teamID models.TeamID) {
 			NoAdaptiveAccessDialogContext))
 
 		attach := utils.ChatAttachment("Sorry, you are not a member of any community yet :disappointed:",
-			core.RandomString(noAccessText.Dialog), "", mc.ToCallbackID(), 
+			core.RandomString(noAccessText.Dialog), "", mc.ToCallbackID(),
 			actions, []ebm.AttachmentField{}, time.Now().Unix())
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
 			Attachments: []ebm.Attachment{*attach}})
@@ -170,7 +170,7 @@ func forwardToNamespaceWithAppID(appID models.TeamID, eventsAPIEvent string) fun
 			ID:        core.Uuid(),
 			Namespace: namespace,
 			PlatformRequest: models.PlatformRequest{
-				TeamID:   appID,
+				TeamID:       appID,
 				SlackRequest: models.EventsAPIEvent(eventsAPIEvent),
 			},
 		}
@@ -188,7 +188,7 @@ func invokeLambdaWithAppID(appID models.TeamID, eventsAPIEvent string) func(stri
 			ID:        core.Uuid(),
 			Namespace: namespace,
 			PlatformRequest: models.PlatformRequest{
-				TeamID:   appID,
+				TeamID:       appID,
 				SlackRequest: models.EventsAPIEvent(eventsAPIEvent),
 			},
 		}
@@ -224,15 +224,11 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 				err = errors.Wrap(err, "Could not parse payload to AppHomeOpened")
 				if err == nil {
 					if ahe.Event.Type == AppHomeOpened {
-						userID := ahe.Event.User
-						channelID := ahe.Event.Channel
-
 						teamID := models.TeamID{
 							TeamID: daosCommon.PlatformID(ahe.TeamID),
-							AppID: daosCommon.PlatformID(ahe.ApiAppID),
+							AppID:  daosCommon.PlatformID(ahe.ApiAppID),
 						}
 						logger.Infof("AppHomeOpened, teamID=%v", teamID)
-						helloMessage(userID, channelID, teamID)
 					}
 					response = responseOk
 				}
@@ -276,14 +272,14 @@ func getRequestPayload(requestBody string) (requestPayload string, err error) {
 
 func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 	requestPayload string,
-) (response events.APIGatewayProxyResponse, err error)  {
+) (response events.APIGatewayProxyResponse, err error) {
 	logger.Infof("EVENT %v", eventsAPIEvent.Type)
 	response = responseOk
 	switch eventsAPIEvent.Type {
 	case slackevents.AppHomeOpened:
 		appHomeOpened := eventsAPIEvent.Data.(*slackevents.AppHomeOpenedEvent)
 		logger.Infof("UNKNOWN-PlatformID")
-		helloMessage(appHomeOpened.User, appHomeOpened.Channel, 
+		helloMessage(appHomeOpened.User, appHomeOpened.Channel,
 			models.ParseTeamID("<UNKNOWN-PlatformID>"))
 	case slackevents.URLVerification:
 		urlVerification := eventsAPIEvent.Data.(*slackevents.EventsAPIURLVerificationEvent)
@@ -346,9 +342,9 @@ func ensureTeamID(teamID, appID daosCommon.PlatformID) (res models.TeamID, err e
 
 func routeCallbackEvent(
 	eventsAPIEvent slackevents.EventsAPIEvent,
-	requestPayload string, 
+	requestPayload string,
 	callbackEvent slackevents.EventsAPICallbackEvent,
-) (err error)  {
+) (err error) {
 	var teamID models.TeamID
 	teamID, err = ensureTeamID(
 		daosCommon.PlatformID(callbackEvent.TeamID),
@@ -389,8 +385,8 @@ func routeCallbackEvent(
 					logger.Infof("apiAppID: %v", teamID)
 					helloMessage(slackMsg.User, slackMsg.Channel, teamID)
 				} else if strings.Contains(slackText, "generate") ||
-				strings.Contains(slackText, "add to slack") || 
-				strings.Contains(slackText, "addtoslack") {
+					strings.Contains(slackText, "add to slack") ||
+					strings.Contains(slackText, "addtoslack") {
 					GenerateAddToSlackURL(slackMsg.User, slackMsg.Channel, teamID)
 				} else {
 					log.Println("### callback event: " + requestPayload)
@@ -416,9 +412,9 @@ func routeCallbackEvent(
 			}
 		}
 	}
-	return 
+	return
 }
-				
+
 func routeByCallbackID(
 	eventsAPIEvent slackevents.EventsAPIEvent,
 	requestPayload string,
@@ -432,10 +428,10 @@ func routeByCallbackID(
 		ID:        core.Uuid(),
 		Namespace: namespace,
 		PlatformRequest: models.PlatformRequest{
-			TeamID:   teamID,
+			TeamID:       teamID,
 			SlackRequest: slackRequest,
 		},
-	}	
+	}
 	forwardToNamespace := forwardToNamespaceWithAppID(teamID, requestPayload)
 	invokeLambdaWithNamespace := invokeLambdaWithAppID(teamID, requestPayload)
 
@@ -477,7 +473,7 @@ func routeByCallbackID(
 }
 
 func routeMenuOption(
-	eventsAPIEvent slackevents.EventsAPIEvent, 
+	eventsAPIEvent slackevents.EventsAPIEvent,
 	requestPayload string,
 	message slack.InteractionCallback,
 	teamID models.TeamID,
@@ -494,10 +490,10 @@ func routeMenuOption(
 		ID:        core.Uuid(),
 		Namespace: namespace,
 		PlatformRequest: models.PlatformRequest{
-			TeamID:   teamID,
+			TeamID:       teamID,
 			SlackRequest: slackRequest,
 		},
-	}	
+	}
 	forwardToNamespace := forwardToNamespaceWithAppID(teamID, requestPayload)
 	invokeLambdaWithNamespace := invokeLambdaWithAppID(teamID, requestPayload)
 	switch menuOption {
@@ -516,7 +512,7 @@ func routeMenuOption(
 	case coaching.GiveFeedback, coaching.RequestFeedback, user.GenerateReport,
 		user.FetchReport, coaching.ViewCoachees, coaching.ViewAdvocates:
 		invokeLambdaWithNamespace("feedback")
-	case objectives.CreateIDO, objectives.CreateIDONow, 
+	case objectives.CreateIDO, objectives.CreateIDONow,
 		user.StaleIDOsForMe,
 		coaching.SelectCoachee, coaching.ReviewCoacheeProgressSelect,
 		strategy.ViewCommunityAdvocateObjectives:
@@ -531,13 +527,13 @@ func routeMenuOption(
 		user.StaleObjectivesForMe:
 		forwardToNamespace("objectives")
 		// invokeLambdaWithNamespace("strategy")
-	case strategy.CreateInitiative, 
+	case strategy.CreateInitiative,
 		strategy.ViewCapabilityCommunityInitiatives,
-		strategy.ViewAdvocacyInitiatives, 
+		strategy.ViewAdvocacyInitiatives,
 		strategy.ViewInitiativeCommunityInitiatives,
 		user.StaleInitiativesForMe:
 		forwardToNamespace("objectives")
-	case strategy.ViewCapabilityCommunityObjectives, 
+	case strategy.ViewCapabilityCommunityObjectives,
 		strategy.CreateVision, strategy.ViewVision, strategy.ViewEditVision,
 		strategy.CreateCapabilityCommunity, strategy.ViewCapabilityCommunities,
 		strategy.AssociateStrategyObjectiveToCapabilityCommunity,
@@ -547,14 +543,14 @@ func routeMenuOption(
 		invokeLambdaWithNamespace("strategy")
 	case SayHelloMenuItem:
 		forwardToNamespace(HelloWorldNamespace)
-	case 
-		holidays.HolidaysListMenuItem, 
-		holidays.HolidaysSimpleListMenuItem, 
+	case
+		holidays.HolidaysListMenuItem,
+		holidays.HolidaysSimpleListMenuItem,
 		holidays.HolidaysCreateNewMenuItem:
-		
+
 		holidaysLambda.LambdaRouting.HandleNamespacePayload4(np)
 		// forwardToNamespace(HolidaysNamespace)
-	case values.AdaptiveValuesListMenuItem, 
+	case values.AdaptiveValuesListMenuItem,
 		values.AdaptiveValuesSimpleListMenuItem,
 		values.AdaptiveValuesCreateNewMenuItem:
 		competencies.HandleNamespacePayload4(np)
