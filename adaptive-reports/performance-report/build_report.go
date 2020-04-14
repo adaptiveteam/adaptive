@@ -9,7 +9,8 @@ import (
 	"math"
 	"strings"
 )
-
+// buildReport -
+// Deprecated. Use buildReportTyped directly.
 func buildReport(
 // The last year of feedback received
 	ReceivedBytes []byte,
@@ -27,10 +28,10 @@ func buildReport(
 	logger logger.AdaptiveLogger,
 	getCompetencyUnsafe GetCompetencyUnsafe,
 ) (tags map[string]string, err error) {
-	received, err := newCoachingListFromStream(ReceivedBytes, getCompetencyUnsafe)
+	received, err := NewCoachingListFromStream(ReceivedBytes, getCompetencyUnsafe)
 	if err == nil {
 		logger.WithField("received", &received).Infof("Retrieved received feedback")
-		given, err := newCoachingListFromStream(GivenBytes, getCompetencyUnsafe)
+		given, err := NewCoachingListFromStream(GivenBytes, getCompetencyUnsafe)
 		if err == nil {
 			logger.WithField("given", &given).Infof("Retrieved given feedback")
 
@@ -50,9 +51,9 @@ func buildReport(
 
 func buildReportTyped(
 	// The last year of feedback received
-	received coachingList,
+	received CoachingList,
 	// The last year of feedback given
-	given coachingList,
+	given CoachingList,
 	// The users name (e.g., Chris Creel)
 	UserName string,
 	// The quarter for which this report was produced
@@ -70,7 +71,6 @@ func buildReportTyped(
 		UserName,
 		Quarter,
 		Year,
-		FileName,
 		dialogDao,
 		logger,
 	)
@@ -78,24 +78,22 @@ func buildReportTyped(
 		err = pdf.WriteToFile(FileName)
 	}
 	if err != nil {
-		log.Println("Error writing file", err)
+		log.Println("Error building report "+FileName, err)
 	}
 	return tags, err
 }
 
 func createPdfReport(
 	// The last year of feedback received
-	received coachingList,
+	received CoachingList,
 	// The last year of feedback given
-	given coachingList,
+	given CoachingList,
 	// The users name (e.g., Chris Creel)
 	UserName string,
 	// The quarter for which this report was produced
 	Quarter int,
 	// The year for which this report was produced
 	Year int,
-	// Name and location for where to store the file.
-	FileName string,
 	dialogDao fetch_dialog.DAO,
 	logger logger.AdaptiveLogger,
 ) (pdf *creator.Creator, tags map[string]string, err error) {
@@ -109,10 +107,10 @@ func createPdfReport(
 		receivedForQuarter := received.feedbackForQuarter(Quarter, Year)
 		// givenForQuarter := given.FeedbackForQuarter(Quarter,Year)
 
-		sortedTopics := received.getSortedAttribute(func(c coaching) string {
+		sortedTopics := received.getSortedAttribute(func(c Coaching) string {
 			return c.Topic
 		})
-		sortedTypes := received.getSortedAttribute(func(c coaching) string {
+		sortedTypes := received.getSortedAttribute(func(c Coaching) string {
 			return c.Type
 		})
 		topicToValueTypeMapping := received.getTopicToValueTypeMapping()

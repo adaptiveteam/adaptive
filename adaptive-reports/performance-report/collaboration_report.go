@@ -73,3 +73,33 @@ func BuildReportWithCustomValues(
 	)
 	return tags, err
 }
+
+// BuildReportWithCustomValuesTyped is an entry point for this project.
+func BuildReportWithCustomValuesTyped(
+	// The last year of feedback received
+	received CoachingList,
+	// The last year of feedback given
+	given CoachingList,
+	// The users name (e.g., Chris Creel)
+	UserName string,
+	// The quarter for which this report was produced
+	Quarter int,
+	// The year for which this report was produced
+	Year int,
+	// Name and location for where to store the file.
+	FileName string,
+	dialogDao fetch_dialog.DAO,
+	logger logger.AdaptiveLogger,
+) (tags map[string]string, err error) {
+	tags, err = buildReportTyped(
+		received,
+		given,
+		UserName,
+		Quarter,
+		Year,
+		FileName,
+		dialogDao,
+		logger,
+	)
+	return tags, err
+}
