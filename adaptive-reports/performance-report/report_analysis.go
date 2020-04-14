@@ -49,7 +49,6 @@ func getColor(severity string) (rv creator.Color) {
 
 func generateSummaryAnalysis(
 	received CoachingList,
-	given CoachingList,
 	topicToValueTypeMapping map[string]string,
 	quarter int,
 	year int,

@@ -75,7 +75,6 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 	date := engage.Date
 	threadTs := engage.ThreadTs
 	channel := engage.Channel
-	conn := connGen.ForPlatformID(engage.TeamID.ToPlatformID())
 	var reportFor = userID
 	var sendTo = userID
 	// A user can request a report and it can also be requested by a user in a community
@@ -109,6 +108,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 	for _, each := range engs {
 		coachings = append(coachings, convertUserFeedbackToCoaching(each))
 	}
+	conn := connGen.ForPlatformID(engage.TeamID.ToPlatformID())
 	coachings = apr.ResolveCompetencies(coachings, apr.GetCompetencyImpl(conn))
 	
 	// We post the generation status only if the request is from a community. In that case, target is not empty
@@ -117,7 +117,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 	if len(coachings) > 0 {
 		filepath := fmt.Sprintf("/tmp/%s.pdf", userID)
 		user := userDAO.ReadUnsafe(userID)
-		_, err = apr.BuildReportWithCustomValuesTyped(coachings, []apr.Coaching{}, user.DisplayName, quarter, year, filepath,
+		_, err = apr.BuildReportWithCustomValuesTyped(coachings, user.DisplayName, quarter, year, filepath,
 			fetch_dialog.NewDAO(dns.Dynamo, dialogTable), logger)
 		if err == nil {
 			err = s.AddFile(filepath, reportBucket, fmt.Sprintf("%s/%d/%d/performance_report.pdf", reportFor, year,

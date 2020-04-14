@@ -14,8 +14,6 @@ import (
 func buildReport(
 // The last year of feedback received
 	ReceivedBytes []byte,
-// The last year of feedback given
-	GivenBytes []byte,
 // The users name (e.g., Chris Creel)
 	UserName string,
 // The quarter for which this report was produced
@@ -31,20 +29,14 @@ func buildReport(
 	received, err := NewCoachingListFromStream(ReceivedBytes, getCompetencyUnsafe)
 	if err == nil {
 		logger.WithField("received", &received).Infof("Retrieved received feedback")
-		given, err := NewCoachingListFromStream(GivenBytes, getCompetencyUnsafe)
-		if err == nil {
-			logger.WithField("given", &given).Infof("Retrieved given feedback")
-
-			return buildReportTyped(received, given, 
-				UserName,
-				Quarter,
-				Year,
-				FileName,
-				dialogDao,
-				logger,
-			)
-			
-		}
+		return buildReportTyped(received, 
+			UserName,
+			Quarter,
+			Year,
+			FileName,
+			dialogDao,
+			logger,
+		)
 	}
 	return
 }
@@ -52,8 +44,6 @@ func buildReport(
 func buildReportTyped(
 	// The last year of feedback received
 	received CoachingList,
-	// The last year of feedback given
-	given CoachingList,
 	// The users name (e.g., Chris Creel)
 	UserName string,
 	// The quarter for which this report was produced
@@ -67,7 +57,7 @@ func buildReportTyped(
 ) (tags map[string]string, err error) {
 	SetUniDocGlobalLicenseIfAvailable()
 	var pdf *creator.Creator
-	pdf, tags, err = createPdfReport(received, given, 
+	pdf, tags, err = createPdfReport(received, //given, 
 		UserName,
 		Quarter,
 		Year,
@@ -86,8 +76,6 @@ func buildReportTyped(
 func createPdfReport(
 	// The last year of feedback received
 	received CoachingList,
-	// The last year of feedback given
-	given CoachingList,
 	// The users name (e.g., Chris Creel)
 	UserName string,
 	// The quarter for which this report was produced
@@ -119,7 +107,7 @@ func createPdfReport(
 		documentHeaders(pdf)
 		documentFrontPage(UserName, Year, Quarter, pdf, fm)
 		writePerformanceSummary(pdf, fm, receivedForQuarter)
-		tags = writePerformanceAnalysis(pdf, fm, received, given, topicToValueTypeMapping, Quarter, Year, dialogDao, logger)
+		tags = writePerformanceAnalysis(pdf, fm, received, topicToValueTypeMapping, Quarter, Year, dialogDao, logger)
 		writeCoachingIdeas(pdf, fm, receivedForQuarter, dialogDao)
 		for _, each := range sortedTypes {
 			s := writeFeedbackSummary(pdf, fm, receivedForQuarter, each, topicToValueTypeMapping)

@@ -44,8 +44,6 @@ import (
 func BuildReportWithCustomValues(
 	// The last year of feedback received
 	ReceivedBytes []byte,
-	// The last year of feedback given
-	GivenBytes []byte,
 	// The users name (e.g., Chris Creel)
 	UserName string,
 	// The quarter for which this report was produced
@@ -60,7 +58,6 @@ func BuildReportWithCustomValues(
 ) (tags map[string]string, err error) {
 	tags, err = buildReport(
 		ReceivedBytes,
-		GivenBytes,
 		UserName,
 		Quarter,
 		Year,
@@ -76,8 +73,6 @@ func BuildReportWithCustomValues(
 func BuildReportWithCustomValuesTyped(
 	// The last year of feedback received
 	received CoachingList,
-	// The last year of feedback given
-	given CoachingList,
 	// The users name (e.g., Chris Creel)
 	UserName string,
 	// The quarter for which this report was produced
@@ -91,7 +86,6 @@ func BuildReportWithCustomValuesTyped(
 ) (tags map[string]string, err error) {
 	tags, err = buildReportTyped(
 		received,
-		given,
 		UserName,
 		Quarter,
 		Year,

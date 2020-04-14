@@ -187,7 +187,7 @@ func writePerformanceAnalysis(
 	c *creator.Creator,
 	f fontMap,
 	received CoachingList,
-	given CoachingList,
+	// given CoachingList,
 	topicToValueTypeMapping map[string]string,
 	quarter int,
 	year int,
@@ -195,7 +195,9 @@ func writePerformanceAnalysis(
 	logger logger.AdaptiveLogger,
 ) (tags map[string]string) {
 	var analyses map[string]string
-	analyses, tags = generateSummaryAnalysis(received, given, topicToValueTypeMapping, quarter, year, dialogDao, logger)
+	analyses, tags = generateSummaryAnalysis(received, 
+		// given, 
+		topicToValueTypeMapping, quarter, year, dialogDao, logger)
 	logger.WithField("analyses", &analyses).Infof("Retrieved analyses")
 	sortOrder := []string{
 		"StrongRed",
