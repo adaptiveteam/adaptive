@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"context"
 	"fmt"
 	"os"
@@ -42,6 +43,12 @@ func publish(msg models.PlatformSimpleNotification) {
 		platformNotificationTopic))
 }
 
+func publishAll(notes []models.PlatformSimpleNotification) {
+	for _, note := range notes {
+		publish(note)
+	}
+}
+
 var (
 	namespace                 = utils.NonEmptyEnv("LOG_NAMESPACE")
 	region                    = utils.NonEmptyEnv("AWS_REGION")
@@ -64,45 +71,22 @@ var (
 )
 
 func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []Coaching, err error) {
+	defer core.RecoverToErrorVar("feedback-reporting-lambda", &err)
 	logger = logger.WithLambdaContext(ctx)
-	defer func() {
-		if err2 := recover(); err2 != nil {
-			err = fmt.Errorf("error in feedback-reporting-lambda %v", err2)
-		}
-	}()
-	userID := engage.UserID
+	// userID := engage.UserID
 	targetID := engage.TargetID
 	date := engage.Date
 	threadTs := engage.ThreadTs
 	channel := engage.Channel
-	var reportFor = userID
-	var sendTo = userID
 	// A user can request a report and it can also be requested by a user in a community
-	if targetID != "" {
-		reportFor = targetID
-	}
-	logger.Infof("Got the user and target")
+	var reportFor = coaching.ReportFor(engage.UserID, engage.TargetID)
+	var sendTo = engage.UserID
 	// When request comes from a channel, we should respond back to the channel
 	// We treat this channel as a user, as in we have profile information for this channel
 	// if engage.Channel != "" {
 	//	sendTo = engage.Channel
 	// }
-	var t time.Time
-	if date != "" {
-		fmt.Printf("Date is present in UserEngage.Date=%s", date)
-		t, err = core.ISODateLayout.Parse(date)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse %s as date", date))
-	} else {
-		t = time.Now()
-		fmt.Printf("Date not present in UserEngage, using the date of current time %v", t)
-	}
-	var y, m, d = t.Date()
-	bt := business_time.NewDate(y, int(m), d)
-	logger.Infof("Date %v", bt)
-	quarter := bt.GetPreviousQuarter()
-	year := bt.GetPreviousQuarterYear()
-	fmt.Println(fmt.Sprintf("### quarter: %d, year: %d", quarter, year))
-
+	quarter, year := getQuarterYearForDateOrElseNow(date)
 	engs := selectReceivedFeedbackUnsafe(reportFor, quarter, year)
 
 	for _, each := range engs {
@@ -114,29 +98,39 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 	// We post the generation status only if the request is from a community. In that case, target is not empty
 	postCondition := targetID != "" && threadTs != ""
 
+	notes := []models.PlatformSimpleNotification{}
 	if len(coachings) > 0 {
-		filepath := fmt.Sprintf("/tmp/%s.pdf", userID)
-		user := userDAO.ReadUnsafe(userID)
-		_, err = apr.BuildReportWithCustomValuesTyped(coachings, user.DisplayName, quarter, year, filepath,
-			fetch_dialog.NewDAO(dns.Dynamo, dialogTable), logger)
+		filepath := fmt.Sprintf("/tmp/%s.pdf", reportFor)
+		user := daosUser.ReadUnsafe(reportFor)(conn)
+		_, err = apr.BuildReportWithCustomValuesTyped(
+			coachings, user.DisplayName, quarter, year,
+			filepath,
+			fetch_dialog.NewDAO(dns.Dynamo, dialogTable), logger,
+		)
 		if err == nil {
-			err = s.AddFile(filepath, reportBucket, fmt.Sprintf("%s/%d/%d/performance_report.pdf", reportFor, year,
-				quarter))
+			defer deleteFile(filepath)
+			s3Key := fmt.Sprintf("%s/%d/%d/performance_report.pdf", reportFor, year, quarter)
+			err = s.AddFile(filepath, reportBucket, s3Key)
 			if err == nil {
-				if postCondition {
-					publish(models.PlatformSimpleNotification{UserId: sendTo, Channel: channel, Message: fmt.Sprintf(
-						"_<@%s>'s performance report for quarter `%d` of year `%d` has been generated._", reportFor,
-						quarter, year), ThreadTs: threadTs})
-				}
+				notes = append(notes, models.PlatformSimpleNotification{
+					Message: fmt.Sprintf("_<@%s>'s performance report for quarter `%d` of year `%d` has been generated._", reportFor, quarter, year), 
+					UserId: sendTo, 
+					Channel: channel, 
+					ThreadTs: threadTs,
+				})
 			}
-			deleteFile(filepath)
 		}
-	} else if postCondition {
-		publish(models.PlatformSimpleNotification{UserId: sendTo, Channel: channel, Message: fmt.Sprintf(
-			"_Report not generated. <@%s> did not receive any feedback for quarter `%d` of year `%d`_",
-			reportFor, quarter, year), ThreadTs: threadTs})
+	} else {
+		notes = append(notes, models.PlatformSimpleNotification{
+			Message: fmt.Sprintf("_Report not generated. <@%s> did not receive any feedback for quarter `%d` of year `%d`_", reportFor, quarter, year),
+			UserId: sendTo, 
+			Channel: channel, 
+			ThreadTs: threadTs,
+		})
 	}
-
+	if postCondition {
+		publishAll(notes)
+	}
 	if err != nil {
 		logger.WithError(err).Errorf("Error with collaboration report generation for %s user", reportFor)
 	}
@@ -172,6 +166,26 @@ func convertUserFeedbackToCoaching(uf models.UserFeedback) apr.Coaching {
 		Quarter:  q,
 		Year:     y,
 	}
+}
+
+func getQuarterYearForDateOrElseNow(date string) (quarter, year int) {
+	var t time.Time
+	if date == "" {
+		t = time.Now()
+		fmt.Printf("Date not present in UserEngage, using the date of current time %v", t)
+	} else {
+		fmt.Printf("Date is present in UserEngage.Date=%s", date)
+		var err2 error
+		t, err2 = core.ISODateLayout.Parse(date)
+		core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not parse %s as date", date))
+	}
+	var y, m, d = t.Date()
+	bt := business_time.NewDate(y, int(m), d)
+	logger.Infof("Date %v", bt)
+	quarter = bt.GetPreviousQuarter()
+	year = bt.GetPreviousQuarterYear()
+	fmt.Println(fmt.Sprintf("### quarter: %d, year: %d", quarter, year))
+	return
 }
 
 func main() {

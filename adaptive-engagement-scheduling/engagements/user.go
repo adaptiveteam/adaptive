@@ -4,7 +4,6 @@ import (
 	"github.com/adaptiveteam/adaptive/workflows"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -24,6 +23,7 @@ import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
+	feedbackReportingLambda "github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 )
 
 /*
@@ -230,16 +230,9 @@ Report reminders
 */
 
 // GenerateIndividualReports generates an individual coaching report
-func GenerateIndividualReports(date bt.Date, target string) {
-	// year := date.GetPreviousQuarterYear()
-	// month := date.GetMonth()
-	userID := target
-	// mc := models.MessageCallback{Module: "feedback", Source: userID, Topic: "report", Action: ViewCollaborationReport,
-	// 	Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-	userEngageByt, _ := json.Marshal(models.UserEngage{UserID: userID, 
-		IsNew: false, Update: true, Date: date.DateToString(time.RFC3339)})
-	_, err := L.InvokeFunction(FeedbackReportingLambdaName, userEngageByt, true)
-	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportingLambdaName))
+func GenerateIndividualReports(date bt.Date, userID string) {
+	err2 := feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(userID, date.DateToTimeMidnight())
+	core.ErrorHandler(err2, Namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportingLambdaName))
 }
 
 // utility methods
@@ -321,20 +314,10 @@ func DeliverIndividualReports(date bt.Date, userID string) {
 	mc := models.MessageCallback{Module: "feedback", Source: userID, Topic: "report", Action: ViewCollaborationReport,
 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
 	// if feedbackExist {
-	engage := models.UserEngage{UserID: userID, 
-		IsNew: false, Update: true, Date: date.DateToString(time.RFC3339)}
-	userEngageByt, err2 := json.Marshal(engage)
-	if err2 == nil {
-		_, err2 = L.InvokeFunction(FeedbackReportingLambdaName, userEngageByt, true)
-		if err2 == nil {
-			UserConfirmEng(teamID, mc,
-				fmt.Sprintf("It's that time of the year to review your collabaration report. Would you like to see it?"),
-				"", false, Dns)
-		}
-	}
-	if err2 != nil {
-		log.Printf("IGNORING ERROR in DeliverIndividualReports: %+v\n", err2)
-	}
+	GenerateIndividualReports(date, userID)
+	UserConfirmEng(teamID, mc,
+		fmt.Sprintf("It's that time of the year to review your collabaration report. Would you like to see it?"),
+		"", false, Dns)
 	return
 }
 
