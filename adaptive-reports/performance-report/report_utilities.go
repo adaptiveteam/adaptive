@@ -1,8 +1,9 @@
 package collaboration_report
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"encoding/json"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/unidoc/unipdf/v3/model"
 	"math"
@@ -96,7 +97,17 @@ func (c coachingList) index(i int) coaching {
 	return c[i]
 }
 
-func newCoachingListFromStream(stream []byte, competencyDao values.DAO) (rv coachingList, err error) {
+type GetCompetencyUnsafe = func (competencyID string) []adaptiveValue.AdaptiveValue
+
+func GetCompetencyImpl(conn daosCommon.DynamoDBConnection) GetCompetencyUnsafe {
+	return func (competencyID string) (competencies []adaptiveValue.AdaptiveValue) {
+		competencies = adaptiveValue.ReadOrEmptyUnsafe(competencyID)(conn)
+		competencies = adaptiveValue.AdaptiveValueFilterActive(competencies)
+		return
+	}
+}
+
+func newCoachingListFromStream(stream []byte, getCompetencyUnsafe GetCompetencyUnsafe) (rv coachingList, err error) {
 	rv = make(coachingList, 0)
 	var feedbackValueMappedList []coaching
 	err = nil
@@ -104,18 +115,20 @@ func newCoachingListFromStream(stream []byte, competencyDao values.DAO) (rv coac
 		err = json.Unmarshal(stream, &rv)
 	}
 	for _, each := range rv {
-		competency := competencyDao.ReadUnsafe(each.Topic)
-		feedbackMapped := coaching{
-			Source:   each.Source,
-			Target:   each.Target,
-			Topic:    competency.Name,
-			Type:     competency.ValueType,
-			Rating:   each.Rating,
-			Comments: each.Comments,
-			Quarter:  each.Quarter,
-			Year:     each.Year,
+		competencies := getCompetencyUnsafe(each.Topic)
+		for _, competency := range competencies {
+			feedbackMapped := coaching{
+				Source:   each.Source,
+				Target:   each.Target,
+				Topic:    competency.Name,
+				Type:     competency.ValueType,
+				Rating:   each.Rating,
+				Comments: each.Comments,
+				Quarter:  each.Quarter,
+				Year:     each.Year,
+			}
+			feedbackValueMappedList = append(feedbackValueMappedList, feedbackMapped)
 		}
-		feedbackValueMappedList = append(feedbackValueMappedList, feedbackMapped)
 	}
 	return feedbackValueMappedList, err
 }

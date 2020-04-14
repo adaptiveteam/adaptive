@@ -2,10 +2,10 @@ package lambda
 
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	evalues "github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 )
 
 const (
@@ -23,5 +23,8 @@ var (
 	d         = awsutils.NewDynamo(utils.NonEmptyEnv("AWS_REGION"), "", namespace)
 	dns       = common.DynamoNamespace{Dynamo: d, Namespace: namespace}
 	schema    = models.SchemaForClientID(clientID)
-	valuesDao = evalues.NewDAOFromSchema(&dns, schema)
+	connGen   = daosCommon.DynamoDBConnectionGen{
+		Dynamo:          d,
+		TableNamePrefix: clientID,
+	}
 )
