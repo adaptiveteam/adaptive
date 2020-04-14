@@ -3,7 +3,6 @@ package competencies
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	evalues "github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -30,10 +29,7 @@ var (
 	d                = awsutils.NewDynamo(region, "", namespace)
 	dns              = common.DynamoNamespace{Dynamo: d, Namespace: namespace}
 	schema           = models.SchemaForClientID(clientID)
-	valuesDao        = evalues.NewDAOFromSchema(&dns, schema)
 	dialogFetcherDao = dialogFetcher.NewDAO(d, dialogTableName)
-
-	adaptiveValuesTableDao = valuesDao
 
 	platform = utils.Platform{
 		Sns:                       *sns,
@@ -49,13 +45,14 @@ var (
 	communityUsersUserIndex          = utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX")
 	// TODO: use DAO for the query
 	communityUserDAO = communityUser.NewDAOFromSchema(d, namespace, schema)
+
+	connGen = daosCommon.DynamoDBConnectionGen{
+		Dynamo: d,
+		TableNamePrefix: clientID,
+	}
 )
 
 func slackAPI(teamID models.TeamID) mapper.PlatformAPI {
-	conn:= daosCommon.DynamoDBConnection{
-		Dynamo: d,
-		ClientID: clientID,
-		PlatformID: teamID.ToPlatformID(),
-	}
+	conn:= connGen.ForPlatformID(teamID.ToPlatformID())
 	return mapper.SlackAdapterForTeamID(conn)
 }

@@ -1,13 +1,16 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	"github.com/adaptiveteam/adaptive/daos/userFeedback"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
+	evalues "github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -295,6 +298,7 @@ func overrideOriginalMessage(request slack.InteractionCallback, message string) 
 }
 
 func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID models.TeamID) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	// Parse callback Id to messageCallback
 	mc := utils.MessageCallbackParseUnsafe(request.CallbackID, namespace)
 	log.Println("Callback ID: " + mc.Sprint())
@@ -302,7 +306,7 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 	// MessageCallback is formed like this: Module:Source:Topic:Action:Target:Month:Year
 	if mc.Module == "coaching" {
 		if mc.Topic == "user_feedback" {
-			values := valuesDao.ForPlatformID(teamID.ToPlatformID()).AllUnsafe()
+			values := evalues.ReadAndSortAllAdaptiveValues(conn)
 			action := request.ActionCallback.AttachmentActions[0]
 			if strings.HasPrefix(action.Name, Request) {
 				// Parse callback Id to messageCallback
@@ -324,10 +328,12 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 				case string(models.Ignore):
 					notes = cancelEngagementHandler(request, mc)
 				case MoreDetails, LessDetails:
-					notes = onShowDetailsToggle(teamID, mc, request, act)
+					notes = onShowDetailsToggle(teamID, mc, request, act)(conn)
 				default:
-					value, found, err2 := valuesDao.Read(act)
-					if err2 == nil && found {
+					values, err2 := adaptiveValue.ReadOrEmpty(act)(conn)
+					values = adaptiveValue.AdaptiveValueFilterActive(values)
+					if err2 == nil && len(values) > 0 {
+						value := values[0]
 						logger.Infof("Retrieved value with id %s: %v", act, value)
 						// this corresponds to the engagements for each of the dimensions
 						notes = feedbackDimensionHandler(request, teamID, mc, action.Value, value)
@@ -561,17 +567,13 @@ func dispatchSlackDialogSubmissionCallback(
 	mc := utils.MessageCallbackParseUnsafe(request.CallbackID, namespace)
 
 	form := dialog.Submission
-	var handler func(slack.InteractionCallback,
-		slack.DialogSubmissionCallback,
-		map[string]string,
-		models.TeamID) []models.PlatformSimpleNotification
-
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	var notes  []models.PlatformSimpleNotification
 	if strings.HasPrefix(mc.Action, "ask") {
-		handler = askDialogSubmissionHandler
+		notes = askDialogSubmissionHandler(request, dialog, form, teamID)(conn)
 	} else {
-		handler = noOpDialogSubmissionHandler
+		notes = noOpDialogSubmissionHandler(request, dialog, form, teamID)
 	}
-	notes := handler(request, dialog, form, teamID)
 	platform.PublishAll(notes)
 }
 
@@ -580,112 +582,122 @@ func createFeedbackMessage(request slack.InteractionCallback,
 	targetID string,
 	form map[string]string,
 	timestamp string,
-) models.PlatformSimpleNotification {
-	competencyID := strings.TrimPrefix(editAction, "ask_")
-	value, found, err2 := valuesDao.Read(competencyID)
-	var attachNotification models.PlatformSimpleNotification
-	if err2 == nil && found {
-		logger.WithField("value", value).Infof("Retrieved value with id=%s", competencyID)
-		confFactor := form[ConfidenceFactor]
-		response := form[Feedback]
+) func (conn daosCommon.DynamoDBConnection)models.PlatformSimpleNotification {
+	return func (conn daosCommon.DynamoDBConnection)models.PlatformSimpleNotification {
+		competencyID := strings.TrimPrefix(editAction, "ask_")
+		values, err2 := adaptiveValue.ReadOrEmpty(competencyID)(conn)
+		values = adaptiveValue.AdaptiveValueFilterActive(values)
+		found := len(values) > 0 
+		var attachNotification models.PlatformSimpleNotification
+		if err2 == nil && found {
+			value := values[0]
+			logger.WithField("value", value).Infof("Retrieved value with id=%s", competencyID)
+			confFactor := form[ConfidenceFactor]
+			response := form[Feedback]
 
-		attachAction, _ := eb.NewAttachmentActionBuilder().
-			Name(editAction).
-			Text(models.EditLabel).
-			ActionType(models.ButtonType).
-			Value(request.CallbackID).
-			Build()
+			attachAction, _ := eb.NewAttachmentActionBuilder().
+				Name(editAction).
+				Text(models.EditLabel).
+				ActionType(models.ButtonType).
+				Value(request.CallbackID).
+				Build()
 
-		attach, _ := eb.NewAttachmentBuilder().
-			CallbackId(request.CallbackID).
-			Author(ebm.AttachmentAuthor{Name: fmt.Sprintf("<@%s>'s %s", targetID, value.Name)}).
-			Color(models.BlueColorHex).
-			Actions([]ebm.AttachmentAction{*attachAction}).
-			Fields([]ebm.AttachmentField{
-				{
-					Title: "Feedback",
-					Value: response,
-				},
-				{
-					Title: "Confidence Factor",
-					Value: fmt.Sprintf("%s", coaching.Feedback360RatingMap[confFactor]),
-					Short: false,
-				},
-			}).
-			Build()
-		attachNotification = utils.InteractionCallbackSimpleResponse(request, "")
-		attachNotification.Ts = timestamp
-		attachNotification.Attachments = []ebm.Attachment{*attach}
-	} else if err2 != nil {
-		logger.Errorf("Could not retrieve value for id %s: %v", competencyID, err2)
-		attachNotification = utils.InteractionCallbackSimpleResponse(request, "Apologies, something has gone wrong")
-	} else {
-		logger.Errorf("Could not find value for id %s", competencyID)
-		attachNotification = utils.InteractionCallbackSimpleResponse(request, "Apologies, something has gone wrong")
+			attach, _ := eb.NewAttachmentBuilder().
+				CallbackId(request.CallbackID).
+				Author(ebm.AttachmentAuthor{Name: fmt.Sprintf("<@%s>'s %s", targetID, value.Name)}).
+				Color(models.BlueColorHex).
+				Actions([]ebm.AttachmentAction{*attachAction}).
+				Fields([]ebm.AttachmentField{
+					{
+						Title: "Feedback",
+						Value: response,
+					},
+					{
+						Title: "Confidence Factor",
+						Value: fmt.Sprintf("%s", coaching.Feedback360RatingMap[confFactor]),
+						Short: false,
+					},
+				}).
+				Build()
+			attachNotification = utils.InteractionCallbackSimpleResponse(request, "")
+			attachNotification.Ts = timestamp
+			attachNotification.Attachments = []ebm.Attachment{*attach}
+		} else if err2 != nil {
+			logger.Errorf("Could not retrieve value for id %s: %v", competencyID, err2)
+			attachNotification = utils.InteractionCallbackSimpleResponse(request, "Apologies, something has gone wrong")
+		} else {
+			logger.Errorf("Could not find value for id %s", competencyID)
+			attachNotification = utils.InteractionCallbackSimpleResponse(request, "Apologies, something has gone wrong")
+		}
+
+		return attachNotification
 	}
-
-	return attachNotification
 }
 
 func askDialogSubmissionHandler(
 	request slack.InteractionCallback,
 	dialog slack.DialogSubmissionCallback,
 	form map[string]string,
-	teamID models.TeamID) []models.PlatformSimpleNotification {
-	mc := utils.MessageCallbackParseUnsafe(request.CallbackID, namespace)
+	teamID models.TeamID) func(conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
+	return func(conn daosCommon.DynamoDBConnection) (notes []models.PlatformSimpleNotification) {
+		mc := utils.MessageCallbackParseUnsafe(request.CallbackID, namespace)
 
-	var msgState MsgState
-	err := json.Unmarshal([]byte(dialog.State), &msgState)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse msgState %s", dialog.State))
+		var msgState MsgState
+		err := json.Unmarshal([]byte(dialog.State), &msgState)
+		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse msgState %s", dialog.State))
 
-	// Update the original attachment with the received feedback
-	updateTheOriginalAttachmentWithTheReceivedFeedback := createFeedbackMessage(request, mc.Action, mc.Target, form, msgState.ThreadTs)
+		// Update the original attachment with the received feedback
+		updateTheOriginalAttachmentWithTheReceivedFeedback := createFeedbackMessage(request, mc.Action, mc.Target, form, msgState.ThreadTs)(conn)
 
-	// we have now added feedback for a coaching engagement. We can now update the original engagement as answered
-	utils.UpdateEngAsAnswered(mc.Source, request.CallbackID, engagementTable, d, namespace)
+		// we have now added feedback for a coaching engagement. We can now update the original engagement as answered
+		utils.UpdateEngAsAnswered(mc.Source, request.CallbackID, engagementTable, d, namespace)
 
-	// Collecting responses from dialog submission
-	confFactor := form[ConfidenceFactor]
-	response := form[Feedback]
-	value := strings.TrimPrefix(mc.Action, "ask_")
+		// Collecting responses from dialog submission
+		confFactor := form[ConfidenceFactor]
+		response := form[Feedback]
+		value := strings.TrimPrefix(mc.Action, "ask_")
 
-	mc.Set("Action", value)
-	// Storing feedback
-	feedback := models.UserFeedback{
-		ID:               mc.ToCallbackID(),
-		Source:           mc.Source,
-		Target:           mc.Target,
-		ValueID:          value,
-		ConfidenceFactor: confFactor,
-		Feedback:         response,
-		QuarterYear:      fmt.Sprintf("%d:%s", core.MonthStrToQuarter(mc.Month), mc.Year),
-		ChannelID:        request.Channel.ID,
-		MsgTimestamp:     msgState.ThreadTs,
-		PlatformID:       teamID.ToPlatformID(),
-	}
-	err = d.PutTableEntry(feedback, feedbackTable)
-	if err == nil {
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not write to %s table", feedbackTable))
-		byt, _ := json.Marshal(feedback)
-		_, err = l.InvokeFunction(feedbackAnalysisLambda, byt, true)
-		return []models.PlatformSimpleNotification{
-			updateTheOriginalAttachmentWithTheReceivedFeedback}
-	} else {
-		logger.WithField("error", err).Errorf("Could not write to %s table", feedbackTable)
-		return []models.PlatformSimpleNotification{}
+		mc.Set("Action", value)
+		// Storing feedback
+		feedback := models.UserFeedback{
+			ID:               mc.ToCallbackID(),
+			Source:           mc.Source,
+			Target:           mc.Target,
+			ValueID:          value,
+			ConfidenceFactor: confFactor,
+			Feedback:         response,
+			QuarterYear:      fmt.Sprintf("%d:%s", core.MonthStrToQuarter(mc.Month), mc.Year),
+			ChannelID:        request.Channel.ID,
+			MsgTimestamp:     msgState.ThreadTs,
+			PlatformID:       teamID.ToPlatformID(),
+		}
+		err = d.PutTableEntry(feedback, feedbackTable)
+		if err == nil {
+			core.ErrorHandler(err, namespace, fmt.Sprintf("Could not write to %s table", feedbackTable))
+			byt, _ := json.Marshal(feedback)
+			_, err = l.InvokeFunction(feedbackAnalysisLambda, byt, true)
+			notes = []models.PlatformSimpleNotification{
+				updateTheOriginalAttachmentWithTheReceivedFeedback,
+			}
+		} else {
+			logger.WithField("error", err).Errorf("Could not write to %s table", feedbackTable)
+		}
+		return
 	}
 }
 
-func onShowDetailsToggle(teamID models.TeamID, mc models.MessageCallback, request slack.InteractionCallback, act string) []models.PlatformSimpleNotification {
-	details := act == MoreDetails
-	valueID := strings.TrimPrefix(mc.Action, fmt.Sprintf("%s_", Ask))
-	value := valuesDao.ReadUnsafe(valueID)
-	attach := feedbackEngagementAttachment(teamID, value, mc, details)
-	return []models.PlatformSimpleNotification{
-		{UserId: request.User.ID,
-			Channel:     request.Channel.ID,
-			Ts:          request.OriginalMessage.Timestamp,
-			Attachments: []ebm.Attachment{*attach}},
+func onShowDetailsToggle(teamID models.TeamID, mc models.MessageCallback, request slack.InteractionCallback, act string) func (conn daosCommon.DynamoDBConnection)[]models.PlatformSimpleNotification {
+	return func (conn daosCommon.DynamoDBConnection)[]models.PlatformSimpleNotification {
+		details := act == MoreDetails
+		valueID := strings.TrimPrefix(mc.Action, fmt.Sprintf("%s_", Ask))
+		value := adaptiveValue.ReadUnsafe(valueID)(conn)
+		attach := feedbackEngagementAttachment(teamID, value, mc, details)
+		return []models.PlatformSimpleNotification{
+			{UserId: request.User.ID,
+				Channel:     request.Channel.ID,
+				Ts:          request.OriginalMessage.Timestamp,
+				Attachments: []ebm.Attachment{*attach}},
+		}
 	}
 }
 

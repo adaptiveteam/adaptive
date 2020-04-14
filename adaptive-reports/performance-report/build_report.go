@@ -2,7 +2,6 @@ package collaboration_report
 
 import (
 	"fmt"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/unidoc/unipdf/v3/creator"
@@ -25,13 +24,13 @@ func buildReport(
 // Name and location for where to store the file.
 	FileName string,
 	dialogDao fetch_dialog.DAO,
-	competencyDao values.DAO,
 	logger logger.AdaptiveLogger,
+	getCompetencyUnsafe GetCompetencyUnsafe,
 ) (tags map[string]string, err error) {
-	received, err := newCoachingListFromStream(ReceivedBytes, competencyDao)
+	received, err := newCoachingListFromStream(ReceivedBytes, getCompetencyUnsafe)
 	if err == nil {
 		logger.WithField("received", &received).Infof("Retrieved received feedback")
-		given, err := newCoachingListFromStream(GivenBytes, competencyDao)
+		given, err := newCoachingListFromStream(GivenBytes, getCompetencyUnsafe)
 		if err == nil {
 			logger.WithField("given", &given).Infof("Retrieved given feedback")
 
@@ -41,7 +40,6 @@ func buildReport(
 				Year,
 				FileName,
 				dialogDao,
-				competencyDao,
 				logger,
 			)
 			
@@ -64,7 +62,6 @@ func buildReportTyped(
 	// Name and location for where to store the file.
 	FileName string,
 	dialogDao fetch_dialog.DAO,
-	competencyDao values.DAO,
 	logger logger.AdaptiveLogger,
 ) (tags map[string]string, err error) {
 	SetUniDocGlobalLicenseIfAvailable()
@@ -75,7 +72,6 @@ func buildReportTyped(
 		Year,
 		FileName,
 		dialogDao,
-		competencyDao,
 		logger,
 	)
 	if err == nil {
@@ -101,7 +97,6 @@ func createPdfReport(
 	// Name and location for where to store the file.
 	FileName string,
 	dialogDao fetch_dialog.DAO,
-	competencyDao values.DAO,
 	logger logger.AdaptiveLogger,
 ) (pdf *creator.Creator, tags map[string]string, err error) {
 	SetUniDocGlobalLicenseIfAvailable()
@@ -110,8 +105,7 @@ func createPdfReport(
 	var fm fontMap
 	fm, err = getFontMap()
 	if err == nil {
-		logger.WithField("given", &given).Infof("Retrieved given feedback")
-
+	
 		receivedForQuarter := received.feedbackForQuarter(Quarter, Year)
 		// givenForQuarter := given.FeedbackForQuarter(Quarter,Year)
 
