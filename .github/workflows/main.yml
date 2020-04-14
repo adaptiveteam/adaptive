@@ -45,5 +45,6 @@ jobs:
         TF_VAR_strategy_state_key: "strategy.tfstate"
 
       run: |
+        make core-init
         make core-deploy-auto
         echo done.
