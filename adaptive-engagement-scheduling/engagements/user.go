@@ -238,8 +238,8 @@ func GenerateIndividualReports(date bt.Date, target string) {
 	// 	Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
 	userEngageByt, _ := json.Marshal(models.UserEngage{UserID: userID, 
 		IsNew: false, Update: true, Date: date.DateToString(time.RFC3339)})
-	_, err := L.InvokeFunction(FeedbackReportLambda, userEngageByt, true)
-	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportLambda))
+	_, err := L.InvokeFunction(FeedbackReportingLambdaName, userEngageByt, true)
+	core.ErrorHandler(err, Namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportingLambdaName))
 }
 
 // utility methods
@@ -325,7 +325,7 @@ func DeliverIndividualReports(date bt.Date, userID string) {
 		IsNew: false, Update: true, Date: date.DateToString(time.RFC3339)}
 	userEngageByt, err2 := json.Marshal(engage)
 	if err2 == nil {
-		_, err2 = L.InvokeFunction(FeedbackReportLambda, userEngageByt, true)
+		_, err2 = L.InvokeFunction(FeedbackReportingLambdaName, userEngageByt, true)
 		if err2 == nil {
 			UserConfirmEng(teamID, mc,
 				fmt.Sprintf("It's that time of the year to review your collabaration report. Would you like to see it?"),

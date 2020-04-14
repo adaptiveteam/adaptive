@@ -89,8 +89,8 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 						})
 
 						// This is used to add an engagement on who to give feedback to
-						_, err = l.InvokeFunction(feedbackReportPostingLambda, engageBytes, false)
-						logger.WithField("error", err).Errorf("Could not invoke %s from slack-message-processor", feedbackReportPostingLambda)
+						_, err = l.InvokeFunction(feedbackReportPostingLambdaName, engageBytes, false)
+						logger.WithField("error", err).Errorf("Could not invoke %s from slack-message-processor", feedbackReportPostingLambdaName)
 
 						msg := core.IfThenElse(err == nil, FetchingReportMessage, InternalErrorMessage).(ui.RichText)
 						// Update original message
@@ -103,8 +103,8 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 							Update: true, Channel: message.Channel.ID, ThreadTs: message.MessageTs, Date: date,
 							TeamID: teamID})
 						// This is used to add an engagement on who to give feedback to
-						_, err = l.InvokeFunction(feedbackReportingLambda, engageBytes, false)
-						logger.WithField("error", err).Errorf("Could not invoke %s from slack-message-processor", feedbackReportingLambda)
+						_, err = l.InvokeFunction(feedbackReportingLambdaName, engageBytes, false)
+						logger.WithField("error", err).Errorf("Could not invoke %s from slack-message-processor", feedbackReportingLambdaName)
 
 						msg := core.IfThenElse(err == nil, GeneratingReportMessage, InternalErrorMessage).(ui.RichText)
 						// Update original message
@@ -135,8 +135,8 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 func passthrough(np models.NamespacePayload4) {
 	// for interaction and dialog_submission events, we invoke feedback setup lambda
 	bytes, _ := json.Marshal(np)
-	_, err := l.InvokeFunction(feedbackLambda, []byte(bytes), false)
-	logger.WithField("error", err).Errorf("Could not invoke %s lambda", feedbackLambda)
+	_, err := l.InvokeFunction(feedbackSetupLambdaName, []byte(bytes), false)
+	logger.WithField("error", err).Errorf("Could not invoke %s lambda", feedbackSetupLambdaName)
 }
 
 func main() {

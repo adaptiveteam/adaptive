@@ -291,8 +291,8 @@ func communityNamespaceReportsGenerateReportCallback(request slack.InteractionCa
 		date := time.Now().Format(time.RFC3339)
 		engageBytes, _ := json.Marshal(models.UserEngage{UserID: userID, TargetID: target, IsNew: false, Update: true,
 			Channel: channelID, ThreadTs: threadTs, Date: date})
-		_, err := lambdaAPI.InvokeFunction(reportingLambda, engageBytes, false)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", reportingLambda))
+		_, err := lambdaAPI.InvokeFunction(FeedbackReportingLambdaName, engageBytes, false)
+		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportingLambdaName))
 	case string(models.Cancel):
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: "", AsUser: true, Ts: request.MessageTs})
 	}
@@ -316,8 +316,8 @@ func communityNamespaceReportsFetchReportCallback(request slack.InteractionCallb
 		date := time.Now().Format(time.RFC3339)
 		engageBytes, _ := json.Marshal(models.UserEngage{UserID: userID, TargetID: targetUserID, IsNew: false, Update: true,
 			Channel: channelID, ThreadTs: threadTs, Date: date})
-		_, err := lambdaAPI.InvokeFunction(reportPostingLambda, engageBytes, false)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", reportPostingLambda))
+		_, err := lambdaAPI.InvokeFunction(FeedbackReportPostingLambdaName, engageBytes, false)
+		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportPostingLambdaName))
 	case string(models.Cancel):
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: "", AsUser: true, Ts: request.OriginalMessage.Timestamp})
 	}

@@ -43,7 +43,7 @@ func downloadReportContents(engage models.UserEngage) (contents []byte, err erro
 		if !coaching.ReportExists(reportsBucket, key) {
 			logger.Infof("Report doesn't exist for %s user, generating now", engage.UserID)
 			engBytes, _ := json.Marshal(engage)
-			_, err = l.InvokeFunction(feedbackReportingLambda, engBytes, false)
+			_, err = l.InvokeFunction(FeedbackReportingLambdaName, engBytes, false)
 		}
 		if err == nil {
 			logger.Infof("Report exists for %s user", engage.UserID)

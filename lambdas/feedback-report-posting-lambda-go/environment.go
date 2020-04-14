@@ -14,7 +14,7 @@ var (
 	namespace                 = utils.NonEmptyEnv("LOG_NAMESPACE")
 	region                    = utils.NonEmptyEnv("AWS_REGION")
 	userProfileLambda         = utils.NonEmptyEnv("USER_PROFILE_LAMBDA_NAME")
-	feedbackReportingLambda   = utils.NonEmptyEnv("FEEDBACK_REPORTING_LAMBDA_NAME")
+	FeedbackReportingLambdaName   = utils.NonEmptyEnv("FEEDBACK_REPORTING_LAMBDA_NAME")
 	reportsBucket             = utils.NonEmptyEnv("REPORTS_BUCKET_NAME")
 	platformNotificationTopic = utils.NonEmptyEnv("PLATFORM_NOTIFICATION_TOPIC")
 	sns                       = awsutils.NewSNS(region, "", namespace)

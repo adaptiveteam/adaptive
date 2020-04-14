@@ -68,9 +68,14 @@ func userMentionFetchReportHandler(slackMsg slackevents.AppMentionEvent, teamID 
 	} else {
 		threadTs = slackMsg.TimeStamp
 	}
-	engageBytes, _ := json.Marshal(models.UserEngage{UserID: slackMsg.User, TargetID: targetUserID, IsNew: false, Update: true, Channel: slackMsg.Channel, ThreadTs: threadTs})
-	_, err := lambdaAPI.InvokeFunction(reportPostingLambda, engageBytes, false)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", reportPostingLambda))
+	engageBytes, _ := json.Marshal(models.UserEngage{
+		UserID: slackMsg.User, 
+		TargetID: targetUserID, IsNew: false, 
+		Update: true, 
+		Channel: slackMsg.Channel, 
+		ThreadTs: threadTs})
+	_, err := lambdaAPI.InvokeFunction(FeedbackReportPostingLambdaName, engageBytes, false)
+	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportPostingLambdaName))
 }
 
 func userMentionGenerateReportHandler(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, targetUserID string) {
@@ -82,10 +87,14 @@ func userMentionGenerateReportHandler(slackMsg slackevents.AppMentionEvent, team
 	} else {
 		threadTs = slackMsg.TimeStamp
 	}
-	engageBytes, _ := json.Marshal(models.UserEngage{UserID: slackMsg.User, TargetID: targetUserID, IsNew: false,
-		Update: true, Channel: slackMsg.Channel, ThreadTs: threadTs})
-	_, err := lambdaAPI.InvokeFunction(reportingLambda, engageBytes, false)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", reportingLambda))
+	engageBytes, _ := json.Marshal(models.UserEngage{
+		UserID: slackMsg.User, 
+		TargetID: targetUserID, IsNew: false,
+		Update: true, 
+		Channel: slackMsg.Channel, 
+		ThreadTs: threadTs})
+	_, err := lambdaAPI.InvokeFunction(FeedbackReportingLambdaName, engageBytes, false)
+	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportingLambdaName))
 }
 
 func onBotMentioned(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, command string) (response platform.Response) {
