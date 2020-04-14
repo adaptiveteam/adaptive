@@ -1,4 +1,4 @@
-package lambda
+package feedbackReportingLambda
 
 import (
 	"encoding/json"

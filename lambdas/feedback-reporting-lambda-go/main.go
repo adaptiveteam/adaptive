@@ -1,4 +1,4 @@
-package lambda
+package feedbackReportingLambda
 
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
@@ -80,7 +80,6 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 	channel := engage.Channel
 	// A user can request a report and it can also be requested by a user in a community
 	var reportFor = coaching.ReportFor(engage.UserID, engage.TargetID)
-	var sendTo = engage.UserID
 	// When request comes from a channel, we should respond back to the channel
 	// We treat this channel as a user, as in we have profile information for this channel
 	// if engage.Channel != "" {
@@ -99,6 +98,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 	postCondition := targetID != "" && threadTs != ""
 
 	notes := []models.PlatformSimpleNotification{}
+	msg := ""
 	if len(coachings) > 0 {
 		filepath := fmt.Sprintf("/tmp/%s.pdf", reportFor)
 		user := daosUser.ReadUnsafe(reportFor)(conn)
@@ -112,23 +112,19 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 			s3Key := fmt.Sprintf("%s/%d/%d/performance_report.pdf", reportFor, year, quarter)
 			err = s.AddFile(filepath, reportBucket, s3Key)
 			if err == nil {
-				notes = append(notes, models.PlatformSimpleNotification{
-					Message: fmt.Sprintf("_<@%s>'s performance report for quarter `%d` of year `%d` has been generated._", reportFor, quarter, year), 
-					UserId: sendTo, 
-					Channel: channel, 
-					ThreadTs: threadTs,
-				})
+				msg = fmt.Sprintf("_<@%s>'s performance report for quarter `%d` of year `%d` has been generated._", reportFor, quarter, year)
 			}
 		}
 	} else {
+		msg = fmt.Sprintf("_Report not generated. <@%s> did not receive any feedback for quarter `%d` of year `%d`_", reportFor, quarter, year)
+	}
+	if postCondition && msg != "" {
 		notes = append(notes, models.PlatformSimpleNotification{
-			Message: fmt.Sprintf("_Report not generated. <@%s> did not receive any feedback for quarter `%d` of year `%d`_", reportFor, quarter, year),
-			UserId: sendTo, 
+			Message: msg,
+			UserId: engage.UserID, 
 			Channel: channel, 
 			ThreadTs: threadTs,
 		})
-	}
-	if postCondition {
 		publishAll(notes)
 	}
 	if err != nil {

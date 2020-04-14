@@ -7,6 +7,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
+	feedbackReportingLambda "github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -97,15 +98,11 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 						publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID,
 							Message: string(msg), Attachments: []model.Attachment{}, Ts: message.MessageTs})
 					} else if text == user.GenerateReport {
-						date := core.ISODateLayout.Format(time.Now())
-						engageBytes, _ := json.Marshal(models.UserEngage{
-							UserID: message.User.ID, IsNew: false,
-							Update: true, Channel: message.Channel.ID, ThreadTs: message.MessageTs, Date: date,
-							TeamID: teamID})
-						// This is used to add an engagement on who to give feedback to
-						_, err = l.InvokeFunction(feedbackReportingLambdaName, engageBytes, false)
-						logger.WithField("error", err).Errorf("Could not invoke %s from slack-message-processor", feedbackReportingLambdaName)
-
+						err = feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(message.User.ID, time.Now())
+						if err != nil {
+							logger.WithField("error", err).
+								Error("Could not GeneratePerformanceReportAndPostToUserAsync from feedback-slack-message-processor")
+						}
 						msg := core.IfThenElse(err == nil, GeneratingReportMessage, InternalErrorMessage).(ui.RichText)
 						// Update original message
 						publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID,

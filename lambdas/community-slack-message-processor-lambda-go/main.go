@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -280,19 +281,12 @@ func communityNamespaceReportsGenerateReportCallback(request slack.InteractionCa
 	case string(models.Now):
 		target := action.SelectedOptions[0].Value
 		// Posting message to the channel in which user requested this
-		ts := request.OriginalMessage.Timestamp
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
 			Message: string(GeneratingReportForUserNotification(target)),
 			Ts:      request.MessageTs, Attachments: models.EmptyAttachs(), AsUser: true})
-		threadTs := ts
-		if request.OriginalMessage.ThreadTimestamp != "" {
-			threadTs = request.OriginalMessage.ThreadTimestamp
-		}
-		date := time.Now().Format(time.RFC3339)
-		engageBytes, _ := json.Marshal(models.UserEngage{UserID: userID, TargetID: target, IsNew: false, Update: true,
-			Channel: channelID, ThreadTs: threadTs, Date: date})
-		_, err := lambdaAPI.InvokeFunction(FeedbackReportingLambdaName, engageBytes, false)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportingLambdaName))
+		err2 := feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(userID, time.Now())
+
+		core.ErrorHandler(err2, namespace, "Could not invoke GeneratePerformanceReportAndPostToUserAsync")
 	case string(models.Cancel):
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: "", AsUser: true, Ts: request.MessageTs})
 	}
