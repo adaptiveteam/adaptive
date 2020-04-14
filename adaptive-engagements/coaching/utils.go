@@ -81,10 +81,6 @@ func FeedbackReceivedForTheQuarter(userID string, quarter, year int) func (conn 
 		return 
 	}
 }
-// ReportExists checks if feedback report exists in a bucket with a key
-func ReportExists(bucket, key string) bool {
-	return common.DeprecatedGetGlobalS3().ObjectExists(bucket, key)
-}
 
 // UserReportIDForPreviousQuarter constructs key to look for in S3 for a user for the last quarter
 func UserReportIDForPreviousQuarter(date time.Time, reportForUserID string) (key string, err error) {
