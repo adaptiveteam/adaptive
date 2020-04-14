@@ -2,7 +2,6 @@ package lambda
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -27,15 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Coaching struct {
-	Source   string `json:"source"`
-	Target   string `json:"target"`
-	Topic    string `json:"topic"`
-	Rating   int    `json:"rating"`
-	Comments string `json:"comments"`
-	Quarter  int    `json:"quarter"`
-	Year     int    `json:"year"`
-}
+type Coaching = apr.Coaching
 
 func deleteFile(path string) {
 	// delete file
@@ -113,44 +104,21 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 	year := bt.GetPreviousQuarterYear()
 	fmt.Println(fmt.Sprintf("### quarter: %d, year: %d", quarter, year))
 
-	var engs []models.UserFeedback
-	err = D.QueryTableWithIndex(table, awsutils.DynamoIndexExpression{
-		IndexName: feedbackTargetIndex,
-		// there is no != operator for ConditionExpression
-		Condition: "quarter_year = :qy AND target = :t",
-		Attributes: map[string]interface{}{
-			":t":  reportFor,
-			":qy": fmt.Sprintf("%d:%d", quarter, year),
-		},
-	}, map[string]string{}, true, -1, &engs)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s index for feedback", feedbackTargetIndex))
+	engs := selectReceivedFeedbackUnsafe(reportFor, quarter, year)
 
 	for _, each := range engs {
-		qy := strings.Split(each.QuarterYear, ":")
-		q, _ := strconv.Atoi(qy[0])
-		y, _ := strconv.Atoi(qy[1])
-		cf, _ := strconv.Atoi(each.ConfidenceFactor)
-		coachings = append(coachings, Coaching{
-			Source:   each.Source,
-			Target:   each.Target,
-			Topic:    each.ValueID,
-			Rating:   cf,
-			Comments: each.Feedback,
-			Quarter:  q,
-			Year:     y,
-		})
+		coachings = append(coachings, convertUserFeedbackToCoaching(each))
 	}
-	received, _ := json.Marshal(coachings)
-	given := make([]byte, 0)
-
+	coachings = apr.ResolveCompetencies(coachings, apr.GetCompetencyImpl(conn))
+	
 	// We post the generation status only if the request is from a community. In that case, target is not empty
 	postCondition := targetID != "" && threadTs != ""
 
 	if len(coachings) > 0 {
 		filepath := fmt.Sprintf("/tmp/%s.pdf", userID)
 		user := userDAO.ReadUnsafe(userID)
-		_, err = apr.BuildReportWithCustomValues(received, given, user.DisplayName, quarter, year, filepath,
-			fetch_dialog.NewDAO(dns.Dynamo, dialogTable), logger, apr.GetCompetencyImpl(conn))
+		_, err = apr.BuildReportWithCustomValuesTyped(coachings, []apr.Coaching{}, user.DisplayName, quarter, year, filepath,
+			fetch_dialog.NewDAO(dns.Dynamo, dialogTable), logger)
 		if err == nil {
 			err = s.AddFile(filepath, reportBucket, fmt.Sprintf("%s/%d/%d/performance_report.pdf", reportFor, year,
 				quarter))
@@ -173,6 +141,37 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 		logger.WithError(err).Errorf("Error with collaboration report generation for %s user", reportFor)
 	}
 	return coachings, nil
+}
+
+func selectReceivedFeedbackUnsafe(reportFor string, quarter, year int) (received []models.UserFeedback) {
+	err2 := D.QueryTableWithIndex(table, awsutils.DynamoIndexExpression{
+		IndexName: feedbackTargetIndex,
+		// there is no != operator for ConditionExpression
+		Condition: "quarter_year = :qy AND target = :t",
+		Attributes: map[string]interface{}{
+			":t":  reportFor,
+			":qy": fmt.Sprintf("%d:%d", quarter, year),
+		},
+	}, map[string]string{}, true, -1, &received)
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query %s index for feedback", feedbackTargetIndex))
+	return
+}
+
+func convertUserFeedbackToCoaching(uf models.UserFeedback) apr.Coaching {
+	qy := strings.Split(uf.QuarterYear, ":")
+	q, _ := strconv.Atoi(qy[0])
+	y, _ := strconv.Atoi(qy[1])
+	cf, _ := strconv.Atoi(uf.ConfidenceFactor)
+	return Coaching{
+		Source:   uf.Source,
+		Target:   uf.Target,
+		Topic:    uf.ValueID,
+		// Type:     getCompetency(uf.ValueID),
+		Rating:   float64(cf),
+		Comments: uf.Feedback,
+		Quarter:  q,
+		Year:     y,
+	}
 }
 
 func main() {

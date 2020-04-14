@@ -106,15 +106,11 @@ func GetCompetencyImpl(conn daosCommon.DynamoDBConnection) GetCompetencyUnsafe {
 		return
 	}
 }
-// NewCoachingListFromStream - 
-func NewCoachingListFromStream(stream []byte, getCompetencyUnsafe GetCompetencyUnsafe) (rv CoachingList, err error) {
-	rv = make(CoachingList, 0)
-	var feedbackValueMappedList []Coaching
-	err = nil
-	if len(stream) > 0 {
-		err = json.Unmarshal(stream, &rv)
-	}
-	for _, each := range rv {
+
+// ResolveCompetencies replaces value id in `Topic` with value name and value type in
+// `Topic`, `Type`.
+func ResolveCompetencies(coachingList CoachingList, getCompetencyUnsafe GetCompetencyUnsafe) (feedbackValueMappedList CoachingList) {
+	for _, each := range coachingList {
 		competencies := getCompetencyUnsafe(each.Topic)
 		for _, competency := range competencies {
 			feedbackMapped := Coaching{
@@ -130,6 +126,16 @@ func NewCoachingListFromStream(stream []byte, getCompetencyUnsafe GetCompetencyU
 			feedbackValueMappedList = append(feedbackValueMappedList, feedbackMapped)
 		}
 	}
+	return
+}
+// NewCoachingListFromStream - 
+func NewCoachingListFromStream(stream []byte, getCompetencyUnsafe GetCompetencyUnsafe) (feedbackValueMappedList CoachingList, err error) {
+	rv := make(CoachingList, 0)
+	err = nil
+	if len(stream) > 0 {
+		err = json.Unmarshal(stream, &rv)
+	}
+	feedbackValueMappedList = ResolveCompetencies(rv, getCompetencyUnsafe)
 	return feedbackValueMappedList, err
 }
 
@@ -239,7 +245,7 @@ type Coaching struct {
 	Source   string  `json:"source"`
 	Target   string  `json:"target"`
 	Topic    string  `json:"topic"`
-	Type     string  `json:"type"`
+	Type     string  `json:"type,omitempty"`
 	Rating   float64 `json:"rating"`
 	Comments string  `json:"comments"`
 	Quarter  int     `json:"quarter"`
