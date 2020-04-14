@@ -28,66 +28,131 @@ func buildReport(
 	competencyDao values.DAO,
 	logger logger.AdaptiveLogger,
 ) (tags map[string]string, err error) {
-	SetUniDocGlobalLicenseIfAvailable()
-	c := creator.New()
-
-	fm, err := getFontMap()
+	received, err := newCoachingListFromStream(ReceivedBytes, competencyDao)
 	if err == nil {
-		received, err := newCoachingListFromStream(ReceivedBytes, competencyDao)
+		logger.WithField("received", &received).Infof("Retrieved received feedback")
+		given, err := newCoachingListFromStream(GivenBytes, competencyDao)
 		if err == nil {
-			logger.WithField("received", &received).Infof("Retrieved received feedback")
-			given, err := newCoachingListFromStream(GivenBytes, competencyDao)
-			if err == nil {
-				logger.WithField("given", &given).Infof("Retrieved given feedback")
+			logger.WithField("given", &given).Infof("Retrieved given feedback")
 
-				receivedForQuarter := received.feedbackForQuarter(Quarter, Year)
-				// givenForQuarter := given.FeedbackForQuarter(Quarter,Year)
+			return buildReportTyped(received, given, 
+				UserName,
+				Quarter,
+				Year,
+				FileName,
+				dialogDao,
+				competencyDao,
+				logger,
+			)
+			
+		}
+	}
+	return
+}
 
-				sortedTopics := received.getSortedAttribute(func(c coaching) string {
-					return c.Topic
-				})
-				sortedTypes := received.getSortedAttribute(func(c coaching) string {
-					return c.Type
-				})
-				topicToValueTypeMapping := received.getTopicToValueTypeMapping()
-				documentLayout(c)
-				documentFooters(c, fm)
-				documentHeaders(c)
-				documentFrontPage(UserName, Year, Quarter, c, fm)
-				writePerformanceSummary(c, fm, receivedForQuarter)
-				tags = writePerformanceAnalysis(c, fm, received, given, topicToValueTypeMapping, Quarter, Year, dialogDao, logger)
-				writeCoachingIdeas(c, fm, receivedForQuarter, dialogDao)
-				for _, each := range sortedTypes {
-					s := writeFeedbackSummary(c, fm, receivedForQuarter, each, topicToValueTypeMapping)
-					for _, topic := range sortedTopics {
-						tpe := topicToValueTypeMapping[topic]
-						if tpe == each {
-							var language = "n/a"
-							if !math.IsNaN(receivedForQuarter.topicCoaching(topic).calculateScore()) {
-								language = getRatingLanguage(receivedForQuarter.topicCoaching(topic).calculateScore())
-							}
-							feedback := fmt.Sprintf(
-								"%s (%s)",
-								strings.Title(topic),
-								language,
-							)
-							var sc *creator.Chapter
-							if s != nil {
-								sc = c.NewChapter(feedback)
-							}
-							writeTopic(c, sc, fm, topic, receivedForQuarter.topicCoaching(topic))
-							_ = c.Draw(sc)
-						}
+func buildReportTyped(
+	// The last year of feedback received
+	received coachingList,
+	// The last year of feedback given
+	given coachingList,
+	// The users name (e.g., Chris Creel)
+	UserName string,
+	// The quarter for which this report was produced
+	Quarter int,
+	// The year for which this report was produced
+	Year int,
+	// Name and location for where to store the file.
+	FileName string,
+	dialogDao fetch_dialog.DAO,
+	competencyDao values.DAO,
+	logger logger.AdaptiveLogger,
+) (tags map[string]string, err error) {
+	SetUniDocGlobalLicenseIfAvailable()
+	var pdf *creator.Creator
+	pdf, tags, err = createPdfReport(received, given, 
+		UserName,
+		Quarter,
+		Year,
+		FileName,
+		dialogDao,
+		competencyDao,
+		logger,
+	)
+	if err == nil {
+		err = pdf.WriteToFile(FileName)
+	}
+	if err != nil {
+		log.Println("Error writing file", err)
+	}
+	return tags, err
+}
+
+func createPdfReport(
+	// The last year of feedback received
+	received coachingList,
+	// The last year of feedback given
+	given coachingList,
+	// The users name (e.g., Chris Creel)
+	UserName string,
+	// The quarter for which this report was produced
+	Quarter int,
+	// The year for which this report was produced
+	Year int,
+	// Name and location for where to store the file.
+	FileName string,
+	dialogDao fetch_dialog.DAO,
+	competencyDao values.DAO,
+	logger logger.AdaptiveLogger,
+) (pdf *creator.Creator, tags map[string]string, err error) {
+	SetUniDocGlobalLicenseIfAvailable()
+	pdf = creator.New()
+
+	var fm fontMap
+	fm, err = getFontMap()
+	if err == nil {
+		logger.WithField("given", &given).Infof("Retrieved given feedback")
+
+		receivedForQuarter := received.feedbackForQuarter(Quarter, Year)
+		// givenForQuarter := given.FeedbackForQuarter(Quarter,Year)
+
+		sortedTopics := received.getSortedAttribute(func(c coaching) string {
+			return c.Topic
+		})
+		sortedTypes := received.getSortedAttribute(func(c coaching) string {
+			return c.Type
+		})
+		topicToValueTypeMapping := received.getTopicToValueTypeMapping()
+		documentLayout(pdf)
+		documentFooters(pdf, fm)
+		documentHeaders(pdf)
+		documentFrontPage(UserName, Year, Quarter, pdf, fm)
+		writePerformanceSummary(pdf, fm, receivedForQuarter)
+		tags = writePerformanceAnalysis(pdf, fm, received, given, topicToValueTypeMapping, Quarter, Year, dialogDao, logger)
+		writeCoachingIdeas(pdf, fm, receivedForQuarter, dialogDao)
+		for _, each := range sortedTypes {
+			s := writeFeedbackSummary(pdf, fm, receivedForQuarter, each, topicToValueTypeMapping)
+			for _, topic := range sortedTopics {
+				tpe := topicToValueTypeMapping[topic]
+				if tpe == each {
+					var language = "n/a"
+					if !math.IsNaN(receivedForQuarter.topicCoaching(topic).calculateScore()) {
+						language = getRatingLanguage(receivedForQuarter.topicCoaching(topic).calculateScore())
 					}
-				}
-				documentTableOfContents(c)
-				err = c.WriteToFile(FileName)
-				if err != nil {
-					log.Println("Error writing file", err)
+					feedback := fmt.Sprintf(
+						"%s (%s)",
+						strings.Title(topic),
+						language,
+					)
+					var sc *creator.Chapter
+					if s != nil {
+						sc = pdf.NewChapter(feedback)
+					}
+					writeTopic(pdf, sc, fm, topic, receivedForQuarter.topicCoaching(topic))
+					_ = pdf.Draw(sc)
 				}
 			}
 		}
-
+		documentTableOfContents(pdf)
 	}
-	return tags, err
+	return
 }
