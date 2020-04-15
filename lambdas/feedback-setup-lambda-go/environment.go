@@ -1,4 +1,4 @@
-package lambda
+package feedbackSetupLambda
 
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
@@ -24,7 +24,7 @@ var (
 	region                           = utils.NonEmptyEnv("AWS_REGION")
 	userProfileLambda                = utils.NonEmptyEnv("USER_PROFILE_LAMBDA_NAME")
 	platformNotificationTopic        = utils.NonEmptyEnv("PLATFORM_NOTIFICATION_TOPIC")
-	collaborationReportPostingLambda = utils.NonEmptyEnv("FEEDBACK_REPORT_POSTING_LAMBDA_NAME")
+	// feedbackReportPostingLambda = utils.NonEmptyEnv("FEEDBACK_REPORT_POSTING_LAMBDA_NAME")
 	// feedbackEngagementLambda         = utils.NonEmptyEnv("FEEDBACK_ENGAGEMENT_LAMBDA_NAME")
 	sns = awsutils.NewSNS(region, "", namespace)
 	l   = awsutils.NewLambda(region, "", namespace)

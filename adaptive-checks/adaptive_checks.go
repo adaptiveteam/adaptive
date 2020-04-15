@@ -417,12 +417,8 @@ func UndeliveredEngagementsOrPostponedEventsExistForMe(userID string, date busin
 // ReportExists A performance report exists for the user
 func ReportExists(userID string, dat business_time.Date) (res bool) {
 	defer core.RecoverAsLogErrorf("ReportExists(userID=%s)", userID)
-	key, err2 := coaching.UserReportIDForPreviousQuarter(dat.DateToTimeMidnight(), userID)
-	if err2 == nil {
-		res = common.DeprecatedGetGlobalS3().ObjectExists(reportsBucket, key)
-	} else {
-		log.Printf("ReportExists user %s: %v\n", userID, err2)
-	}
+	key := coaching.UserReportIDForPreviousQuarter(dat.DateToTimeMidnight(), userID)
+	res = common.DeprecatedGetGlobalS3().ObjectExists(reportsBucket, key)
 	if logEnabled {
 		log.Printf("Checked ReportExists(%s, %v): %v\n", userID, dat, res)
 	}

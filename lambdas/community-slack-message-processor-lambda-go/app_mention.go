@@ -1,9 +1,9 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
 	"time"
 	"github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
-	"encoding/json"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -64,20 +64,8 @@ func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, tea
 func userMentionFetchReportHandler(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, targetUserID string) {
 	// Posting message to the channel in which user requested this
 	replyInThread(slackMsg, teamID, simpleMessage(FetchingReportNotification))
-	var threadTs string
-	if slackMsg.ThreadTimeStamp != "" {
-		threadTs = slackMsg.ThreadTimeStamp
-	} else {
-		threadTs = slackMsg.TimeStamp
-	}
-	engageBytes, _ := json.Marshal(models.UserEngage{
-		UserID: slackMsg.User, 
-		TargetID: targetUserID, IsNew: false, 
-		Update: true, 
-		Channel: slackMsg.Channel, 
-		ThreadTs: threadTs})
-	_, err := lambdaAPI.InvokeFunction(FeedbackReportPostingLambdaName, engageBytes, false)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportPostingLambdaName))
+	err2 := feedbackReportPostingLambda.DeliverReportToUserAsync(teamID, targetUserID, time.Now())
+	core.ErrorHandler(err2, namespace, "Could not DeliverReportToUserAsync")
 }
 
 func userMentionGenerateReportHandler(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, targetUserID string) {

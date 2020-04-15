@@ -83,7 +83,7 @@ func FeedbackReceivedForTheQuarter(userID string, quarter, year int) func (conn 
 }
 
 // UserReportIDForPreviousQuarter constructs key to look for in S3 for a user for the last quarter
-func UserReportIDForPreviousQuarter(date time.Time, reportForUserID string) (key string, err error) {
+func UserReportIDForPreviousQuarter(date time.Time, reportForUserID string) (key string) {
 	var y, m, d = date.Date()
 	bt := business_time.NewDate(y, int(m), d)
 	year := bt.GetPreviousQuarterYear()

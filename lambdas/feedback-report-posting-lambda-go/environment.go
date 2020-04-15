@@ -1,4 +1,4 @@
-package lambda
+package feedbackReportPostingLambda
 
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"

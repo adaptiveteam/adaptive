@@ -11,7 +11,9 @@ import (
 )
 
 // GeneratePerformanceReportAndPostToUserAsync invokes FEEDBACK_REPORTING_LAMBDA_NAME
-// in order to generate performance report based on received feedback
+// in order to generate performance report based on received feedback.
+// After generation this lambda will post a notification that the report is ready.
+// Probably it shouldn't.
 func GeneratePerformanceReportAndPostToUserAsync(
 	// teamID models.TeamID,
 	reportFor string,

@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
 	"fmt"
 	"context"
 	"encoding/json"
@@ -79,19 +80,8 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 							RequestFeedbackAction, RequestFeedbackMessage, "request-feedback", message.MessageTs)
 						respond(teamID, responses...)
 					} else if text == user.FetchReport {
-						// this is the format business time expects
-						date := core.ISODateLayout.Format(time.Now())
-						// This request is directly coming from a user, so we shouldn't fill in the channel key
-						engageBytes, _ := json.Marshal(models.UserEngage{
-							UserID: message.User.ID, IsNew: false,
-							Update: true, Channel: message.Channel.ID, ThreadTs: message.MessageTs,
-							Date: date, 
-							TeamID: teamID,
-						})
-
-						// This is used to add an engagement on who to give feedback to
-						_, err = l.InvokeFunction(feedbackReportPostingLambdaName, engageBytes, false)
-						logger.WithField("error", err).Errorf("Could not invoke %s from slack-message-processor", feedbackReportPostingLambdaName)
+						err = feedbackReportPostingLambda.DeliverReportToUserAsync(teamID, message.User.ID, time.Now())
+						logger.WithField("error", err).Error("Could not DeliverReportToUserAsync")
 
 						msg := core.IfThenElse(err == nil, FetchingReportMessage, InternalErrorMessage).(ui.RichText)
 						// Update original message
