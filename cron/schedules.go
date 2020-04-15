@@ -51,6 +51,11 @@ func S() Schedule {
 		N: 1,
 	}
 }
+
+// Q constructs a schedule that will trigger every quarter
+func Q() Schedule {
+	return S().Every(Quarter)
+}
 // BooleanSchedule checks if the given time moment belongs to the schedule
 type BooleanSchedule func (time.Time) bool
 // EveryMN makes a schedule that will be valid every n-th period on the m-th phase.

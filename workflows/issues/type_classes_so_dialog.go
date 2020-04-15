@@ -138,7 +138,6 @@ func (SObjectiveImpl) ExtractFromContext(ctx wf.EventHandlingContext, _ string, 
 		newIssue.StrategyObjective.CreatedBy = oldIssue.StrategyObjective.CreatedBy
 		newIssue.StrategyObjective.CreatedAt = oldIssue.StrategyObjective.CreatedAt
 		newIssue.StrategyObjective.CapabilityCommunityIDs = oldIssue.StrategyObjective.CapabilityCommunityIDs
-
 	} else {
 		newIssue.StrategyObjective.ID = core.Uuid()
 		newIssue.StrategyObjective.CreatedBy = ctx.Request.User.ID
@@ -162,6 +161,8 @@ func (SObjectiveImpl) ExtractFromContext(ctx wf.EventHandlingContext, _ string, 
 	newIssue.UserObjective.ObjectiveType = userObjective.StrategyDevelopmentObjective
 	newIssue.UserObjective.StrategyAlignmentEntityType = userObjective.ObjectiveStrategyObjectiveAlignment
 	newIssue.UserObjective.ExpectedEndDate = newIssue.StrategyObjective.ExpectedEndDate
+	newIssue.UserObjective.CreatedBy = newIssue.StrategyObjective.CreatedBy
+	newIssue.UserObjective.ModifiedBy = ctx.Request.User.ID
 	return
 }
 
