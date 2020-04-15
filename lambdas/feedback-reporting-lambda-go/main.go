@@ -1,7 +1,6 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/userFeedback"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,20 +9,22 @@ import (
 	"strings"
 	"time"
 
-	apr "github.com/adaptiveteam/adaptive/adaptive-reports/performance-report"
+	"github.com/adaptiveteam/adaptive/daos/userFeedback"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	evalues "github.com/adaptiveteam/adaptive/adaptive-engagements/values"
+	apr "github.com/adaptiveteam/adaptive/adaptive-reports/performance-report"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	_ "github.com/adaptiveteam/adaptive/daos"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	ls "github.com/aws/aws-lambda-go/lambda"
 	"github.com/sirupsen/logrus"
-	_ "github.com/adaptiveteam/adaptive/daos"
 )
 
 type Coaching struct {
@@ -66,9 +67,9 @@ var (
 
 	dns       = common.DynamoNamespace{Dynamo: D, Namespace: namespace}
 	schema    = models.SchemaForClientID(clientID)
-	valuesDAO = evalues.NewDAOFromSchema(&dns, schema)
 	logger    = alog.LambdaLogger(logrus.InfoLevel)
 	userDAO   = daosUser.NewDAOByTableName(D, namespace, schema.AdaptiveUsers.Name)
+	connGen   = daosCommon.CreateConnectionGenFromEnv()
 )
 
 func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []Coaching, err error) {
@@ -83,7 +84,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 	date := engage.Date
 	threadTs := engage.ThreadTs
 	channel := engage.Channel
-
+	conn := connGen.ForPlatformID(engage.TeamID.ToPlatformID())
 	var reportFor = userID
 	var sendTo = userID
 	// A user can request a report and it can also be requested by a user in a community
@@ -149,7 +150,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 		filepath := fmt.Sprintf("/tmp/%s.pdf", userID)
 		user := userDAO.ReadUnsafe(userID)
 		_, err = apr.BuildReportWithCustomValues(received, given, user.DisplayName, quarter, year, filepath,
-			fetch_dialog.NewDAO(dns.Dynamo, dialogTable), valuesDAO, logger)
+			fetch_dialog.NewDAO(dns.Dynamo, dialogTable), logger, apr.GetCompetencyImpl(conn))
 		if err == nil {
 			err = s.AddFile(filepath, reportBucket, fmt.Sprintf("%s/%d/%d/performance_report.pdf", reportFor, year,
 				quarter))

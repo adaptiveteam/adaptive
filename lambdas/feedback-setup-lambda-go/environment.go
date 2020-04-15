@@ -2,7 +2,6 @@ package lambda
 
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	evalues "github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/feedback"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -32,7 +31,6 @@ var (
 
 	dns       = common.DynamoNamespace{Dynamo: d, Namespace: namespace}
 	schema    = models.SchemaForClientID(clientID)
-	valuesDao = evalues.NewDAOFromSchema(&dns, schema)
 
 	platform = utils.Platform{
 		Sns:                       *sns,

@@ -1,12 +1,12 @@
 package collaboration_report
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	"io/ioutil"
 	"log"
 	"os"
 	"testing"
 
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
@@ -26,8 +26,8 @@ func TestBuildReportFullData_Test(t *testing.T) {
 			2019,
 			"test-reports/adaptive.pdf",
 			createTestDao(),
-			createTestCompetencyDao(),
 			l,
+			MockGetCompetency,
 		)
 	}
 }
@@ -45,34 +45,14 @@ func TestBuildReportIncompleteData(t *testing.T) {
 			2019,
 			"test-reports/adaptive-incomplete.pdf",
 			createTestDao(),
-			createTestCompetencyDao(),
 			l,
+			MockGetCompetency,
 		)
 	}
 }
 
-type competencyDAO struct {
-	/*
-		Create(adaptiveValue models.AdaptiveValue) error
-		Read(adaptiveValueID string) (models.AdaptiveValue, error)
-		ReadUnsafe(adaptiveValueID string) models.AdaptiveValue
-		Update(adaptiveValue models.AdaptiveValue) error
-		Delete(adaptiveValueID string) error
-		Deactivate(adaptiveValueID string) error
-
-		ForPlatformID(teamID string) PlatformDAO
-	*/
-	values.DAO
-}
-
-func createTestCompetencyDao() values.DAO {
-	return competencyDAO{}
-}
-func (competencyDAO) Read(adaptiveValueID string) (models.AdaptiveValue, bool, error) {
-	return models.AdaptiveValue{ID: adaptiveValueID, Name: "V1", Description: "Desc1", ValueType: "performance"}, true, nil
-}
-func (competencyDAO) ReadUnsafe(adaptiveValueID string) models.AdaptiveValue {
-	return models.AdaptiveValue{ID: adaptiveValueID, Name: "V1", Description: "Desc1", ValueType: "performance"}
+func MockGetCompetency(adaptiveValueID string)[]adaptiveValue.AdaptiveValue{
+	return []models.AdaptiveValue{{ID: adaptiveValueID, Name: "V1", Description: "Desc1", ValueType: "performance"}}
 }
 
 func createTestDao() fetch_dialog.DAO {
