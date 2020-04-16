@@ -83,7 +83,7 @@ var _ = BeforeSuite(func() {
 			// Environment variables to set when running Terraform
 			EnvVars: map[string]string{
 				"AWS_DEFAULT_REGION":  awsRegion,
-				"TF_VAR_RDS_HOST":     "localhost",
+				"TF_VAR_RDS_ENDPOINT":     "localhost:3306",
 				"TF_VAR_RDS_USER":     "no",
 				"TF_VAR_RDS_PASSWORD": "no",
 				"TF_VAR_RDS_PORT":     "no",

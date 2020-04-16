@@ -19,7 +19,7 @@ install: true
 env:
   - GO111MODULE=on COVERALLS_TOKEN=wHdTnciK7C03xnxA2YzIBEau8m8QBf32g \
     DIALOG_TABLE=ctcreel_adaptive_dialog TERRAFORM_VERSION=0.12.19 \
-    RDS_HOST=localhost RDS_USER=no RDS_PASSWORD=no RDS_PORT=no RDS_DB_NAME=no
+    RDS_ENDPOINT=localhost:3306 RDS_USER=no RDS_PASSWORD=no RDS_PORT=no RDS_DB_NAME=no
 notifications:
   slack: geigsen2:TBhXpLjpz2ggwaNWOTcO7TSo
 
