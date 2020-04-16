@@ -12,7 +12,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type DbCoachingFeedback struct {
+type DBCoachingFeedback struct {
 	ID               string            `gorm:"primary_key"`
 	CompetencyID     string            `gorm:"type:CHAR(36)"`
 	Source           string            `gorm:"type:CHAR(9)"`
@@ -27,10 +27,10 @@ type DbCoachingFeedback struct {
 	model.DBModel
 }
 
-func coachingFeedbackDBMapping(feedback models.UserFeedback) DbCoachingFeedback {
+func coachingFeedbackDBMapping(feedback models.UserFeedback) DBCoachingFeedback {
 	qySplits := strings.Split(feedback.QuarterYear, ":")
 	q, y := stringToInt(qySplits[0]), stringToInt(qySplits[1])
-	return DbCoachingFeedback{
+	return DBCoachingFeedback{
 		ID:               feedback.ID,
 		CompetencyID:     feedback.ValueID,
 		Source:           feedback.Source,
@@ -45,7 +45,7 @@ func coachingFeedbackDBMapping(feedback models.UserFeedback) DbCoachingFeedback 
 	}
 }
 
-func (d DbCoachingFeedback) AsAdd() (op DbCoachingFeedback) {
+func (d DBCoachingFeedback) AsAdd() (op DBCoachingFeedback) {
 	op = d
 	currentTime := time.Now()
 	op.DBCreatedAt = currentTime
@@ -53,14 +53,14 @@ func (d DbCoachingFeedback) AsAdd() (op DbCoachingFeedback) {
 	return
 }
 
-func (d DbCoachingFeedback) AsUpdate() (op DbCoachingFeedback) {
+func (d DBCoachingFeedback) AsUpdate() (op DBCoachingFeedback) {
 	op = d
 	currentTime := time.Now()
 	op.DBUpdatedAt = currentTime
 	return
 }
 
-func (d DbCoachingFeedback) AsDelete() (op DbCoachingFeedback) {
+func (d DBCoachingFeedback) AsDelete() (op DBCoachingFeedback) {
 	op = d
 	currentTime := time.Now()
 	op.DBDeletedAt = &currentTime
@@ -79,28 +79,28 @@ func InterfaceToCoachingFeedbackUnsafe(ip interface{}, logger logger2.AdaptiveLo
 
 func CoachingFeedbackStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for user feedback")
-	conn.AutoMigrate(&DbCoachingFeedback{})
+	conn.AutoMigrate(&DBCoachingFeedback{})
 
 	switch e2.EventType {
 	case model.StreamEventAdd:
 		var newCoachingFeedback = e2.NewEntity.(models.UserFeedback)
-		dbCoachingFeedback := coachingFeedbackDBMapping(newCoachingFeedback).AsAdd()
-		conn.Where("id = ?", dbCoachingFeedback.ID).
-			Assign(dbCoachingFeedback).
-			FirstOrCreate(&dbCoachingFeedback)
+		DBCoachingFeedback := coachingFeedbackDBMapping(newCoachingFeedback).AsAdd()
+		conn.Where("id = ?", DBCoachingFeedback.ID).
+			Assign(DBCoachingFeedback).
+			FirstOrCreate(&DBCoachingFeedback)
 	case model.StreamEventEdit:
 		var oldCoachingFeedback = e2.OldEntity.(models.UserFeedback)
 		var newCoachingFeedback = e2.NewEntity.(models.UserFeedback)
 
-		dbCoachingFeedback := coachingFeedbackDBMapping(newCoachingFeedback).AsUpdate()
+		DBCoachingFeedback := coachingFeedbackDBMapping(newCoachingFeedback).AsUpdate()
 		conn.Where("id = ?", oldCoachingFeedback.ID).
-			Assign(dbCoachingFeedback).
-			FirstOrCreate(&dbCoachingFeedback)
+			Assign(DBCoachingFeedback).
+			FirstOrCreate(&DBCoachingFeedback)
 	case model.StreamEventDelete:
 		var oldCoachingFeedback = e2.OldEntity.(models.UserFeedback)
-		var oldDbCoachingFeedback = coachingFeedbackDBMapping(oldCoachingFeedback).AsDelete()
+		var oldDBCoachingFeedback = coachingFeedbackDBMapping(oldCoachingFeedback).AsDelete()
 		conn.Where("id = ?", oldCoachingFeedback.ID).
-			First(&oldDbCoachingFeedback).
-			Delete(&oldDbCoachingFeedback)
+			First(&oldDBCoachingFeedback).
+			Delete(&oldDBCoachingFeedback)
 	}
 }

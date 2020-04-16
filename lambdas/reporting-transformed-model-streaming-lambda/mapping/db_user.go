@@ -12,7 +12,7 @@ import (
 
 )
 
-type DbUser struct {
+type DBUser struct {
 	ID                         string `gorm:"primary_key"`
 	PlatformID                 common.PlatformID `gorm:"type:CHAR(9)"`
 	FirstName                  string `gorm:"type:TEXT"`
@@ -28,8 +28,8 @@ type DbUser struct {
 	model.DBModel
 }
 
-func userDBMapping(user models.User) DbUser {
-	return DbUser{
+func userDBMapping(user models.User) DBUser {
+	return DBUser{
 		ID:                         user.ID,
 		PlatformID:                 user.PlatformID,
 		FirstName:                  user.FirstName,
@@ -45,7 +45,7 @@ func userDBMapping(user models.User) DbUser {
 	}
 }
 
-func (d DbUser) AsAdd() (op DbUser) {
+func (d DBUser) AsAdd() (op DBUser) {
 	op = d
 	currentTime := time.Now()
 	op.DBCreatedAt = currentTime
@@ -53,14 +53,14 @@ func (d DbUser) AsAdd() (op DbUser) {
 	return
 }
 
-func (d DbUser) AsUpdate() (op DbUser) {
+func (d DBUser) AsUpdate() (op DBUser) {
 	op = d
 	currentTime := time.Now()
 	op.DBUpdatedAt = currentTime
 	return
 }
 
-func (d DbUser) AsDelete() (op DbUser) {
+func (d DBUser) AsDelete() (op DBUser) {
 	op = d
 	currentTime := time.Now()
 	op.DBDeletedAt = &currentTime
@@ -79,28 +79,28 @@ func InterfaceToUserUnsafe(ip interface{}, logger logger2.AdaptiveLogger) interf
 
 func UserStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for user")
-	conn.AutoMigrate(&DbUser{})
+	conn.AutoMigrate(&DBUser{})
 
 	switch e2.EventType {
 	case model.StreamEventAdd:
 		var newUser = e2.NewEntity.(models.User)
-		dbUser := userDBMapping(newUser).AsAdd()
-		conn.Where("id = ?", dbUser.ID).
-			Assign(dbUser).
-			FirstOrCreate(&dbUser)
+		DBUser := userDBMapping(newUser).AsAdd()
+		conn.Where("id = ?", DBUser.ID).
+			Assign(DBUser).
+			FirstOrCreate(&DBUser)
 	case model.StreamEventEdit:
 		var oldUser = e2.OldEntity.(models.User)
 		var newUser = e2.NewEntity.(models.User)
 
-		dbUser := userDBMapping(newUser).AsUpdate()
+		DBUser := userDBMapping(newUser).AsUpdate()
 		conn.Where("id = ?", oldUser.ID).
-			Assign(dbUser).
-			FirstOrCreate(&dbUser)
+			Assign(DBUser).
+			FirstOrCreate(&DBUser)
 	case model.StreamEventDelete:
 		var oldUser = e2.OldEntity.(models.User)
-		var oldDbUser = userDBMapping(oldUser).AsDelete()
+		var oldDBUser = userDBMapping(oldUser).AsDelete()
 		conn.Where("id = ?", oldUser.ID).
-			First(&oldDbUser).
-			Delete(&oldDbUser)
+			First(&oldDBUser).
+			Delete(&oldDBUser)
 	}
 }
