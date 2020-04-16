@@ -18,6 +18,7 @@ import (
 
 func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf *bytes.Buffer, reportname string, err error) {
 	defer recoverToErrorVar("onStrategyPerformanceReport", &err)
+	logger.Infof("onStrategyPerformanceReport")
 	platformID := teamID.ToPlatformID()
 	db := utilities.SQLOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
 	defer utilities.CloseUnsafe(db)
@@ -26,26 +27,32 @@ func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf
 	// f, err = reports.StrategyPerformanceReport(db, customerID)
 
 	reportname = "Strategic Performance"
-	file, err = workbooks.CreateStrategyWorkbook(
-		platformID,
-		utilities.WrapDB(db),
-		dialogFetcherDAO,
-		utilities2.CreateDocumentProperties(
-			"Strategy",
-			"How is the strategy performing?",
-			[]string{"Strategy"},
-			"Strategic Performance Report",
-			reportname,
-		),
+	file = excelize.NewFile()
+	properties := utilities2.CreateDocumentProperties(
+		"Strategy",
+		"How is the strategy performing?",
+		[]string{"Strategy"},
+		"Strategic Performance Report",
+		reportname,
 	)
+	err = file.SetDocProps(properties)
 	if err == nil {
-		buf, err = file.WriteToBuffer()
+		err = workbooks.CreateStrategyWorkbook(
+			file,
+			platformID,
+			utilities.WrapDB(db),
+			dialogFetcherDAO,
+		)
+		if err == nil {
+			buf, err = file.WriteToBuffer()
+		}
 	}
 	return
 }
 
 func onIDOPerformanceReport(RDSConfig RDSConfig, userID string) (buf *bytes.Buffer, reportname string, err error) {
 	defer core_utils_go.RecoverToErrorVar("onIDOPerformanceReport", &err)
+	logger.Infof("onIDOPerformanceReport")
 	db := utilities.SQLOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
 	defer utilities.CloseUnsafe(db)
 	var file *excelize.File
@@ -84,6 +91,7 @@ func sendReportToUser(
 	buf *bytes.Buffer,
 ) (err error) {
 	defer recoverToErrorVar("sendReportToUser", &err)
+	logger.Infof("Sending report %s.xlsx to user %s", name, userID)
 	token := platformTokenDAO.GetPlatformTokenUnsafe(teamID)
 	api := slack.New(token)
 
