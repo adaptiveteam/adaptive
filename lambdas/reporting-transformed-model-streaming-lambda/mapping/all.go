@@ -6,7 +6,7 @@ import (
 
 var allEntities = []interface{}{
 	&DBClientConfig{},
-	&DBCoachingFeedback{},
+	&DBUserFeedback{},
 	&DBCommunityUser{},
 	&DBCommunity{},
 	&DBCompetency{},
@@ -16,7 +16,7 @@ var allEntities = []interface{}{
 	&DBObjectiveCommunity{},
 	&DBObjective{},
 	&DBPartnershipRejection{},
-	&DBStrategyInitiative{},
+	&DBInitiative{},
 	&DBUserObjectiveProgress{},
 	&DBUserObjective{},
 	&DBUser{},

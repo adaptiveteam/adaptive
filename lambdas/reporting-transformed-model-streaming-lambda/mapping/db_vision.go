@@ -61,9 +61,8 @@ func (d DBVision) AsDelete() (op DBVision) {
 	return
 }
 
-func InterfaceToVisionUnsafe(ip interface{}, logger logger2.AdaptiveLogger) interface{} {
+func (d DBVision) ParseUnsafe(js []byte, logger logger2.AdaptiveLogger) interface{} {
 	var vision models.VisionMission
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &vision)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.VisionMission")
@@ -71,7 +70,7 @@ func InterfaceToVisionUnsafe(ip interface{}, logger logger2.AdaptiveLogger) inte
 	return vision
 }
 
-func VisionStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
+func (d DBVision) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for vision")
 	conn.AutoMigrate(&DBVision{})
 

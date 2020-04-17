@@ -73,9 +73,8 @@ func (d DBObjective) AsDelete() (op DBObjective) {
 	return
 }
 
-func InterfaceToObjectiveUnsafe(ip interface{}, logger logger.AdaptiveLogger) interface{} {
+func (d DBObjective) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var so models.StrategyObjective
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &so)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.StrategyObjective")
@@ -83,7 +82,7 @@ func InterfaceToObjectiveUnsafe(ip interface{}, logger logger.AdaptiveLogger) in
 	return so
 }
 
-func ObjectiveStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
+func (d DBObjective) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for objective")
 	conn.AutoMigrate(&DBObjective{})
 

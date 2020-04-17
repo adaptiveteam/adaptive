@@ -77,9 +77,8 @@ func (d DBUserObjectiveProgress) AsDelete() (op DBUserObjectiveProgress) {
 	return
 }
 
-func InterfaceToUserObjectiveProgressUnsafe(ip interface{}, logger logger.AdaptiveLogger) interface{} {
+func (d DBUserObjectiveProgress) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var uObj models.UserObjectiveProgress
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &uObj)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.UserObjectiveProgress")
@@ -87,7 +86,7 @@ func InterfaceToUserObjectiveProgressUnsafe(ip interface{}, logger logger.Adapti
 	return uObj
 }
 
-func UserObjectiveProgressStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
+func (d DBUserObjectiveProgress) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for user objective progress")
 	conn.AutoMigrate(&DBUserObjectiveProgress{})
 

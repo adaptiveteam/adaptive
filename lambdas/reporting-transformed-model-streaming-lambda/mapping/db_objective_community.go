@@ -62,9 +62,8 @@ func (d DBObjectiveCommunity) AsDelete() (op DBObjectiveCommunity) {
 	return
 }
 
-func InterfaceToObjectiveCommunityUnsafe(ip interface{}, logger logger.AdaptiveLogger) interface{} {
+func (d DBObjectiveCommunity) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var cc models.CapabilityCommunity
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &cc)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.CapabilityCommunity")
@@ -72,7 +71,7 @@ func InterfaceToObjectiveCommunityUnsafe(ip interface{}, logger logger.AdaptiveL
 	return cc
 }
 
-func ObjectiveCommunityStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
+func (d DBObjectiveCommunity) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for objective community")
 	conn.AutoMigrate(&DBObjectiveCommunity{})
 

@@ -58,9 +58,8 @@ func (d DBHoliday) AsDelete() (op DBHoliday) {
 	return
 }
 
-func InterfaceToHolidayUnsafe(ip interface{}, logger logger.AdaptiveLogger) interface{} {
+func (d DBHoliday) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var holiday models.AdHocHoliday
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &holiday)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.AdHocHoliday")
@@ -68,7 +67,7 @@ func InterfaceToHolidayUnsafe(ip interface{}, logger logger.AdaptiveLogger) inte
 	return holiday
 }
 
-func HolidayStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
+func (d DBHoliday) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for holiday")
 	conn.AutoMigrate(&DBHoliday{})
 

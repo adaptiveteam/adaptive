@@ -62,9 +62,8 @@ func (d DBEngagement) AsDelete() (op DBEngagement) {
 	return
 }
 
-func InterfaceToEngagementUnsafe(ip interface{}, logger logger.AdaptiveLogger) interface{} {
+func (d DBEngagement) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var eng models.UserEngagement
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &eng)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.UserEngagement")
@@ -72,7 +71,7 @@ func InterfaceToEngagementUnsafe(ip interface{}, logger logger.AdaptiveLogger) i
 	return eng
 }
 
-func EngagementStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
+func (d DBEngagement) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for engagement")
 	conn.AutoMigrate(&DBEngagement{})
 

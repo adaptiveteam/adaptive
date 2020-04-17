@@ -70,9 +70,8 @@ func (d SlackTeam) AsDelete() (op SlackTeam) {
 	return
 }
 
-func InterfaceToSlackTeamUnsafe(ip interface{}, logger logger.AdaptiveLogger) interface{} {
+func (d SlackTeam) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var slackteam slackTeam.SlackTeam
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &slackteam)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to slackTeam.SlackTeam")
@@ -80,7 +79,7 @@ func InterfaceToSlackTeamUnsafe(ip interface{}, logger logger.AdaptiveLogger) in
 	return slackteam
 }
 
-func SlackTeamStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
+func (d SlackTeam) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for slackteam")
 	conn.AutoMigrate(&SlackTeam{})
 

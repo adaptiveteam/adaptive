@@ -72,9 +72,8 @@ func (d DBUser) AsDelete() (op DBUser) {
 	return
 }
 
-func InterfaceToUserUnsafe(ip interface{}, logger logger2.AdaptiveLogger) interface{} {
+func (d DBUser) ParseUnsafe(js []byte, logger logger2.AdaptiveLogger) interface{} {
 	var user models.User
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &user)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.User")
@@ -82,7 +81,7 @@ func InterfaceToUserUnsafe(ip interface{}, logger logger2.AdaptiveLogger) interf
 	return user
 }
 
-func UserStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
+func (d DBUser) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for user")
 	conn.AutoMigrate(&DBUser{})
 

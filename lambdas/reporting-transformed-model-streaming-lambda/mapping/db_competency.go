@@ -58,9 +58,8 @@ func (d DBCompetency) AsDelete() (op DBCompetency) {
 	return
 }
 
-func InterfaceToCompetencyUnsafe(ip interface{}, logger logger2.AdaptiveLogger) interface{} {
+func (d DBCompetency) ParseUnsafe(js []byte, logger logger2.AdaptiveLogger) interface{} {
 	var competency models.AdaptiveValue
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &competency)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.AdaptiveValue")
@@ -68,7 +67,7 @@ func InterfaceToCompetencyUnsafe(ip interface{}, logger logger2.AdaptiveLogger) 
 	return competency
 }
 
-func CompetencyStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
+func (d DBCompetency) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for competency")
 	conn.AutoMigrate(&DBCompetency{})
 
