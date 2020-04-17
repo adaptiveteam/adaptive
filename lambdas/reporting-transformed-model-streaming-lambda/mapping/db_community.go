@@ -21,6 +21,11 @@ type DBCommunity struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBCommunity) TableName() string {
+	return "community"
+}
+
 func communityDBMapping(ac models.AdaptiveCommunity) DBCommunity {
 	return DBCommunity{
 		ID:          ac.ID,

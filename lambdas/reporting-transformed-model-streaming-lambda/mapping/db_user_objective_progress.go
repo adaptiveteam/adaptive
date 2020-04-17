@@ -28,6 +28,11 @@ type DBUserObjectiveProgress struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBUserObjectiveProgress) TableName() string {
+	return "user_objective_progress"
+}
+
 func compositeKey(obj models.UserObjectiveProgress) string {
 	return obj.ID + ":" + obj.CreatedOn
 }

@@ -17,6 +17,10 @@ type DBClientConfig struct {
 	PlatformOrg  string            `gorm:"type:TEXT"`
 	model.DBModel
 }
+// TableName return table name
+func (d DBClientConfig) TableName() string {
+	return "client_config"
+}
 
 func clientConfigDBMapping(c models.ClientPlatformToken) DBClientConfig {
 	return DBClientConfig{

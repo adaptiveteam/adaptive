@@ -19,6 +19,11 @@ type DBPartnershipRejection struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBPartnershipRejection) TableName() string {
+	return "partnership_rejection"
+}
+
 func partnershipRejectionCompositeKey(apr models.AccountabilityPartnerShipRejection) string {
 	return apr.ObjectiveID + ":" + apr.CreatedOn
 }

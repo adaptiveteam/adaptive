@@ -23,6 +23,11 @@ type DBObjectiveCommunity struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBObjectiveCommunity) TableName() string {
+	return "objective_community"
+}
+
 func objectiveCommunityDBMapping(cc models.CapabilityCommunity) DBObjectiveCommunity {
 	return DBObjectiveCommunity{
 		ID:          cc.ID,

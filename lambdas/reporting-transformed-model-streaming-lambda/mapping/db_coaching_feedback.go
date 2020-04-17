@@ -27,6 +27,11 @@ type DBCoachingFeedback struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBCoachingFeedback) TableName() string {
+	return "coaching_feedback"
+}
+
 func coachingFeedbackDBMapping(feedback models.UserFeedback) DBCoachingFeedback {
 	qySplits := strings.Split(feedback.QuarterYear, ":")
 	q, y := stringToInt(qySplits[0]), stringToInt(qySplits[1])

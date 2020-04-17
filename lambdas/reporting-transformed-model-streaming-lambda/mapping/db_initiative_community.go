@@ -22,6 +22,11 @@ type DBInitiativeCommunity struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBInitiativeCommunity) TableName() string {
+	return "initiative_community"
+}
+
 func initiativeCommDBMapping(sic models.StrategyInitiativeCommunity) DBInitiativeCommunity {
 	return DBInitiativeCommunity{
 		ID:                    sic.ID,

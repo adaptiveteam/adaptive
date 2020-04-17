@@ -21,6 +21,11 @@ type DBHoliday struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBHoliday) TableName() string {
+	return "holiday"
+}
+
 func holidayDBMapping(h models.AdHocHoliday) DBHoliday {
 	return DBHoliday{
 		ID:               h.ID,

@@ -22,6 +22,11 @@ type DBVision struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBVision) TableName() string {
+	return "vision"
+}
+
 func visionDBMapping(vis models.VisionMission) DBVision {
 	return DBVision{
 		ID:          vis.ID,

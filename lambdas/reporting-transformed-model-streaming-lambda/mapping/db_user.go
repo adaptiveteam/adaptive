@@ -28,6 +28,11 @@ type DBUser struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBUser) TableName() string {
+	return "user"
+}
+
 func userDBMapping(user models.User) DBUser {
 	return DBUser{
 		ID:                         user.ID,

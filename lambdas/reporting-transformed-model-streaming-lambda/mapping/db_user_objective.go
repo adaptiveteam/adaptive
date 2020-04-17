@@ -33,6 +33,11 @@ type DBUserObjective struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBUserObjective) TableName() string {
+	return "user_objective"
+}
+
 func userObjectiveDBMapping(obj models.UserObjective) DBUserObjective {
 	return DBUserObjective{
 		ID:                          obj.ID,

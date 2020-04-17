@@ -22,6 +22,11 @@ type DBEngagement struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBEngagement) TableName() string {
+	return "engagement"
+}
+
 func engagementDBMapping(eng models.UserEngagement) DBEngagement {
 	return DBEngagement{
 		ID:         eng.ID,

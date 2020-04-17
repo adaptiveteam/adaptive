@@ -20,6 +20,11 @@ type DBCompetency struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBCompetency) TableName() string {
+	return "competency"
+}
+
 func competencyDBMapping(comp models.AdaptiveValue) DBCompetency {
 	return DBCompetency{
 		ID:             comp.ID,

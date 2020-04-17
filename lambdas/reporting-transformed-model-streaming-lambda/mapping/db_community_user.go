@@ -18,6 +18,11 @@ type DBCommunityUser struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBCommunityUser) TableName() string {
+	return "community_user"
+}
+
 func communityUserCompositeKey(acu models.AdaptiveCommunityUser3) string {
 	return acu.ChannelID + ":" + acu.UserID
 }

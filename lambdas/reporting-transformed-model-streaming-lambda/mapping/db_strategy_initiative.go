@@ -27,6 +27,11 @@ type DBStrategyInitiative struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBStrategyInitiative) TableName() string {
+	return "strategy_initiative"
+}
+
 func initiativeDBMapping(vis models.StrategyInitiative) DBStrategyInitiative {
 	return DBStrategyInitiative{
 		ID:                    vis.ID,

@@ -28,6 +28,11 @@ type DBObjective struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBObjective) TableName() string {
+	return "objective"
+}
+
 func objectiveDBMapping(so models.StrategyObjective) DBObjective {
 	capComms, _ := json.Marshal(so.CapabilityCommunityIDs)
 	return DBObjective{
