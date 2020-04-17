@@ -1,21 +1,15 @@
 package queries
 
 const SelectVisionByPlatformID = `
-select
-
-vision.vision,
-user.display_name as "owner",
-client_config.platform_org as "company_name"
-
-from
-
-vision,
-user,
-client_config
-
-where
-
-vision.platform_id = ? AND
-client_config.platform_id = vision.platform_id AND
-user.id = vision.advocate
+SELECT
+  vision.vision,
+  user.display_name AS "owner",
+  client_config.platform_org AS "company_name"
+FROM
+  user,
+  vision LEFT OUTER JOIN client_config 
+    ON client_config.platform_id = vision.platform_id
+WHERE
+  vision.platform_id = ? AND
+  user.id = vision.advocate
 `
