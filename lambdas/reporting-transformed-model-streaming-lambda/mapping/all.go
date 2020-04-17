@@ -21,7 +21,9 @@ var allEntities = []interface{}{
 	&DBUserObjective{},
 	&DBUser{},
 	&DBVision{},
+	&SlackTeam{},
 }
+
 // AutoMigrateAllEntities -
 func AutoMigrateAllEntities(conn *gorm.DB) {
 	conn.AutoMigrate(allEntities...)
