@@ -69,6 +69,7 @@ func (db *Database) CloseDatabase() {
 
 func (db *Database) GetTable(query string, arguments ...interface{}) (columns []string, rows [][]string, tableMap Table, err error) {
 	defer recoverToErrorVar("GetTable", &err)
+	log.Printf("GetTable.Query:\n%s\nGetTable.Arguments: %v\n",query, arguments)
 	// Execute the query
 	var stmtOut *sql.Stmt
 	stmtOut, err = db.db.Prepare(query)

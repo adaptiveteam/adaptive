@@ -18,7 +18,7 @@ import (
 
 func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf *bytes.Buffer, reportname string, err error) {
 	defer recoverToErrorVar("onStrategyPerformanceReport", &err)
-	logger.Infof("onStrategyPerformanceReport")
+	logger.Infof("onStrategyPerformanceReport(teamID=%s", teamID)
 	platformID := teamID.ToPlatformID()
 	db := utilities.SQLOpenUnsafe(RDSConfig.Driver, RDSConfig.ConnectionString)
 	defer utilities.CloseUnsafe(db)
