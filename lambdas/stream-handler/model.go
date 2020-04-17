@@ -26,6 +26,7 @@ const (
 	AdaptivePartnershipRejectionTableRef  = "partnership_rejections"
 	AdaptiveInitiativeTableRef            = "strategy_initiatives"
 	AdaptiveObjectiveTableRef             = "strategy_objectives"
+	SlackTeamTableRef                     = "slack_team"
 )
 
 type InterfaceMapping func(interface{}, logger2.AdaptiveLogger) interface{}
@@ -119,6 +120,11 @@ var (
 			TableMapped:   "objective", // done
 			EntityMapper:  mapping.InterfaceToObjectiveUnsafe,
 			StreamHandler: mapping.ObjectiveStreamEntityHandler,
+		},
+		SlackTeamTableRef: {
+			TableMapped:   SlackTeamTableRef,
+			EntityMapper:  mapping.InterfaceToSlackTeamUnsafe,
+			StreamHandler: mapping.SlackTeamStreamEntityHandler,
 		},
 	}
 )
