@@ -145,8 +145,10 @@ func StreamEntityHandler(
 	op.EventType = entity.EventType
 	tableName := entity.TableName
 
+	found := false
 	for _, each := range TableRefKeys() {
 		if strings.Contains(tableName, fmt.Sprintf("%s_%s/", clientID, each)) {
+			found = true
 			mappingFunction := TableMapping[each]
 			op.TableName = mappingFunction.TableMapped
 			op.OldEntity = mappingFunction.EntityMapper(entity.OldEntity, logger)
@@ -155,6 +157,9 @@ func StreamEntityHandler(
 			conn := conn1.Table(op.TableName)
 			mappingFunction.StreamHandler(op, conn, logger)
 		}
+	}
+	if !found {
+		logger.Warningf("Unhandled event from tableName=%s", tableName)
 	}
 	return
 }
