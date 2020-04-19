@@ -1,4 +1,4 @@
-package entity_bootstrap_lambda
+package entityBootstrapLambda
 
 import (
 	"context"

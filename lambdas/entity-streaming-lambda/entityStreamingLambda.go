@@ -1,4 +1,4 @@
-package lambda
+package entityStreamingLambda
 
 import (
 	"strings"
@@ -86,5 +86,5 @@ func extractTableNameFromARN(arn string) string {
 	parts := strings.Split(arn, ":")
 	streamName := parts[5]
 	sParts := strings.Split(streamName, "/")
-	return sParts[1]
+	return strings.TrimSuffix(sParts[1], "/")
 }
