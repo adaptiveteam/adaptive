@@ -90,7 +90,7 @@ func sendReportToUser(
 	name string,
 	buf *bytes.Buffer,
 ) (err error) {
-	defer recoverToErrorVar("sendReportToUser", &err)
+	defer core_utils_go.RecoverToErrorVar("sendReportToUser", &err)
 	filename := name + ".xlsx"
 	logger.Infof("Sending report %s (size=%d b) to user %s", filename, buf.Len(), userID)
 	token := platformTokenDAO.GetPlatformTokenUnsafe(teamID)
