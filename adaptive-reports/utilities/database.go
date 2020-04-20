@@ -125,10 +125,17 @@ func (db *Database) GetTable(query string, arguments ...interface{}) (columns []
 }
 
 func (table Table) GetValue(column string, rowNum int) (rv string) {
+	return table.GetValueOrDefault(column, rowNum, func() string {
+		log.Panic("no value at " + GetIndex(column, rowNum))
+		return ""
+	})
+}
+
+func (table Table) GetValueOrDefault(column string, rowNum int, defValue func() string) (rv string) {
 	var ok bool
 	rv, ok = table[GetIndex(column, rowNum)]
 	if !ok {
-		log.Panic("no value at " + GetIndex(column, rowNum))
+		rv = defValue()
 	}
 	return
 }

@@ -40,7 +40,9 @@ func CreateStrategyWorkbook(
 			queryResults["alignment"].GetTable(),
 			len(queryResults["alignment"].GetRows()),
 		)
-		vision := queryResults["vision"].GetTable().GetValue("vision", 0)
+		vision := queryResults["vision"].GetTable().GetValueOrDefault("vision", 0, func() string {
+			return "There is no vision in the strategy yet"
+		})
 		allCompetencies := models.CreateCompetencies(
 			queryResults["competencies"].GetTable(),
 			len(queryResults["competencies"].GetRows()),
