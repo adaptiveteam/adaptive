@@ -91,7 +91,7 @@ func sendReportToUser(
 	buf *bytes.Buffer,
 ) (err error) {
 	defer recoverToErrorVar("sendReportToUser", &err)
-	logger.Infof("Sending report %s.xlsx to user %s", name, userID)
+	logger.Infof("Sending report %s.xlsx (size=%d b) to user %s", name, buf.Len(), userID)
 	token := platformTokenDAO.GetPlatformTokenUnsafe(teamID)
 	api := slack.New(token)
 
@@ -102,6 +102,10 @@ func sendReportToUser(
 		Channels:        []string{userID},
 		ThreadTimestamp: "",
 	}
-	_, err = api.UploadFile(params)
+	var slackFile *slack.File
+	slackFile, err = api.UploadFile(params)
+	if err == nil {
+		logger.Infof("Slack file: %v", slackFile)
+	}
 	return
 }
