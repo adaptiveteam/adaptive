@@ -13,13 +13,6 @@ import (
 )
 
 type SlackTeam struct {
-	ID               string `gorm:"primary_key"`
-	Date             string `gorm:"type:DATE"`
-	Description      string `gorm:"type:TEXT"`
-	Name             string `gorm:"type:TEXT"`
-	PlatformID       common.PlatformID `gorm:"type:CHAR(9)"`
-	ScopeCommunities string `gorm:"type:TEXT"`
-
 	TeamID common.PlatformID `gorm:"primary_key"`
 	AccessToken string `gorm:"type:TEXT"`
 	TeamName string `gorm:"type:TEXT"`
