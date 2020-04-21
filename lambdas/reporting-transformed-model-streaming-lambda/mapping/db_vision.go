@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type DbVision struct {
+type DBVision struct {
 	ID          string `gorm:"primary_key"`
 	Vision      string `gorm:"type:TEXT"`
 	PlatformID  common.PlatformID `gorm:"type:CHAR(9)"`
@@ -22,8 +22,13 @@ type DbVision struct {
 	model.DBModel
 }
 
-func visionDBMapping(vis models.VisionMission) DbVision {
-	return DbVision{
+// TableName return table name
+func (d DBVision) TableName() string {
+	return "vision"
+}
+
+func visionDBMapping(vis models.VisionMission) DBVision {
+	return DBVision{
 		ID:          vis.ID,
 		Vision:      vis.Vision,
 		PlatformID:  vis.PlatformID,
@@ -34,7 +39,7 @@ func visionDBMapping(vis models.VisionMission) DbVision {
 	}
 }
 
-func (d DbVision) AsAdd() (op DbVision) {
+func (d DBVision) AsAdd() (op DBVision) {
 	op = d
 	currentTime := time.Now()
 	op.DBCreatedAt = currentTime
@@ -42,23 +47,22 @@ func (d DbVision) AsAdd() (op DbVision) {
 	return
 }
 
-func (d DbVision) AsUpdate() (op DbVision) {
+func (d DBVision) AsUpdate() (op DBVision) {
 	op = d
 	currentTime := time.Now()
 	op.DBUpdatedAt = currentTime
 	return
 }
 
-func (d DbVision) AsDelete() (op DbVision) {
+func (d DBVision) AsDelete() (op DBVision) {
 	op = d
 	currentTime := time.Now()
 	op.DBDeletedAt = &currentTime
 	return
 }
 
-func InterfaceToVisionUnsafe(ip interface{}, logger logger2.AdaptiveLogger) interface{} {
+func (d DBVision) ParseUnsafe(js []byte, logger logger2.AdaptiveLogger) interface{} {
 	var vision models.VisionMission
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &vision)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.VisionMission")
@@ -66,9 +70,9 @@ func InterfaceToVisionUnsafe(ip interface{}, logger logger2.AdaptiveLogger) inte
 	return vision
 }
 
-func VisionStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
+func (d DBVision) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for vision")
-	conn.AutoMigrate(&DbVision{})
+	conn.AutoMigrate(&DBVision{})
 
 	switch e2.EventType {
 	case model.StreamEventAdd:
@@ -87,9 +91,9 @@ func VisionStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logg
 			FirstOrCreate(&dbVision)
 	case model.StreamEventDelete:
 		var oldVision = e2.OldEntity.(models.VisionMission)
-		var oldDbVision = visionDBMapping(oldVision).AsDelete()
+		var oldDBVision = visionDBMapping(oldVision).AsDelete()
 		conn.Where("id = ?", oldVision.ID).
-			First(&oldDbVision).
-			Delete(&oldDbVision)
+			First(&oldDBVision).
+			Delete(&oldDBVision)
 	}
 }

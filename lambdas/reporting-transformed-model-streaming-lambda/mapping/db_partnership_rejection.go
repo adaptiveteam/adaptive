@@ -19,6 +19,11 @@ type DBPartnershipRejection struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBPartnershipRejection) TableName() string {
+	return "partnership_rejection"
+}
+
 func partnershipRejectionCompositeKey(apr models.AccountabilityPartnerShipRejection) string {
 	return apr.ObjectiveID + ":" + apr.CreatedOn
 }
@@ -56,9 +61,8 @@ func (d DBPartnershipRejection) AsDelete() (op DBPartnershipRejection) {
 	return
 }
 
-func InterfaceToPartnershipRejectionUnsafe(ip interface{}, logger logger.AdaptiveLogger) interface{} {
+func (d DBPartnershipRejection) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var apr models.AccountabilityPartnerShipRejection
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &apr)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.AccountabilityPartnerShipRejection")
@@ -66,7 +70,7 @@ func InterfaceToPartnershipRejectionUnsafe(ip interface{}, logger logger.Adaptiv
 	return apr
 }
 
-func PartnershipRejectionStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
+func (d DBPartnershipRejection) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for partnership rejection")
 	conn.AutoMigrate(&DBPartnershipRejection{})
 

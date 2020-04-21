@@ -51,7 +51,7 @@ locals {
     # Reporting
     REPORTS_BUCKET_NAME = aws_s3_bucket.adaptive-feedback-reports-bucket.bucket
 
-    RDS_HOST     = module.reporting_db.this_db_instance_endpoint
+    RDS_ENDPOINT = module.reporting_db.this_db_instance_endpoint
     RDS_USER     = var.RDS_USER
     RDS_PASSWORD = var.RDS_PASSWORD
     RDS_PORT     = var.RDS_PORT

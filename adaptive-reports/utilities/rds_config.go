@@ -1,6 +1,7 @@
 package utilities
 
 import (
+	"strings"
 	"database/sql"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 )
@@ -13,14 +14,21 @@ type RDSConfig struct {
 
 // ReadRDSConfigFromEnv read config from env
 func ReadRDSConfigFromEnv() RDSConfig {
-	rdsHost := utils.NonEmptyEnv("RDS_HOST")
+	rdsEndpoint := utils.NonEmptyEnv("RDS_ENDPOINT")
+	parts := strings.Split(rdsEndpoint, ":")
+
+	rdsHost := parts[0]
+	rdsPort := "3306"
+	if len(parts) > 1 {
+		rdsPort = parts[1]
+	}
 	GlobalRDSConfig := RDSConfig{
 		Driver: "mysql", 
 		ConnectionString: ConnectionString(
 			rdsHost,
 			utils.NonEmptyEnv("RDS_USER"),
 			utils.NonEmptyEnv("RDS_PASSWORD"),
-			utils.NonEmptyEnv("RDS_PORT"),
+			rdsPort,
 			utils.NonEmptyEnv("RDS_DB_NAME"),
 		)}
 	return GlobalRDSConfig

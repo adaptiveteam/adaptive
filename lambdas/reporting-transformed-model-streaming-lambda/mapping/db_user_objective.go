@@ -33,6 +33,11 @@ type DBUserObjective struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBUserObjective) TableName() string {
+	return "user_objective"
+}
+
 func userObjectiveDBMapping(obj models.UserObjective) DBUserObjective {
 	return DBUserObjective{
 		ID:                          obj.ID,
@@ -78,9 +83,8 @@ func (d DBUserObjective) AsDelete() (op DBUserObjective) {
 	return
 }
 
-func InterfaceToUserObjectiveUnsafe(ip interface{}, logger logger.AdaptiveLogger) interface{} {
+func (d DBUserObjective) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var uObj models.UserObjective
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &uObj)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.UserObjective")
@@ -88,7 +92,7 @@ func InterfaceToUserObjectiveUnsafe(ip interface{}, logger logger.AdaptiveLogger
 	return uObj
 }
 
-func UserObjectiveStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
+func (d DBUserObjective) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for UserObjective")
 	conn.AutoMigrate(&DBUserObjective{})
 

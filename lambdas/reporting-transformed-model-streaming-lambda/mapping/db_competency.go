@@ -10,7 +10,7 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/common"
 )
 
-type DbCompetency struct {
+type DBCompetency struct {
 	ID             string `gorm:"primary_key"`
 	Name           string `gorm:"type:TEXT"`
 	Description    string `gorm:"type:TEXT"`
@@ -20,8 +20,13 @@ type DbCompetency struct {
 	model.DBModel
 }
 
-func competencyDBMapping(comp models.AdaptiveValue) DbCompetency {
-	return DbCompetency{
+// TableName return table name
+func (d DBCompetency) TableName() string {
+	return "competency"
+}
+
+func competencyDBMapping(comp models.AdaptiveValue) DBCompetency {
+	return DBCompetency{
 		ID:             comp.ID,
 		Name:           comp.Name,
 		Description:    comp.Description,
@@ -31,7 +36,7 @@ func competencyDBMapping(comp models.AdaptiveValue) DbCompetency {
 	}
 }
 
-func (d DbCompetency) AsAdd() (op DbCompetency) {
+func (d DBCompetency) AsAdd() (op DBCompetency) {
 	op = d
 	currentTime := time.Now()
 	op.DBCreatedAt = currentTime
@@ -39,23 +44,22 @@ func (d DbCompetency) AsAdd() (op DbCompetency) {
 	return
 }
 
-func (d DbCompetency) AsUpdate() (op DbCompetency) {
+func (d DBCompetency) AsUpdate() (op DBCompetency) {
 	op = d
 	currentTime := time.Now()
 	op.DBUpdatedAt = currentTime
 	return
 }
 
-func (d DbCompetency) AsDelete() (op DbCompetency) {
+func (d DBCompetency) AsDelete() (op DBCompetency) {
 	op = d
 	currentTime := time.Now()
 	op.DBDeletedAt = &currentTime
 	return
 }
 
-func InterfaceToCompetencyUnsafe(ip interface{}, logger logger2.AdaptiveLogger) interface{} {
+func (d DBCompetency) ParseUnsafe(js []byte, logger logger2.AdaptiveLogger) interface{} {
 	var competency models.AdaptiveValue
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &competency)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.AdaptiveValue")
@@ -63,9 +67,9 @@ func InterfaceToCompetencyUnsafe(ip interface{}, logger logger2.AdaptiveLogger) 
 	return competency
 }
 
-func CompetencyStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
+func (d DBCompetency) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for competency")
-	conn.AutoMigrate(&DbCompetency{})
+	conn.AutoMigrate(&DBCompetency{})
 
 	switch e2.EventType {
 	case model.StreamEventAdd:
@@ -84,9 +88,9 @@ func CompetencyStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger 
 			FirstOrCreate(&dbCompetency)
 	case model.StreamEventDelete:
 		var oldCompetency = e2.OldEntity.(models.AdaptiveValue)
-		var oldDbCompetency = competencyDBMapping(oldCompetency).AsDelete()
+		var oldDBCompetency = competencyDBMapping(oldCompetency).AsDelete()
 		conn.Where("id = ?", oldCompetency.ID).
-			First(&oldDbCompetency).
-			Delete(&oldDbCompetency)
+			First(&oldDBCompetency).
+			Delete(&oldDBCompetency)
 	}
 }

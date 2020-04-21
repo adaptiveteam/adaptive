@@ -1,4 +1,4 @@
-package entity_bootstrap_lambda
+package entityBootstrapLambda
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func addTableRecordsToDB(tableName string, d *aws_utils_go.DynamoRequest) {
 		logger.Infof("Number of records in scan for %s table: %d", tableName, len(op))
 		for _, each := range op {
 			entity := model.StreamEntity{
-				TableName: tableName + "/",
+				TableName: tableName,
 				NewEntity: each,
 				// StreamEventEdit updates record if exists and creates if it doesn't
 				EventType: model.StreamEventAdd,

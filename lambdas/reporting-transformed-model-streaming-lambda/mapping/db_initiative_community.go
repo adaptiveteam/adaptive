@@ -22,6 +22,11 @@ type DBInitiativeCommunity struct {
 	model.DBModel
 }
 
+// TableName return table name
+func (d DBInitiativeCommunity) TableName() string {
+	return "initiative_community"
+}
+
 func initiativeCommDBMapping(sic models.StrategyInitiativeCommunity) DBInitiativeCommunity {
 	return DBInitiativeCommunity{
 		ID:                    sic.ID,
@@ -57,9 +62,8 @@ func (d DBInitiativeCommunity) AsDelete() (op DBInitiativeCommunity) {
 	return
 }
 
-func InterfaceToInitiativeCommUnsafe(ip interface{}, logger logger.AdaptiveLogger) interface{} {
+func (d DBInitiativeCommunity) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var sic models.StrategyInitiativeCommunity
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &sic)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.StrategyInitiativeCommunity")
@@ -67,7 +71,7 @@ func InterfaceToInitiativeCommUnsafe(ip interface{}, logger logger.AdaptiveLogge
 	return sic
 }
 
-func InitiativeCommStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
+func (d DBInitiativeCommunity) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for initiative community")
 	conn.AutoMigrate(&DBInitiativeCommunity{})
 

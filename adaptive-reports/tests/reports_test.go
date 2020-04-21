@@ -20,19 +20,24 @@ func createStrategySummary(
 	dao fetch_dialog.DAO,
 	platformID common.PlatformID,
 ) (file *excel.File, err error) {
-	file, err = workbooks.CreateStrategyWorkbook(
-		platformID,
-		db,
-		dao,
-		utilities2.CreateDocumentProperties(
-			"Strategy",
-			"How is the strategy performing?",
-			[]string{"Strategy"},
-			"Strategic Performance Report",
-			"Strategic Performance",
-		),
-	)
+	file = excel.NewFile()
 
+	properties := utilities2.CreateDocumentProperties(
+		"Strategy",
+		"How is the strategy performing?",
+		[]string{"Strategy"},
+		"Strategic Performance Report",
+		"Strategic Performance",
+	)
+	err = file.SetDocProps(properties)
+	if err == nil {
+		err = workbooks.CreateStrategyWorkbook(
+			file,
+			platformID,
+			db,
+			dao,
+		)
+	}
 	return file, err
 }
 

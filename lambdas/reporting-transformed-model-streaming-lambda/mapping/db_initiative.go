@@ -11,7 +11,7 @@ import (
 
 )
 
-type DBStrategyInitiative struct {
+type DBInitiative struct {
 	ID                    string  `gorm:"primary_key"`
 	Advocate              string  `gorm:"type:CHAR(9)"`
 	Budget                float64 `gorm:"type:DOUBLE"`
@@ -27,8 +27,13 @@ type DBStrategyInitiative struct {
 	model.DBModel
 }
 
-func initiativeDBMapping(vis models.StrategyInitiative) DBStrategyInitiative {
-	return DBStrategyInitiative{
+// TableName return table name
+func (d DBInitiative) TableName() string {
+	return "initiative"
+}
+
+func initiativeDBMapping(vis models.StrategyInitiative) DBInitiative {
+	return DBInitiative{
 		ID:                    vis.ID,
 		Advocate:              vis.Advocate,
 		Budget:                stringToFloat(vis.Budget),
@@ -44,7 +49,7 @@ func initiativeDBMapping(vis models.StrategyInitiative) DBStrategyInitiative {
 	}
 }
 
-func (d DBStrategyInitiative) AsAdd() (op DBStrategyInitiative) {
+func (d DBInitiative) AsAdd() (op DBInitiative) {
 	op = d
 	currentTime := time.Now()
 	op.DBCreatedAt = currentTime
@@ -52,23 +57,22 @@ func (d DBStrategyInitiative) AsAdd() (op DBStrategyInitiative) {
 	return
 }
 
-func (d DBStrategyInitiative) AsUpdate() (op DBStrategyInitiative) {
+func (d DBInitiative) AsUpdate() (op DBInitiative) {
 	op = d
 	currentTime := time.Now()
 	op.DBUpdatedAt = currentTime
 	return
 }
 
-func (d DBStrategyInitiative) AsDelete() (op DBStrategyInitiative) {
+func (d DBInitiative) AsDelete() (op DBInitiative) {
 	op = d
 	currentTime := time.Now()
 	op.DBDeletedAt = &currentTime
 	return
 }
 
-func InterfaceToInitiativeUnsafe(ip interface{}, logger logger.AdaptiveLogger) interface{} {
+func (d DBInitiative) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var init models.StrategyInitiative
-	js, _ := json.Marshal(ip)
 	err := json.Unmarshal(js, &init)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Could not unmarshal to models.StrategyInitiative")
@@ -76,9 +80,9 @@ func InterfaceToInitiativeUnsafe(ip interface{}, logger logger.AdaptiveLogger) i
 	return init
 }
 
-func InitiativeStreamEntityHandler(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
+func (d DBInitiative) HandleStreamEntityUnsafe(e2 model.StreamEntity, conn *gorm.DB, logger logger.AdaptiveLogger) {
 	logger.WithField("mapped_event", &e2).Info("Transformed request for initiative")
-	conn.AutoMigrate(&DBStrategyInitiative{})
+	conn.AutoMigrate(&DBInitiative{})
 
 	switch e2.EventType {
 	case model.StreamEventAdd:
