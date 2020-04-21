@@ -1,6 +1,8 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
+	"github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -210,7 +212,7 @@ func dispatchCommunityInteractionCallback(request slack.InteractionCallback, tea
 				} else if strings.HasPrefix(mc.Action, FetchReportHR) {
 					// fetch report actions: now and cancel
 					suffixAction := strings.TrimPrefix(action.Name, FetchReportHR+"_")
-					communityNamespaceReportsFetchReportCallback(request, suffixAction, action, *mc)
+					communityNamespaceReportsFetchReportCallback(request, teamID, suffixAction, action, *mc)
 				}
 			} else if mc.Topic == CoachingName {
 				action := *request.ActionCallback.AttachmentActions[0]
@@ -280,26 +282,19 @@ func communityNamespaceReportsGenerateReportCallback(request slack.InteractionCa
 	case string(models.Now):
 		target := action.SelectedOptions[0].Value
 		// Posting message to the channel in which user requested this
-		ts := request.OriginalMessage.Timestamp
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
 			Message: string(GeneratingReportForUserNotification(target)),
 			Ts:      request.MessageTs, Attachments: models.EmptyAttachs(), AsUser: true})
-		threadTs := ts
-		if request.OriginalMessage.ThreadTimestamp != "" {
-			threadTs = request.OriginalMessage.ThreadTimestamp
-		}
-		date := time.Now().Format(time.RFC3339)
-		engageBytes, _ := json.Marshal(models.UserEngage{UserID: userID, TargetID: target, IsNew: false, Update: true,
-			Channel: channelID, ThreadTs: threadTs, Date: date})
-		_, err := lambdaAPI.InvokeFunction(reportingLambda, engageBytes, false)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", reportingLambda))
+		err2 := feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(userID, time.Now())
+
+		core.ErrorHandler(err2, namespace, "Could not invoke GeneratePerformanceReportAndPostToUserAsync")
 	case string(models.Cancel):
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: "", AsUser: true, Ts: request.MessageTs})
 	}
 
 }
 
-func communityNamespaceReportsFetchReportCallback(request slack.InteractionCallback, suffixAction string, action slack.AttachmentAction, mc models.MessageCallback) {
+func communityNamespaceReportsFetchReportCallback(request slack.InteractionCallback, teamID models.TeamID, suffixAction string, action slack.AttachmentAction, mc models.MessageCallback) {
 	userID := request.User.ID
 	channelID := request.Channel.ID
 	switch suffixAction {
@@ -309,15 +304,8 @@ func communityNamespaceReportsFetchReportCallback(request slack.InteractionCallb
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
 			Message: string(FetchingReportForUserNotification(targetUserID)),
 			Ts:      request.OriginalMessage.Timestamp, Attachments: models.EmptyAttachs(), AsUser: true})
-		threadTs := request.MessageTs
-		if request.OriginalMessage.ThreadTimestamp != "" {
-			threadTs = request.OriginalMessage.ThreadTimestamp
-		}
-		date := time.Now().Format(time.RFC3339)
-		engageBytes, _ := json.Marshal(models.UserEngage{UserID: userID, TargetID: targetUserID, IsNew: false, Update: true,
-			Channel: channelID, ThreadTs: threadTs, Date: date})
-		_, err := lambdaAPI.InvokeFunction(reportPostingLambda, engageBytes, false)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", reportPostingLambda))
+		err2 := feedbackReportPostingLambda.DeliverReportToUserAsync(teamID, userID, time.Now())
+		core.ErrorHandler(err2, namespace, "Could not DeliverReportToUserAsync")
 	case string(models.Cancel):
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: "", AsUser: true, Ts: request.OriginalMessage.Timestamp})
 	}

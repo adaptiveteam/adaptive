@@ -14,39 +14,33 @@ import (
 )
 
 func TestBuildReportFullData_Test(t *testing.T) {
-	received, err := readFeedbackFromJSON("test-data/test-data.json")
-	given := make([]byte, 0)
+	received, err := readCoachingsFromJSON("test-data/test-data.json", MockGetCompetency)
 	l := logger.LambdaLogger(logrus.InfoLevel)
 	if err == nil {
-		_, err = BuildReportWithCustomValues(
+		_, err = BuildReportWithCustomValuesTyped(
 			received,
-			given,
 			"Christopher Creel",
 			1,
 			2019,
 			"test-reports/adaptive.pdf",
 			createTestDao(),
 			l,
-			MockGetCompetency,
 		)
 	}
 }
 
 func TestBuildReportIncompleteData(t *testing.T) {
-	received, err := readFeedbackFromJSON("test-data/test-incomplete-data.json")
-	given := make([]byte, 0)
+	received, err := readCoachingsFromJSON("test-data/test-incomplete-data.json", MockGetCompetency)
 	l := logger.LambdaLogger(logrus.InfoLevel)
 	if err == nil {
-		_, err = BuildReportWithCustomValues(
+		_, err = BuildReportWithCustomValuesTyped(
 			received,
-			given,
 			"Christopher Creel",
 			1,
 			2019,
 			"test-reports/adaptive-incomplete.pdf",
 			createTestDao(),
 			l,
-			MockGetCompetency,
 		)
 	}
 }
@@ -101,11 +95,11 @@ func createTestDao() fetch_dialog.DAO {
 	return dialogFetcherDAO
 }
 
-func readFeedbackFromJSON(file string) (rv []byte, err error) {
-	rv = nil
+func readCoachingsFromJSON(file string, getCompetencyUnsafe GetCompetencyUnsafe) (received []Coaching, err error) {
+	var receivedBytes []byte
 	jsonFile, err := os.Open(file)
 	if err == nil {
-		rv, err = ioutil.ReadAll(jsonFile)
+		receivedBytes, err = ioutil.ReadAll(jsonFile)
 		if err != nil {
 			log.Panic("unable to read JSON file")
 		}
@@ -114,9 +108,9 @@ func readFeedbackFromJSON(file string) (rv []byte, err error) {
 			log.Panic("unable to close JSON file")
 		}
 	} else {
-		rv = nil
+		receivedBytes = nil
 	}
-	return rv, err
+	return NewCoachingListFromStream(receivedBytes, getCompetencyUnsafe)
 }
 
 func Test_getRating(t *testing.T) {
