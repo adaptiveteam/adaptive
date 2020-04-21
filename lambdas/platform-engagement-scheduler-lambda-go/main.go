@@ -35,7 +35,6 @@ var (
 		l:                               awsutils.NewLambda(region, "", namespace),
 		d:                               awsutils.NewDynamo(region, "", namespace),
 	}
-	platformTokenDao = plat.NewDAOFromSchema(config.d, namespace, schema)
 	// platformAdapter  = mapper.SlackAdapterForTeamID(platformTokenDao)
 )
 

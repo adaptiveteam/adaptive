@@ -5,7 +5,6 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +22,6 @@ var (
 	platformNotificationTopic           = utils.NonEmptyEnv("PLATFORM_NOTIFICATION_TOPIC")
 	sns                                 = awsutils.NewSNS(region, "", namespace)
 	schema                              = models.SchemaForClientID(clientID)
-	platformTokenDao                    = plat.NewDAOFromSchema(d, namespace, schema)
 
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 )

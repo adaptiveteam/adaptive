@@ -11,7 +11,6 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 	"github.com/sirupsen/logrus"
-	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 )
 
 var (
@@ -43,7 +42,6 @@ var (
 	userDao = utilsUser.NewDAOFromSchema(d, namespace, schema)
 
 	logger = alog.LambdaLogger(logrus.InfoLevel)
-	platformDAO         = utilsPlatform.NewDAOFromSchema(d, namespace, schema)
 )
 
 func filterObjectivesByObjectiveType(objectives []userObjective.UserObjective, objectiveType userObjective.DevelopmentObjectiveType) (res []userObjective.UserObjective) {
