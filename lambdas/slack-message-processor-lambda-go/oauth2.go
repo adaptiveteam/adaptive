@@ -214,7 +214,7 @@ func HandleRedirectURLGetRequest(conn common.DynamoDBConnection, request events.
 
 	if hasError {
 		if errText == "access_denied" { // 
-			logger.Warningf("teamWARN User has denied our application access to their workspace")
+			logger.Warningf("WARN User has denied our application access to their workspace")
 			// we just exit with err = nil. Outside of this function there will be a redirect
 		}
 		err = errors.Errorf("Outer web hook has been invoked (GET) (presumably by Slack) with error message: %s", errText)
