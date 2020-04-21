@@ -210,17 +210,41 @@ func HandleRedirectURLGetRequest(conn common.DynamoDBConnection, request events.
 		WithField("PathParameters", request.PathParameters).
 		WithField("QueryStringParameters", request.QueryStringParameters).
 		Infof("HandleRedirectURLGetRequest")
-	conf := GlobalSlackOAuthConfig()
-	code := CODE(request.QueryStringParameters["code"])
-	var token oauth2.Token
-	token, err = ExchangeCodeForAuthenticationToken(conf, code)
-	if len(token.AccessToken) > 8 {
-		fmt.Printf("Obtained token: %s...\n", token.AccessToken[:8])
-	}
+	errText, hasError := request.QueryStringParameters["error"]
 
-	if err != nil {
-		return
+	if hasError {
+		if errText == "access_denied" { // 
+			logger.Warningf("WARN User has denied our application access to their workspace")
+			// we just exit with err = nil. Outside of this function there will be a redirect
+		}
+		err = errors.Errorf("Outer web hook has been invoked (GET) (presumably by Slack) with error message: %s", errText)
+	} else {
+		conf := GlobalSlackOAuthConfig()
+		code := CODE(request.QueryStringParameters["code"])
+		if code == "" {
+			err = errors.Errorf("'code' is empty in the query: %v", request.QueryStringParameters)
+		} else {
+			var token oauth2.Token
+			token, err = ExchangeCodeForAuthenticationToken(conf, code)
+			if len(token.AccessToken) > 8 {
+				fmt.Printf("Obtained token: %s...\n", token.AccessToken[:8])
+			}
+
+			if err != nil {
+				return
+			}
+			var team slackTeam.SlackTeam
+			team, err = extractSlackTeamFromToken(token)
+			if err == nil {
+				dao := slackTeam.NewDAO(conn.Dynamo, "HandleRedirectURLGetRequest", conn.ClientID)
+				err = dao.CreateOrUpdate(team)
+			}
+		}
 	}
+	return
+}
+
+func extractSlackTeamFromToken(token oauth2.Token) (team slackTeam.SlackTeam, err error) {
 	enterpriseID := ""
 	// if token.Extra("enterprise_id") != nil {
 	// 	enterpriseID = token.Extra("enterprise_id").(string)
@@ -235,36 +259,33 @@ func HandleRedirectURLGetRequest(conn common.DynamoDBConnection, request events.
 	}
 	if token.TokenType != "bot" {
 		err = errors.Errorf("Unexpected token_type=%s", token.TokenType)
-		return
-	}
-
-	botUserID := token.Extra("bot_user_id").(string)
-	team1 := token.Extra("team")
-	// accessToken := token.Extra("team")
-	teamID := ""
-	teamName := ""
-	if team1 != nil {
-		team := team1.(map[string]interface{})
-		// fmt.Printf("bot: %v", bot)
-		teamID = team["id"].(string)
-		teamName = team["name"].(string)
 	} else {
-		fmt.Printf("WARN Slack responded without `team {id, name}`")
-	}
-	scopes1 := token.Extra("scope").(string)
-	scopes := strings.Split(scopes1, ",")
+		botUserID := token.Extra("bot_user_id").(string)
+		team1 := token.Extra("team")
+		// accessToken := token.Extra("team")
+		teamID := ""
+		teamName := ""
+		if team1 != nil {
+			team := team1.(map[string]interface{})
+			// fmt.Printf("bot: %v", bot)
+			teamID = team["id"].(string)
+			teamName = team["name"].(string)
+		} else {
+			fmt.Printf("WARN Slack responded without `team {id, name}`")
+		}
+		scopes1 := token.Extra("scope").(string)
+		scopes := strings.Split(scopes1, ",")
 
-	team := slackTeam.SlackTeam{
-		TeamID:          common.PlatformID(teamID),
-		AccessToken:     token.AccessToken,
-		UserID:          userID,
-		TeamName:        teamName,
-		BotAccessToken:  token.AccessToken, // we only get one token these days
-		BotUserID:       botUserID,
-		EnterpriseID:    enterpriseID,
-		Scopes:          scopes,
+		team = slackTeam.SlackTeam{
+			TeamID:          common.PlatformID(teamID),
+			AccessToken:     token.AccessToken,
+			UserID:          userID,
+			TeamName:        teamName,
+			BotAccessToken:  token.AccessToken, // we only get one token these days
+			BotUserID:       botUserID,
+			EnterpriseID:    enterpriseID,
+			Scopes:          scopes,
+		}
 	}
-	dao := slackTeam.NewDAO(conn.Dynamo, "HandleRedirectURLGetRequest", conn.ClientID)
-	err = dao.CreateOrUpdate(team)
 	return
 }
