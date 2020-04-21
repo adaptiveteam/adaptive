@@ -28,9 +28,9 @@ var (
 	PlatformNotificationTopic         = utils.NonEmptyEnv("PLATFORM_NOTIFICATION_TOPIC")
 	CommunitiesTable                  = utils.NonEmptyEnv("ADAPTIVE_COMMUNITIES_TABLE")
 
-	FeedbackTableName              = utils.NonEmptyEnv("USER_FEEDBACK_TABLE_NAME")
-	FeedbackSourceQuarterYearIndex = utils.NonEmptyEnv("USER_FEEDBACK_SOURCE_QUARTER_YEAR_INDEX")
-	FeedbackReportLambda           = utils.NonEmptyEnv("FEEDBACK_REPORTING_LAMBDA_NAME")
+	FeedbackTableName                 = utils.NonEmptyEnv("USER_FEEDBACK_TABLE_NAME")
+	FeedbackSourceQuarterYearIndex    = utils.NonEmptyEnv("USER_FEEDBACK_SOURCE_QUARTER_YEAR_INDEX")
+	FeedbackReportingLambdaName       = utils.NonEmptyEnv("FEEDBACK_REPORTING_LAMBDA_NAME")
 
 	UserObjectivesProgressTable   = utils.NonEmptyEnv("USER_OBJECTIVES_PROGRESS_TABLE")
 	UserObjectivesProgressIDIndex = utils.NonEmptyEnv("USER_OBJECTIVES_PROGRESS_ID_INDEX")

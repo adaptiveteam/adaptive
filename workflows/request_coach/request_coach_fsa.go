@@ -154,7 +154,8 @@ func (w workflowImpl) OnConfirmed() wf.Handler {
 					who,
 					issueOwner, 
 					issue.GetIssueType().Template(),
-					objectiveView))
+					objectiveView,
+				))
 			} else {
 				issue.UserObjective.AccountabilityPartner = ctx.Request.User.ID
 				issue.UserObjective.Accepted = 1
