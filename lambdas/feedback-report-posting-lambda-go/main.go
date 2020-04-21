@@ -1,11 +1,13 @@
-package lambda
+package feedbackReportPostingLambda
 
 import (
+	"github.com/pkg/errors"
+	"time"
 	"github.com/adaptiveteam/adaptive/daos/user"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	// utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
@@ -15,6 +17,7 @@ import (
 	ls "github.com/aws/aws-lambda-go/lambda"
 	"github.com/nlopes/slack"
 	"github.com/sirupsen/logrus"
+	feedbackReportingLambda "github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 )
 
 var (
@@ -35,27 +38,30 @@ func postTo(engage models.UserEngage) (postTo string) {
 	return
 }
 
-func downloadReportContents(engage models.UserEngage) (contents []byte, err error) {
-	key, err := coaching.UserReportIDForPreviousQuarter(engage)
-	if err == nil {
-		logger.Infof("Report id for %s user: %s", engage.UserID, key)
-		// Check if the report exists
-		if !coaching.ReportExists(reportsBucket, key) {
-			logger.Infof("Report doesn't exist for %s user, generating now", engage.UserID)
-			engBytes, _ := json.Marshal(engage)
-			_, err = l.InvokeFunction(feedbackReportingLambda, engBytes, false)
-		}
-		if err == nil {
-			logger.Infof("Report exists for %s user", engage.UserID)
-			contents, err = s.GetObject(reportsBucket, key)
-		}
+func generateReportIfNecessary(reportForUserID string, t time.Time) (contents []byte, err error) {
+	key := coaching.UserReportIDForPreviousQuarter(t, reportForUserID)
+	logger.Infof("Report id for %s user: %s", reportForUserID, key)
+	// Check if the report exists
+	if !common.DeprecatedGetGlobalS3().ObjectExists(reportsBucket, key) {
+		logger.Infof("Report doesn't exist for %s user, generating now", reportForUserID)
+		err = feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(reportForUserID, t)
+		err = errors.Wrapf(err, "Could not invoke %s lambda", FeedbackReportingLambdaName)
 	}
 	return
 }
 
-func sendReport(engage models.UserEngage, targetUserDisplayName string, contents []byte) (err error) {
-	reportFor := coaching.ReportFor(engage)
-	postTo := postTo(engage)
+func downloadReportContents(reportS3Key string) (contents []byte, err error) {
+	// Check if the report exists
+	if common.DeprecatedGetGlobalS3().ObjectExists(reportsBucket, reportS3Key) {
+		logger.Infof("Report %s exists", reportS3Key)
+		contents, err = s.GetObject(reportsBucket, reportS3Key)
+	}
+	return
+}
+
+func sendReport(reportForUserID string, targetUserDisplayName string, contents []byte) (err error) {
+	// reportFor := coaching.ReportFor(engage.UserID, engage.TargetID)
+	postTo := reportForUserID // postTo(engage)
 	// Upload the file only for non-empty content
 	if len(contents) > 0 {
 		if err == nil {
@@ -64,14 +70,14 @@ func sendReport(engage models.UserEngage, targetUserDisplayName string, contents
 				Filename:        reportName,
 				Reader:          bytes.NewBuffer(contents),
 				Channels:        []string{postTo},
-				ThreadTimestamp: engage.ThreadTs,
+				// ThreadTimestamp: engage.ThreadTs,
 			}
-			api := getSlackClient(reportFor)
+			api := getSlackClient(reportForUserID)
 			_, err = api.UploadFile(params)
 		}
 	} else {
 		publish(models.PlatformSimpleNotification{
-			UserId: reportFor, Channel: postTo, ThreadTs: engage.ThreadTs,
+			UserId: reportForUserID, Channel: postTo, // ThreadTs: engage.ThreadTs,
 			Message: string(NoReportTemplate),
 		})
 	}
@@ -81,17 +87,45 @@ func sendReport(engage models.UserEngage, targetUserDisplayName string, contents
 func HandleRequest(ctx context.Context, engage models.UserEngage) {
 	logger = logger.WithLambdaContext(ctx)
 	logger.WithField("payload", engage).Infof("Starting...")
-	contents, err := downloadReportContents(engage)
-	if err == nil {
-		targetUserDisplayName, err := getDisplayName(engage.TeamID, coaching.ReportFor(engage))
-		if err == nil {
-			err = sendReport(engage, targetUserDisplayName, contents)
-		}
-	} 
-
-	if err != nil {
-		logger.WithField("error", err).Errorf("Couldn't load report for %s user", engage.UserID)
+	reportForUserID := coaching.ReportFor(engage.UserID, engage.TargetID)
+	t, err2 := core.ISODateLayout.Parse(engage.Date)
+	if err2 == nil {
+		err2 = DeliverReportToUserImpl(engage.TeamID, reportForUserID, t)
 	}
+	if err2 != nil {
+		logger.WithField("error", err2).Errorf("Couldn't load report for %s user", engage.UserID)
+	}
+	return
+}
+
+// DeliverReportToUserImpl is an implementation of this lambda
+func DeliverReportToUserImpl(
+	teamID models.TeamID, 
+	reportForUserID string,
+	date time.Time,
+) (err error) {
+
+	reportS3Key := coaching.UserReportIDForPreviousQuarter(date, reportForUserID)
+	logger.Infof("Report id for %s user: %s", reportForUserID, reportS3Key)
+
+	// Check if the report exists
+	if !common.DeprecatedGetGlobalS3().ObjectExists(reportsBucket, reportS3Key) {
+		logger.Infof("Report doesn't exist for %s user, generating now", reportForUserID)
+		err = feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(reportForUserID, date)
+		err = errors.Wrapf(err, "Could not invoke %s lambda", FeedbackReportingLambdaName)
+	} else { // report generation is asyncronous, so we cannot download it immediately.
+		var contents []byte
+		contents, err = downloadReportContents(reportS3Key)
+		
+		if err == nil {
+			var targetUserDisplayName string
+			targetUserDisplayName, err = getDisplayName(teamID, reportForUserID)
+			if err == nil {
+				err = sendReport(reportForUserID, targetUserDisplayName, contents)
+			}
+		} 
+	}
+
 	return
 }
 

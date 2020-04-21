@@ -1,12 +1,14 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
 	"fmt"
 	"context"
 	"encoding/json"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
+	feedbackReportingLambda "github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -78,34 +80,19 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 							RequestFeedbackAction, RequestFeedbackMessage, "request-feedback", message.MessageTs)
 						respond(teamID, responses...)
 					} else if text == user.FetchReport {
-						// this is the format business time expects
-						date := core.ISODateLayout.Format(time.Now())
-						// This request is directly coming from a user, so we shouldn't fill in the channel key
-						engageBytes, _ := json.Marshal(models.UserEngage{
-							UserID: message.User.ID, IsNew: false,
-							Update: true, Channel: message.Channel.ID, ThreadTs: message.MessageTs,
-							Date: date, 
-							TeamID: teamID,
-						})
-
-						// This is used to add an engagement on who to give feedback to
-						_, err = l.InvokeFunction(feedbackReportPostingLambda, engageBytes, false)
-						logger.WithField("error", err).Errorf("Could not invoke %s from slack-message-processor", feedbackReportPostingLambda)
+						err = feedbackReportPostingLambda.DeliverReportToUserAsync(teamID, message.User.ID, time.Now())
+						logger.WithField("error", err).Error("Could not DeliverReportToUserAsync")
 
 						msg := core.IfThenElse(err == nil, FetchingReportMessage, InternalErrorMessage).(ui.RichText)
 						// Update original message
 						publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID,
 							Message: string(msg), Attachments: []model.Attachment{}, Ts: message.MessageTs})
 					} else if text == user.GenerateReport {
-						date := core.ISODateLayout.Format(time.Now())
-						engageBytes, _ := json.Marshal(models.UserEngage{
-							UserID: message.User.ID, IsNew: false,
-							Update: true, Channel: message.Channel.ID, ThreadTs: message.MessageTs, Date: date,
-							TeamID: teamID})
-						// This is used to add an engagement on who to give feedback to
-						_, err = l.InvokeFunction(feedbackReportingLambda, engageBytes, false)
-						logger.WithField("error", err).Errorf("Could not invoke %s from slack-message-processor", feedbackReportingLambda)
-
+						err = feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(message.User.ID, time.Now())
+						if err != nil {
+							logger.WithField("error", err).
+								Error("Could not GeneratePerformanceReportAndPostToUserAsync from feedback-slack-message-processor")
+						}
 						msg := core.IfThenElse(err == nil, GeneratingReportMessage, InternalErrorMessage).(ui.RichText)
 						// Update original message
 						publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID,
@@ -135,8 +122,8 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 func passthrough(np models.NamespacePayload4) {
 	// for interaction and dialog_submission events, we invoke feedback setup lambda
 	bytes, _ := json.Marshal(np)
-	_, err := l.InvokeFunction(feedbackLambda, []byte(bytes), false)
-	logger.WithField("error", err).Errorf("Could not invoke %s lambda", feedbackLambda)
+	_, err := l.InvokeFunction(feedbackSetupLambdaName, []byte(bytes), false)
+	logger.WithField("error", err).Errorf("Could not invoke %s lambda", feedbackSetupLambdaName)
 }
 
 func main() {
