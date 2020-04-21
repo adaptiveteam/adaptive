@@ -14,7 +14,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/postponedEvent"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
@@ -418,16 +417,8 @@ func UndeliveredEngagementsOrPostponedEventsExistForMe(userID string, date busin
 // ReportExists A performance report exists for the user
 func ReportExists(userID string, dat business_time.Date) (res bool) {
 	defer core.RecoverAsLogErrorf("ReportExists(userID=%s)", userID)
-	key, err2 := coaching.UserReportIDForPreviousQuarter(models.UserEngage{
-		UserID:   userID,
-		Date:     dat.DateToString(string(core_utils_go.ISODateLayout)),
-		OnDemand: false,
-	})
-	if err2 == nil {
-		res = common.DeprecatedGetGlobalS3().ObjectExists(reportsBucket, key)
-	} else {
-		log.Printf("ReportExists user %s: %v\n", userID, err2)
-	}
+	key := coaching.UserReportIDForPreviousQuarter(dat.DateToTimeMidnight(), userID)
+	res = common.DeprecatedGetGlobalS3().ObjectExists(reportsBucket, key)
 	if logEnabled {
 		log.Printf("Checked ReportExists(%s, %v): %v\n", userID, dat, res)
 	}

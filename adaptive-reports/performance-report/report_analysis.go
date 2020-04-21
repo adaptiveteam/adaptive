@@ -48,8 +48,7 @@ func getColor(severity string) (rv creator.Color) {
 }
 
 func generateSummaryAnalysis(
-	received coachingList,
-	given coachingList,
+	received CoachingList,
 	topicToValueTypeMapping map[string]string,
 	quarter int,
 	year int,
@@ -74,13 +73,13 @@ func generateSummaryAnalysis(
 	return rv, tags
 }
 
-type analysisFunction = func(list coachingList) (string, string)
+type analysisFunction = func(list CoachingList) (string, string)
 
 func getSingleQuarterAnalysisFunctions(
 	topicToValueTypeMapping map[string]string,
 	dialogDao fetch_dialog.DAO,
 	logger logger.AdaptiveLogger,
-) (rv map[string]func(coachingList) (analysis string, advice string)) {
+) (rv map[string]func(CoachingList) (analysis string, advice string)) {
 	rv = make(map[string]analysisFunction, 0)
 	rv["Feedback Quantity"] = feedbackQuantity(dialogDao)
 	rv["Overall"] = quarterPerformanceOverall(topicToValueTypeMapping, dialogDao)
@@ -91,14 +90,14 @@ func getSingleQuarterAnalysisFunctions(
 	return rv
 }
 
-func getMultiQuarterAnalysisFunctions(dialogDao fetch_dialog.DAO) (rv map[string]func(quarter int, year int, list coachingList) (analysis string, advice string)) {
-	rv = make(map[string]func(quarter int, year int, list coachingList) (string, string), 0)
+func getMultiQuarterAnalysisFunctions(dialogDao fetch_dialog.DAO) (rv map[string]func(quarter int, year int, list CoachingList) (analysis string, advice string)) {
+	rv = make(map[string]func(quarter int, year int, list CoachingList) (string, string), 0)
 	rv["Consistency"] = consistencyOverview(dialogDao)
 	return rv
 }
 
 func feedbackQuantity(dialogDao fetch_dialog.DAO) analysisFunction {
-	return func(c coachingList) (analysis string, advice string) {
+	return func(c CoachingList) (analysis string, advice string) {
 		topics := c.topics()
 		score := float32(c.justFeedback().length()) / float32(len(topics))
 
@@ -125,7 +124,7 @@ func feedbackQuantity(dialogDao fetch_dialog.DAO) analysisFunction {
 }
 
 func quarterPerformanceOverall(topicToValueTypeMapping map[string]string, dialogDao fetch_dialog.DAO) analysisFunction {
-	return func(c coachingList) (analysis string, advice string) {
+	return func(c CoachingList) (analysis string, advice string) {
 		performanceFeedback := c.kindCoaching("performance", topicToValueTypeMapping)
 		var subject, language string
 		if len(performanceFeedback) > 0 {
@@ -159,7 +158,7 @@ func quarterPerformanceOverall(topicToValueTypeMapping map[string]string, dialog
 }
 
 func quarterNetworkOverall(dialogDao fetch_dialog.DAO) analysisFunction {
-	return func(c coachingList) (analysis string, advice string) {
+	return func(c CoachingList) (analysis string, advice string) {
 		var sources []string
 		for i := 0; i < c.length(); i++ {
 			sources = append(sources, c.index(i).GetSource())
@@ -188,7 +187,7 @@ func quarterNetworkOverall(dialogDao fetch_dialog.DAO) analysisFunction {
 }
 
 func quarterSentimentOverall(dialogDao fetch_dialog.DAO, logger logger.AdaptiveLogger) analysisFunction {
-	return func(c coachingList) (analysis string, advice string) {
+	return func(c CoachingList) (analysis string, advice string) {
 		score, err := nlp.GetTextSentimentText(c.createTextBlob(), nlp.English)
 		if err == nil {
 			var subject string
@@ -218,7 +217,7 @@ func quarterSentimentOverall(dialogDao fetch_dialog.DAO, logger logger.AdaptiveL
 }
 
 func relationshipOverview(topicToValueTypeMapping map[string]string, dialogDao fetch_dialog.DAO) analysisFunction {
-	return func(c coachingList) (analysis string, advice string) {
+	return func(c CoachingList) (analysis string, advice string) {
 		relationshipFeedback := c.typeCoaching("relationship", topicToValueTypeMapping)
 		var subject, language string
 		if len(relationshipFeedback) > 0 {
@@ -253,12 +252,12 @@ func relationshipOverview(topicToValueTypeMapping map[string]string, dialogDao f
 func consistencyOverview(dialogDao fetch_dialog.DAO) func(
 	quarter int,
 	year int,
-	c coachingList,
+	c CoachingList,
 ) (analysis string, advice string) {
 	return func(
 		quarter int,
 		year int,
-		c coachingList,
+		c CoachingList,
 	) (analysis string, advice string) {
 
 		quarters := []business_time.Date{
