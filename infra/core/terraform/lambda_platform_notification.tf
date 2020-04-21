@@ -1,9 +1,10 @@
 module "adaptive-platform-notification-lambda" {
-  source = "../../../terraform-modules/adaptive-lambda"
+  source = "../../../terraform-modules/adaptive-lambda-s3"
+  s3_bucket = aws_s3_bucket.binary_bucket.bucket
+  s3_key = aws_s3_bucket_object.adaptive_zip.key
+  source_hash = data.archive_file.adaptive_lambda_zip.output_md5
 
   client_id     = var.client_id
-  filename = data.archive_file.adaptive-lambda-zip.output_path
-  source_hash = data.archive_file.adaptive-lambda-zip.output_base64sha256
   handler = "adaptive"
   function_name_suffix = "adaptive-platform-notification-lambda-go"
   runtime       = var.lambda_runtime
