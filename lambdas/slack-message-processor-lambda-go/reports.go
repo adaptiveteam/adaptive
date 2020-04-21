@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"bytes"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-reports/workbooks"
 	utilities2 "github.com/adaptiveteam/adaptive/adaptive-reports/worksheets/utilities"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	// This import is needed for reports to work
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/nlopes/slack"
@@ -89,25 +91,30 @@ func sendReportToUser(
 	userID,
 	name string,
 	buf *bytes.Buffer,
+	conn daosCommon.DynamoDBConnection,
 ) (err error) {
 	defer core_utils_go.RecoverToErrorVar("sendReportToUser", &err)
 	filename := name + ".xlsx"
 	logger.Infof("Sending report %s (size=%d b) to user %s", filename, buf.Len(), userID)
-	token := platformTokenDAO.GetPlatformTokenUnsafe(teamID)
-	api := slack.New(token)
-
-	params := slack.FileUploadParameters{
-		Title:           name + " Report",
-		Filename:        filename,
-		Reader:          buf,
-		Channels:        []string{userID},
-		ThreadTimestamp: "",
-	}
-	var slackFile *slack.File
-	slackFile, err = api.UploadFile(params)
+	var token string
+	token, err = platform.GetToken(teamID)(conn)
 	if err == nil {
-		logger.Infof("Slack file: %v", slackFile)
-	} else {
+		api := slack.New(token)
+
+		params := slack.FileUploadParameters{
+			Title:           name + " Report",
+			Filename:        filename,
+			Reader:          buf,
+			Channels:        []string{userID},
+			ThreadTimestamp: "",
+		}
+		var slackFile *slack.File
+		slackFile, err = api.UploadFile(params)
+		if err == nil {
+			logger.Infof("Slack file: %v", slackFile)
+		}
+	} 
+	if err != nil {
 		logger.WithError(err).Errorf("Error while uploading file %s", filename)
 	}
 	return

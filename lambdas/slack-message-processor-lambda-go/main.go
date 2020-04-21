@@ -503,6 +503,7 @@ func routeMenuOption(
 	}
 	forwardToNamespace := forwardToNamespaceWithAppID(teamID, requestPayload)
 	invokeLambdaWithNamespace := invokeLambdaWithAppID(teamID, requestPayload)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	switch menuOption {
 	case user.AskForEngagements:
 		engage := models.UserEngageWithCheckValues{
@@ -567,7 +568,7 @@ func routeMenuOption(
 		var reportname string
 		buf, reportname, err = onStrategyPerformanceReport(ReadRDSConfigFromEnv(), teamID)
 		if err == nil {
-			err = sendReportToUser(teamID, userID, reportname, buf)
+			err = sendReportToUser(teamID, userID, reportname, buf, conn)
 		}
 		deleteMessage(message)
 		err = errors.Wrap(err, "StrategyPerformanceReport")
@@ -576,7 +577,7 @@ func routeMenuOption(
 		var reportname string
 		buf, reportname, err = onIDOPerformanceReport(ReadRDSConfigFromEnv(), userID)
 		if err == nil {
-			err = sendReportToUser(teamID, userID, reportname, buf)
+			err = sendReportToUser(teamID, userID, reportname, buf, conn)
 		}
 		deleteMessage(message)
 		err = errors.Wrap(err, "IDOPerformanceReport")

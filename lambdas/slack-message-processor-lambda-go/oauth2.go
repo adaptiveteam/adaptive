@@ -38,8 +38,7 @@ var (
 	// &scope=calls%3Aread+calls%3Awrite+channels%3Aread+dnd%3Aread+files%3Aread+groups%3Ahistory+groups%3Aread+groups%3Awrite+im%3Ahistory+im%3Aread+im%3Awrite+incoming-webhook+links%3Awrite+mpim%3Ahistory+mpim%3Aread+mpim%3Awrite+pins%3Awrite+reactions%3Aread+reactions%3Awrite+remote_files%3Aread+remote_files%3Ashare+remote_files%3Awrite+team%3Aread+usergroups%3Aread+usergroups%3Awrite+users%3Aread+users%3Aread.email+users%3Awrite
 	// &user_scope=channels%3Aread+chat%3Awrite+files%3Awrite+groups%3Aread+groups%3Awrite+im%3Ahistory+users%3Aread&state=state
 	// incoming-webhook,
-	AdaptiveScopes = "calls:read,calls:write,channels:read,dnd:read,files:read,files:write,groups:history,groups:read,groups:write,im:history,im:read,im:write,links:write,mpim:history,mpim:read,mpim:write,pins:write,reactions:read,reactions:write,remote_files:read,remote_files:share,remote_files:write,team:read,usergroups:read,usergroups:write,users:read,users:read.email,users:write,chat:write,chat:write.customized,"
-	// app_mentions:read,chat:write,files:write,
+	AdaptiveScopes = "app_mentions:read,calls:read,calls:write,channels:read,chat:write,chat:write.customize,dnd:read,files:read,files:write,groups:history,groups:read,groups:write,im:history,im:read,im:write,incoming-webhook,links:write,mpim:history,mpim:read,mpim:write,pins:write,reactions:read,reactions:write,remote_files:read,remote_files:share,remote_files:write,team:read,usergroups:read,usergroups:write,users:read,users:read.email,users:write"
 	UserScopes = "" // "channels:read,chat:write,files:write,groups:read,groups:write,im:history,users:read"
 	// https://1vvtp0yc61.execute-api.us-east-1.amazonaws.com/dev/%7Bproxy+%7D?code=436528929141.946109056755.2599abf6300120ff5bc70e3b20a6680e64e05d652dc046b72c6c4d24a9f73c69&state=state
 )

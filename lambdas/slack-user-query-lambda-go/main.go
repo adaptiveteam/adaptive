@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"context"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
@@ -11,6 +12,7 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/nlopes/slack"
 	"sync"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 )
 
 func updateSlackUser(user slack.User, event models.ClientPlatformRequest, teamID models.TeamID) (err error) {
@@ -183,60 +185,67 @@ func allUserIDs(teamID models.TeamID)(ids []string, err error) {
 // HandleRequest handles request from user query lambda
 func HandleRequest(ctx context.Context, event models.ClientPlatformRequest) {
 	defer core.RecoverAsLogError("slack-user-query-lambda")
-	var allRefreshOrAddIDs, allRemoveIDs, allAddIDs []string
+	var err error
 	// Get all the user communities for the platform
 	teamID := event.TeamID
-	cliPlatformToken := platformTokenDao.GetPlatformTokenUnsafe(teamID)
-	logger.Infof("Retrieved token for org: %s", teamID.ToString())
-	api := slack.New(cliPlatformToken)
-	communities, err2 := platformCommunities(teamID)
-	if err2 == nil {
-		for _, comm := range communities {
-			refreshIDs, removeIDs, addIDs, err3 := obtainMemberIDsForCommunity(comm, api, teamID)
-			if err3 == nil {
-				allRefreshOrAddIDs = append(allRefreshOrAddIDs, refreshIDs ...)
-				allRefreshOrAddIDs = append(allRefreshOrAddIDs, addIDs ...)
-				allRemoveIDs = append(allRemoveIDs, removeIDs ...)
-				allAddIDs = append(allAddIDs, addIDs ...)
-				for _, id := range allAddIDs {
-					err2 := createOrUpdateCommunityUser(comm, id)
-					if(err2 != nil) {
-						logger.Errorf("Couldn't add user %s to community %s: %+v", id, comm.ChannelID, err2)
+	connGen := daosCommon.CreateConnectionGenFromEnv()
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	var cliPlatformToken string
+	cliPlatformToken, err = platform.GetToken(teamID)(conn)
+	if err == nil {
+		logger.Infof("Retrieved token for org: %s", teamID.ToString())
+		api := slack.New(cliPlatformToken)
+		communities, err2 := platformCommunities(teamID)
+		if err2 == nil {
+			var allRefreshOrAddIDs, allRemoveIDs, allAddIDs []string
+			for _, comm := range communities {
+				refreshIDs, removeIDs, addIDs, err3 := obtainMemberIDsForCommunity(comm, api, teamID)
+				if err3 == nil {
+					allRefreshOrAddIDs = append(allRefreshOrAddIDs, refreshIDs ...)
+					allRefreshOrAddIDs = append(allRefreshOrAddIDs, addIDs ...)
+					allRemoveIDs = append(allRemoveIDs, removeIDs ...)
+					allAddIDs = append(allAddIDs, addIDs ...)
+					for _, id := range allAddIDs {
+						err2 := createOrUpdateCommunityUser(comm, id)
+						if(err2 != nil) {
+							logger.Errorf("Couldn't add user %s to community %s: %+v", id, comm.ChannelID, err2)
+						}
 					}
-				}
-				for _, id := range allRemoveIDs {
-					err2 := removeCommunityUser(comm, id)
-					if(err2 != nil) {
-						logger.Errorf("Couldn't remove user %s from community %s: %+v", id, comm.ChannelID, err2)
+					for _, id := range allRemoveIDs {
+						err2 := removeCommunityUser(comm, id)
+						if(err2 != nil) {
+							logger.Errorf("Couldn't remove user %s from community %s: %+v", id, comm.ChannelID, err2)
+						}
 					}
+				} else {
+					logger.Errorf("Failure for channelID=%s: %+v", comm.ChannelID, err3)
 				}
-			} else {
-				logger.Errorf("Failure for channelID=%s: %+v", comm.ChannelID, err3)
 			}
-		}
 
-		logger.Infof("Retrieved users from Slack for %s", teamID.ToString())
+			logger.Infof("Retrieved users from Slack for %s", teamID.ToString())
 
-		distinctRefreshMemberIDs := core.Distinct(allRefreshOrAddIDs)
-		logger.Infof("Synchronizing user profiles")
+			distinctRefreshMemberIDs := core.Distinct(allRefreshOrAddIDs)
+			logger.Infof("Synchronizing user profiles")
 
-		allErrors := syncCommunityUserProfiles(distinctRefreshMemberIDs, api, event, teamID)
-		logger.Infof("Removing non-community members from users")
+			allErrors := syncCommunityUserProfiles(distinctRefreshMemberIDs, api, event, teamID)
+			logger.Infof("Removing non-community members from users")
 
-		ids, err4 := allUserIDs(teamID)
-		if err4 == nil {
-			usersToRemove := core.InAButNotB(ids, distinctRefreshMemberIDs)
-			errors2 := deactivateUsers(usersToRemove)
-			allErrors = append(allErrors, errors2...)
-		}
-		// if there is an error in the error channel, just return the first one
-		if len(allErrors) == 0 {
-			logger.Infof("Successfully updated/deleted user(s)")
-		} else {
-			logger.WithField("errors", allErrors).Errorf("Could not update/delete user(s)")
-		}
-	} else {
-		logger.Errorf("Could not query %s table on %s index: %+v", userCommunityTable, userCommunityPlatformIndex, err2)
+			ids, err4 := allUserIDs(teamID)
+			if err4 == nil {
+				usersToRemove := core.InAButNotB(ids, distinctRefreshMemberIDs)
+				errors2 := deactivateUsers(usersToRemove)
+				allErrors = append(allErrors, errors2...)
+			}
+			// if there is an error in the error channel, just return the first one
+			if len(allErrors) == 0 {
+				logger.Infof("Successfully updated/deleted user(s)")
+			} else {
+				logger.WithField("errors", allErrors).Errorf("Could not update/delete user(s)")
+			}
+		} 
+	} 
+	if err != nil {
+		logger.Errorf("Could not query %s table on %s index: %+v", userCommunityTable, userCommunityPlatformIndex, err)
 	}
 	return
 }
