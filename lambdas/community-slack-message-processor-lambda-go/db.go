@@ -12,6 +12,7 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
@@ -176,18 +177,30 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 
-func subscribedCommunityIDs(channel string) (commIDs []string) {
-	comms := subscribedCommunities(channel)
+func subscribedCommunityIDs(teamID models.TeamID, channel string) (commIDs []string) {
+	comms := subscribedCommunities(teamID, channel)
 	for _, comm := range comms {
 		commIDs = append(commIDs, comm.ID)
 	}
 	return
 }
 
-func subscribedCommunities(channel string) (comms []models.AdaptiveCommunity) {
-	comms, err := communityDAO.ReadByChannelID(channel)
-	err = wrapError(err, "subscribedCommunities")
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not get subscribed communities for %s channel", channel))
+func FilterCommunitiesByPlatformID(commsIn []models.AdaptiveCommunity, platformID daosCommon.PlatformID) (comms []models.AdaptiveCommunity) {
+	for _, comm := range commsIn {
+		if comm.PlatformID == platformID {
+			comms = append(comms, comm)
+		}
+	}
+	return
+}
+
+func subscribedCommunities(teamID models.TeamID, channel string) (comms []models.AdaptiveCommunity) {
+	var commsForAllPlatforms []models.AdaptiveCommunity
+	commsForAllPlatforms, err2 := communityDAO.ReadByChannelID(channel)
+	err2 = wrapError(err2, "subscribedCommunities")
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not get subscribed communities for %s channel", channel))
+
+	comms = FilterCommunitiesByPlatformID(commsForAllPlatforms, teamID.ToPlatformID())
 	return
 }
 
@@ -258,7 +271,7 @@ func addUsersToCommunity(teamID models.TeamID, channelID string, communityID str
 func removeChannel(userID, channelID string, teamID models.TeamID) {
 	logger.Infof("Removing channel %s because user=%s left channel", channelID, userID)
 	// Adaptive bot is removed from the channel
-	comms := subscribedCommunities(channelID)
+	comms := subscribedCommunities(teamID, channelID)
 	logger.Infof("There where %d communities associated with the channel", len(comms))
 	// We should delete this channel from users table and deactivate the community
 	for _, each := range comms {

@@ -200,7 +200,7 @@ func postSubscriptionRemovalToAdmin(teamID models.TeamID, communityID, userID st
 func onCommunityUnsubscribeClicked(request slack.InteractionCallback, teamID models.TeamID) platform.Response {
 	channelID := request.Channel.ID
 	fmt.Printf("Unsubscribing (platform=%s) from channel %s\n", teamID, channelID)
-	commIDs := subscribedCommunityIDs(channelID)
+	commIDs := subscribedCommunityIDs(teamID, channelID)
 	opts := liftStringToOption(simpleOptionStr)(commIDs)
 	message := selectOptionsMessage(
 		callback(channelID, "unsubscription", "select"),
@@ -264,7 +264,7 @@ func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent, teamID
 				logger.Infof("%s joined %s channel on invitation in %s platform", slackMsg.User, slackMsg.Channel, teamID)
 				// If another user is added
 				// Get the subscribed communities
-				subComms := subscribedCommunities(slackMsg.Channel)
+				subComms := subscribedCommunities(teamID, slackMsg.Channel)
 				hasBeenSubscribed := isUserSubscribedToAnyCommunity(slackMsg.User)
 				userCommunityPairs := addUserToAllCommunities(teamID, slackMsg.User, subComms)
 				logger.Infof("Welcoming newly added %s user", slackMsg.User)
