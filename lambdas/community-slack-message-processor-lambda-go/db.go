@@ -1,6 +1,8 @@
 package lambda
 
 import (
+	"github.com/pkg/errors"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"fmt"
 	"log"
 	"strconv"
@@ -296,9 +298,10 @@ func deleteCommunityMembersByCommunityID(communityID string, channelID string) (
 
 // channelUnsubscribe removes the channel association with a community.
 // Also removes all users from the community.
-func channelUnsubscribe(channelID string, teamID models.TeamID) error {
+func channelUnsubscribe(channelID string, teamID models.TeamID) (err error) {
+	var subComms []adaptiveCommunity.AdaptiveCommunity
 	// Delete the entry from user table only if this is the only unsubscribed community
-	subComms, err := communityDAO.ReadByChannelID(channelID)
+	subComms, err = adaptiveCommunity.ReadByChannel(channelID)(connGen.ForPlatformID(teamID.ToPlatformID()))
 	logger.Infof("Subscribed communities for %s channel in %s platform: %v", channelID, teamID, subComms)
 	if err == nil {
 		// We should delete this channel from users table and deactivate the community
@@ -315,20 +318,21 @@ func channelUnsubscribe(channelID string, teamID models.TeamID) error {
 					commParams := idAndPlatformIDParams(eachComm.ID, teamID)
 					// Delete entry from communities table
 					err = d.DeleteEntry(orgCommunitiesTable, commParams)
+					err = errors.Wrapf(err, "Could not delete from %s table in %s platform", orgCommunitiesTable, teamID)
 					if err == nil {
 						logger.Infof("Removed %v community for %s platform", eachComm, teamID)
-					} else {
-						logger.WithError(err).
-							Errorf("Could not delete from %s table in %s platform", orgCommunitiesTable, teamID)
 					}
 				}
 			}
 		}
-	} else {
-		logger.WithField("namespace", namespace).WithField("error", err).
-			Errorf("Could not retrieve subscribed communities for %s channel in %s platform", channelID, teamID)
 	}
-	return err
+	if err != nil {
+		logger.
+			WithField("namespace", namespace).
+			WithError(err).
+			Errorf("Could not channelUnsubscribe(channel=%s, platform=%v)", channelID, teamID)
+	}
+	return
 }
 
 func channelUnsubscribeUnsafe(channelID string, teamID models.TeamID) {
