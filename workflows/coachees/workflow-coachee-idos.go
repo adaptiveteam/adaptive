@@ -225,7 +225,6 @@ func (w workflowImpl) ViewCoacheeIDOs_OnShowUpdates(ctx wf.EventHandlingContext)
 			w.AdaptiveLogger.Warnf("Couldn't find objective %s", itemID)
 		}
 	}
-	out.Data = ctx.Data
 	out.KeepOriginal = true // this event comes from item view.
 	return
 }
