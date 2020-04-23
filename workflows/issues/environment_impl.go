@@ -290,7 +290,7 @@ func IDOCoaches(userID string, oldCoachIDOptional string) func(conn DynamoDBConn
 			err = errors.Wrapf(err, "UserDynamoDBConnection) IDOCoaches(userID=%s)", userID)
 			if err == nil {
 				for _, user := range users {
-					if user.ID != userID &&
+					if (user.ID != userID || userID == oldCoachIDOptional) &&
 					!user.IsAdaptiveBot &&
 					user.DisplayName != "" {
 						res = append(res, models.KvPair{Key: user.DisplayName, Value: id})
