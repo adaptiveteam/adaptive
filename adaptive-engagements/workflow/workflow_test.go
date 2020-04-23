@@ -126,6 +126,7 @@ var _ = Describe("Workflow", func() {
 				return &mock
 			},
 			LogInfof: func(format string, args ...interface{}) { log.Infof(format, args ...)},
+			ResolveCommunity: func(commID string) (platform.ConversationID, error) { return "CommunityConversationID", nil },
 		}
 		handler := template.GetRequestHandler(env)
 		It("should handle an initial message", func(){
