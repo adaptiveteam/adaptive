@@ -129,6 +129,22 @@ type PostponeEventForAnotherUser struct {
 	ActionPath models.ActionPath // workflow that will start for that user.
 	ValidThrough time.Time // Last moment when this event is still valid.
 }
+
+// InteractionTarget is either a user or a community.
+// Due to type system limitation, we put both cases into the same
+// struct. At least one of the ids should be empty.
+// if both of them is empty, then the interaction target is the requesting user.
+type InteractionTarget struct {
+	UserID string
+	// it's our community id. Channel ID will be obtained from the db.
+	// if there is no channel, the error will be logged.
+	CommunityID string
+}
+
+type TargetedInteraction struct {
+	InteractionTarget
+	Interaction
+}
 // Interaction represents possible interactions that a workflow step
 // can use.
 type Interaction struct {

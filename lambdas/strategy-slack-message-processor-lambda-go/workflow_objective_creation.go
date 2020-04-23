@@ -173,7 +173,7 @@ func CreateObjectiveWorkflow_ShowDialog(capCommID string, item models.StrategyOb
 		types, advocates, dates := LoadObjectiveDialogDictionaries(ctx.TeamID, capCommID, item)
 		out.Interaction = wf.OpenSurvey(ObjectiveSurvey(item, types, advocates, dates))
 		out.KeepOriginal = false                              // we have already deleted the message.
-		out.Data = map[string]string{capCommIDKey: capCommID} // we'll need it when creating the objective
+		out.DataOverride = map[string]string{capCommIDKey: capCommID} // we'll need it when creating the objective
 		return
 	}
 }
@@ -381,7 +381,7 @@ func onNewItemAvailable(ctx wf.EventHandlingContext, item models.StrategyObjecti
 		Messages: []wf.InteractiveMessage{view},
 	}
 	out.ImmediateEvent = MessageIDAvailableEvent // this is needed to post analysis
-	out.Data = map[string]string{capCommIDKey: capCommID, itemIDKey: item.ID}
+	out.DataOverride = map[string]string{capCommIDKey: capCommID, itemIDKey: item.ID}
 	msgToStrategyCommunity := viewObjectiveReadonly(ctx, item, oldItem)
 	strategyCommunityConversation := findStrategyCommunityConversation(ctx)
 	userID := ctx.Request.User.ID
@@ -521,7 +521,6 @@ func CreateObjectiveWorkflow_OnFieldsShown(ctx wf.EventHandlingContext) (out wf.
 	}
 	out.NextState = DoneState
 	out.KeepOriginal = true // we want to override it, so, not to delete
-	out.Data = ctx.Data
 	return // we do not show anything else to the user
 }
 func extractTypedObjectiveFromContext(ctx wf.EventHandlingContext) (item models.StrategyObjective, updated bool, err error) {
@@ -593,7 +592,6 @@ func CreateObjectiveWorkflow_OnEdit(ctx wf.EventHandlingContext) (out wf.EventOu
 	} else {
 		out, err = CreateObjectiveWorkflow_ShowDialog(item.CapabilityCommunityIDs[0], item)(ctx)
 	}
-	out.Data = ctx.Data
 	return
 }
 
@@ -615,7 +613,6 @@ func CreateObjectiveWorkflow_OnViewObjectives(objectivesFilter ObjectivePredicat
 	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 		logger.Infof("CreateObjectiveWorkflow_OnViewObjectives")
 		// userID := ctx.Request.User.ID
-		out.Data = ctx.Data
 		out.KeepOriginal = true // we want to override it, so, not to delete
 		// Times in AWS are in UTC
 		items := strategy.AllOpenStrategyObjectives(ctx.TeamID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
@@ -666,7 +663,6 @@ func standardView(ctx wf.EventHandlingContext, item models.StrategyObjective) (o
 	out.Interaction = wf.Interaction{
 		Messages: wf.InteractiveMessages(view),
 	}
-	out.Data = ctx.Data
 	out.KeepOriginal = true // we want to override it, so, not to delete
 	return
 }
@@ -751,7 +747,6 @@ func CreateObjectiveWorkflow_OnProgressIntermediate(ctx wf.EventHandlingContext)
 	surveyWithValues := fillCommentsSurveyValues(survey, comments, status)
 	out.Interaction = wf.OpenSurvey(surveyWithValues)
 	out.KeepOriginal = true
-	out.Data = ctx.Data
 	return
 }
 
@@ -1063,8 +1058,6 @@ func CreateObjectiveWorkflow_OnProgressCloseout(ctx wf.EventHandlingContext) (ou
 		})
 
 	}
-
-	out.Data = ctx.Data
 	out.KeepOriginal = true // we want to override it, so, not to delete
 	return
 }

@@ -53,10 +53,12 @@ func GetPlatformAPIImpl(conn common.DynamoDBConnection) PlatformAPIForTeamID {
 		return mapper.SlackAdapterForTeamID(conn)
 	}
 }
-func ConstructEnvironmentWithoutPrefix(conn common.DynamoDBConnection, postpone PostponeEvent, log alog.AdaptiveLogger) Environment {
+func ConstructEnvironmentWithoutPrefix(conn common.DynamoDBConnection, postpone PostponeEvent, log alog.AdaptiveLogger,
+	resolveCommunity ResolveCommunity) Environment {
 	return Environment{
 		GetPlatformAPI: GetPlatformAPIImpl(conn),
 		LogInfof:       log.Infof,
 		PostponeEvent:  postpone,
+		ResolveCommunity: resolveCommunity,
 	}
 }

@@ -21,6 +21,7 @@ import (
 	"log"
 	"strings"
 	"time"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 )
 
 const (
@@ -115,6 +116,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 
 			// This module only looks for payload with 'app-mention' namespace
 			if np.Namespace == "community" {
+				conn := connGen.ForPlatformID(np.TeamID.ToPlatformID())
 				// Handling event_callback messages
 				if np.SlackRequest.Type == models.EventsAPIEventSlackRequestType {
 					logger.WithField("app_mention_event", np).Info()
@@ -127,7 +129,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 						switch np.SlackRequest.Type {
 						case models.InteractionSlackRequestType:
 							logger.WithField("interaction_callback_event", np).Info()
-							dispatchCommunityInteractionCallback(request, np.TeamID)
+							dispatchCommunityInteractionCallback(request, np.TeamID, conn)
 						case models.DialogSubmissionSlackRequestType:
 							logger.WithField("dialog_submission_event", np).Info()
 							// Handling dialog submission for each answer
@@ -173,7 +175,7 @@ func dispatchCommunityMenuAction2(request slack.InteractionCallback,
 		respond(teamID, response)
 	}
 }
-func dispatchCommunityInteractionCallback(request slack.InteractionCallback, teamID models.TeamID) {
+func dispatchCommunityInteractionCallback(request slack.InteractionCallback, teamID models.TeamID, conn daosCommon.DynamoDBConnection) {
 	action := *request.ActionCallback.AttachmentActions[0]
 	logger.WithField("event", "interaction_callback").WithField("action", action.Name).
 		WithField("platform", teamID).Info("Handling Callback event")
@@ -238,7 +240,7 @@ func dispatchCommunityInteractionCallback(request slack.InteractionCallback, tea
 					if action.Name == "select" {
 						value := action.SelectedOptions[0].Value
 						logger.Infof("Subscribing %s channel with Adaptive", value)
-						onCommunitySubscribeCommunityClicked(request, value, *mc, teamID)
+						onCommunitySubscribeCommunityClicked(request, value, *mc, teamID, conn)
 					} else if action.Name == "cancel" {
 						dispatchCommunityNamespaceMenuSelectSubscriptionCancel(request)
 					}

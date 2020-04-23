@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"fmt"
 	"log"
@@ -246,9 +247,9 @@ func UserRead(userID string) func(conn DynamoDBConnection) (users []models.User,
 	}
 }
 
-func mapAdaptiveCommunityUsersToUserID(users []models.AdaptiveCommunityUser2) (userIDs []string) {
+func mapAdaptiveCommunityUsersToUserID(users []adaptiveCommunityUser.AdaptiveCommunityUser) (userIDs []string) {
 	for _, each := range users {
-		userIDs = append(userIDs, each.UserId)
+		userIDs = append(userIDs, each.UserID)
 	}
 	return
 }
@@ -258,16 +259,29 @@ var none = models.KvPair{Key: string(objectives.CoachNotNeededOption), Value: ut
 
 // IDOCoaches returns Key-Value pairs with user id and user display name
 // The set of users and the format are suitable for IDO dialog coach field.
-func IDOCoaches(userID string) func(conn DynamoDBConnection) (res []models.KvPair, err error) {
+func IDOCoaches(userID string, oldCoachIDOptional string) func(conn DynamoDBConnection) (res []models.KvPair, err error) {
 	return func(conn DynamoDBConnection) (res []models.KvPair, err error) {
 		defer core.RecoverToErrorVar("IDOCoaches", &err)
 		userDao := utilsUser.DAOFromConnection(conn)
 
-		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(community.Coaching), 
-			models.ParseTeamID(conn.PlatformID))
-		userIDs := mapAdaptiveCommunityUsersToUserID(commMembers)
+		var coachingMembers []adaptiveCommunityUser.AdaptiveCommunityUser
+		coachingMembers, err = adaptiveCommunityUser.ReadByPlatformIDCommunityID(conn.PlatformID, string(community.Coaching))(conn)
+
+		isOldCoachIDPresent := oldCoachIDOptional == ""
+		for _, u := range coachingMembers {
+			if u.UserID == oldCoachIDOptional {
+				isOldCoachIDPresent = true
+				break
+			}
+		}
+		//  community.CommunityMembers(communityUsersTableName(conn.ClientID), string(community.Coaching), 
+		// 	models.ParseTeamID(conn.PlatformID))
+		userIDs := mapAdaptiveCommunityUsersToUserID(coachingMembers)
+		if !isOldCoachIDPresent {
+			userIDs = append(userIDs, oldCoachIDOptional)
+		}
 		res = []models.KvPair{none}
-		if len(commMembers) > 0 { // Does this include adaptive bot name?
+		if len(coachingMembers) > 0 { // Does this include adaptive bot name?
 			res = append(res, requested)
 		}
 		for _, id := range userIDs {
@@ -276,7 +290,7 @@ func IDOCoaches(userID string) func(conn DynamoDBConnection) (res []models.KvPai
 			err = errors.Wrapf(err, "UserDynamoDBConnection) IDOCoaches(userID=%s)", userID)
 			if err == nil {
 				for _, user := range users {
-					if user.ID != userID &&
+					if (user.ID != userID || userID == oldCoachIDOptional) &&
 					!user.IsAdaptiveBot &&
 					user.DisplayName != "" {
 						res = append(res, models.KvPair{Key: user.DisplayName, Value: id})

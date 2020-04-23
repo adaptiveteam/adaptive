@@ -1,6 +1,8 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -37,35 +39,40 @@ func onCommunitySubscribeCommunityClicked(
 	request slack.InteractionCallback,
 	communityID string, //
 	mc models.MessageCallback,
-	teamID models.TeamID) {
+	teamID models.TeamID,
+	conn common.DynamoDBConnection) {
 	communityName := ui.PlainText(communityID)
 	logger.Infof("Platform id for %s community: %s", communityID, teamID)
 	// Let's add this channel as a new user
 	// Get the information about the user who initiated this
 	channelID := request.Channel.ID
-	err := createCommunityFromCreatorUser(request.User.ID, channelID, communityID)
-	if err != nil {
-		if strings.Contains(err.Error(), "ConditionalCheckFailedException") {
+	err2 := createCommunityFromCreatorUser(request.User.ID, channelID, communityID)
+	if err2 != nil {
+		if strings.Contains(err2.Error(), "ConditionalCheckFailedException") {
 			logger.Infof("User %s already exists, not adding", request.User.ID)
 		} else {
-			logger.WithField("namespace", namespace).WithField("error", err).
+			logger.
+				WithField("namespace", namespace).
+				WithError(err2).
 				Errorf("Could not add %s to %s table", request.Channel.ID, usersTable)
 		}
 	}
-	comm := models.AdaptiveCommunity{
+	comm := adaptiveCommunity.AdaptiveCommunity{
 		ID:         communityID,
 		PlatformID: teamID.ToPlatformID(),
 		ChannelID:  request.Channel.ID,
 		Active:     true, RequestedBy: request.User.ID,
-		CreatedAt: core.CurrentRFCTimestamp()}
+		CreatedAt: core.CurrentRFCTimestamp(),
+	}
 	// Reading community by ID
-	dbCommunity, err := communityDAO.ReadByID(teamID, communityID)
-	if err != nil && strings.Contains(err.Error(), "not found") {
-		err = nil
-		logger.Infof("%s community not found", communityID)
+	var dbCommunities []adaptiveCommunity.AdaptiveCommunity
+	dbCommunities, err2 = adaptiveCommunity.ReadOrEmpty(teamID.ToPlatformID(), communityID)(conn)
+	var dbCommunity adaptiveCommunity.AdaptiveCommunity
+	if len(dbCommunities) == 0 {
+		logger.Infof("%s community not found. It's normal, we gonna create one", communityID)
 		dbCommunity = models.AdaptiveCommunity{}
 	}
-	if err == nil {
+	if err2 == nil {
 		if dbCommunity.ID != "" {
 			logger.Infof("%s community is already used up", communityID)
 			// Selected community already exists, send a message back
@@ -73,15 +80,15 @@ func onCommunitySubscribeCommunityClicked(
 			replyReplace(request, teamID, platform.MessageContent{Message: text})
 		} else {
 			// Create the community
-			err = communityDAO.Create(comm)
-			if err != nil {
-				logger.WithField("namespace", namespace).WithField("error", err).
+			err2 = communityDAO.Create(comm)
+			if err2 != nil {
+				logger.WithField("namespace", namespace).WithField("error", err2).
 					Errorf("Could not add entry to %s table", orgCommunitiesTable)
 			} else {
 				// Once a channel/group is subscribed to a community, get all existing users from the channel and add as community users
 				// Adding existing channel members
-				existingUsers := channelMembers(channelID, teamID)
-				logger.Infof("Existing members in %s channel for %s community: %s", channelID, teamID, existingUsers)
+				existingUsers := slackChannelMembers(channelID, teamID)
+				logger.Infof("Existing members in %s channel for %s community: %v", channelID, teamID, existingUsers)
 
 				setupCommunityUsers(channelID, communityID, existingUsers, teamID)
 				// Checking if the selected value contains ":"
@@ -97,7 +104,9 @@ func onCommunitySubscribeCommunityClicked(
 			}
 		}
 	} else {
-		logger.WithField("namespace", namespace).WithField("error", err).
+		logger.
+			WithField("namespace", namespace).
+			WithError(err2).
 			Errorf("Error reading community with id %s from with platform %s", comm.ID, teamID)
 	}
 }
@@ -105,7 +114,7 @@ func onCommunitySubscribeCommunityClicked(
 func setupCommunityUsers(channelID, communityID string, communityMemberIDs []string, teamID models.TeamID) {
 	hasBeenSubscribedMany := isUserSubscribedToAnyCommunityMany(communityMemberIDs)
 	userCommunities := addUsersToCommunity(teamID, channelID, communityID, communityMemberIDs)
-	logger.Infof("Added %s users from %s channel to %s community", communityMemberIDs, channelID, communityID)
+	logger.Infof("Added %s users from %s channel to %s community in team %v", communityMemberIDs, channelID, communityID, teamID)
 	welcomeAllUsers(teamID, userCommunities)
 	// If the user has already subscribed to other channels,  we don't show adaptive scheduled time engagement
 	for userID, hasBeenSubscribed := range hasBeenSubscribedMany {
