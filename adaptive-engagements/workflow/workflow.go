@@ -1,23 +1,19 @@
 package workflow
 
 import (
-	"github.com/adaptiveteam/adaptive/core-utils-go"
-	// "github.com/adaptiveteam/adaptive/daos/common"
-	"fmt"
-
-	"github.com/pkg/errors"
-
-	//"log"
 	"encoding/json"
+	"fmt"
 	"net/url"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/nlopes/slack"
+	"github.com/pkg/errors"
 )
 
 // LogInfof signature of log.Infof function
@@ -25,7 +21,6 @@ type LogInfof = func(format string, args ...interface{})
 
 // PlatformAPIForTeamID is a function to obtain API by TeamID
 type PlatformAPIForTeamID = func(teamID models.TeamID) mapper.PlatformAPI
-
 
 // MaxImmediateSteps is used to limit possible damage in case of errors
 const MaxImmediateSteps = 3
@@ -82,30 +77,33 @@ func (w Template) handleContext(env Environment,
 			data = overrideData(data, out.DataOverride)
 			var lastMessageID platform.TargetMessageID
 			furtherActions = out.Interaction.ImmediateEvents
-			ti := TargetedInteraction{
-				InteractionTarget: InteractionTarget{ UserID: ctx.Request.User.ID},
-				Interaction: out.Interaction,
+			ti1 := TargetedInteraction{
+				InteractionTarget: InteractionTarget{UserID: ctx.Request.User.ID},
+				Interaction:       out.Interaction,
 			}
-			lastMessageID, err = interact(ctx, env, out.NextState, 
-				ti, oldData, data)
-			if err == nil && out.ImmediateEvent != "" {
-				newContext := EventHandlingContext{
-					TeamID: ctx.TeamID,
-					Request:    ctx.Request,
-					EventData: EventData{
-						State:               out.NextState,
-						Data:                data,
-						Event:               out.ImmediateEvent,
-						IsOriginalPermanent: false, // ???
-					},
-					TargetMessageID: lastMessageID,
-					RuntimeData:     out.RuntimeData,
-				}
-				if i == 0 {
-					env.LogInfof("Not enough iteration count for further looping through states.")
-				} else {
-					env.LogInfof("Looping (iterations left:%d) to state S:%s,E:%s; ", i, out.NextState, out.ImmediateEvent)
-					w.handleContext(env, newContext, i-1)
+			tis := append([]TargetedInteraction{ti1}, out.TargetedInteractions...)
+			for _, ti := range tis {
+				lastMessageID, err = interact(ctx, env, out.NextState,
+					ti, oldData, data)
+				if err == nil && out.ImmediateEvent != "" {
+					newContext := EventHandlingContext{
+						TeamID:  ctx.TeamID,
+						Request: ctx.Request,
+						EventData: EventData{
+							State:               out.NextState,
+							Data:                data,
+							Event:               out.ImmediateEvent,
+							IsOriginalPermanent: false, // ???
+						},
+						TargetMessageID: lastMessageID,
+						RuntimeData:     out.RuntimeData,
+					}
+					if i == 0 {
+						env.LogInfof("Not enough iteration count for further looping through states.")
+					} else {
+						env.LogInfof("Looping (iterations left:%d) to state S:%s,E:%s; ", i, out.NextState, out.ImmediateEvent)
+						w.handleContext(env, newContext, i-1)
+					}
 				}
 			}
 		}
@@ -121,7 +119,7 @@ func (w Template) getEventHandlingContext(np models.NamespacePayload4) (ctx Even
 	s, err = w.Parser(np)
 	if err == nil {
 		ctx = EventHandlingContext{
-			TeamID:      np.TeamID,
+			TeamID:          np.TeamID,
 			Request:         np.InteractionCallback,
 			EventData:       s,
 			TargetMessageID: targetMessageID(np.InteractionCallback),
@@ -155,14 +153,14 @@ func interact(ctx EventHandlingContext,
 	}
 	if err == nil {
 		var targetConversation platform.ConversationID
-		targetConversation, err = getConversation(env, ti.InteractionTarget)
+		targetConversation, err = getConversation(ctx, env, ti.InteractionTarget)
 		if err == nil {
 			for _, m := range ti.Interaction.Messages {
 				lastMessageID, err = sendInteractiveMessage(ctx,
 					env,
 					platformAPI,
-					nextState, data, 
-					targetConversation, 
+					nextState, data,
+					targetConversation,
 					m,
 					isDeletingOriginal)
 			}
@@ -195,11 +193,13 @@ func interact(ctx EventHandlingContext,
 	return
 }
 
-func getConversation(env Environment, t InteractionTarget) (targetConversation platform.ConversationID, err error) {
-	if t.UserID == "" {
+func getConversation(ctx EventHandlingContext, env Environment, t InteractionTarget) (targetConversation platform.ConversationID, err error) {
+	if t.UserID != "" {
+		targetConversation = platform.ConversationID(t.UserID)
+	} else if t.CommunityID != "" {
 		targetConversation, err = env.ResolveCommunity(t.CommunityID)
 	} else {
-		targetConversation = platform.ConversationID(t.UserID)
+		targetConversation = platform.ConversationID(ctx.Request.User.ID)
 	}
 	return
 }
