@@ -6,14 +6,11 @@ import (
 )
 // EventOutput contains the result of event handling
 type EventOutput struct {
+	// Interaction is the response to the original user.
 	Interaction
-	// Data will be available to the next handler in Instance.Data
-	// Deprecated: Use only DataOverride.
-	// It's deprecated because in most cases we don't want to replace all data
-	Data
-	// Data might be nil. In this case it'll be reused from context.
-	// DataOverride will override some of the keys of the above data (or context data).
-	// It is recommended to use either Data or DataOverride.
+	// TargetedInteractions are interactions that can be sent to another user or community
+	TargetedInteractions []TargetedInteraction
+	// DataOverride override some of the keys of the context data.
 	DataOverride Data
 	NextState State
 	// ImmediateEvent is a flag/event that allows immediate processing of the next state
@@ -54,6 +51,23 @@ func (eo EventOutput) WithInteractiveMessage(messages ... InteractiveMessage) (o
 	out.Interaction.Messages = append(out.Interaction.Messages, messages ...)
 	return
 }
+
+// WithCommunityInteraction - adds targeted message to output
+func (eo EventOutput) WithCommunityInteraction(targetCommunityID string, messages ... InteractiveMessage) (out EventOutput) {
+	out = eo
+	out.TargetedInteractions = append(out.TargetedInteractions, 
+		TargetedInteraction{
+			InteractionTarget: InteractionTarget{
+				CommunityID: targetCommunityID,
+			},
+			Interaction: Interaction{
+				Messages: messages,
+			},
+		},
+	)
+	return
+}
+
 
 // WithPrependInteractiveMessage - adds InteractiveMessages to output before other messages
 func (eo EventOutput) WithPrependInteractiveMessage(messages ... InteractiveMessage) (out EventOutput) {

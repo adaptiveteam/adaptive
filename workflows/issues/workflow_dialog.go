@@ -1,11 +1,14 @@
 package issues
 
 import (
+	// "github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
+	// daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	// eb "github.com/adaptiveteam/adaptive/engagement-builder"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	ex "github.com/adaptiveteam/adaptive/workflows/exchange"
@@ -95,6 +98,7 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 	if isCoachRequestNeeded {
 		postponedEvents = w.requestCoach(ctx, newAndOldIssues)
 	}
+	var responses []platform.Response
 	newAdvocate := newAndOldIssues.NewIssue.UserObjective.UserID
 	oldAdvocate := newAndOldIssues.OldIssue.UserObjective.UserID
 	isCoacheeRequestNeeded := 
@@ -104,10 +108,9 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 	if isCoacheeRequestNeeded {
 		postponedEvents = append(postponedEvents, w.requestCoachee(ctx, newAndOldIssues)...)
 	}
-	var responses []platform.Response
 	shouldNotifyOldCoach := !utilsUser.IsSpecialOrEmptyUserID(oldAP) && newAndOldIssues.Updated && newAP != oldAP
 	if shouldNotifyOldCoach {
-		responses = []platform.Response{
+		responses = append(responses, 
 			platform.Post(platform.ConversationID(oldAP),
 				platform.MessageContent{
 					Message: ui.Sprintf("<@%s> has requested a different accountability partner for the %s:\n%s\n%s",
@@ -118,12 +121,12 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 					),
 				},
 			),
-		}
+		)
 	}
 	w.AdaptiveLogger.Infof("OnDialogSubmitted: Saving %v\n", newAndOldIssues.NewIssue)
 	err = issuesUtils.Save(newAndOldIssues.NewIssue)(w.DynamoDBConnection)
+	err = errors.Wrapf(err, "OnDialogSubmitted: Saving")
 	if err != nil {
-		err = errors.Wrapf(err, "OnDialogSubmitted: Saving")
 		return
 	}
 	ctx.Data[issueIDKey] = newAndOldIssues.NewIssue.UserObjective.ID
@@ -143,6 +146,13 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 	}
 	out.PostponedEvents = postponedEvents
 	out.Responses = append(out.Responses, responses...)
+	if utilsUser.UserID_Requested == newAP {
+		
+		// responses = w.requestCoachViaCoachingCommunity(ctx, newAndOldIssues)
+		out.ImmediateEvents = append(out.ImmediateEvents, 
+			ex.RequestCoachViaCommunity(itype, issueID),
+		)
+	}
 	err = errors.Wrap(err, "{OnDialogSubmitted}")
 	return
 }

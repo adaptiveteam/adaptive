@@ -28,7 +28,8 @@ type EventHandlingContext struct {
 // Reply sends simple text to the requesting user
 func (ctx EventHandlingContext)Reply(text ui.RichText) (out EventOutput) {
 	out.NextState = ""
-	out.Interaction = SimpleResponses(platform.Post(platform.ConversationID(ctx.Request.User.ID),
+	out.Interaction = SimpleResponses(
+		platform.Post(platform.ConversationID(ctx.Request.User.ID),
 		platform.MessageContent{Message: text}))
 	return 
 }

@@ -8,11 +8,11 @@ import (
 var recoverToErrorVar = core.RecoverToErrorVar
 
 func (w workflowImpl) recoverToErrorVar(name string, err *error) {
-	if err != nil {
+	if *err != nil {
 		w.AdaptiveLogger.WithError(*err).Errorln("Before recoverToErrorVar " + name)
 	}
 	core.RecoverToErrorVar(name, err)
-	if err != nil {
+	if *err != nil {
 		w.AdaptiveLogger.WithError(*err).Errorln("After recoverToErrorVar " + name)
 	}
 

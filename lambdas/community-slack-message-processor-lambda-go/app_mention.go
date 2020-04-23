@@ -1,7 +1,9 @@
 package lambda
 
 import (
-	"encoding/json"
+	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
+	"time"
+	"github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -20,7 +22,7 @@ func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, tea
 		fmt.Printf("Got app_mention with text: %v\n", text)
 		// We first check for requestForUserRegex because botMentionRegex is a subset of this
 		if requestForUserRegex.MatchString(text) {
-			comms := subscribedCommunities(slackMsg.Channel)
+			comms := subscribedCommunities(teamID, slackMsg.Channel)
 
 			// It consists of 4 elements, 0: original, 1: first group (channel), 2: second group (command), 3: third group (target)
 			list := requestForUserRegex.FindStringSubmatch(text)
@@ -62,34 +64,19 @@ func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, tea
 func userMentionFetchReportHandler(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, targetUserID string) {
 	// Posting message to the channel in which user requested this
 	replyInThread(slackMsg, teamID, simpleMessage(FetchingReportNotification))
-	var threadTs string
-	if slackMsg.ThreadTimeStamp != "" {
-		threadTs = slackMsg.ThreadTimeStamp
-	} else {
-		threadTs = slackMsg.TimeStamp
-	}
-	engageBytes, _ := json.Marshal(models.UserEngage{UserID: slackMsg.User, TargetID: targetUserID, IsNew: false, Update: true, Channel: slackMsg.Channel, ThreadTs: threadTs})
-	_, err := lambdaAPI.InvokeFunction(reportPostingLambda, engageBytes, false)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", reportPostingLambda))
+	err2 := feedbackReportPostingLambda.DeliverReportToUserAsync(teamID, targetUserID, time.Now())
+	core.ErrorHandler(err2, namespace, "Could not DeliverReportToUserAsync")
 }
 
 func userMentionGenerateReportHandler(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, targetUserID string) {
 	// Posting message to the channel in which user requested this
 	replyInThread(slackMsg, teamID, simpleMessage(GeneratingReportNotification))
-	var threadTs string
-	if slackMsg.ThreadTimeStamp != "" {
-		threadTs = slackMsg.ThreadTimeStamp
-	} else {
-		threadTs = slackMsg.TimeStamp
-	}
-	engageBytes, _ := json.Marshal(models.UserEngage{UserID: slackMsg.User, TargetID: targetUserID, IsNew: false,
-		Update: true, Channel: slackMsg.Channel, ThreadTs: threadTs})
-	_, err := lambdaAPI.InvokeFunction(reportingLambda, engageBytes, false)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s lambda", reportingLambda))
+	err2 := feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(targetUserID, time.Now())
+	core.ErrorHandler(err2, namespace, "Could not invoke GeneratePerformanceReportAndPostToUserAsync from app-mention")
 }
 
 func onBotMentioned(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, command string) (response platform.Response) {
-	comms := subscribedCommunities(slackMsg.Channel)
+	comms := subscribedCommunities(teamID, slackMsg.Channel)
 	switch command {
 	case "hello", "hi":
 		response = onBotMentionedHelloCommand(comms, slackMsg, teamID)

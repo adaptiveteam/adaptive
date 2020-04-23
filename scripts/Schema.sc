@@ -865,7 +865,8 @@ val SlackTeam = Entity(
         userIdField,
         "EnterpriseID".camel :: optionString,
         "BotUserID".camel :: optionString, // we may add bot user
-        ("BotAccessToken".camel :: optionString) \\ "bot_access_token"
+        ("BotAccessToken".camel :: optionString) \\ "bot_access_token",
+        "Scopes".camel :: optionStringArray
     ),
     Nil, List(CreatedModifiedTimesTrait)
 )

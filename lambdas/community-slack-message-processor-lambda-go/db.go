@@ -1,6 +1,9 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	"github.com/pkg/errors"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"fmt"
 	"log"
 	"strconv"
@@ -12,6 +15,7 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
@@ -176,18 +180,30 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 
-func subscribedCommunityIDs(channel string) (commIDs []string) {
-	comms := subscribedCommunities(channel)
+func subscribedCommunityIDs(teamID models.TeamID, channel string) (commIDs []string) {
+	comms := subscribedCommunities(teamID, channel)
 	for _, comm := range comms {
 		commIDs = append(commIDs, comm.ID)
 	}
 	return
 }
 
-func subscribedCommunities(channel string) (comms []models.AdaptiveCommunity) {
-	comms, err := communityDAO.ReadByChannelID(channel)
-	err = wrapError(err, "subscribedCommunities")
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not get subscribed communities for %s channel", channel))
+func FilterCommunitiesByPlatformID(commsIn []models.AdaptiveCommunity, platformID daosCommon.PlatformID) (comms []models.AdaptiveCommunity) {
+	for _, comm := range commsIn {
+		if comm.PlatformID == platformID {
+			comms = append(comms, comm)
+		}
+	}
+	return
+}
+
+func subscribedCommunities(teamID models.TeamID, channel string) (comms []models.AdaptiveCommunity) {
+	var commsForAllPlatforms []models.AdaptiveCommunity
+	commsForAllPlatforms, err2 := communityDAO.ReadByChannelID(channel)
+	err2 = wrapError(err2, "subscribedCommunities")
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not get subscribed communities for %s channel", channel))
+
+	comms = FilterCommunitiesByPlatformID(commsForAllPlatforms, teamID.ToPlatformID())
 	return
 }
 
@@ -225,30 +241,32 @@ func createCommunityFromCreatorUser(creatorUserID string, channelID string, comm
 }
 
 func addUserToAllCommunities(teamID models.TeamID, userID string, subscribedCommunityIDs []models.AdaptiveCommunity) (res []models.AdaptiveCommunityUser3) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	for _, each := range subscribedCommunityIDs {
 		// For each subscribed community, add an entry in community users table
-		commUser := models.AdaptiveCommunityUser3{
+		commUser := adaptiveCommunityUser.AdaptiveCommunityUser{
 			ChannelID:   each.ChannelID,
 			UserID:      userID,
 			CommunityID: each.ID,
 			PlatformID:  teamID.ToPlatformID(),
 		}
-		communityUserDAO.CreateUnsafe(commUser)
+		adaptiveCommunityUser.CreateUnsafe(commUser)(conn)
 		res = append(res, commUser)
 	}
 	return
 }
 
 func addUsersToCommunity(teamID models.TeamID, channelID string, communityID string, userIDs []string) (res []models.AdaptiveCommunityUser3) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	// Adding existing channel members
 	for _, each := range userIDs {
-		commUser := models.AdaptiveCommunityUser3{
-			CommunityID: communityID,
-			UserID:      each,
-			ChannelID:   channelID,
+		commUser := adaptiveCommunityUser.AdaptiveCommunityUser{
 			PlatformID:  teamID.ToPlatformID(),
+			CommunityID: communityID,
+			ChannelID:   channelID,
+			UserID:      each,
 		}
-		communityUserDAO.CreateUnsafe(commUser)
+		adaptiveCommunityUser.CreateUnsafe(commUser)(conn)
 		res = append(res, commUser)
 	}
 	return
@@ -258,7 +276,7 @@ func addUsersToCommunity(teamID models.TeamID, channelID string, communityID str
 func removeChannel(userID, channelID string, teamID models.TeamID) {
 	logger.Infof("Removing channel %s because user=%s left channel", channelID, userID)
 	// Adaptive bot is removed from the channel
-	comms := subscribedCommunities(channelID)
+	comms := subscribedCommunities(teamID, channelID)
 	logger.Infof("There where %d communities associated with the channel", len(comms))
 	// We should delete this channel from users table and deactivate the community
 	for _, each := range comms {
@@ -283,9 +301,10 @@ func deleteCommunityMembersByCommunityID(communityID string, channelID string) (
 
 // channelUnsubscribe removes the channel association with a community.
 // Also removes all users from the community.
-func channelUnsubscribe(channelID string, teamID models.TeamID) error {
+func channelUnsubscribe(channelID string, teamID models.TeamID) (err error) {
+	var subComms []adaptiveCommunity.AdaptiveCommunity
 	// Delete the entry from user table only if this is the only unsubscribed community
-	subComms, err := communityDAO.ReadByChannelID(channelID)
+	subComms, err = adaptiveCommunity.ReadByChannel(channelID)(connGen.ForPlatformID(teamID.ToPlatformID()))
 	logger.Infof("Subscribed communities for %s channel in %s platform: %v", channelID, teamID, subComms)
 	if err == nil {
 		// We should delete this channel from users table and deactivate the community
@@ -302,20 +321,21 @@ func channelUnsubscribe(channelID string, teamID models.TeamID) error {
 					commParams := idAndPlatformIDParams(eachComm.ID, teamID)
 					// Delete entry from communities table
 					err = d.DeleteEntry(orgCommunitiesTable, commParams)
+					err = errors.Wrapf(err, "Could not delete from %s table in %s platform", orgCommunitiesTable, teamID)
 					if err == nil {
 						logger.Infof("Removed %v community for %s platform", eachComm, teamID)
-					} else {
-						logger.WithError(err).
-							Errorf("Could not delete from %s table in %s platform", orgCommunitiesTable, teamID)
 					}
 				}
 			}
 		}
-	} else {
-		logger.WithField("namespace", namespace).WithField("error", err).
-			Errorf("Could not retrieve subscribed communities for %s channel in %s platform", channelID, teamID)
 	}
-	return err
+	if err != nil {
+		logger.
+			WithField("namespace", namespace).
+			WithError(err).
+			Errorf("Could not channelUnsubscribe(channel=%s, platform=%v)", channelID, teamID)
+	}
+	return
 }
 
 func channelUnsubscribeUnsafe(channelID string, teamID models.TeamID) {

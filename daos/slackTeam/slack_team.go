@@ -24,6 +24,7 @@ type SlackTeam struct  {
 	BotUserID string `json:"bot_user_id,omitempty"`
 	// bot_access_token
 	BotAccessToken string `json:"bot_access_token,omitempty"`
+	Scopes []string `json:"scopes,omitempty"`
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
 	// Automatically maintained field
@@ -234,8 +235,9 @@ func allParams(slackTeam SlackTeam, old SlackTeam) (params map[string]*dynamodb.
 	if slackTeam.EnterpriseID != old.EnterpriseID { params[":a4"] = common.DynS(slackTeam.EnterpriseID) }
 	if slackTeam.BotUserID != old.BotUserID { params[":a5"] = common.DynS(slackTeam.BotUserID) }
 	if slackTeam.BotAccessToken != old.BotAccessToken { params[":a6"] = common.DynS(slackTeam.BotAccessToken) }
-	if slackTeam.CreatedAt != old.CreatedAt { params[":a7"] = common.DynS(slackTeam.CreatedAt) }
-	if slackTeam.ModifiedAt != old.ModifiedAt { params[":a8"] = common.DynS(slackTeam.ModifiedAt) }
+	if !common.StringArraysEqual(slackTeam.Scopes, old.Scopes) { params[":a7"] = common.DynSS(slackTeam.Scopes) }
+	if slackTeam.CreatedAt != old.CreatedAt { params[":a8"] = common.DynS(slackTeam.CreatedAt) }
+	if slackTeam.ModifiedAt != old.ModifiedAt { params[":a9"] = common.DynS(slackTeam.ModifiedAt) }
 	return
 }
 func updateExpression(slackTeam SlackTeam, old SlackTeam) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -249,8 +251,9 @@ func updateExpression(slackTeam SlackTeam, old SlackTeam) (expr string, params m
 	if slackTeam.EnterpriseID != old.EnterpriseID { updateParts = append(updateParts, "enterprise_id = :a4"); params[":a4"] = common.DynS(slackTeam.EnterpriseID);  }
 	if slackTeam.BotUserID != old.BotUserID { updateParts = append(updateParts, "bot_user_id = :a5"); params[":a5"] = common.DynS(slackTeam.BotUserID);  }
 	if slackTeam.BotAccessToken != old.BotAccessToken { updateParts = append(updateParts, "bot_access_token = :a6"); params[":a6"] = common.DynS(slackTeam.BotAccessToken);  }
-	if slackTeam.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a7"); params[":a7"] = common.DynS(slackTeam.CreatedAt);  }
-	if slackTeam.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a8"); params[":a8"] = common.DynS(slackTeam.ModifiedAt);  }
+	if !common.StringArraysEqual(slackTeam.Scopes, old.Scopes) { updateParts = append(updateParts, "scopes = :a7"); params[":a7"] = common.DynSS(slackTeam.Scopes);  }
+	if slackTeam.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a8"); params[":a8"] = common.DynS(slackTeam.CreatedAt);  }
+	if slackTeam.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a9"); params[":a9"] = common.DynS(slackTeam.ModifiedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return

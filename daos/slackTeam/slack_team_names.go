@@ -11,4 +11,5 @@ const (
 	EnterpriseID FieldName = "enterprise_id"
 	BotUserID FieldName = "bot_user_id"
 	BotAccessToken FieldName = "bot_access_token"
+	Scopes FieldName = "scopes"
 )

@@ -205,7 +205,7 @@ func CreateIDOWorkflow_OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Ev
 			Messages: []wf.InteractiveMessage{view},
 		}
 		out.ImmediateEvent = "message-id-available" // this is needed to post analysis
-		out.Data = map[string]string{itemIDKey: item.ID}
+		out.DataOverride = map[string]string{itemIDKey: item.ID}
 	} else {
 		logger.WithField("error", err).Errorf("CreateIDOWorkflow_OnDialogSubmitted error: %+v", err)
 		out.Interaction = wf.SimpleResponses(
@@ -376,7 +376,6 @@ func CreateIDOWorkflow_OnFieldsShown(ctx wf.EventHandlingContext) (out wf.EventO
 	}
 	out.NextState = "done"
 	out.KeepOriginal = true // we want to override it, so, not to delete
-	out.Data = ctx.Data
 	return // we do not show anything else to the user
 }
 
@@ -466,7 +465,6 @@ func CreateIDOWorkflow_OnEdit(ctx wf.EventHandlingContext) (out wf.EventOutput, 
 	logger.Infof("CreateIDOWorkflow_OnEdit itemID:%s", itemID)
 	item := userObjectiveByID(itemID)
 	out, err = CreateIDOWorkflow_ShowDialog(item)(ctx)
-	out.Data = ctx.Data
 	return
 }
 
@@ -476,7 +474,6 @@ func standardView(ctx wf.EventHandlingContext, item models.UserObjective) (out w
 	out.Interaction = wf.Interaction{
 		Messages: wf.InteractiveMessages(view),
 	}
-	out.Data = ctx.Data
 	out.KeepOriginal = true // we want to override it, so, not to delete
 	return
 }
@@ -583,7 +580,6 @@ func CreateIDOWorkflow_OnProgressIntermediate(ctx wf.EventHandlingContext) (out 
 	surveyWithValues := fillCommentsSurveyValues(survey, comments, status)
 	out.Interaction = wf.OpenSurvey(surveyWithValues)
 	out.KeepOriginal = true
-	out.Data = ctx.Data
 	return
 }
 
@@ -715,8 +711,6 @@ func CreateIDOWorkflow_OnProgressCloseout(ctx wf.EventHandlingContext) (out wf.E
 			},
 		})
 	}
-
-	out.Data = ctx.Data
 	out.KeepOriginal = true // we want to override it, so, not to delete
 	return
 }
@@ -724,7 +718,6 @@ func CreateIDOWorkflow_OnProgressCloseout(ctx wf.EventHandlingContext) (out wf.E
 func CreateIDOWorkflow_OnViewIDOs(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	userID := ctx.Request.User.ID
 	typ := models.IndividualDevelopmentObjective
-	out.Data = ctx.Data
 	out.KeepOriginal = true // we want to override it, so, not to delete
 	// Times in AWS are in UTC
 	allObjs := objectives.AllUserObjectives(userID, userObjectivesTable, string(userObjective.UserIDTypeIndex), typ, 0)

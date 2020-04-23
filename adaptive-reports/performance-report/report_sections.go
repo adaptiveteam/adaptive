@@ -186,8 +186,8 @@ func getFontMap() (f fontMap, err error) {
 func writePerformanceAnalysis(
 	c *creator.Creator,
 	f fontMap,
-	received coachingList,
-	given coachingList,
+	received CoachingList,
+	// given CoachingList,
 	topicToValueTypeMapping map[string]string,
 	quarter int,
 	year int,
@@ -195,7 +195,9 @@ func writePerformanceAnalysis(
 	logger logger.AdaptiveLogger,
 ) (tags map[string]string) {
 	var analyses map[string]string
-	analyses, tags = generateSummaryAnalysis(received, given, topicToValueTypeMapping, quarter, year, dialogDao, logger)
+	analyses, tags = generateSummaryAnalysis(received, 
+		// given, 
+		topicToValueTypeMapping, quarter, year, dialogDao, logger)
 	logger.WithField("analyses", &analyses).Infof("Retrieved analyses")
 	sortOrder := []string{
 		"StrongRed",
@@ -317,7 +319,7 @@ func writePerformanceAnalysis(
 	return
 }
 
-func writePerformanceSummary(c *creator.Creator, f fontMap, received coachingList) {
+func writePerformanceSummary(c *creator.Creator, f fontMap, received CoachingList) {
 	summary, err := nlp.GetSummaryText(summaryBig, received.createTextBlob(), nlp.English)
 
 	if err != nil {
@@ -352,7 +354,7 @@ func writePerformanceSummary(c *creator.Creator, f fontMap, received coachingLis
 func writeCoachingIdeas(
 	c *creator.Creator,
 	f fontMap,
-	received coachingList,
+	received CoachingList,
 	dialogDao fetch_dialog.DAO,
 ) {
 	unfilteredCoachingSuggestions, err := nlp.GetTextCategoriesText(received.createTextBlob(), nlp.English)
@@ -517,7 +519,7 @@ func writeCoachingIdeas(
 	}
 }
 
-func writeFeedbackSummary(c *creator.Creator, f fontMap, received coachingList, kind string, topicToValueTypeMapping map[string]string) *creator.Chapter {
+func writeFeedbackSummary(c *creator.Creator, f fontMap, received CoachingList, kind string, topicToValueTypeMapping map[string]string) *creator.Chapter {
 	if received.length() > 0 {
 		feedbackSummary, err := nlp.GetSummaryText(summarySmall,
 			received.kindCoaching(kind, topicToValueTypeMapping).createTextBlob(), nlp.English)
@@ -559,14 +561,14 @@ func writeFeedbackSummary(c *creator.Creator, f fontMap, received coachingList, 
 	}
 }
 
-func writeTopic(c *creator.Creator, sc *creator.Chapter, f fontMap, topic string, received coachingList) {
-	Topiccoaching := received.topicCoaching(topic)
+func writeTopic(c *creator.Creator, sc *creator.Chapter, f fontMap, topic string, received CoachingList) {
+	TopicCoaching := received.topicCoaching(topic)
 	sc.SetMargins(indentOne, 0, padding, 0)
-	writeTopicSummary(c, sc, f, topic, Topiccoaching)
-	writeTopicDetails(c, sc, f, Topiccoaching)
+	writeTopicSummary(c, sc, f, topic, TopicCoaching)
+	writeTopicDetails(c, sc, f, TopicCoaching)
 }
 
-func writeTopicSummary(c *creator.Creator, sc *creator.Chapter, f fontMap, topic string, tc coachingList) {
+func writeTopicSummary(c *creator.Creator, sc *creator.Chapter, f fontMap, topic string, tc CoachingList) {
 	if tc.length() > 0 {
 		topicSummary, err := nlp.GetSummaryText(summarySmall, tc.topicCoaching(topic).createTextBlob(), nlp.English)
 
@@ -594,7 +596,7 @@ func writeTopicSummary(c *creator.Creator, sc *creator.Chapter, f fontMap, topic
 	}
 }
 
-func writeTopicDetails(c *creator.Creator, sc *creator.Chapter, f fontMap, tc coachingList) {
+func writeTopicDetails(c *creator.Creator, sc *creator.Chapter, f fontMap, tc CoachingList) {
 
 	_ = sc.Add(newParagraph(
 		c,

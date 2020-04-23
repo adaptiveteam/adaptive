@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/pkg/errors"
 	"fmt"
 	"strings"
 
@@ -16,14 +17,15 @@ import (
 
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/slackTeam"
-	// oauth2 "github.com/adaptiveteam/adaptive/oauth2-reimpl"
-	"golang.org/x/oauth2"
+	oauth2 "github.com/adaptiveteam/adaptive/oauth2-reimpl"
+	// "golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 )
 
 type CODE string
 
 const StateValue = "BE9DE56F"
+
 
 var (
 	// AdaptiveScopes - Slack authentication scopes. You can obtain the
@@ -36,12 +38,13 @@ var (
 	// &scope=calls%3Aread+calls%3Awrite+channels%3Aread+dnd%3Aread+files%3Aread+groups%3Ahistory+groups%3Aread+groups%3Awrite+im%3Ahistory+im%3Aread+im%3Awrite+incoming-webhook+links%3Awrite+mpim%3Ahistory+mpim%3Aread+mpim%3Awrite+pins%3Awrite+reactions%3Aread+reactions%3Awrite+remote_files%3Aread+remote_files%3Ashare+remote_files%3Awrite+team%3Aread+usergroups%3Aread+usergroups%3Awrite+users%3Aread+users%3Aread.email+users%3Awrite
 	// &user_scope=channels%3Aread+chat%3Awrite+files%3Awrite+groups%3Aread+groups%3Awrite+im%3Ahistory+users%3Aread&state=state
 	// incoming-webhook,
-	AdaptiveScopes = "bot,calls:read,calls:write,channels:read,dnd:read,files:read,groups:history,groups:read,groups:write,im:history,im:read,im:write,links:write,mpim:history,mpim:read,mpim:write,pins:write,reactions:read,reactions:write,remote_files:read,remote_files:share,remote_files:write,team:read,usergroups:read,usergroups:write,users:read,users:read.email,users:write"
-	// app_mentions:read,chat:write,files:write,
+	AdaptiveScopes = "app_mentions:read,calls:read,calls:write,channels:read,chat:write,chat:write.customize,dnd:read,files:read,files:write,groups:history,groups:read,groups:write,im:history,im:read,im:write,links:write,mpim:history,mpim:read,mpim:write,pins:write,reactions:read,reactions:write,team:read,usergroups:read,usergroups:write,users:read,users:read.email,users:write"
+	// remote_files:read,remote_files:share,remote_files:write,
+	// incoming-webhook - this requires a channel where bot will be posting messages from outside
 	UserScopes = "" // "channels:read,chat:write,files:write,groups:read,groups:write,im:history,users:read"
 	// https://1vvtp0yc61.execute-api.us-east-1.amazonaws.com/dev/%7Bproxy+%7D?code=436528929141.946109056755.2599abf6300120ff5bc70e3b20a6680e64e05d652dc046b72c6c4d24a9f73c69&state=state
 )
-
+//https://slack.com/oauth/v2/authorize?access_type=offline&client_id=436528929141.622333620304&response_type=code&scope=chat:write+chat:write.customize+calls%3Aread+calls%3Awrite+channels%3Aread+dnd%3Aread+files%3Aread+groups%3Ahistory+groups%3Aread+groups%3Awrite+im%3Ahistory+im%3Aread+im%3Awrite+links%3Awrite+mpim%3Ahistory+mpim%3Aread+mpim%3Awrite+pins%3Awrite+reactions%3Aread+reactions%3Awrite+remote_files%3Aread+remote_files%3Ashare+remote_files%3Awrite+team%3Aread+usergroups%3Aread+usergroups%3Awrite+users%3Aread+users%3Aread.email+users%3Awrite&state=BE9DE56F&user_scope=
 // SlackOAuthConfig - constructs OAuth2 config with Slack endpoint and AdaptiveScopes
 func SlackOAuthConfig(clientID, clientSecret string) oauth2.Config {
 	return oauth2.Config{
@@ -51,10 +54,9 @@ func SlackOAuthConfig(clientID, clientSecret string) oauth2.Config {
 
 		Endpoint:     oauth2.Endpoint{
 			AuthStyle:   oauth2.AuthStyle(endpoints.Slack.AuthStyle),
-			AuthURL:     endpoints.Slack.AuthURL,
-			TokenURL:    endpoints.Slack.TokenURL,
+			AuthURL:     "https://slack.com/oauth/v2/authorize",//endpoints.Slack.AuthURL,
+			TokenURL:    "https://slack.com/api/oauth.v2.access",
 		},
-		// Endpoint: endpoints.Slack,
 	}
 }
 
@@ -177,6 +179,25 @@ Indeed they send:
     }
 }
 
+The new version of Slack answer (2020-04-20):
+
+Body:
+{
+    "ok": true,
+    "app_id": "AJA9TJ88Y",
+    "authed_user": {
+        "id": "UP0NQ8B9V"
+    },
+    "scope": "chat:write,chat:write.customize,calls:read,calls:write,channels:read,dnd:read,files:read,groups:history,groups:read,groups:write,im:history,im:read,im:write,links:write,mpim:history,mpim:read,mpim:write,pins:write,reactions:read,reactions:write,remote_files:read,remote_files:share,remote_files:write,team:read,usergroups:read,usergroups:write,users:read,users:read.email,users:write",
+    "token_type": "bot",
+    "access_token": "xoxb-7...",
+    "bot_user_id": "UV4CAUA9Y",
+    "team": {
+        "id": "TLN1E8P6V",
+        "name": "adaptive-test"
+    },
+    "enterprise": null
+}
 TODO: when user denies, Slack sends http://yourapp.com/oauth?error=access_denied as described here: https://api.slack.com/docs/oauth
 */
 
@@ -189,42 +210,82 @@ func HandleRedirectURLGetRequest(conn common.DynamoDBConnection, request events.
 		WithField("PathParameters", request.PathParameters).
 		WithField("QueryStringParameters", request.QueryStringParameters).
 		Infof("HandleRedirectURLGetRequest")
-	conf := GlobalSlackOAuthConfig()
-	code := CODE(request.QueryStringParameters["code"])
-	var token oauth2.Token
-	token, err = ExchangeCodeForAuthenticationToken(conf, code)
-	if len(token.AccessToken) > 8 {
-		fmt.Printf("Obtained token: %s...\n", token.AccessToken[:8])
-	}
+	errText, hasError := request.QueryStringParameters["error"]
 
-	if err != nil {
-		return
-	}
-	enterpriseID := ""
-	if token.Extra("enterprise_id") != nil {
-		enterpriseID = token.Extra("enterprise_id").(string)
-	}
-	bot1 := token.Extra("bot")
-	botAccessToken := ""
-	botUserID := ""
-	if bot1 != nil {
-		bot := bot1.(map[string]interface{})
-		// fmt.Printf("bot: %v", bot)
-		botAccessToken = bot["bot_access_token"].(string)
-		botUserID      = bot["bot_user_id"     ].(string)
+	if hasError {
+		if errText == "access_denied" { // 
+			logger.Warningf("WARN User has denied our application access to their workspace")
+			// we just exit with err = nil. Outside of this function there will be a redirect
+		}
+		err = errors.Errorf("Outer web hook has been invoked (GET) (presumably by Slack) with error message: %s", errText)
 	} else {
-		fmt.Printf("ERROR Slack responded without bot-info")
+		conf := GlobalSlackOAuthConfig()
+		code := CODE(request.QueryStringParameters["code"])
+		if code == "" {
+			err = errors.Errorf("'code' is empty in the query: %v", request.QueryStringParameters)
+		} else {
+			var token oauth2.Token
+			token, err = ExchangeCodeForAuthenticationToken(conf, code)
+			if len(token.AccessToken) > 8 {
+				fmt.Printf("Obtained token: %s...\n", token.AccessToken[:8])
+			}
+
+			if err != nil {
+				return
+			}
+			var team slackTeam.SlackTeam
+			team, err = extractSlackTeamFromToken(token)
+			if err == nil {
+				dao := slackTeam.NewDAO(conn.Dynamo, "HandleRedirectURLGetRequest", conn.ClientID)
+				err = dao.CreateOrUpdate(team)
+			}
+		}
 	}
-	team := slackTeam.SlackTeam{
-		TeamID:          common.PlatformID(token.Extra("team_id").(string)),
-		AccessToken:     token.AccessToken,
-		UserID:          token.Extra("user_id").(string),
-		TeamName:        token.Extra("team_name").(string),
-		BotAccessToken:  botAccessToken,
-		BotUserID:       botUserID,
-		EnterpriseID:    enterpriseID,
+	return
+}
+
+func extractSlackTeamFromToken(token oauth2.Token) (team slackTeam.SlackTeam, err error) {
+	enterpriseID := ""
+	// if token.Extra("enterprise_id") != nil {
+	// 	enterpriseID = token.Extra("enterprise_id").(string)
+	// }
+	authedUser1 := token.Extra("authed_user")
+	userID := ""
+	if authedUser1 != nil {
+		authedUser := authedUser1.(map[string]interface{})
+		userID = authedUser["id"].(string)
+	} else {
+		fmt.Printf("WARN Slack responded without authed_user")
 	}
-	dao := slackTeam.NewDAO(conn.Dynamo, "HandleRedirectURLGetRequest", conn.ClientID)
-	err = dao.CreateOrUpdate(team)
+	if token.TokenType != "bot" {
+		err = errors.Errorf("Unexpected token_type=%s", token.TokenType)
+	} else {
+		botUserID := token.Extra("bot_user_id").(string)
+		team1 := token.Extra("team")
+		// accessToken := token.Extra("team")
+		teamID := ""
+		teamName := ""
+		if team1 != nil {
+			team := team1.(map[string]interface{})
+			// fmt.Printf("bot: %v", bot)
+			teamID = team["id"].(string)
+			teamName = team["name"].(string)
+		} else {
+			fmt.Printf("WARN Slack responded without `team {id, name}`")
+		}
+		scopes1 := token.Extra("scope").(string)
+		scopes := strings.Split(scopes1, ",")
+
+		team = slackTeam.SlackTeam{
+			TeamID:          common.PlatformID(teamID),
+			AccessToken:     token.AccessToken,
+			UserID:          userID,
+			TeamName:        teamName,
+			BotAccessToken:  token.AccessToken, // we only get one token these days
+			BotUserID:       botUserID,
+			EnterpriseID:    enterpriseID,
+			Scopes:          scopes,
+		}
+	}
 	return
 }

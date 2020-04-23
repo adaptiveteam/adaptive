@@ -7,7 +7,6 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -69,7 +68,6 @@ var (
 
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 
-	platformTokenDAO = platform.NewDAOFromSchema(d, namespace, schema)
 	// platformAdapter  = mapper.SlackAdapter2(platformTokenDAO)
 )
 

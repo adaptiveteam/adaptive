@@ -9,7 +9,6 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/slackTeam"
 	"log"
 	"net/url"
-	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -97,8 +96,8 @@ func InitAction(callbackId, userID string) []ebm.Attachment {
 }
 
 func publish(msg models.PlatformSimpleNotification) {
-	_, err := sns.Publish(msg, platformNotificationTopic)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not publish message to %s topic", platformNotificationTopic))
+	_, err2 := sns.Publish(msg, platformNotificationTopic)
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not publish message to %s topic", platformNotificationTopic))
 }
 
 func helloMessage(userID, channelID string, teamID models.TeamID) {
@@ -111,14 +110,12 @@ func helloMessage(userID, channelID string, teamID models.TeamID) {
 	found, err2 := d.GetItemOrEmptyFromTable(usersTable, keyParams, &aUser)
 	core.ErrorHandler(err2, namespace, "Couldn't find user "+userID)
 	// If the user doesn't exist in our tables, add the user first and then proceed to evaluate ADM
-	if err2 == nil {
-		if !found {
-			log.Println("User does not exist, adding...")
-			// refresh user cache
-			engageUser, _ := json.Marshal(models.UserEngage{UserID: userID, TeamID: models.TeamID(teamID)})
-			_, err3 := l.InvokeFunction(profileLambdaName, engageUser, false)
-			core.ErrorHandler(err3, namespace, "Couldn't add user "+userID)
-		}
+	if !found {
+		log.Println("User does not exist, adding...")
+		// refresh user cache
+		engageUser, _ := json.Marshal(models.UserEngage{UserID: userID, TeamID: models.TeamID(teamID)})
+		_, err3 := l.InvokeFunction(profileLambdaName, engageUser, false)
+		core.ErrorHandler(err3, namespace, "Couldn't add user "+userID)
 	}
 
 	rels := strategy.QueryCommunityUserIndex(userID, communityUsersTable, communityUsersUserIndex)
@@ -136,31 +133,33 @@ func helloMessage(userID, channelID string, teamID models.TeamID) {
 		// get the admin community
 		dao := community.CommunityDAO(globalConnection(teamID), userCommunitiesTable)
 		adminComms := dao.ReadOrEmptyUnsafe(teamID.ToPlatformID(), string(community.Admin))
+		var note models.PlatformSimpleNotification
 		if len(adminComms) == 0 {
 			// if no admin community, post message to the user about that
-			message := "Please ask your Slack administrator to finish setting up Adaptive by creating an Adaptive Admin private channel and then invite Adaptive to that channel."
-			publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: message})
-			return
-		}
-		// publish(models.PlatformSimpleNotification{UserId: slackMsg.User, Channel: slackMsg.Channel,
-		//	Message: core.TextWrap("Sorry, you are not a member of user community yet. Please contact your
-		//	admin to invite you to a community.", core.Underscore, core.Asterisk), AsUser: true})
-		// When user is not a member of community, ask if the user wants to notify admin
-		y, m := core.CurrentYearMonth()
-		mc := models.MessageCallback{Module: "community", Source: userID, Topic: "admin", Action: "adaptive_access",
-			Year: strconv.Itoa(y), Month: strconv.Itoa(m)}
-		actions := []ebm.AttachmentAction{
-			*models.SimpleAttachAction(mc, models.Now, user.NowActionLabel),
-			*models.SimpleAttachAction(mc, models.Ignore, "Nah")}
-		noAccessText, err4 := dialogFetcherDAO.FetchByContextSubject(NoAdaptiveAccessDialogContext, "text")
-		core.ErrorHandler(err4, namespace, fmt.Sprintf("Could not get dialog content for %s",
-			NoAdaptiveAccessDialogContext))
+			message := "Please ask your Slack administrator to finish setting up Adaptive by creating an Adaptive Admin private channel and then inviting Adaptive to that channel."
+			note = models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: message}
+		} else {
+			// publish(models.PlatformSimpleNotification{UserId: slackMsg.User, Channel: slackMsg.Channel,
+			//	Message: core.TextWrap("Sorry, you are not a member of user community yet. Please contact your
+			//	admin to invite you to a community.", core.Underscore, core.Asterisk), AsUser: true})
+			// When user is not a member of community, ask if the user wants to notify admin
+			y, m := core.CurrentYearMonth()
+			mc := models.MessageCallback{Module: "community", Source: userID, Topic: "admin", Action: "adaptive_access",
+				Year: strconv.Itoa(y), Month: strconv.Itoa(m)}
+			actions := []ebm.AttachmentAction{
+				*models.SimpleAttachAction(mc, models.Now, user.NowActionLabel),
+				*models.SimpleAttachAction(mc, models.Ignore, "Nah")}
+			noAccessText, err4 := dialogFetcherDAO.FetchByContextSubject(NoAdaptiveAccessDialogContext, "text")
+			core.ErrorHandler(err4, namespace, fmt.Sprintf("Could not get dialog content for %s",
+				NoAdaptiveAccessDialogContext))
 
-		attach := utils.ChatAttachment("Sorry, you are not a member of any community yet :disappointed:",
-			core.RandomString(noAccessText.Dialog), "", mc.ToCallbackID(),
-			actions, []ebm.AttachmentField{}, time.Now().Unix())
-		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
-			Attachments: []ebm.Attachment{*attach}})
+			attach := utils.ChatAttachment("Sorry, you are not a member of any community yet :disappointed:",
+				core.RandomString(noAccessText.Dialog), "", mc.ToCallbackID(),
+				actions, []ebm.AttachmentField{}, time.Now().Unix())
+			note = models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
+				Attachments: []ebm.Attachment{*attach}}
+		}
+		publish(note)
 	}
 }
 
@@ -175,8 +174,8 @@ func forwardToNamespaceWithAppID(appID models.TeamID, eventsAPIEvent string) fun
 			},
 		}
 		logger.WithField("platform_id", appID).Infof("Forwarding to %s", namespace)
-		_, err := sns.Publish(np2, payloadTopicArn)
-		core.ErrorHandler(err, namespace,
+		_, err2 := sns.Publish(np2, payloadTopicArn)
+		core.ErrorHandler(err2, namespace,
 			fmt.Sprintf("2: Could not forward Slack event to topic=%s,  namespace=%s. requestPayload:\n%v",
 				payloadTopicArn, namespace, eventsAPIEvent))
 	}
@@ -193,11 +192,12 @@ func invokeLambdaWithAppID(appID models.TeamID, eventsAPIEvent string) func(stri
 			},
 		}
 		fmt.Printf("INVOKING LAMBDA %v\n", namespace)
-		bytes, err := json.Marshal(np2)
+		bytes, err2 := json.Marshal(np2)
 		lambdaName := fmt.Sprintf("%s_%s-%s", clientID, namespace, slackProcessorSuffix)
-		_, err = l.InvokeFunction(lambdaName, bytes, true)
-		// _, err := sns.Publish(np2, payloadTopicArn)
-		core.ErrorHandler(err, namespace,
+		if err2 == nil {
+			_, err2 = l.InvokeFunction(lambdaName, bytes, true)
+		}
+		core.ErrorHandler(err2, namespace,
 			fmt.Sprintf("2: Could not invoke Slack processor lambda for namespace=%s. requestPayload:\n%v", namespace, eventsAPIEvent))
 	}
 }
@@ -247,6 +247,8 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 					}
 				}
 			}
+		} else {
+			err = errors.New("An empty request.Body is not supported")
 		}
 	}
 	err = errors.Wrap(err, "HandleRequest")
@@ -265,7 +267,7 @@ func getRequestPayload(requestBody string) (requestPayload string, err error) {
 	if strings.HasPrefix(requestBody, "payload=%7B%22") {
 		requestBody, err = url.QueryUnescape(requestBody)
 		err = errors.Wrap(err, "Could not unescape gateway request")
-	}
+	} 
 	requestPayload = strings.Replace(requestBody, "payload=", "", -1)
 	return
 }
@@ -273,7 +275,7 @@ func getRequestPayload(requestBody string) (requestPayload string, err error) {
 func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 	requestPayload string,
 ) (response events.APIGatewayProxyResponse, err error) {
-	logger.Infof("EVENT %v", eventsAPIEvent.Type)
+	logger.Infof("EVENT eventsAPIEvent.Type=%v", eventsAPIEvent.Type)
 	response = responseOk
 	switch eventsAPIEvent.Type {
 	case slackevents.AppHomeOpened:
@@ -292,26 +294,25 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 			err = routeCallbackEvent(eventsAPIEvent, requestPayload, *callbackEvent)
 		}
 	default:
-		logger.Infof("Handling event of type %v", eventsAPIEvent.Type)
 		// workaround for slackevents.ParseEvent
 		switch slack.InteractionType(eventsAPIEvent.Type) {
-		case slack.InteractionTypeInteractionMessage:
-			eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
-		case slack.InteractionTypeDialogSubmission:
-			eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
-		case slack.InteractionTypeDialogCancellation:
+		case slack.InteractionTypeInteractionMessage, // "interactive_message"
+			slack.InteractionTypeDialogSubmission,
+			slack.InteractionTypeDialogCancellation: 
 			eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
 		default:
 			panic(errors.New("Unknown type of Slack message: " + eventsAPIEvent.Type))
 		}
-		fmt.Printf("parsed eventsAPIEvent.Data =%v\n", reflect.TypeOf(eventsAPIEvent.Data))
+		data, _ := json.Marshal(eventsAPIEvent.Data)
+		fmt.Printf("Parsed eventsAPIEvent.Data:\n%+v", data)
 
 		objMap := parseMapUnsafe(requestPayload)
 		if _, ok := objMap["callback_id"]; ok {
 			userID := getUserID(eventsAPIEvent)
 			callbackID := getCallbackID(eventsAPIEvent)
-			fmt.Printf("userID=%v,callbackID=%v\n", userID, callbackID)
 			err = routeByCallbackID(eventsAPIEvent, requestPayload, userID, callbackID)
+		} else {
+			fmt.Printf("Couldn't find callback_id in map: %+v", objMap)
 		}
 	}
 	return
@@ -420,6 +421,8 @@ func routeByCallbackID(
 	requestPayload string,
 	userID, callbackID string,
 ) (err error) {
+	fmt.Printf("routeByCallbackID(userID=%s,callbackID=%s)\n", userID, callbackID)
+
 	slackRequest := models.EventsAPIEvent(requestPayload)
 	u := userDAO.ReadUnsafe(userID)
 	apiAppID := u.PlatformID
@@ -440,6 +443,7 @@ func routeByCallbackID(
 			var message slack.InteractionCallback
 			message, err = utils.ParseAsInteractionMsg(requestPayload)
 			err = errors.Wrap(err, "Could not parse to interaction type message")
+			logger.Infof("init_message parsed: %v", message)
 			if err != nil {
 				return
 			}
@@ -468,6 +472,8 @@ func routeByCallbackID(
 		// forwardToNamespace(HolidaysNamespace)
 	} else if strings.Contains(callbackID, AdaptiveValuesNamespace) {
 		competencies.HandleNamespacePayload4(np)
+	} else {
+		fmt.Printf("Unhandled callbackID=%s", callbackID)
 	}
 	return
 }
@@ -479,6 +485,7 @@ func routeMenuOption(
 	teamID models.TeamID,
 	menuOption string,
 ) (err error) {
+	logger.WithField("menuOption", menuOption).Infof("Routing menu option")
 	slackRequest := models.EventsAPIEvent(requestPayload)
 	userID := getUserID(eventsAPIEvent)
 	// callbackID := getCallbackID(eventsAPIEvent)
@@ -496,6 +503,7 @@ func routeMenuOption(
 	}
 	forwardToNamespace := forwardToNamespaceWithAppID(teamID, requestPayload)
 	invokeLambdaWithNamespace := invokeLambdaWithAppID(teamID, requestPayload)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	switch menuOption {
 	case user.AskForEngagements:
 		engage := models.UserEngageWithCheckValues{
@@ -560,7 +568,7 @@ func routeMenuOption(
 		var reportname string
 		buf, reportname, err = onStrategyPerformanceReport(ReadRDSConfigFromEnv(), teamID)
 		if err == nil {
-			err = sendReportToUser(teamID, userID, reportname, buf)
+			err = sendReportToUser(teamID, userID, reportname, buf, conn)
 		}
 		deleteMessage(message)
 		err = errors.Wrap(err, "StrategyPerformanceReport")
@@ -569,7 +577,7 @@ func routeMenuOption(
 		var reportname string
 		buf, reportname, err = onIDOPerformanceReport(ReadRDSConfigFromEnv(), userID)
 		if err == nil {
-			err = sendReportToUser(teamID, userID, reportname, buf)
+			err = sendReportToUser(teamID, userID, reportname, buf, conn)
 		}
 		deleteMessage(message)
 		err = errors.Wrap(err, "IDOPerformanceReport")
@@ -584,11 +592,12 @@ func deleteMessage(request slack.InteractionCallback) {
 	publish(models.PlatformSimpleNotification{
 		UserId:  request.User.ID,
 		Channel: request.Channel.ID,
-		Message: "", Ts: request.MessageTs, AsUser: true})
+		Message: "", Ts: request.MessageTs, 
+	})
 }
 func parseMapUnsafe(input string) (objMap map[string]*json.RawMessage) {
-	err := json.Unmarshal([]byte(input), &objMap)
-	core.ErrorHandler(err, namespace, "Could not unmarshal json to map: "+input)
+	err2 := json.Unmarshal([]byte(input), &objMap)
+	core.ErrorHandler(err2, namespace, "Could not unmarshal json to map: "+input)
 	return
 }
 
@@ -600,8 +609,8 @@ func getUserID(eventsAPIEvent slackevents.EventsAPIEvent) string {
 }
 
 func invokeLambdaUnsafe(lambdaName string, userEngage models.UserEngageWithCheckValues) {
-	engageBytes, err := json.Marshal(userEngage)
-	core.ErrorHandler(err, namespace, "Could not marshal UserEngage")
-	_, err = l.InvokeFunction(lambdaName, engageBytes, false)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s", lambdaName))
+	engageBytes, err2 := json.Marshal(userEngage)
+	core.ErrorHandler(err2, namespace, "Could not marshal UserEngage")
+	_, err2 = l.InvokeFunction(lambdaName, engageBytes, false)
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not invoke %s", lambdaName))
 }

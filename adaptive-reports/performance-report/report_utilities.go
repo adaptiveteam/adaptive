@@ -63,7 +63,7 @@ func getRatingLanguage(value float64) (rating string) {
 	return rating
 }
 
-func (c coachingList) getSortedAttribute(attribute func(coaching) string) (sortedTopics []string) {
+func (c CoachingList) getSortedAttribute(attribute func(Coaching) string) (sortedTopics []string) {
 
 	// Get all topics
 	topics := make([]string, 0)
@@ -80,7 +80,7 @@ func (c coachingList) getSortedAttribute(attribute func(coaching) string) (sorte
 	return sortedTopics
 }
 
-func (c coachingList) getTopicToValueTypeMapping() (topicToValueTypeMapping map[string]string) {
+func (c CoachingList) getTopicToValueTypeMapping() (topicToValueTypeMapping map[string]string) {
 	topicToValueTypeMapping = make(map[string]string, 0)
 	for _, each := range c {
 		topicToValueTypeMapping[each.Topic] = each.Type
@@ -89,11 +89,11 @@ func (c coachingList) getTopicToValueTypeMapping() (topicToValueTypeMapping map[
 	return topicToValueTypeMapping
 }
 
-func (c coachingList) length() int {
+func (c CoachingList) length() int {
 	return len(c)
 }
 
-func (c coachingList) index(i int) coaching {
+func (c CoachingList) index(i int) Coaching {
 	return c[i]
 }
 
@@ -107,17 +107,13 @@ func GetCompetencyImpl(conn daosCommon.DynamoDBConnection) GetCompetencyUnsafe {
 	}
 }
 
-func newCoachingListFromStream(stream []byte, getCompetencyUnsafe GetCompetencyUnsafe) (rv coachingList, err error) {
-	rv = make(coachingList, 0)
-	var feedbackValueMappedList []coaching
-	err = nil
-	if len(stream) > 0 {
-		err = json.Unmarshal(stream, &rv)
-	}
-	for _, each := range rv {
+// ResolveCompetencies replaces value id in `Topic` with value name and value type in
+// `Topic`, `Type`.
+func ResolveCompetencies(coachingList CoachingList, getCompetencyUnsafe GetCompetencyUnsafe) (feedbackValueMappedList CoachingList) {
+	for _, each := range coachingList {
 		competencies := getCompetencyUnsafe(each.Topic)
 		for _, competency := range competencies {
-			feedbackMapped := coaching{
+			feedbackMapped := Coaching{
 				Source:   each.Source,
 				Target:   each.Target,
 				Topic:    competency.Name,
@@ -130,11 +126,21 @@ func newCoachingListFromStream(stream []byte, getCompetencyUnsafe GetCompetencyU
 			feedbackValueMappedList = append(feedbackValueMappedList, feedbackMapped)
 		}
 	}
+	return
+}
+// NewCoachingListFromStream - 
+func NewCoachingListFromStream(stream []byte, getCompetencyUnsafe GetCompetencyUnsafe) (feedbackValueMappedList CoachingList, err error) {
+	rv := make(CoachingList, 0)
+	err = nil
+	if len(stream) > 0 {
+		err = json.Unmarshal(stream, &rv)
+	}
+	feedbackValueMappedList = ResolveCompetencies(rv, getCompetencyUnsafe)
 	return feedbackValueMappedList, err
 }
 
-func (c coachingList) justFeedback() coachingList {
-	rv := make(coachingList, 0)
+func (c CoachingList) justFeedback() CoachingList {
+	rv := make(CoachingList, 0)
 	for _, each := range c {
 		if len(each.GetComments()) > 0 {
 			rv = append(rv, each)
@@ -143,8 +149,8 @@ func (c coachingList) justFeedback() coachingList {
 	return rv
 }
 
-func (c coachingList) feedbackForQuarter(quarter int, year int) coachingList {
-	rv := make(coachingList, 0)
+func (c CoachingList) feedbackForQuarter(quarter int, year int) CoachingList {
+	rv := make(CoachingList, 0)
 	for _, each := range c {
 		if each.GetQuarter() == quarter && each.GetYear() == year {
 			rv = append(rv, each)
@@ -153,8 +159,8 @@ func (c coachingList) feedbackForQuarter(quarter int, year int) coachingList {
 	return rv
 }
 
-func (c coachingList) topicCoaching(topic string) coachingList {
-	rv := make(coachingList, 0)
+func (c CoachingList) topicCoaching(topic string) CoachingList {
+	rv := make(CoachingList, 0)
 	for _, each := range c {
 		if each.GetTopic() == topic {
 			rv = append(rv, each)
@@ -163,8 +169,8 @@ func (c coachingList) topicCoaching(topic string) coachingList {
 	return rv
 }
 
-func (c coachingList) typeCoaching(topicType string, topicToValueTypeMapping map[string]string) coachingList {
-	rv := make(coachingList, 0)
+func (c CoachingList) typeCoaching(topicType string, topicToValueTypeMapping map[string]string) CoachingList {
+	rv := make(CoachingList, 0)
 	for _, each := range c {
 		if topicToValueTypeMapping[each.GetTopic()] == topicType {
 			rv = append(rv, each)
@@ -173,7 +179,7 @@ func (c coachingList) typeCoaching(topicType string, topicToValueTypeMapping map
 	return rv
 }
 
-func (c coachingList) topics() (rv []string) {
+func (c CoachingList) topics() (rv []string) {
 	for _, each := range c {
 		rv = append(rv, each.GetTopic())
 	}
@@ -181,8 +187,8 @@ func (c coachingList) topics() (rv []string) {
 	return unique(rv)
 }
 
-func (c coachingList) kindCoaching(kind string, topicToValueTypeMapping map[string]string) coachingList {
-	rv := make(coachingList, 0)
+func (c CoachingList) kindCoaching(kind string, topicToValueTypeMapping map[string]string) CoachingList {
+	rv := make(CoachingList, 0)
 	for _, each := range c {
 		if topicToValueTypeMapping[each.GetTopic()] == kind {
 			rv = append(rv, each)
@@ -191,7 +197,7 @@ func (c coachingList) kindCoaching(kind string, topicToValueTypeMapping map[stri
 	return rv
 }
 
-func (c coachingList) justScores() (rv []float64) {
+func (c CoachingList) justScores() (rv []float64) {
 	rv = make([]float64, 0)
 	for _, each := range c {
 		rv = append(rv, each.GetRating())
@@ -199,7 +205,7 @@ func (c coachingList) justScores() (rv []float64) {
 	return rv
 }
 
-func (c coachingList) createTextBlob() string {
+func (c CoachingList) createTextBlob() string {
 	var textBlob string
 	for _, each := range c {
 		textBlob = each.GetComments() + "\n" + textBlob
@@ -207,7 +213,7 @@ func (c coachingList) createTextBlob() string {
 	return textBlob
 }
 
-func (c coachingList) calculateScore() float64 {
+func (c CoachingList) calculateScore() float64 {
 	scores := float64(0.0)
 	length := float64(len(c))
 	if length > 0 {
@@ -233,48 +239,48 @@ func unique(stringSlice []string) []string {
 
 type fontMap map[string]*model.PdfFont
 
-type coachingList []coaching
+type CoachingList []Coaching
 
-type coaching struct {
+type Coaching struct {
 	Source   string  `json:"source"`
 	Target   string  `json:"target"`
 	Topic    string  `json:"topic"`
-	Type     string  `json:"type"`
+	Type     string  `json:"type,omitempty"`
 	Rating   float64 `json:"rating"`
 	Comments string  `json:"comments"`
 	Quarter  int     `json:"quarter"`
 	Year     int     `json:"year"`
 }
 
-func (c coaching) GetSource() string {
+func (c Coaching) GetSource() string {
 	return c.Source
 }
 
-func (c coaching) GetTopic() string {
+func (c Coaching) GetTopic() string {
 	return c.Topic
 }
 
-func (c coaching) GetType() string {
+func (c Coaching) GetType() string {
 	return c.Type
 }
 
-func (c coaching) GetComments() string {
+func (c Coaching) GetComments() string {
 	return c.Comments
 }
 
-func (c coaching) GetRating() float64 {
+func (c Coaching) GetRating() float64 {
 	return c.Rating
 }
 
-func (c coaching) GetQuarter() int {
+func (c Coaching) GetQuarter() int {
 	return c.Quarter
 }
 
-func (c coaching) GetYear() int {
+func (c Coaching) GetYear() int {
 	return c.Year
 }
 
-func (c coaching) Set(
+func (c Coaching) Set(
 	source string,
 	target string,
 	topic string,

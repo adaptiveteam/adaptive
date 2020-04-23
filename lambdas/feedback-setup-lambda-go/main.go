@@ -1,6 +1,7 @@
-package lambda
+package feedbackSetupLambda
 
 import (
+	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	"github.com/adaptiveteam/adaptive/daos/userFeedback"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -379,7 +380,7 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 		action := request.ActionCallback.AttachmentActions[0]
 		if strings.HasPrefix(action.Name, ViewCollaborationReport) {
 			act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s_", ViewCollaborationReport))
-			notes = viewCollaborationReportHandler(request, act, mc)
+			notes = viewCollaborationReportHandler(request, teamID, act, mc)
 		}
 	}
 	platform.PublishAll(notes)
@@ -531,7 +532,8 @@ func cancelEngagementHandler(request slack.InteractionCallback, mc models.Messag
 		Channel: request.Channel.ID, Message: "", Ts: request.OriginalMessage.Timestamp}}
 }
 
-func viewCollaborationReportHandler(request slack.InteractionCallback, act string, mc models.MessageCallback,
+func viewCollaborationReportHandler(request slack.InteractionCallback,
+	teamID models.TeamID, act string, mc models.MessageCallback,
 ) []models.PlatformSimpleNotification {
 	switch act {
 	case string(models.Now):
@@ -541,16 +543,21 @@ func viewCollaborationReportHandler(request slack.InteractionCallback, act strin
 		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse string to int"))
 		bt := business_time.NewDate(y, m, 1)
 		// view report now
-		engageBytes, _ := json.Marshal(models.UserEngage{UserID: request.User.ID, IsNew: false,
-			Update: true, Channel: request.Channel.ID, ThreadTs: request.MessageTs, Date: bt.DateToString(string(core.ISODateLayout))})
+		// engageBytes, _ := json.Marshal(models.UserEngage{
+		// 	UserID: request.User.ID, 
+		// 	IsNew: false,
+		// 	Update: true, 
+		// 	Channel: request.Channel.ID, ThreadTs: request.MessageTs, 
+		// 	Date: bt.DateToString(string(core.ISODateLayout))})
 		// Update original message
 		platform.Publish(models.PlatformSimpleNotification{UserId: request.User.ID, Channel: request.Channel.ID,
 			Message: fmt.Sprintf("_Hang tight, fetching your collaboration report for quarter `%d`, year `%d` :point_down:_",
 				bt.GetPreviousQuarter(), bt.GetPreviousQuarterYear()), Ts: request.MessageTs})
 		// This is used to add an engagement on who to give feedback to
-		_, err = l.InvokeFunction(collaborationReportPostingLambda, engageBytes, false)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s from feedback-setup-lambda",
-			collaborationReportPostingLambda))
+		err = feedbackReportPostingLambda.DeliverReportToUserAsync(teamID, request.User.ID, bt.DateToTimeMidnight())
+		// _, err = l.InvokeFunction(collaborationReportPostingLambda, engageBytes, false)
+		// core.ErrorHandler(err, namespace, fmt.Sprintf("Could not invoke %s from feedback-setup-lambda",
+		// 	collaborationReportPostingLambda))
 		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
 	case string(models.Ignore):
 		utils.UpdateEngAsIgnored(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)

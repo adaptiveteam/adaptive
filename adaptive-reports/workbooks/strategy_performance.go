@@ -1,7 +1,7 @@
 package workbooks
 
 import (
-	"fmt"
+	"github.com/adaptiveteam/adaptive/daos/dialogEntry"
 
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/models"
@@ -15,51 +15,51 @@ import (
 	"github.com/pkg/errors"
 )
 
+// CreateStrategyWorkbook -
 func CreateStrategyWorkbook(
+	f *excel.File,
 	platformID common.PlatformID,
 	db *utilities.Database,
 	dialogDAO fetch_dialog.DAO,
-	properties *excel.DocProperties,
-) (f *excel.File, err error) {
+) (err error) {
+	qm := utilities.InvokeQueries(
+		utilities.InvokeQuery("strategy", queries.SelectStrategyStatusByPlatformID, string(platformID)),
+		utilities.InvokeQuery("alignment", queries.SelectAlignmentSummaryByPlatformID, string(platformID)),
+		utilities.InvokeQuery("vision", queries.SelectVisionByPlatformID, string(platformID)),
+		utilities.InvokeQuery("competencies", queries.SelectCompetenciesByPlatformID, string(platformID)),
+	)
+	var queryResults utilities.QueryResultMap
+	queryResults, err = qm.Run(db)
 
-	f = excel.NewFile()
-	err = f.SetDocProps(properties)
 	if err == nil {
-		qm := utilities.InvokeQueries(
-			utilities.InvokeQuery("strategy", queries.SelectStrategyStatusByPlatformID, string(platformID)),
-			utilities.InvokeQuery("alignment", queries.SelectAlignmentSummaryByPlatformID, string(platformID)),
-			utilities.InvokeQuery("vision", queries.SelectVisionByPlatformID, string(platformID)),
-			utilities.InvokeQuery("competencies", queries.SelectCompetenciesByPlatformID, string(platformID)),
+		allObjectives, allInitiatives := models.ConvertTableToObjectivesAndInitiatives(
+			queryResults["strategy"].GetTable(),
+			len(queryResults["strategy"].GetRows()),
 		)
-		queryResults, err := qm.Run(db)
+		allAlignments := models.CreateStrategyAlignments(
+			queryResults["alignment"].GetTable(),
+			len(queryResults["alignment"].GetRows()),
+		)
+		vision := queryResults["vision"].GetTable().GetValueOrDefault("vision", 0, func() string {
+			return "There is no vision in the strategy yet"
+		})
+		allCompetencies := models.CreateCompetencies(
+			queryResults["competencies"].GetTable(),
+			len(queryResults["competencies"].GetRows()),
+		)
 
+		instructions, summary, alignment, competencies := strategy.CreateStrategyWorksheets(
+			f,
+			"Instructions",
+			"Performance Summary",
+			"Alignment",
+			"Competencies",
+		)
+
+		var dialog dialogEntry.DialogEntry
+		dialog, err = dialogDAO.FetchByAlias("report-instructions", "instructions", "strategy")
+		err = errors.Wrap(err, "error querying instructions for strategy performance report")
 		if err == nil {
-			allObjectives, allInitiatives := models.ConvertTableToObjectivesAndInitiatives(
-				queryResults["strategy"].GetTable(),
-				len(queryResults["strategy"].GetRows()),
-			)
-			allAlignments := models.CreateStrategyAlignments(
-				queryResults["alignment"].GetTable(),
-				len(queryResults["alignment"].GetRows()),
-			)
-			vision := queryResults["vision"].GetTable().GetValue("vision", 0)
-			allCompetencies := models.CreateCompetencies(
-				queryResults["competencies"].GetTable(),
-				len(queryResults["competencies"].GetRows()),
-			)
-
-			instructions, summary, alignment, competencies := strategy.CreateStrategyWorksheets(
-				f,
-				"Instructions",
-				"Performance Summary",
-				"Alignment",
-				"Competencies",
-			)
-
-			dialog, err := dialogDAO.FetchByAlias("report-instructions", "instructions", "strategy")
-			if err != nil {
-				fmt.Println(errors.Wrap(err, "error querying instructions for strategy performance report"))
-			}
 			strategy.CreateStrategySummary(f, summary, vision, &allObjectives, styles.Styles)
 			strategy.CreateAlignmentSummary(f, alignment, allAlignments, allObjectives, allInitiatives, allCompetencies, styles.Styles)
 			strategy.CreateCompetencies(f, competencies, allCompetencies, styles.Styles)
@@ -74,5 +74,5 @@ func CreateStrategyWorkbook(
 		}
 	}
 
-	return f, err
+	return
 }

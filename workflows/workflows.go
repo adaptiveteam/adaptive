@@ -126,7 +126,9 @@ func prepareEnvironmentWithoutPrefix(conn common.DynamoDBConnection) (env wf.Env
 	// platformAdapter := mapper.SlackAdapterForTeamID(conn)
 
 	env = wf.ConstructEnvironmentWithoutPrefix(conn, 
-		wf.PostponeEventHandler(conn), logger)
+		wf.PostponeEventHandler(conn), logger,
+		wf.ResolveCommunityImpl(conn),
+	)
 	return
 }
 
