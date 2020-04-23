@@ -22,7 +22,7 @@ func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, tea
 		fmt.Printf("Got app_mention with text: %v\n", text)
 		// We first check for requestForUserRegex because botMentionRegex is a subset of this
 		if requestForUserRegex.MatchString(text) {
-			comms := subscribedCommunities(slackMsg.Channel)
+			comms := subscribedCommunities(teamID, slackMsg.Channel)
 
 			// It consists of 4 elements, 0: original, 1: first group (channel), 2: second group (command), 3: third group (target)
 			list := requestForUserRegex.FindStringSubmatch(text)
@@ -76,7 +76,7 @@ func userMentionGenerateReportHandler(slackMsg slackevents.AppMentionEvent, team
 }
 
 func onBotMentioned(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, command string) (response platform.Response) {
-	comms := subscribedCommunities(slackMsg.Channel)
+	comms := subscribedCommunities(teamID, slackMsg.Channel)
 	switch command {
 	case "hello", "hi":
 		response = onBotMentionedHelloCommand(comms, slackMsg, teamID)

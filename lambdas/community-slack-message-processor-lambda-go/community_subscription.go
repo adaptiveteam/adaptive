@@ -200,7 +200,7 @@ func postSubscriptionRemovalToAdmin(teamID models.TeamID, communityID, userID st
 func onCommunityUnsubscribeClicked(request slack.InteractionCallback, teamID models.TeamID) platform.Response {
 	channelID := request.Channel.ID
 	fmt.Printf("Unsubscribing (platform=%s) from channel %s\n", teamID, channelID)
-	commIDs := subscribedCommunityIDs(channelID)
+	commIDs := subscribedCommunityIDs(teamID, channelID)
 	opts := liftStringToOption(simpleOptionStr)(commIDs)
 	message := selectOptionsMessage(
 		callback(channelID, "unsubscription", "select"),
@@ -218,14 +218,15 @@ func onCommunityUnsubscribeCommunityClicked(
 	communityID string,
 	mc models.MessageCallback,
 	teamID models.TeamID) (message platform.MessageContent) {
-	err := channelUnsubscribe(request.Channel.ID, teamID)
-	if err == nil {
+	err2 := channelUnsubscribe(request.Channel.ID, teamID)
+	if err2 == nil {
 		message = platform.MessageContent{Message: LeavingCommunityNotification(ui.PlainText(communityID))}
 		// We have now added feedback for a coaching engagement. We can now update the original engagement as answered.
 		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
 		// Posting removal message to Admin
 		postSubscriptionRemovalToAdmin(teamID, communityID, request.User.ID)
 	} else {
+		logger.WithError(err2).Errorf("Couldn't unsubscribe communityID=%s from teamID=%v", communityID, teamID)
 		message = platform.MessageContent{Message: UnsubscriptionErrorMessage}
 	}
 	return
@@ -264,7 +265,7 @@ func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent, teamID
 				logger.Infof("%s joined %s channel on invitation in %s platform", slackMsg.User, slackMsg.Channel, teamID)
 				// If another user is added
 				// Get the subscribed communities
-				subComms := subscribedCommunities(slackMsg.Channel)
+				subComms := subscribedCommunities(teamID, slackMsg.Channel)
 				hasBeenSubscribed := isUserSubscribedToAnyCommunity(slackMsg.User)
 				userCommunityPairs := addUserToAllCommunities(teamID, slackMsg.User, subComms)
 				logger.Infof("Welcoming newly added %s user", slackMsg.User)
