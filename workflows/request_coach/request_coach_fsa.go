@@ -270,6 +270,7 @@ func (w workflowImpl) OnCoachRequestedViaCommunity() wf.Handler {
 		}
 		coach := issue.UserObjective.AccountabilityPartner
 		if coach == utilsUser.UserID_Requested {
+			w.AdaptiveLogger.Infof("Requesting a coach for the issue %s (%s)", issue.UserObjective.ID, issue.UserObjective.Name)
 			out = out.WithCommunityInteraction(string(community.Coaching), wf.InteractiveMessage{
 				PassiveMessage: wf.PassiveMessage{
 					AttachmentText: ui.Sprintf("%s has requested an accountability partner for the %s. ",
@@ -297,10 +298,11 @@ func (w workflowImpl) OnIWouldLikeToCoachEvent() wf.Handler {
 		if err != nil {
 			return
 		}
+		var msg wf.InteractiveMessage
 		if issue.UserObjective.AccountabilityPartner == utilsUser.UserID_Requested {
 			issue.UserObjective.AccountabilityPartner = ctx.Request.User.ID
 			err = issues.Save(issue)(w.DynamoDBConnection)
-			out = out.WithInteractiveMessage(wf.InteractiveMessage{
+			msg = wf.InteractiveMessage{
 				PassiveMessage: wf.PassiveMessage{
 					AttachmentText: ui.Sprintf("%s is now coaching the below %s. ",
 						engCommon.TaggedUser(issue.UserObjective.ModifiedBy),
@@ -308,9 +310,9 @@ func (w workflowImpl) OnIWouldLikeToCoachEvent() wf.Handler {
 					),
 					Fields: shortViewFields(issue),
 				},
-			})
+			}
 		} else {
-			out = out.WithInteractiveMessage(wf.InteractiveMessage{
+			msg = wf.InteractiveMessage{
 				PassiveMessage: wf.PassiveMessage{
 					AttachmentText: ui.Sprintf("%s is already coaching the below %s. ",
 						engCommon.TaggedUser(issue.UserObjective.ModifiedBy),
@@ -318,8 +320,9 @@ func (w workflowImpl) OnIWouldLikeToCoachEvent() wf.Handler {
 					),
 					Fields: shortViewFields(issue),
 				},
-			})
+			}
 		}
+		out = out.WithCommunityInteraction(string(community.Coaching), msg)
 		out.NextState = wf.DoneState
 		return
 	}
