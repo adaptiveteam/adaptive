@@ -259,19 +259,29 @@ var none = models.KvPair{Key: string(objectives.CoachNotNeededOption), Value: ut
 
 // IDOCoaches returns Key-Value pairs with user id and user display name
 // The set of users and the format are suitable for IDO dialog coach field.
-func IDOCoaches(userID string) func(conn DynamoDBConnection) (res []models.KvPair, err error) {
+func IDOCoaches(userID string, oldCoachIDOptional string) func(conn DynamoDBConnection) (res []models.KvPair, err error) {
 	return func(conn DynamoDBConnection) (res []models.KvPair, err error) {
 		defer core.RecoverToErrorVar("IDOCoaches", &err)
 		userDao := utilsUser.DAOFromConnection(conn)
 
-		var adaptiveCommunityUsers []adaptiveCommunityUser.AdaptiveCommunityUser
-		adaptiveCommunityUsers, err = adaptiveCommunityUser.ReadByPlatformIDCommunityID(conn.PlatformID, string(community.Coaching))(conn)
+		var coachingMembers []adaptiveCommunityUser.AdaptiveCommunityUser
+		coachingMembers, err = adaptiveCommunityUser.ReadByPlatformIDCommunityID(conn.PlatformID, string(community.Coaching))(conn)
 
+		isOldCoachIDPresent := oldCoachIDOptional == ""
+		for _, u := range coachingMembers {
+			if u.UserID == oldCoachIDOptional {
+				isOldCoachIDPresent = true
+				break
+			}
+		}
 		//  community.CommunityMembers(communityUsersTableName(conn.ClientID), string(community.Coaching), 
 		// 	models.ParseTeamID(conn.PlatformID))
-		userIDs := mapAdaptiveCommunityUsersToUserID(adaptiveCommunityUsers)
+		userIDs := mapAdaptiveCommunityUsersToUserID(coachingMembers)
+		if !isOldCoachIDPresent {
+			userIDs = append(userIDs, oldCoachIDOptional)
+		}
 		res = []models.KvPair{none}
-		if len(adaptiveCommunityUsers) > 0 { // Does this include adaptive bot name?
+		if len(coachingMembers) > 0 { // Does this include adaptive bot name?
 			res = append(res, requested)
 		}
 		for _, id := range userIDs {

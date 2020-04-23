@@ -23,7 +23,7 @@ func (IDOImpl) CreateDialog(w workflowImpl, ctx wf.EventHandlingContext, issue I
 	dates := convertKvPairToPlainTextOption(allDates)
 
 	var allMembers []models.KvPair
-	allMembers, err = IDOCoaches(ctx.Request.User.ID)(w.DynamoDBConnection)
+	allMembers, err = IDOCoaches(ctx.Request.User.ID, issue.UserObjective.AccountabilityPartner)(w.DynamoDBConnection)
 	if err != nil {
 		return
 	}
