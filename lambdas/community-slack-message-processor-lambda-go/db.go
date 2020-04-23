@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/pkg/errors"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"fmt"
@@ -240,30 +241,32 @@ func createCommunityFromCreatorUser(creatorUserID string, channelID string, comm
 }
 
 func addUserToAllCommunities(teamID models.TeamID, userID string, subscribedCommunityIDs []models.AdaptiveCommunity) (res []models.AdaptiveCommunityUser3) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	for _, each := range subscribedCommunityIDs {
 		// For each subscribed community, add an entry in community users table
-		commUser := models.AdaptiveCommunityUser3{
+		commUser := adaptiveCommunityUser.AdaptiveCommunityUser{
 			ChannelID:   each.ChannelID,
 			UserID:      userID,
 			CommunityID: each.ID,
 			PlatformID:  teamID.ToPlatformID(),
 		}
-		communityUserDAO.CreateUnsafe(commUser)
+		adaptiveCommunityUser.CreateUnsafe(commUser)(conn)
 		res = append(res, commUser)
 	}
 	return
 }
 
 func addUsersToCommunity(teamID models.TeamID, channelID string, communityID string, userIDs []string) (res []models.AdaptiveCommunityUser3) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	// Adding existing channel members
 	for _, each := range userIDs {
-		commUser := models.AdaptiveCommunityUser3{
-			CommunityID: communityID,
-			UserID:      each,
-			ChannelID:   channelID,
+		commUser := adaptiveCommunityUser.AdaptiveCommunityUser{
 			PlatformID:  teamID.ToPlatformID(),
+			CommunityID: communityID,
+			ChannelID:   channelID,
+			UserID:      each,
 		}
-		communityUserDAO.CreateUnsafe(commUser)
+		adaptiveCommunityUser.CreateUnsafe(commUser)(conn)
 		res = append(res, commUser)
 	}
 	return
