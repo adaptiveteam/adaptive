@@ -39,6 +39,7 @@ type Environment struct {
 	GetPlatformAPI PlatformAPIForTeamID
 	LogInfof       LogInfof
 	PostponeEvent
+	ResolveCommunity func (communityID string) (conversationID platform.ConversationID, err error)
 }
 
 // MaxImmediateSteps is used to limit possible damage in case of errors
@@ -92,14 +93,16 @@ func (w Template) handleContext(env Environment,
 		if err == nil {
 			bytes, _ := json.Marshal(out)
 			env.LogInfof("[U: %s]After handling: %s", ctx.Request.User.ID, string(bytes))
-			data := out.Data
-			if data == nil {
-				data = ctx.Data
-			}
+			data := ctx.Data
 			data = overrideData(data, out.DataOverride)
 			var lastMessageID platform.TargetMessageID
 			furtherActions = out.Interaction.ImmediateEvents
-			lastMessageID, err = interact(ctx, env, out.NextState, out.Interaction, oldData, data)
+			ti := TargetedInteraction{
+				InteractionTarget: InteractionTarget{ UserID: ctx.Request.User.ID},
+				Interaction: out.Interaction,
+			}
+			lastMessageID, err = interact(ctx, env, out.NextState, 
+				ti, oldData, data)
 			if err == nil && out.ImmediateEvent != "" {
 				newContext := EventHandlingContext{
 					TeamID: ctx.TeamID,
@@ -151,52 +154,67 @@ func (w Template) getEventHandlingContext(np models.NamespacePayload4) (ctx Even
 // interact sends output information to user/users
 func interact(ctx EventHandlingContext,
 	env Environment, nextState State,
-	interaction Interaction,
+	ti TargetedInteraction,
 	oldData Data,
 	data Data) (lastMessageID platform.TargetMessageID, err error) {
-	bytes, _ := json.Marshal(interaction)
+	bytes, _ := json.Marshal(ti.Interaction)
 	env.LogInfof("interact(..., teamID=%s, next state=%s, interaction=%v, data=%s)",
 		ctx.TeamID.ToString(), nextState, string(bytes), ShowData(data))
-	resps := interaction.Responses
+	resps := ti.Interaction.Responses
 	platformAPI := env.GetPlatformAPI(ctx.TeamID)
 	err = sendResponses(platformAPI, resps...)
 	isOriginalPermanentF := ctx.IsOriginalPermanent
-	isDeletingOriginal := !interaction.KeepOriginal && !isOriginalPermanentF
+	isDeletingOriginal := !ti.Interaction.KeepOriginal && !isOriginalPermanentF
 	if isDeletingOriginal {
-		deleteOriginal(ctx, env, interaction)
+		deleteOriginal(ctx, env, ti.Interaction)
 	}
 	if err == nil {
-		for _, m := range interaction.Messages {
-			lastMessageID, err = sendInteractiveMessage(ctx,
-				env,
-				platformAPI,
-				nextState, data, m,
-				isDeletingOriginal)
-		}
+		var targetConversation platform.ConversationID
+		targetConversation, err = getConversation(env, ti.InteractionTarget)
 		if err == nil {
-			for _, survey := range interaction.OptionalSurvey {
-				ts := ctx.TargetMessageID.Ts
-				if isDeletingOriginal {
-					ts = ""
-				} // if we deleted the message, then no need to save it's id
-				nextStatePath := constructActionPath(env.Prefix, nextState, DialogDummyEvent, ts, isOriginalPermanentF, data)
-				dialog := ebm.AttachmentActionSurvey2{
-					AttachmentActionSurvey: survey.AttachmentActionSurvey,
-					TriggerID:              ctx.Request.TriggerID,
-					CallbackID:             nextStatePath.Encode(),
-					State:                  "", // Not using at the moment
-				}
-				err = platformAPI.ShowDialog(dialog)
+			for _, m := range ti.Interaction.Messages {
+				lastMessageID, err = sendInteractiveMessage(ctx,
+					env,
+					platformAPI,
+					nextState, data, 
+					targetConversation, 
+					m,
+					isDeletingOriginal)
 			}
 			if err == nil {
-				// interaction.ImmediateEvents { // these events will be returned
-				for _, evt := range interaction.PostponedEvents {
-					err = env.PostponeEvent(ctx.TeamID, evt)
+				for _, survey := range ti.Interaction.OptionalSurvey {
+					ts := ctx.TargetMessageID.Ts
+					if isDeletingOriginal {
+						ts = ""
+					} // if we deleted the message, then no need to save it's id
+					nextStatePath := constructActionPath(env.Prefix, nextState, DialogDummyEvent, ts, isOriginalPermanentF, data)
+					dialog := ebm.AttachmentActionSurvey2{
+						AttachmentActionSurvey: survey.AttachmentActionSurvey,
+						TriggerID:              ctx.Request.TriggerID,
+						CallbackID:             nextStatePath.Encode(),
+						State:                  "", // Not using at the moment
+					}
+					err = platformAPI.ShowDialog(dialog)
+				}
+				if err == nil {
+					// interaction.ImmediateEvents { // these events will be returned
+					for _, evt := range ti.Interaction.PostponedEvents {
+						err = env.PostponeEvent(ctx.TeamID, evt)
+					}
 				}
 			}
 		}
 	} else {
 		env.LogInfof("Error while sending responses: %+v", err)
+	}
+	return
+}
+
+func getConversation(env Environment, t InteractionTarget) (targetConversation platform.ConversationID, err error) {
+	if t.UserID == "" {
+		targetConversation, err = env.ResolveCommunity(t.CommunityID)
+	} else {
+		targetConversation = platform.ConversationID(t.UserID)
 	}
 	return
 }
@@ -219,6 +237,7 @@ func sendInteractiveMessage(ctx EventHandlingContext,
 	platformAPI mapper.PlatformAPI,
 	nextState State,
 	data Data,
+	targetConversation platform.ConversationID,
 	message InteractiveMessage,
 	isDeletingOriginal bool) (lastMessageID platform.TargetMessageID, err error) {
 	var msg platform.MessageContent
@@ -228,7 +247,7 @@ func sendInteractiveMessage(ctx EventHandlingContext,
 		if message.OverrideOriginal && ctx.TargetMessageID.Ts != "" && !isDeletingOriginal {
 			response = platform.Override(ctx.TargetMessageID, msg)
 		} else {
-			response = platform.Post(platform.ConversationID(ctx.Request.User.ID), msg)
+			response = platform.Post(targetConversation, msg)
 		}
 		var mapperMessageID mapper.MessageID
 		mapperMessageID, err = platformAPI.PostSync(response)
