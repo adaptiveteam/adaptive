@@ -27,7 +27,7 @@ func channelMembersWithPagination(api *slack.Client, channelID string) (users []
 	return 
 }
 
-func channelMembers(channelID string, teamID models.TeamID) (users []string) {
+func slackChannelMembers(channelID string, teamID models.TeamID) (users []string) {
 	platformToken, err2 := platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
 	core.ErrorHandler(err2, "channelMembers", "Could not obtain token")
 	api := slack.New(platformToken)
