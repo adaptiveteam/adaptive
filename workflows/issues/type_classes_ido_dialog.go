@@ -27,6 +27,10 @@ func (IDOImpl) CreateDialog(w workflowImpl, ctx wf.EventHandlingContext, issue I
 	if err != nil {
 		return
 	}
+	w.AdaptiveLogger.Infof("Coaches of the team: %s (%d)", w.DynamoDBConnection.PlatformID, len(allMembers))
+	for _, kv := range allMembers {
+		w.AdaptiveLogger.Infof("Coach: %s -> %s", kv.Key, kv.Value)
+	}
 	coaches := convertKvPairToPlainTextOption(allMembers)
 
 	var initiativesObjectiveAndCompetencies []ebm.AttachmentActionElementOptionGroup

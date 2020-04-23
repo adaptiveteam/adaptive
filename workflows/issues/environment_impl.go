@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"fmt"
 	"log"
@@ -246,9 +247,9 @@ func UserRead(userID string) func(conn DynamoDBConnection) (users []models.User,
 	}
 }
 
-func mapAdaptiveCommunityUsersToUserID(users []models.AdaptiveCommunityUser2) (userIDs []string) {
+func mapAdaptiveCommunityUsersToUserID(users []adaptiveCommunityUser.AdaptiveCommunityUser) (userIDs []string) {
 	for _, each := range users {
-		userIDs = append(userIDs, each.UserId)
+		userIDs = append(userIDs, each.UserID)
 	}
 	return
 }
@@ -263,11 +264,14 @@ func IDOCoaches(userID string) func(conn DynamoDBConnection) (res []models.KvPai
 		defer core.RecoverToErrorVar("IDOCoaches", &err)
 		userDao := utilsUser.DAOFromConnection(conn)
 
-		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(community.Coaching), 
-			models.ParseTeamID(conn.PlatformID))
-		userIDs := mapAdaptiveCommunityUsersToUserID(commMembers)
+		var adaptiveCommunityUsers []adaptiveCommunityUser.AdaptiveCommunityUser
+		adaptiveCommunityUsers, err = adaptiveCommunityUser.ReadByPlatformIDCommunityID(conn.PlatformID, string(community.Coaching))(conn)
+
+		//  community.CommunityMembers(communityUsersTableName(conn.ClientID), string(community.Coaching), 
+		// 	models.ParseTeamID(conn.PlatformID))
+		userIDs := mapAdaptiveCommunityUsersToUserID(adaptiveCommunityUsers)
 		res = []models.KvPair{none}
-		if len(commMembers) > 0 { // Does this include adaptive bot name?
+		if len(adaptiveCommunityUsers) > 0 { // Does this include adaptive bot name?
 			res = append(res, requested)
 		}
 		for _, id := range userIDs {
