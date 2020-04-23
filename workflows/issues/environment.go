@@ -50,14 +50,6 @@ type AdaptiveCommunityDAO interface {
 	// ReadMembers( communityID community.AdaptiveCommunity) (users []models.AdaptiveCommunityUser3, err error)
 }
 
-// UserDAO retrieves information about users.
-type UserDAO interface {
-	Read(userID string) (ut models.User, err error)
-	// IDOCoaches returns Key-Value pairs with user id and user display name
-	// The set of users and the format are suitable for IDO dialog coach field.
-	IDOCoaches(userID string) (res []models.KvPair, err error)
-}
-
 type CompetencyDAO interface {
 	Read(id string) (adaptiveValue.AdaptiveValue, error)
 	ReadAll(teamID models.TeamID) ([]adaptiveValue.AdaptiveValue, error)

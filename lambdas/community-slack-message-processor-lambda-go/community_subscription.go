@@ -218,14 +218,15 @@ func onCommunityUnsubscribeCommunityClicked(
 	communityID string,
 	mc models.MessageCallback,
 	teamID models.TeamID) (message platform.MessageContent) {
-	err := channelUnsubscribe(request.Channel.ID, teamID)
-	if err == nil {
+	err2 := channelUnsubscribe(request.Channel.ID, teamID)
+	if err2 == nil {
 		message = platform.MessageContent{Message: LeavingCommunityNotification(ui.PlainText(communityID))}
 		// We have now added feedback for a coaching engagement. We can now update the original engagement as answered.
 		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
 		// Posting removal message to Admin
 		postSubscriptionRemovalToAdmin(teamID, communityID, request.User.ID)
 	} else {
+		logger.WithError(err2).Errorf("Couldn't unsubscribe communityID=%s from teamID=%v", communityID, teamID)
 		message = platform.MessageContent{Message: UnsubscriptionErrorMessage}
 	}
 	return
