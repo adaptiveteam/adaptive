@@ -14,6 +14,7 @@ var RequestCoachPath = CommunityPath.Append(RequestCoachNamespace)
 const IssueUpdatedEvent wf.Event = "updated"
 const IssueFeedbackOnUpdatesEvent wf.Event = "feedback"
 const RequestCoacheeEvent wf.Event = "requestCoachee"
+const RequestCoachViaCommunityEvent wf.Event = "requestCoachViaComm"
 
 // RequestCoach constructs a request coach postponed event.
 func RequestCoach(issueType IssueType, issueID string, coachID string) wf.PostponeEventForAnotherUser {
@@ -50,5 +51,22 @@ func RequestCoachee(issueType IssueType, issueID string, coachID string) wf.Post
 		UserID:       coachID,
 		ActionPath:   actionPath,
 		ValidThrough: time.Now().Add(DefaultCoachRequestValidityDuration),
+	}
+}
+
+func RequestCoachViaCommunity(issueType IssueType, issueID string) wf.TriggerImmediateEventForAnotherUser {// (actionPath ActionPath) {
+	actionPath := wf.ExternalActionPathWithData(
+		RequestCoachPath,
+		"init",
+		RequestCoachViaCommunityEvent,
+		map[string]string{
+			IssueIDKey:   issueID,
+			IssueTypeKey: string(issueType),
+		},
+		false, // IsOriginalPermanent
+	)
+	return wf.TriggerImmediateEventForAnotherUser{
+		UserID: "",
+		ActionPath: actionPath,
 	}
 }
