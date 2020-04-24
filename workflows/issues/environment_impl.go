@@ -302,21 +302,11 @@ func IDOCoaches(userID string, oldCoachIDOptional string) func(conn DynamoDBConn
 	}
 }
 
-// type CompetencyDynamoDBConnection DynamoDBConnection
-
-func CompetencyRead(id string) func(conn DynamoDBConnection) (res adaptiveValue.AdaptiveValue, err error) {
-	return func(conn DynamoDBConnection) (res adaptiveValue.AdaptiveValue, err error) {
-		dao := adaptiveValue.NewDAOByTableName(conn.Dynamo, "CompetencyDynamoDBConnection", competenciesTableName(conn.ClientID))
-		res, err = dao.Read(id)
-		err = errors.Wrapf(err, "CompetencyDynamoDBConnection) Read(id=%s)", id)
-		return
-	}
-}
+var CompetencyRead = adaptiveValue.Read
 
 func CompetencyReadAll() func(conn DynamoDBConnection) (res []adaptiveValue.AdaptiveValue, err error) {
 	return func(conn DynamoDBConnection) (res []adaptiveValue.AdaptiveValue, err error) {
-		dao := adaptiveValue.NewDAOByTableName(conn.Dynamo, "CompetencyDynamoDBConnection", competenciesTableName(conn.ClientID))
-		res, err = dao.ReadByPlatformID(conn.PlatformID)
+		res, err = adaptiveValue.ReadByPlatformID(conn.PlatformID)(conn)
 		err = errors.Wrapf(err, "CompetencyDynamoDBConnection) ReadAll(conn.PlatformID=%s)", conn.PlatformID)
 		return
 	}
