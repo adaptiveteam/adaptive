@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adHocHoliday"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	"fmt"
 	"log"
@@ -82,13 +83,20 @@ var (
 )
 
 func runAlso(r1, r2 utils.RequestHandler) utils.RequestHandler {
-	return func(request slack.InteractionCallback) []models.PlatformSimpleNotification {
-		return append(r1(request), r2(request)...)
+	return func(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, err error){
+		resp, err = r1(request, conn)
+		if err == nil {
+			var notes2 []models.PlatformSimpleNotification
+			notes2, err = r2(request, conn)
+			resp = append(resp, notes2...)
+		}
+		return
 	}
 }
 
-func clearOriginalMessage(request slack.InteractionCallback) []models.PlatformSimpleNotification {
-	return responses(utils.InteractionCallbackOverrideRequestMessage(request, ""))
+func clearOriginalMessage(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, err error){
+	resp = responses(utils.InteractionCallbackOverrideRequestMessage(request, ""))
+	return 
 }
 
 func main() {
@@ -96,15 +104,12 @@ func main() {
 }
 
 
-func globalConnectionGen() daosCommon.DynamoDBConnectionGen {
-	return daosCommon.DynamoDBConnectionGen{
-		Dynamo: d,
-		TableNamePrefix: clientID,
-	}
-}
+// func globalConnectionGen() daosCommon.DynamoDBConnectionGen {
+// 	return daosCommon.CreateConnectionGenFromEnv()
+// }
 
 func readUser(userID string) (models.User, error) {
-	conn := globalConnectionGen()
+	conn := daosCommon.CreateConnectionGenFromEnv()
 	dao := user.DAOFromConnectionGen(conn)
 	// dao := user
 	return dao.Read(userID)
@@ -139,16 +144,17 @@ func callbackIDRule(request slack.InteractionCallback) string {
 }
 
 // DispatchDialogSubmissionByRule dispatches request using provided routing table
-func DispatchDialogSubmissionByRule(p utils.Platform, r utils.DialogSubmissionHandlers, rule utils.RequestRoutingRule) func(slack.InteractionCallback, slack.DialogSubmissionCallback) {
-	return func(request slack.InteractionCallback, dialog slack.DialogSubmissionCallback) {
+func DispatchDialogSubmissionByRule(p utils.Platform, r utils.DialogSubmissionHandlers, rule utils.RequestRoutingRule) func(slack.InteractionCallback, slack.DialogSubmissionCallback, daosCommon.DynamoDBConnection) {
+	return func(request slack.InteractionCallback, dialog slack.DialogSubmissionCallback, conn daosCommon.DynamoDBConnection) {
 		defer p.RecoverGracefully(request)
-		notes := r.DispatchByRule(rule)(request, dialog)
+		notes, err2 := r.DispatchByRule(rule)(request, dialog, conn)
+		core.ErrorHandler(err2, "DispatchDialogSubmissionByRule", "DispatchByRule")
 		p.PublishAll(notes)
 	}
 }
 
 // listMenuItemFunc renders the list of holidays directly in chat.
-func listMenuItemFunc(request slack.InteractionCallback) []models.PlatformSimpleNotification {
+func listMenuItemFunc(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, err error){
 	platform.Debug(request, "Listing holidays...")
 	holidays := platformDAO(teamID(request)).AllUnsafe()
 	sort.Slice(holidays, func(i, j int) bool {
@@ -174,7 +180,8 @@ func listMenuItemFunc(request slack.InteractionCallback) []models.PlatformSimple
 	p := utils.InteractionCallbackSimpleResponse(request, "") // RenderAdHocHolidayItem(h)
 	p.Attachments = []ebm.Attachment{attachment}
 
-	return responses(p)
+	resp = responses(p)
+	return
 }
 
 var (
@@ -234,7 +241,7 @@ func adHocHolidayEditChatMessage(request slack.InteractionCallback) func(models.
 }
 
 // detailedListMenuItemFunc sends the list of holidays to thread
-func detailedListMenuItemFunc(request slack.InteractionCallback) []models.PlatformSimpleNotification {
+func detailedListMenuItemFunc(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (notes []models.PlatformSimpleNotification, err error) {
 	platform.Debug(request, "Listing holidays...")
 	holidays := platformDAO(teamID(request)).AllUnsafe()
 	sort.Slice(holidays, func(i, j int) bool {
@@ -250,12 +257,12 @@ func detailedListMenuItemFunc(request slack.InteractionCallback) []models.Platfo
 		item.Ts = core.TimestampLayout.Format(ts) // This is actually ignored in lambda that communicates with Slack
 	}
 
-	threadMessages := append(responses(
+	notes = append(responses(
 		replacementMessage,
 		//	title,
 	),
 		holidayItems...)
-	return threadMessages
+	return
 }
 
 func validateDate(request slack.InteractionCallback, dateStr string) {
@@ -283,8 +290,8 @@ func convertFormToAdHocHoliday(request slack.InteractionCallback, form map[strin
 	return holiday
 }
 
-func createNewHolidayDialogSubmissionHandler(request slack.InteractionCallback, dialog slack.DialogSubmissionCallback) (resp []models.PlatformSimpleNotification) {
-	resp, ok := ensureUserHasWriteAccessToHolidays(request)
+func createNewHolidayDialogSubmissionHandler(request slack.InteractionCallback, dialog slack.DialogSubmissionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, err error){
+	resp, ok := ensureUserHasWriteAccessToHolidays(request, conn)
 	if ok {
 		platform.Debug(request, "Creating holiday "+dialog.Submission["Name"])
 		holiday := convertFormToAdHocHoliday(request, dialog.Submission)
@@ -298,8 +305,8 @@ func createNewHolidayDialogSubmissionHandler(request slack.InteractionCallback, 
 	return
 }
 
-func createNewHolidayMenuItemFunc(request slack.InteractionCallback) (resp []models.PlatformSimpleNotification) {
-	resp, ok := ensureUserHasWriteAccessToHolidays(request)
+func createNewHolidayMenuItemFunc(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, err error){
+	resp, ok := ensureUserHasWriteAccessToHolidays(request, conn)
 	if ok {
 		showCreateDialog(request)
 		resp = responses()
@@ -334,12 +341,12 @@ func showCreateDialog(request slack.InteractionCallback) {
 		err2,
 	)
 }
-func deleteHolidayButtonFunc(request slack.InteractionCallback) (resp []models.PlatformSimpleNotification) {
-	resp, ok := ensureUserHasWriteAccessToHolidays(request)
+func deleteHolidayButtonFunc(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, err error){
+	resp, ok := ensureUserHasWriteAccessToHolidays(request, conn)
 	if ok {
 		action := request.ActionCallback.AttachmentActions[0]
 		id := action.Value
-		err := adHocHolidaysTableDao.Delete(id)
+		err := adHocHoliday.Deactivate(id)(conn)
 		platform.ErrorHandler(request,
 			fmt.Sprintf("Could not delete %s", id),
 			err,
@@ -350,8 +357,8 @@ func deleteHolidayButtonFunc(request slack.InteractionCallback) (resp []models.P
 	return
 }
 
-func editHolidayButtonFunc(request slack.InteractionCallback) (resp []models.PlatformSimpleNotification) {
-	resp, ok := ensureUserHasWriteAccessToHolidays(request)
+func editHolidayButtonFunc(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, err error){
+	resp, ok := ensureUserHasWriteAccessToHolidays(request, conn)
 	if ok {
 		action := request.ActionCallback.AttachmentActions[0]
 		id := action.Value
@@ -394,8 +401,8 @@ func editHolidayButtonFunc(request slack.InteractionCallback) (resp []models.Pla
 	return
 }
 
-func updateHolidayDialogSubmissionHandler(request slack.InteractionCallback, dialog slack.DialogSubmissionCallback) (resp []models.PlatformSimpleNotification) {
-	resp, ok := ensureUserHasWriteAccessToHolidays(request)
+func updateHolidayDialogSubmissionHandler(request slack.InteractionCallback, dialog slack.DialogSubmissionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, err error){
+	resp, ok := ensureUserHasWriteAccessToHolidays(request, conn)
 	if ok {
 		platform.Debug(request, "Updating holiday "+dialog.Submission["Name"])
 		mc := models.ParseActionPath(request.CallbackID)
@@ -411,7 +418,7 @@ func updateHolidayDialogSubmissionHandler(request slack.InteractionCallback, dia
 	return
 }
 
-func ensureUserHasWriteAccessToHolidays(request slack.InteractionCallback) (resp []models.PlatformSimpleNotification, ok bool) {
+func ensureUserHasWriteAccessToHolidays(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, ok bool) {
 	ok = DoesUserHaveWriteAccessToHolidays(request.User.ID)
 	if ok {
 		log.Printf("Write access allowed %s", request.User.ID)
