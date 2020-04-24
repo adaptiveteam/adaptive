@@ -301,11 +301,12 @@ func (w workflowImpl) OnIWouldLikeToCoachEvent() wf.Handler {
 		var msg wf.InteractiveMessage
 		if issue.UserObjective.AccountabilityPartner == utilsUser.UserID_Requested {
 			issue.UserObjective.AccountabilityPartner = ctx.Request.User.ID
+			issue.UserObjective.ModifiedBy = ctx.Request.User.ID
 			err = issues.Save(issue)(w.DynamoDBConnection)
 			msg = wf.InteractiveMessage{
 				PassiveMessage: wf.PassiveMessage{
 					AttachmentText: ui.Sprintf("%s is now coaching the below %s. ",
-						engCommon.TaggedUser(issue.UserObjective.ModifiedBy),
+						engCommon.TaggedUser(issue.UserObjective.AccountabilityPartner),
 						issue.GetIssueType().Template(),
 					),
 					Fields: shortViewFields(issue),
