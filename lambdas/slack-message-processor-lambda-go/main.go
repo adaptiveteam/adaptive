@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -131,8 +132,8 @@ func helloMessage(userID, channelID string, teamID models.TeamID) {
 		// }
 	} else {
 		// get the admin community
-		dao := community.CommunityDAO(globalConnection(teamID), userCommunitiesTable)
-		adminComms := dao.ReadOrEmptyUnsafe(teamID.ToPlatformID(), string(community.Admin))
+		conn := globalConnection(teamID)
+		adminComms := adaptiveCommunity.ReadOrEmptyUnsafe(teamID.ToPlatformID(), string(community.Admin))(conn)
 		var note models.PlatformSimpleNotification
 		if len(adminComms) == 0 {
 			// if no admin community, post message to the user about that
