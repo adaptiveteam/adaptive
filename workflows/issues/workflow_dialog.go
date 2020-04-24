@@ -129,7 +129,8 @@ func (w workflowImpl) OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Eve
 	if err != nil {
 		return
 	}
-	ctx.Data[issueIDKey] = newAndOldIssues.NewIssue.UserObjective.ID
+	issueID = newAndOldIssues.NewIssue.GetIssueID()
+	ctx.Data[issueIDKey] = issueID
 	if newAndOldIssues.NewIssue.UserObjective.ID == "" && !newAndOldIssues.Updated {
 		w.AdaptiveLogger.Warnf("INVALID(2): issueID is empty %v\n", newAndOldIssues.NewIssue)
 	}
