@@ -67,6 +67,27 @@ func ReadUnsafe(platformID common.PlatformID, id string) func (conn common.Dynam
 // ReadOrEmpty reads AdaptiveCommunity
 func ReadOrEmpty(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunity, err error) {
 	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunity, err error) {
+       out, err = ReadOrEmptyIncludingInactive(platformID, id)(conn)
+       out = AdaptiveCommunityFilterActive(out)
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the AdaptiveCommunity. Panics in case of any errors
+func ReadOrEmptyUnsafe(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) []AdaptiveCommunity {
+	return func (conn common.DynamoDBConnection) []AdaptiveCommunity {
+		out, err2 := ReadOrEmpty(platformID, id)(conn)
+		core.ErrorHandler(err2, "daos/AdaptiveCommunity", fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads AdaptiveCommunity
+func ReadOrEmptyIncludingInactive(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunity, err error) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunity, err error) {
 		var outOrEmpty AdaptiveCommunity
 		ids := idParams(platformID, id)
 		var found bool
@@ -84,10 +105,10 @@ func ReadOrEmpty(platformID common.PlatformID, id string) func (conn common.Dyna
 }
 
 
-// ReadOrEmptyUnsafe reads the AdaptiveCommunity. Panics in case of any errors
-func ReadOrEmptyUnsafe(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) []AdaptiveCommunity {
+// ReadOrEmptyIncludingInactiveUnsafe reads the AdaptiveCommunity. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) []AdaptiveCommunity {
 	return func (conn common.DynamoDBConnection) []AdaptiveCommunity {
-		out, err2 := ReadOrEmpty(platformID, id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(platformID, id)(conn)
 		core.ErrorHandler(err2, "daos/AdaptiveCommunity", fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, TableName(conn.ClientID)))
 		return out
 	}

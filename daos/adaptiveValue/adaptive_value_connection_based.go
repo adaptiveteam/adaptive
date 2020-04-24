@@ -65,6 +65,27 @@ func ReadUnsafe(id string) func (conn common.DynamoDBConnection) AdaptiveValue {
 // ReadOrEmpty reads AdaptiveValue
 func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []AdaptiveValue, err error) {
 	return func (conn common.DynamoDBConnection) (out []AdaptiveValue, err error) {
+       out, err = ReadOrEmptyIncludingInactive(id)(conn)
+       out = AdaptiveValueFilterActive(out)
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the AdaptiveValue. Panics in case of any errors
+func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []AdaptiveValue {
+	return func (conn common.DynamoDBConnection) []AdaptiveValue {
+		out, err2 := ReadOrEmpty(id)(conn)
+		core.ErrorHandler(err2, "daos/AdaptiveValue", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads AdaptiveValue
+func ReadOrEmptyIncludingInactive(id string) func (conn common.DynamoDBConnection) (out []AdaptiveValue, err error) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveValue, err error) {
 		var outOrEmpty AdaptiveValue
 		ids := idParams(id)
 		var found bool
@@ -82,10 +103,10 @@ func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []Adaptiv
 }
 
 
-// ReadOrEmptyUnsafe reads the AdaptiveValue. Panics in case of any errors
-func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []AdaptiveValue {
+// ReadOrEmptyIncludingInactiveUnsafe reads the AdaptiveValue. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(id string) func (conn common.DynamoDBConnection) []AdaptiveValue {
 	return func (conn common.DynamoDBConnection) []AdaptiveValue {
-		out, err2 := ReadOrEmpty(id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(id)(conn)
 		core.ErrorHandler(err2, "daos/AdaptiveValue", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
 		return out
 	}

@@ -64,6 +64,27 @@ func ReadUnsafe(applicationAlias string) func (conn common.DynamoDBConnection) C
 // ReadOrEmpty reads ContextAliasEntry
 func ReadOrEmpty(applicationAlias string) func (conn common.DynamoDBConnection) (out []ContextAliasEntry, err error) {
 	return func (conn common.DynamoDBConnection) (out []ContextAliasEntry, err error) {
+       out, err = ReadOrEmptyIncludingInactive(applicationAlias)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the ContextAliasEntry. Panics in case of any errors
+func ReadOrEmptyUnsafe(applicationAlias string) func (conn common.DynamoDBConnection) []ContextAliasEntry {
+	return func (conn common.DynamoDBConnection) []ContextAliasEntry {
+		out, err2 := ReadOrEmpty(applicationAlias)(conn)
+		core.ErrorHandler(err2, "daos/ContextAliasEntry", fmt.Sprintf("Error while reading applicationAlias==%s in %s\n", applicationAlias, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads ContextAliasEntry
+func ReadOrEmptyIncludingInactive(applicationAlias string) func (conn common.DynamoDBConnection) (out []ContextAliasEntry, err error) {
+	return func (conn common.DynamoDBConnection) (out []ContextAliasEntry, err error) {
 		var outOrEmpty ContextAliasEntry
 		ids := idParams(applicationAlias)
 		var found bool
@@ -81,10 +102,10 @@ func ReadOrEmpty(applicationAlias string) func (conn common.DynamoDBConnection) 
 }
 
 
-// ReadOrEmptyUnsafe reads the ContextAliasEntry. Panics in case of any errors
-func ReadOrEmptyUnsafe(applicationAlias string) func (conn common.DynamoDBConnection) []ContextAliasEntry {
+// ReadOrEmptyIncludingInactiveUnsafe reads the ContextAliasEntry. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(applicationAlias string) func (conn common.DynamoDBConnection) []ContextAliasEntry {
 	return func (conn common.DynamoDBConnection) []ContextAliasEntry {
-		out, err2 := ReadOrEmpty(applicationAlias)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(applicationAlias)(conn)
 		core.ErrorHandler(err2, "daos/ContextAliasEntry", fmt.Sprintf("Error while reading applicationAlias==%s in %s\n", applicationAlias, TableName(conn.ClientID)))
 		return out
 	}

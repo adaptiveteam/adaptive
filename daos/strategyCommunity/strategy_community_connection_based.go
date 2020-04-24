@@ -67,6 +67,27 @@ func ReadUnsafe(id string) func (conn common.DynamoDBConnection) StrategyCommuni
 // ReadOrEmpty reads StrategyCommunity
 func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []StrategyCommunity, err error) {
 	return func (conn common.DynamoDBConnection) (out []StrategyCommunity, err error) {
+       out, err = ReadOrEmptyIncludingInactive(id)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the StrategyCommunity. Panics in case of any errors
+func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []StrategyCommunity {
+	return func (conn common.DynamoDBConnection) []StrategyCommunity {
+		out, err2 := ReadOrEmpty(id)(conn)
+		core.ErrorHandler(err2, "daos/StrategyCommunity", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads StrategyCommunity
+func ReadOrEmptyIncludingInactive(id string) func (conn common.DynamoDBConnection) (out []StrategyCommunity, err error) {
+	return func (conn common.DynamoDBConnection) (out []StrategyCommunity, err error) {
 		var outOrEmpty StrategyCommunity
 		ids := idParams(id)
 		var found bool
@@ -84,10 +105,10 @@ func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []Strateg
 }
 
 
-// ReadOrEmptyUnsafe reads the StrategyCommunity. Panics in case of any errors
-func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []StrategyCommunity {
+// ReadOrEmptyIncludingInactiveUnsafe reads the StrategyCommunity. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(id string) func (conn common.DynamoDBConnection) []StrategyCommunity {
 	return func (conn common.DynamoDBConnection) []StrategyCommunity {
-		out, err2 := ReadOrEmpty(id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(id)(conn)
 		core.ErrorHandler(err2, "daos/StrategyCommunity", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
 		return out
 	}

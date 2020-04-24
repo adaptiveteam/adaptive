@@ -67,6 +67,27 @@ func ReadUnsafe(platformID common.PlatformID, id string) func (conn common.Dynam
 // ReadOrEmpty reads StrategyInitiative
 func ReadOrEmpty(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) (out []StrategyInitiative, err error) {
 	return func (conn common.DynamoDBConnection) (out []StrategyInitiative, err error) {
+       out, err = ReadOrEmptyIncludingInactive(platformID, id)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the StrategyInitiative. Panics in case of any errors
+func ReadOrEmptyUnsafe(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) []StrategyInitiative {
+	return func (conn common.DynamoDBConnection) []StrategyInitiative {
+		out, err2 := ReadOrEmpty(platformID, id)(conn)
+		core.ErrorHandler(err2, "daos/StrategyInitiative", fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads StrategyInitiative
+func ReadOrEmptyIncludingInactive(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) (out []StrategyInitiative, err error) {
+	return func (conn common.DynamoDBConnection) (out []StrategyInitiative, err error) {
 		var outOrEmpty StrategyInitiative
 		ids := idParams(platformID, id)
 		var found bool
@@ -84,10 +105,10 @@ func ReadOrEmpty(platformID common.PlatformID, id string) func (conn common.Dyna
 }
 
 
-// ReadOrEmptyUnsafe reads the StrategyInitiative. Panics in case of any errors
-func ReadOrEmptyUnsafe(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) []StrategyInitiative {
+// ReadOrEmptyIncludingInactiveUnsafe reads the StrategyInitiative. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) []StrategyInitiative {
 	return func (conn common.DynamoDBConnection) []StrategyInitiative {
-		out, err2 := ReadOrEmpty(platformID, id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(platformID, id)(conn)
 		core.ErrorHandler(err2, "daos/StrategyInitiative", fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, TableName(conn.ClientID)))
 		return out
 	}
