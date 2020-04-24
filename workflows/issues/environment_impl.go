@@ -378,8 +378,7 @@ func StrategyInitiativeCreateOrUpdate(si models.StrategyInitiative) func(conn Dy
 // StrategyInitiativeCommunityRead -
 func StrategyInitiativeCommunityRead(id string) func(conn DynamoDBConnection) (res models.StrategyInitiativeCommunity, err error) {
 	return func(conn DynamoDBConnection) (res models.StrategyInitiativeCommunity, err error) {
-		dao := strategyInitiativeCommunity.NewDAOByTableName(conn.Dynamo, "StrategyInitiativeCommunityRead", strategyInitiativeCommunitiesTableName(conn.ClientID))
-		res, err = dao.Read(id, conn.PlatformID)
+		res, err = strategyInitiativeCommunity.Read(id, conn.PlatformID)(conn)
 		err = errors.Wrapf(err, "StrategyInitiativeCommunityRead(id=%s)", id)
 		return
 	}
