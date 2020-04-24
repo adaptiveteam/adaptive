@@ -3,6 +3,7 @@ package lambda
 import (
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -80,7 +81,7 @@ func onCommunitySubscribeCommunityClicked(
 			replyReplace(request, teamID, platform.MessageContent{Message: text})
 		} else {
 			// Create the community
-			err2 = communityDAO.Create(comm)
+			err2 = adaptiveCommunity.Create(comm)(conn)
 			if err2 != nil {
 				logger.WithField("namespace", namespace).WithField("error", err2).
 					Errorf("Could not add entry to %s table", orgCommunitiesTable)
@@ -127,6 +128,7 @@ func setupCommunityUsers(channelID, communityID string, communityMemberIDs []str
 func subscribedToStrategyCommunity(request slack.InteractionCallback,
 	mc models.MessageCallback,
 	teamID models.TeamID, channelID string, communityID string) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	communityName := ui.PlainText(communityID)
 
 	// Get information about the objective community
@@ -150,7 +152,7 @@ func subscribedToStrategyCommunity(request slack.InteractionCallback,
 		commType := commValueSplits[0]
 		commID := commValueSplits[1]
 
-		postCommunityToStrategy(teamID, mc, commType, commID)
+		postCommunityToStrategy(teamID, mc, commType, commID, conn)
 		postVisionIfExists(request, teamID, channelID)
 	} else {
 		logger.WithField("namespace", namespace).WithField("error", err).
@@ -170,7 +172,8 @@ func postVisionIfExists(request slack.InteractionCallback, teamID models.TeamID,
 }
 
 func postToAdmin(teamID models.TeamID, text ui.RichText) {
-	adminComm, err2 := communityDAO.ReadByID(teamID, string(community.Admin))
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	adminComm, err2 := adaptiveCommunity.Read(teamID.ToPlatformID(), string(community.Admin))(conn)
 	if err2 != nil && strings.Contains(err2.Error(), "not found") {
 		err2 = nil
 		logger.Warnf("(1) No Admin Community found for platform: %s", teamID)
@@ -206,10 +209,10 @@ func postSubscriptionRemovalToAdmin(teamID models.TeamID, communityID, userID st
 }
 
 // Unsubscribe menu item clicked
-func onCommunityUnsubscribeClicked(request slack.InteractionCallback, teamID models.TeamID) platform.Response {
+func onCommunityUnsubscribeClicked(request slack.InteractionCallback, teamID models.TeamID, conn daosCommon.DynamoDBConnection) platform.Response {
 	channelID := request.Channel.ID
 	fmt.Printf("Unsubscribing (platform=%s) from channel %s\n", teamID, channelID)
-	commIDs := subscribedCommunityIDs(teamID, channelID)
+	commIDs := subscribedCommunityIDs(teamID, channelID, conn)
 	opts := liftStringToOption(simpleOptionStr)(commIDs)
 	message := selectOptionsMessage(
 		callback(channelID, "unsubscription", "select"),
@@ -254,7 +257,7 @@ func onCommunityUnsubscribeCancelled(request slack.InteractionCallback, mc model
 	return platform.MessageContent{Message: EngagementRemovedNotification}
 }
 
-func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent, teamID models.TeamID) {
+func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent, teamID models.TeamID, conn daosCommon.DynamoDBConnection) {
 	logger.WithField("event", "member_joined_channel").Infof("%s user joined channel", slackMsg.User)
 	// Member joined
 	// Ensuring profile exists for the user. This could be the first time Adaptive is invited and no user yet exists.
@@ -274,7 +277,7 @@ func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent, teamID
 				logger.Infof("%s joined %s channel on invitation in %s platform", slackMsg.User, slackMsg.Channel, teamID)
 				// If another user is added
 				// Get the subscribed communities
-				subComms := subscribedCommunities(teamID, slackMsg.Channel)
+				subComms := subscribedCommunities(teamID, slackMsg.Channel, conn)
 				hasBeenSubscribed := isUserSubscribedToAnyCommunity(slackMsg.User)
 				userCommunityPairs := addUserToAllCommunities(teamID, slackMsg.User, subComms)
 				logger.Infof("Welcoming newly added %s user", slackMsg.User)
@@ -374,7 +377,7 @@ func onMemberLeftChannel(slackMsg slack.MemberLeftChannelEvent) {
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not remove entry from %s table", communityUsersTable))
 }
 
-func onGroupLeftEvent(cbEvent slackevents.EventsAPICallbackEvent, teamID models.TeamID) {
+func onGroupLeftEvent(cbEvent slackevents.EventsAPICallbackEvent, teamID models.TeamID, conn daosCommon.DynamoDBConnection) {
 	logger.Infof("Handling onGroupLeftEvent %v", *cbEvent.InnerEvent)
 	var groupLeftEvent models.GroupLeftEvent
 	err := json.Unmarshal(*cbEvent.InnerEvent, &groupLeftEvent)
@@ -389,7 +392,7 @@ func onGroupLeftEvent(cbEvent slackevents.EventsAPICallbackEvent, teamID models.
 		}
 		core.ErrorHandler(err2, namespace, "Error reading from users table")
 		if us.IsAdaptiveBot {
-			removeChannel(groupLeftEvent.ActorId, groupLeftEvent.Channel, teamID)
+			removeChannel(groupLeftEvent.ActorId, groupLeftEvent.Channel, teamID, conn)
 		} else {
 			logger.Warnf("Weird onGroupLeftEvent (1) - %s (%s) not IsAdaptiveBot", authedUser, us.ID)
 			err2 := communityUserDAO.DeleteUserFromCommunity(groupLeftEvent.Channel, authedUser)
@@ -429,7 +432,7 @@ func getSubscribeMessage(channelID platform.ConversationID, teamID models.TeamID
 }
 
 func postCommunityToStrategy(teamID models.TeamID, mc models.MessageCallback,
-	commType, commID string) {
+	commType, commID string, conn daosCommon.DynamoDBConnection) {
 
 	var attachs []ebm.Attachment
 	switch commType {
@@ -451,7 +454,7 @@ func postCommunityToStrategy(teamID models.TeamID, mc models.MessageCallback,
 		fmt.Printf("Unknown strategy community: %s\n", commType)
 		return
 	}
-	strategyComm, err2 := communityDAO.ReadByID(teamID, string(community.Strategy))
+	strategyComm, err2 := adaptiveCommunity.Read(teamID.ToPlatformID(), string(community.Strategy))(conn)
 	if err2 != nil && strings.Contains(err2.Error(), "not found") {
 		logger.Warnf("Not found strategy community")
 		return

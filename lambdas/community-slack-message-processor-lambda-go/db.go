@@ -21,8 +21,9 @@ import (
 )
 
 func availableCommunities(teamID models.TeamID) []string {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	// Get all used communities
-	comms, err := communityDAO.ReadAll(teamID)
+	comms, err := adaptiveCommunity.ReadByPlatformID(teamID.ToPlatformID())(conn)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not scan %s table", orgCommunitiesTable))
 	var b []string
 	for _, each := range comms {
@@ -128,9 +129,9 @@ func unsetStrategyCommunities(channelID string) {
 	}
 }
 
-func deleteCommunityTableEntry(ID string, teamID models.TeamID) {
-	communityDAO.DeleteUnsafe(teamID, ID)
-}
+// func deleteCommunityTableEntry(ID string, teamID models.TeamID) {
+// 	communityDAO.DeleteUnsafe(teamID, ID)
+// }
 
 // TODO: Simplify this to be more generic
 func StrategyCommunityIdTypeName(val string, teamID models.TeamID) (string, string, string) {
@@ -180,8 +181,8 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 
-func subscribedCommunityIDs(teamID models.TeamID, channel string) (commIDs []string) {
-	comms := subscribedCommunities(teamID, channel)
+func subscribedCommunityIDs(teamID models.TeamID, channel string, conn daosCommon.DynamoDBConnection) (commIDs []string) {
+	comms := subscribedCommunities(teamID, channel, conn)
 	for _, comm := range comms {
 		commIDs = append(commIDs, comm.ID)
 	}
@@ -197,9 +198,9 @@ func FilterCommunitiesByPlatformID(commsIn []models.AdaptiveCommunity, platformI
 	return
 }
 
-func subscribedCommunities(teamID models.TeamID, channel string) (comms []models.AdaptiveCommunity) {
+func subscribedCommunities(teamID models.TeamID, channel string, conn daosCommon.DynamoDBConnection) (comms []models.AdaptiveCommunity) {
 	var commsForAllPlatforms []models.AdaptiveCommunity
-	commsForAllPlatforms, err2 := communityDAO.ReadByChannelID(channel)
+	commsForAllPlatforms, err2 := adaptiveCommunity.ReadByChannel(channel)(conn)
 	err2 = wrapError(err2, "subscribedCommunities")
 	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not get subscribed communities for %s channel", channel))
 
@@ -273,17 +274,17 @@ func addUsersToCommunity(teamID models.TeamID, channelID string, communityID str
 }
 
 // removeChannel remove all subscriptions to the channel
-func removeChannel(userID, channelID string, teamID models.TeamID) {
+func removeChannel(userID, channelID string, teamID models.TeamID, conn daosCommon.DynamoDBConnection) {
 	logger.Infof("Removing channel %s because user=%s left channel", channelID, userID)
 	// Adaptive bot is removed from the channel
-	comms := subscribedCommunities(teamID, channelID)
+	comms := subscribedCommunities(teamID, channelID, conn)
 	logger.Infof("There where %d communities associated with the channel", len(comms))
 	// We should delete this channel from users table and deactivate the community
 	for _, each := range comms {
 		// Delete users from community users table
 		communityUserDAO.DeleteAllCommunityMembersUnsafe(each.ChannelID)
 		// Delete entry from communities table
-		communityDAO.DeleteUnsafe(models.ParseTeamID(each.PlatformID), each.ID)
+		adaptiveCommunity.DeactivateUnsafe(each.PlatformID, each.ID)(conn)
 		// Deleting channel user
 		userDAO.DeactivateUnsafe(channelID)
 		// Unset channel for strategy communities
