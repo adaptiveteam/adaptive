@@ -589,10 +589,10 @@ func Prefetch(issueRef *Issue, isShowingProgress bool) func(DynamoDBConnection) 
 
 // PrefetchIssueWithoutProgress loads issue information ignoring context
 func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err error) {
-	return func(DynamoDBConnection DynamoDBConnection) (err error) {
+	return func(conn DynamoDBConnection) (err error) {
 		if !utilsUser.IsSpecialOrEmptyUserID(issueRef.UserObjective.AccountabilityPartner) {
 			issueRef.PrefetchedData.AccountabilityPartner, err =
-				utilsUser.DAOFromConnection(DynamoDBConnection).
+				utilsUser.DAOFromConnection(conn).
 					Read(issueRef.UserObjective.AccountabilityPartner)
 			if err != nil {
 				return
@@ -603,15 +603,14 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 			switch issueRef.StrategyAlignmentEntityType {
 			case userObjective.ObjectiveStrategyObjectiveAlignment:
 				var sos []strategyObjective.StrategyObjective
-				sos, err = StrategyObjectiveReadOrEmpty(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
+				sos, err = StrategyObjectiveReadOrEmpty(issueRef.StrategyAlignmentEntityID)(conn)
 				if len(sos) > 0 {
 					issueRef.PrefetchedData.AlignedCapabilityObjective = sos[0]
 				}
 			case userObjective.ObjectiveStrategyInitiativeAlignment:
-				issueRef.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
+				issueRef.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issueRef.StrategyAlignmentEntityID)(conn)
 			case userObjective.ObjectiveCompetencyAlignment:
-				dao := adaptiveValue.NewDAOByTableName(DynamoDBConnection.Dynamo, "CompetencyDynamoDBConnection", models.SchemaForClientID(DynamoDBConnection.ClientID).AdaptiveValues.Name)
-				issueRef.PrefetchedData.AlignedCompetency, err = dao.Read(issueRef.StrategyAlignmentEntityID)
+				issueRef.PrefetchedData.AlignedCompetency, err = adaptiveValue.Read(issueRef.StrategyAlignmentEntityID)(conn)
 			}
 			if err != nil {
 				log.Printf("IGNORE ERROR Couldn't prefetch %s id=%s due to an error: %+v", issueRef.StrategyAlignmentEntityType, issueRef.StrategyAlignmentEntityID, err)
@@ -627,7 +626,7 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 			if len(issueRef.StrategyObjective.CapabilityCommunityIDs) > 0 {
 				capCommID := issueRef.StrategyObjective.CapabilityCommunityIDs[0]
 				var comms [] capabilityCommunity.CapabilityCommunity
-				comms, err = CapabilityCommunityReadOrEmpty(capCommID)(DynamoDBConnection)
+				comms, err = CapabilityCommunityReadOrEmpty(capCommID)(conn)
 				if len(comms) > 0 {
 					issueRef.PrefetchedData.AlignedCapabilityCommunity = comms[0]
 				}
@@ -646,9 +645,8 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 		case Initiative:
 			initCommID := issueRef.StrategyInitiative.InitiativeCommunityID
 			if initCommID != "" {
-				dao := strategyInitiativeCommunity.NewDAOByTableName(DynamoDBConnection.Dynamo, "PrefetchIssueWithoutProgress", models.StrategyInitiativeCommunitiesTableName(DynamoDBConnection.ClientID))
 				var comms []strategyInitiativeCommunity.StrategyInitiativeCommunity
-				comms, err = dao.ReadOrEmpty(initCommID, DynamoDBConnection.PlatformID)
+				comms, err = strategyInitiativeCommunity.ReadOrEmpty(initCommID, conn.PlatformID)(conn)
 				for _, comm := range comms {
 					issueRef.PrefetchedData.AlignedInitiativeCommunity = comm
 				}
@@ -659,7 +657,7 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 			capObjID := issueRef.StrategyInitiative.CapabilityObjective
 			if capObjID != "" {
 				var sos []strategyObjective.StrategyObjective
-				sos, err = StrategyObjectiveReadOrEmpty(capObjID)(DynamoDBConnection)
+				sos, err = StrategyObjectiveReadOrEmpty(capObjID)(conn)
 				if len(sos) > 0 {
 					issueRef.PrefetchedData.AlignedCapabilityObjective = sos[0]
 				}
