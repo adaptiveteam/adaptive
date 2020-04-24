@@ -30,5 +30,4 @@ var (
 	communityUsersTable          = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
 	communityUsersCommunityIndex = adaptiveCommunityUser.PlatformIDCommunityIDIndex
 
-	adaptiveCommunityUserDAO = adaptiveCommunityUser.NewDAOByTableName(d, namespace, communityUsersTable)
 )

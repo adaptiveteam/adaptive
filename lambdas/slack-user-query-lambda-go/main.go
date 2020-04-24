@@ -160,7 +160,7 @@ func obtainMemberIDsForCommunity(comm models.AdaptiveCommunity,
 	addIDs     = core.InAButNotB(slackMemberIDs, dbMemberIDs)
 	return
 }
-func createOrUpdateCommunityUser(comm models.AdaptiveCommunity, userID string) (err error) {
+func createOrUpdateCommunityUser(comm models.AdaptiveCommunity, userID string) func (conn daosCommon.DynamoDBConnection) (err error) {
 	logger.Infof("Adding user %s to community channelID=%s", userID, comm.ChannelID)
 	acu := adaptiveCommunityUser.AdaptiveCommunityUser{
 		ChannelID: comm.ChannelID,
@@ -168,13 +168,14 @@ func createOrUpdateCommunityUser(comm models.AdaptiveCommunity, userID string) (
 		PlatformID: comm.PlatformID,
 		CommunityID: comm.ID,
 	}
-	err = adaptiveCommunityUserDAO.CreateOrUpdate(acu)
-	return
+	return adaptiveCommunityUser.CreateOrUpdate(acu)
 }
-func removeCommunityUser(comm models.AdaptiveCommunity, userID string) (err error) {
+
+func removeCommunityUser(comm models.AdaptiveCommunity, userID string) func (conn daosCommon.DynamoDBConnection) (err error) {
 	logger.Infof("Removing user %s from community channelID=%s", userID, comm.ChannelID)
-	return adaptiveCommunityUserDAO.Delete(comm.ChannelID, userID)
+	return adaptiveCommunityUser.Delete(comm.ChannelID, userID)
 }
+
 func allUserIDs(teamID models.TeamID)(ids []string, err error) {
 	allUsers, err := userDao.ReadByPlatformID(teamID.ToPlatformID())
 	for _, u := range allUsers {
@@ -206,13 +207,13 @@ func HandleRequest(ctx context.Context, event models.ClientPlatformRequest) {
 					allRemoveIDs = append(allRemoveIDs, removeIDs ...)
 					allAddIDs = append(allAddIDs, addIDs ...)
 					for _, id := range allAddIDs {
-						err2 := createOrUpdateCommunityUser(comm, id)
+						err2 := createOrUpdateCommunityUser(comm, id)(conn)
 						if(err2 != nil) {
 							logger.Errorf("Couldn't add user %s to community %s: %+v", id, comm.ChannelID, err2)
 						}
 					}
 					for _, id := range allRemoveIDs {
-						err2 := removeCommunityUser(comm, id)
+						err2 := removeCommunityUser(comm, id)(conn)
 						if(err2 != nil) {
 							logger.Errorf("Couldn't remove user %s from community %s: %+v", id, comm.ChannelID, err2)
 						}

@@ -33,11 +33,6 @@ var (
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
 
 	connGen = daosCommon.CreateConnectionGenFromEnv()
-	// userObjectivesTable = utils.NonEmptyEnv("USER_OBJECTIVES_TABLE_NAME")
-	// userObjectiveDAO    = userObjective.NewDAOByTableName(d, namespace, userObjectivesTable)
-
-	// userObjectiveProgressTable = utils.NonEmptyEnv("USER_OBJECTIVES_PROGRESS_TABLE")
-	// userObjectiveProgressDAO = userObjectiveProgress.NewDAOByTableName(d, namespace, userObjectiveProgressTable)
 
 	schema  = models.SchemaForClientID(clientID)
 	userDao = utilsUser.NewDAOFromSchema(d, namespace, schema)
