@@ -475,14 +475,16 @@ func filterObjectivesByObjectiveType(objectives []userObjective.UserObjective, o
 	return
 }
 
-func LoadCoacheeObjectivesUnsafe(coachID string) (coacheeObjectives []userObjective.UserObjective) {
-	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(coachID)
+func LoadCoacheeObjectivesUnsafe(teamID models.TeamID, coachID string) (coacheeObjectives []userObjective.UserObjective) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(coachID)(conn)
 	coacheeObjectives = filterObjectivesByObjectiveType(objectives, userObjective.IndividualDevelopmentObjective)
 	return
 }
 
-func LoadAdvocateeObjectivesUnsafe(coachID string) (advocateeObjectives []userObjective.UserObjective) {
-	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(coachID)
+func LoadAdvocateeObjectivesUnsafe(teamID models.TeamID, coachID string) (advocateeObjectives []userObjective.UserObjective) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(coachID)(conn)
 	advocateeObjectives = filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
 	return
 }
@@ -490,14 +492,18 @@ func LoadAdvocateeObjectivesUnsafe(coachID string) (advocateeObjectives []userOb
 func CoacheesExist(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("CoacheesExist")
 	coachID := userID
-	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(coachID)
+	teamID := UserIDToTeamID(userDAO)(userID)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(coachID)(conn)
 	coacheeObjectives := filterObjectivesByObjectiveType(objectives, userObjective.IndividualDevelopmentObjective)
 	return CoacheesExistLogic(coacheeObjectives)
 }
 
 func AdvocatesExist(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("AdvocatesExist")
-	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(userID)
+	teamID := UserIDToTeamID(userDAO)(userID)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(userID)(conn)
 	advocateObjectives := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
 	return AdvocatesExistLogic(advocateObjectives)
 }
