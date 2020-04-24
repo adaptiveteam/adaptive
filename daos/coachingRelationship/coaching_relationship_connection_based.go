@@ -65,6 +65,27 @@ func ReadUnsafe(coachQuarterYear string) func (conn common.DynamoDBConnection) C
 // ReadOrEmpty reads CoachingRelationship
 func ReadOrEmpty(coachQuarterYear string) func (conn common.DynamoDBConnection) (out []CoachingRelationship, err error) {
 	return func (conn common.DynamoDBConnection) (out []CoachingRelationship, err error) {
+       out, err = ReadOrEmptyIncludingInactive(coachQuarterYear)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the CoachingRelationship. Panics in case of any errors
+func ReadOrEmptyUnsafe(coachQuarterYear string) func (conn common.DynamoDBConnection) []CoachingRelationship {
+	return func (conn common.DynamoDBConnection) []CoachingRelationship {
+		out, err2 := ReadOrEmpty(coachQuarterYear)(conn)
+		core.ErrorHandler(err2, "daos/CoachingRelationship", fmt.Sprintf("Error while reading coachQuarterYear==%s in %s\n", coachQuarterYear, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads CoachingRelationship
+func ReadOrEmptyIncludingInactive(coachQuarterYear string) func (conn common.DynamoDBConnection) (out []CoachingRelationship, err error) {
+	return func (conn common.DynamoDBConnection) (out []CoachingRelationship, err error) {
 		var outOrEmpty CoachingRelationship
 		ids := idParams(coachQuarterYear)
 		var found bool
@@ -82,10 +103,10 @@ func ReadOrEmpty(coachQuarterYear string) func (conn common.DynamoDBConnection) 
 }
 
 
-// ReadOrEmptyUnsafe reads the CoachingRelationship. Panics in case of any errors
-func ReadOrEmptyUnsafe(coachQuarterYear string) func (conn common.DynamoDBConnection) []CoachingRelationship {
+// ReadOrEmptyIncludingInactiveUnsafe reads the CoachingRelationship. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(coachQuarterYear string) func (conn common.DynamoDBConnection) []CoachingRelationship {
 	return func (conn common.DynamoDBConnection) []CoachingRelationship {
-		out, err2 := ReadOrEmpty(coachQuarterYear)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(coachQuarterYear)(conn)
 		core.ErrorHandler(err2, "daos/CoachingRelationship", fmt.Sprintf("Error while reading coachQuarterYear==%s in %s\n", coachQuarterYear, TableName(conn.ClientID)))
 		return out
 	}

@@ -6,7 +6,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	utilsCommunity "github.com/adaptiveteam/adaptive/adaptive-utils-go/community"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
@@ -66,7 +65,6 @@ var (
 	schema           = models.SchemaForClientID(clientID)
 	userDAO          = daosUser.NewDAOByTableName(d, namespace, schema.AdaptiveUsers.Name)
 	communityUserDAO = communityUser.NewDAOFromSchema(d, namespace, schema)
-	communityDAO     = utilsCommunity.NewDAOFromSchema(d, namespace, schema)
 	connGen          = daosCommon.DynamoDBConnectionGen{
 		Dynamo:          d,
 		TableNamePrefix: clientID,

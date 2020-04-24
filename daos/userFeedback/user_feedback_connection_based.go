@@ -65,6 +65,27 @@ func ReadUnsafe(id string) func (conn common.DynamoDBConnection) UserFeedback {
 // ReadOrEmpty reads UserFeedback
 func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []UserFeedback, err error) {
 	return func (conn common.DynamoDBConnection) (out []UserFeedback, err error) {
+       out, err = ReadOrEmptyIncludingInactive(id)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the UserFeedback. Panics in case of any errors
+func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []UserFeedback {
+	return func (conn common.DynamoDBConnection) []UserFeedback {
+		out, err2 := ReadOrEmpty(id)(conn)
+		core.ErrorHandler(err2, "daos/UserFeedback", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads UserFeedback
+func ReadOrEmptyIncludingInactive(id string) func (conn common.DynamoDBConnection) (out []UserFeedback, err error) {
+	return func (conn common.DynamoDBConnection) (out []UserFeedback, err error) {
 		var outOrEmpty UserFeedback
 		ids := idParams(id)
 		var found bool
@@ -82,10 +103,10 @@ func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []UserFee
 }
 
 
-// ReadOrEmptyUnsafe reads the UserFeedback. Panics in case of any errors
-func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []UserFeedback {
+// ReadOrEmptyIncludingInactiveUnsafe reads the UserFeedback. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(id string) func (conn common.DynamoDBConnection) []UserFeedback {
 	return func (conn common.DynamoDBConnection) []UserFeedback {
-		out, err2 := ReadOrEmpty(id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(id)(conn)
 		core.ErrorHandler(err2, "daos/UserFeedback", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
 		return out
 	}

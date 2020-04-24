@@ -65,6 +65,27 @@ func ReadUnsafe(id string) func (conn common.DynamoDBConnection) AdHocHoliday {
 // ReadOrEmpty reads AdHocHoliday
 func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []AdHocHoliday, err error) {
 	return func (conn common.DynamoDBConnection) (out []AdHocHoliday, err error) {
+       out, err = ReadOrEmptyIncludingInactive(id)(conn)
+       out = AdHocHolidayFilterActive(out)
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the AdHocHoliday. Panics in case of any errors
+func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []AdHocHoliday {
+	return func (conn common.DynamoDBConnection) []AdHocHoliday {
+		out, err2 := ReadOrEmpty(id)(conn)
+		core.ErrorHandler(err2, "daos/AdHocHoliday", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads AdHocHoliday
+func ReadOrEmptyIncludingInactive(id string) func (conn common.DynamoDBConnection) (out []AdHocHoliday, err error) {
+	return func (conn common.DynamoDBConnection) (out []AdHocHoliday, err error) {
 		var outOrEmpty AdHocHoliday
 		ids := idParams(id)
 		var found bool
@@ -82,10 +103,10 @@ func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []AdHocHo
 }
 
 
-// ReadOrEmptyUnsafe reads the AdHocHoliday. Panics in case of any errors
-func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []AdHocHoliday {
+// ReadOrEmptyIncludingInactiveUnsafe reads the AdHocHoliday. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(id string) func (conn common.DynamoDBConnection) []AdHocHoliday {
 	return func (conn common.DynamoDBConnection) []AdHocHoliday {
-		out, err2 := ReadOrEmpty(id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(id)(conn)
 		core.ErrorHandler(err2, "daos/AdHocHoliday", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
 		return out
 	}

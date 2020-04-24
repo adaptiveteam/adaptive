@@ -64,6 +64,27 @@ func ReadUnsafe(userID string, attrKey string) func (conn common.DynamoDBConnect
 // ReadOrEmpty reads UserAttribute
 func ReadOrEmpty(userID string, attrKey string) func (conn common.DynamoDBConnection) (out []UserAttribute, err error) {
 	return func (conn common.DynamoDBConnection) (out []UserAttribute, err error) {
+       out, err = ReadOrEmptyIncludingInactive(userID, attrKey)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the UserAttribute. Panics in case of any errors
+func ReadOrEmptyUnsafe(userID string, attrKey string) func (conn common.DynamoDBConnection) []UserAttribute {
+	return func (conn common.DynamoDBConnection) []UserAttribute {
+		out, err2 := ReadOrEmpty(userID, attrKey)(conn)
+		core.ErrorHandler(err2, "daos/UserAttribute", fmt.Sprintf("Error while reading userID==%s, attrKey==%s in %s\n", userID, attrKey, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads UserAttribute
+func ReadOrEmptyIncludingInactive(userID string, attrKey string) func (conn common.DynamoDBConnection) (out []UserAttribute, err error) {
+	return func (conn common.DynamoDBConnection) (out []UserAttribute, err error) {
 		var outOrEmpty UserAttribute
 		ids := idParams(userID, attrKey)
 		var found bool
@@ -81,10 +102,10 @@ func ReadOrEmpty(userID string, attrKey string) func (conn common.DynamoDBConnec
 }
 
 
-// ReadOrEmptyUnsafe reads the UserAttribute. Panics in case of any errors
-func ReadOrEmptyUnsafe(userID string, attrKey string) func (conn common.DynamoDBConnection) []UserAttribute {
+// ReadOrEmptyIncludingInactiveUnsafe reads the UserAttribute. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(userID string, attrKey string) func (conn common.DynamoDBConnection) []UserAttribute {
 	return func (conn common.DynamoDBConnection) []UserAttribute {
-		out, err2 := ReadOrEmpty(userID, attrKey)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(userID, attrKey)(conn)
 		core.ErrorHandler(err2, "daos/UserAttribute", fmt.Sprintf("Error while reading userID==%s, attrKey==%s in %s\n", userID, attrKey, TableName(conn.ClientID)))
 		return out
 	}

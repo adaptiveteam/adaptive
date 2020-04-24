@@ -52,7 +52,9 @@ case class DaoFunctionTemplates(table: Table){
 			)
 			case DaoReadOrEmptyRow => List(
 				DaoOperationReadOrEmptyTemplate,
-				DaoOperationReadOrEmptyUnsafeTemplate
+				DaoOperationReadOrEmptyUnsafeTemplate,
+				DaoOperationReadOrEmptyIncludingInactiveTemplate,
+				DaoOperationReadOrEmptyIncludingInactiveUnsafeTemplate
 			)
 			case DaoUpdateRow => List(
 				DaoOperationCreateOrUpdateTemplate,
@@ -141,6 +143,35 @@ case class DaoFunctionTemplates(table: Table){
 		|// ReadOrEmpty reads $structName
 		|func ReadOrEmpty($idArgs) func (conn common.DynamoDBConnection) (out []$structName, err error) {
 		|	return func (conn common.DynamoDBConnection) (out []$structName, err error) {
+		|       out, err = ReadOrEmptyIncludingInactive($idVarNames)(conn)
+		|       ${
+					if(entity.supports(DeactivationTrait)){ 
+						s"out = ${structName}FilterActive(out)"
+					} else ""
+				}
+		|       
+		|		return
+		|	}
+		|}
+		|""".stripMargin
+
+	def DaoOperationReadOrEmptyUnsafeTemplate: String =
+		s"""
+		|// ReadOrEmptyUnsafe reads the $structName. Panics in case of any errors
+		|func ReadOrEmptyUnsafe($idArgs) func (conn common.DynamoDBConnection) []$structName {
+		|	return func (conn common.DynamoDBConnection) []$structName {
+		|		out, err2 := ReadOrEmpty($idVarNames)(conn)
+		|		core.ErrorHandler(err2, "daos/$structName", fmt.Sprintf("Error while reading $formatIds in %s\\n", $idVarNames, TableName(conn.ClientID)))
+		|		return out
+		|	}
+		|}
+		|""".stripMargin
+
+	def DaoOperationReadOrEmptyIncludingInactiveTemplate: String =
+		s"""
+		|// ReadOrEmptyIncludingInactive reads $structName
+		|func ReadOrEmptyIncludingInactive($idArgs) func (conn common.DynamoDBConnection) (out []$structName, err error) {
+		|	return func (conn common.DynamoDBConnection) (out []$structName, err error) {
 		|		var outOrEmpty $structName
 		|		ids := idParams($idVarNames)
 		|		var found bool
@@ -158,12 +189,12 @@ case class DaoFunctionTemplates(table: Table){
 		|}
 		|""".stripMargin
 
-	def DaoOperationReadOrEmptyUnsafeTemplate: String =
+	def DaoOperationReadOrEmptyIncludingInactiveUnsafeTemplate: String =
 		s"""
-		|// ReadOrEmptyUnsafe reads the $structName. Panics in case of any errors
-		|func ReadOrEmptyUnsafe($idArgs) func (conn common.DynamoDBConnection) []$structName {
+		|// ReadOrEmptyIncludingInactiveUnsafe reads the $structName. Panics in case of any errors
+		|func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive($idArgs) func (conn common.DynamoDBConnection) []$structName {
 		|	return func (conn common.DynamoDBConnection) []$structName {
-		|		out, err2 := ReadOrEmpty($idVarNames)(conn)
+		|		out, err2 := ReadOrEmptyIncludingInactive($idVarNames)(conn)
 		|		core.ErrorHandler(err2, "daos/$structName", fmt.Sprintf("Error while reading $formatIds in %s\\n", $idVarNames, TableName(conn.ClientID)))
 		|		return out
 		|	}
