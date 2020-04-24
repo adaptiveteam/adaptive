@@ -13,10 +13,8 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
 	"github.com/pkg/errors"
-
-	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	// "github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
+	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
@@ -156,8 +154,7 @@ func (w workflowImpl) OnCommentsSubmitted() wf.Handler {
 			p.PartnerID = ctx.Request.User.ID
 			p.PartnerReportedProgress = ctx.Request.Submission[ObjectiveStatusColor]
 			p.PartnerComments = ctx.Request.Submission[ObjectiveProgressComments]
-			dao := utilsIssues.UserObjectiveProgressDAO()(w.DynamoDBConnection)
-			err = dao.CreateOrUpdate(p)
+			err = userObjectiveProgress.CreateOrUpdate(p)(w.DynamoDBConnection)
 			if err != nil {
 				return
 			}

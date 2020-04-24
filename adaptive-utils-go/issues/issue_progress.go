@@ -28,9 +28,8 @@ func IssueProgressReadAll(issueID string, limit int) func(conn DynamoDBConnectio
 
 func IssueProgressRead(issueProgressID IssueProgressID) func(conn DynamoDBConnection) (res userObjectiveProgress.UserObjectiveProgress, err error) {
 	return func(conn DynamoDBConnection) (res userObjectiveProgress.UserObjectiveProgress, err error) {
-		dao := UserObjectiveProgressDAO()(conn)
 		var ops []userObjectiveProgress.UserObjectiveProgress
-		ops, err = dao.ReadOrEmpty(issueProgressID.IssueID, issueProgressID.Date)
+		ops, err = userObjectiveProgress.ReadOrEmpty(issueProgressID.IssueID, issueProgressID.Date)(conn)
 		if err == nil {
 			if len(ops) > 0 {
 				res = ops[0]
