@@ -351,7 +351,8 @@ val AdaptiveCommunity = Entity(
         "Active".camel :: boolean,
         "RequestedBy".camel :: string
     ),
-    Nil, List(CreatedModifiedTimesTrait)
+    Nil, 
+    List(CreatedModifiedTimesTrait, DeactivationTrait)
 )
 
 // TODO: 
