@@ -66,6 +66,27 @@ func ReadUnsafe(teamID common.PlatformID) func (conn common.DynamoDBConnection) 
 // ReadOrEmpty reads SlackTeam
 func ReadOrEmpty(teamID common.PlatformID) func (conn common.DynamoDBConnection) (out []SlackTeam, err error) {
 	return func (conn common.DynamoDBConnection) (out []SlackTeam, err error) {
+       out, err = ReadOrEmptyIncludingInactive(teamID)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the SlackTeam. Panics in case of any errors
+func ReadOrEmptyUnsafe(teamID common.PlatformID) func (conn common.DynamoDBConnection) []SlackTeam {
+	return func (conn common.DynamoDBConnection) []SlackTeam {
+		out, err2 := ReadOrEmpty(teamID)(conn)
+		core.ErrorHandler(err2, "daos/SlackTeam", fmt.Sprintf("Error while reading teamID==%s in %s\n", teamID, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads SlackTeam
+func ReadOrEmptyIncludingInactive(teamID common.PlatformID) func (conn common.DynamoDBConnection) (out []SlackTeam, err error) {
+	return func (conn common.DynamoDBConnection) (out []SlackTeam, err error) {
 		var outOrEmpty SlackTeam
 		ids := idParams(teamID)
 		var found bool
@@ -83,10 +104,10 @@ func ReadOrEmpty(teamID common.PlatformID) func (conn common.DynamoDBConnection)
 }
 
 
-// ReadOrEmptyUnsafe reads the SlackTeam. Panics in case of any errors
-func ReadOrEmptyUnsafe(teamID common.PlatformID) func (conn common.DynamoDBConnection) []SlackTeam {
+// ReadOrEmptyIncludingInactiveUnsafe reads the SlackTeam. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(teamID common.PlatformID) func (conn common.DynamoDBConnection) []SlackTeam {
 	return func (conn common.DynamoDBConnection) []SlackTeam {
-		out, err2 := ReadOrEmpty(teamID)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(teamID)(conn)
 		core.ErrorHandler(err2, "daos/SlackTeam", fmt.Sprintf("Error while reading teamID==%s in %s\n", teamID, TableName(conn.ClientID)))
 		return out
 	}

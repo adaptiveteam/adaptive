@@ -67,6 +67,27 @@ func ReadUnsafe(id string) func (conn common.DynamoDBConnection) User {
 // ReadOrEmpty reads User
 func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []User, err error) {
 	return func (conn common.DynamoDBConnection) (out []User, err error) {
+       out, err = ReadOrEmptyIncludingInactive(id)(conn)
+       out = UserFilterActive(out)
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the User. Panics in case of any errors
+func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []User {
+	return func (conn common.DynamoDBConnection) []User {
+		out, err2 := ReadOrEmpty(id)(conn)
+		core.ErrorHandler(err2, "daos/User", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads User
+func ReadOrEmptyIncludingInactive(id string) func (conn common.DynamoDBConnection) (out []User, err error) {
+	return func (conn common.DynamoDBConnection) (out []User, err error) {
 		var outOrEmpty User
 		ids := idParams(id)
 		var found bool
@@ -84,10 +105,10 @@ func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []User, e
 }
 
 
-// ReadOrEmptyUnsafe reads the User. Panics in case of any errors
-func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []User {
+// ReadOrEmptyIncludingInactiveUnsafe reads the User. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(id string) func (conn common.DynamoDBConnection) []User {
 	return func (conn common.DynamoDBConnection) []User {
-		out, err2 := ReadOrEmpty(id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(id)(conn)
 		core.ErrorHandler(err2, "daos/User", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
 		return out
 	}

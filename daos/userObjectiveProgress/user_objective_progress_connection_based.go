@@ -65,6 +65,27 @@ func ReadUnsafe(id string, createdOn string) func (conn common.DynamoDBConnectio
 // ReadOrEmpty reads UserObjectiveProgress
 func ReadOrEmpty(id string, createdOn string) func (conn common.DynamoDBConnection) (out []UserObjectiveProgress, err error) {
 	return func (conn common.DynamoDBConnection) (out []UserObjectiveProgress, err error) {
+       out, err = ReadOrEmptyIncludingInactive(id, createdOn)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the UserObjectiveProgress. Panics in case of any errors
+func ReadOrEmptyUnsafe(id string, createdOn string) func (conn common.DynamoDBConnection) []UserObjectiveProgress {
+	return func (conn common.DynamoDBConnection) []UserObjectiveProgress {
+		out, err2 := ReadOrEmpty(id, createdOn)(conn)
+		core.ErrorHandler(err2, "daos/UserObjectiveProgress", fmt.Sprintf("Error while reading id==%s, createdOn==%s in %s\n", id, createdOn, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads UserObjectiveProgress
+func ReadOrEmptyIncludingInactive(id string, createdOn string) func (conn common.DynamoDBConnection) (out []UserObjectiveProgress, err error) {
+	return func (conn common.DynamoDBConnection) (out []UserObjectiveProgress, err error) {
 		var outOrEmpty UserObjectiveProgress
 		ids := idParams(id, createdOn)
 		var found bool
@@ -82,10 +103,10 @@ func ReadOrEmpty(id string, createdOn string) func (conn common.DynamoDBConnecti
 }
 
 
-// ReadOrEmptyUnsafe reads the UserObjectiveProgress. Panics in case of any errors
-func ReadOrEmptyUnsafe(id string, createdOn string) func (conn common.DynamoDBConnection) []UserObjectiveProgress {
+// ReadOrEmptyIncludingInactiveUnsafe reads the UserObjectiveProgress. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(id string, createdOn string) func (conn common.DynamoDBConnection) []UserObjectiveProgress {
 	return func (conn common.DynamoDBConnection) []UserObjectiveProgress {
-		out, err2 := ReadOrEmpty(id, createdOn)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(id, createdOn)(conn)
 		core.ErrorHandler(err2, "daos/UserObjectiveProgress", fmt.Sprintf("Error while reading id==%s, createdOn==%s in %s\n", id, createdOn, TableName(conn.ClientID)))
 		return out
 	}
