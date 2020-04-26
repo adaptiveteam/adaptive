@@ -68,6 +68,22 @@ func (eo EventOutput) WithCommunityInteraction(targetCommunityID string, message
 	return
 }
 
+// WithAnotherUserInteraction - adds targeted message to output
+func (eo EventOutput) WithAnotherUserInteraction(userID string, messages ... InteractiveMessage) (out EventOutput) {
+	out = eo
+	out.TargetedInteractions = append(out.TargetedInteractions, 
+		TargetedInteraction{
+			InteractionTarget: InteractionTarget{
+				UserID: userID,
+			},
+			Interaction: Interaction{
+				Messages: messages,
+			},
+		},
+	)
+	return
+}
+
 
 // WithPrependInteractiveMessage - adds InteractiveMessages to output before other messages
 func (eo EventOutput) WithPrependInteractiveMessage(messages ... InteractiveMessage) (out EventOutput) {
