@@ -349,7 +349,7 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 				logger.WithField("action", &action).WithField("act", &act).Info()
 				switch act {
 				case string(models.Now):
-					feedbackShowSelectUserHandler(request, teamID)
+					feedbackShowSelectUserHandler(request, conn)
 					notes = []models.PlatformSimpleNotification{
 						{UserId: request.User.ID,
 							Channel: request.Channel.ID, Message: "", Ts: request.OriginalMessage.Timestamp}}
@@ -392,17 +392,17 @@ func quarterYear(date business_time.Date) string {
 	return fmt.Sprintf("%d:%d", quarter, year)
 }
 
-func feedbackShowSelectUserHandler(request slack.InteractionCallback, teamID models.TeamID) {
+func feedbackShowSelectUserHandler(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) {
 	year, month, _ := time.Now().Date()
 	mc := models.MessageCallback{Module: "coaching", Source: request.User.ID,
 		Topic: "user_feedback", Action: "select", Target: "", Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-	UserSelectEngagement(request.User.ID, teamID, mc, []string{}, []string{request.User.ID},
-		"Whom would you like to give feedback to?", "coaching-feedback")
+	UserSelectEngagement(request.User.ID, mc, []string{}, []string{request.User.ID},
+		"Whom would you like to give feedback to?", "coaching-feedback", conn)
 }
 
-func UserSelectEngagement(userID string, teamID models.TeamID, mc models.MessageCallback, users,
-	filter []string, text, context string) {
-	user.UserSelectEng(userID, engagementTable, teamID, userDao, mc,
+func UserSelectEngagement(userID string, mc models.MessageCallback, users,
+	filter []string, text, context string, conn daosCommon.DynamoDBConnection) {
+	user.UserSelectEng(userID, engagementTable, conn, mc,
 		users, filter, text, context, models.UserEngagementCheckWithValue{})
 }
 

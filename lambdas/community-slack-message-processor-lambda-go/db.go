@@ -2,6 +2,7 @@ package lambda
 
 import (
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/pkg/errors"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"fmt"
@@ -181,8 +182,8 @@ func idParams(id string) map[string]*dynamodb.AttributeValue {
 	return params
 }
 
-func subscribedCommunityIDs(teamID models.TeamID, channel string, conn daosCommon.DynamoDBConnection) (commIDs []string) {
-	comms := subscribedCommunities(teamID, channel, conn)
+func subscribedCommunityIDs(channel string, conn daosCommon.DynamoDBConnection) (commIDs []string) {
+	comms := subscribedCommunities(channel, conn)
 	for _, comm := range comms {
 		commIDs = append(commIDs, comm.ID)
 	}
@@ -198,21 +199,21 @@ func FilterCommunitiesByPlatformID(commsIn []models.AdaptiveCommunity, platformI
 	return
 }
 
-func subscribedCommunities(teamID models.TeamID, channel string, conn daosCommon.DynamoDBConnection) (comms []models.AdaptiveCommunity) {
+func subscribedCommunities(channel string, conn daosCommon.DynamoDBConnection) (comms []models.AdaptiveCommunity) {
 	var commsForAllPlatforms []models.AdaptiveCommunity
 	commsForAllPlatforms, err2 := adaptiveCommunity.ReadByChannel(channel)(conn)
 	err2 = wrapError(err2, "subscribedCommunities")
 	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not get subscribed communities for %s channel", channel))
 
-	comms = FilterCommunitiesByPlatformID(commsForAllPlatforms, teamID.ToPlatformID())
+	comms = FilterCommunitiesByPlatformID(commsForAllPlatforms, conn.PlatformID)
 	return
 }
 
-func createCommunityFromCreatorUser(creatorUserID string, channelID string, communityName string) (err error) {
+func createCommunityFromCreatorUser(creatorUserID string, channelID string, communityName string, conn daosCommon.DynamoDBConnection) (err error) {
 	// Let's add this channel as a new user
 	// the information about the user who initiated this
 	var creators []models.User
-	creators, err = userDAO.ReadOrEmpty(creatorUserID)
+	creators, err = daosUser.ReadOrEmpty(creatorUserID)(conn)
 	creator := models.User{}
 	if len(creators) > 0 {
 		creator = creators[0]
@@ -236,20 +237,20 @@ func createCommunityFromCreatorUser(creatorUserID string, channelID string, comm
 			CreatedAt:     core.CurrentRFCTimestamp(),
 			IsShared:      true,
 		}
-		err = userDAO.Create(item)
+		err = daosUser.Create(item)(conn)
 	}
 	return
 }
 
-func addUserToAllCommunities(teamID models.TeamID, userID string, subscribedCommunityIDs []models.AdaptiveCommunity) (res []models.AdaptiveCommunityUser3) {
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+func addUserToAllCommunities(userID string, subscribedCommunityIDs []models.AdaptiveCommunity,
+	conn daosCommon.DynamoDBConnection) (res []models.AdaptiveCommunityUser3) {
 	for _, each := range subscribedCommunityIDs {
 		// For each subscribed community, add an entry in community users table
 		commUser := adaptiveCommunityUser.AdaptiveCommunityUser{
 			ChannelID:   each.ChannelID,
 			UserID:      userID,
 			CommunityID: each.ID,
-			PlatformID:  teamID.ToPlatformID(),
+			PlatformID:  conn.PlatformID,
 		}
 		adaptiveCommunityUser.CreateUnsafe(commUser)(conn)
 		res = append(res, commUser)
@@ -274,10 +275,11 @@ func addUsersToCommunity(teamID models.TeamID, channelID string, communityID str
 }
 
 // removeChannel remove all subscriptions to the channel
-func removeChannel(userID, channelID string, teamID models.TeamID, conn daosCommon.DynamoDBConnection) {
+func removeChannel(userID, channelID string, conn daosCommon.DynamoDBConnection) {
 	logger.Infof("Removing channel %s because user=%s left channel", channelID, userID)
+	teamID := models.ParseTeamID(conn.PlatformID)
 	// Adaptive bot is removed from the channel
-	comms := subscribedCommunities(teamID, channelID, conn)
+	comms := subscribedCommunities(channelID, conn)
 	logger.Infof("There where %d communities associated with the channel", len(comms))
 	// We should delete this channel from users table and deactivate the community
 	for _, each := range comms {
@@ -286,7 +288,7 @@ func removeChannel(userID, channelID string, teamID models.TeamID, conn daosComm
 		// Delete entry from communities table
 		adaptiveCommunity.DeactivateUnsafe(each.PlatformID, each.ID)(conn)
 		// Deleting channel user
-		userDAO.DeactivateUnsafe(channelID)
+		daosUser.DeactivateUnsafe(channelID)(conn)
 		// Unset channel for strategy communities
 		unsetStrategyCommunities(channelID)
 		// Post confirmation to Admin about the removal
@@ -302,7 +304,9 @@ func deleteCommunityMembersByCommunityID(communityID string, channelID string) (
 
 // channelUnsubscribe removes the channel association with a community.
 // Also removes all users from the community.
-func channelUnsubscribe(channelID string, teamID models.TeamID) (err error) {
+func channelUnsubscribe(channelID string, 
+	conn daosCommon.DynamoDBConnection) (err error) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	var subComms []adaptiveCommunity.AdaptiveCommunity
 	// Delete the entry from user table only if this is the only unsubscribed community
 	subComms, err = adaptiveCommunity.ReadByChannel(channelID)(connGen.ForPlatformID(teamID.ToPlatformID()))
@@ -313,7 +317,7 @@ func channelUnsubscribe(channelID string, teamID models.TeamID) (err error) {
 
 		for _, eachComm := range subComms {
 			// Delete entry from user table
-			err = userDAO.Deactivate(channelID)
+			err = daosUser.Deactivate(channelID)(conn)
 			if err == nil {
 				// Delete users from user communities table for the community
 				err = deleteCommunityMembersByCommunityID(eachComm.ID, eachComm.ChannelID)
@@ -339,8 +343,8 @@ func channelUnsubscribe(channelID string, teamID models.TeamID) (err error) {
 	return
 }
 
-func channelUnsubscribeUnsafe(channelID string, teamID models.TeamID) {
-	err := channelUnsubscribe(channelID, teamID)
+func channelUnsubscribeUnsafe(channelID string, conn daosCommon.DynamoDBConnection) {
+	err := channelUnsubscribe(channelID, conn)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not handle channel_deleted event for channel %s", channelID))
 }
 

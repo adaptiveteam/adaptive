@@ -1,6 +1,8 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/user"
+	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/pkg/errors"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -22,9 +24,9 @@ func convertUserToProfile(user models.User) (profile models.UserProfile) {
 	return
 }
 
-func readUserProfile(userID string) (profile models.UserProfile, teamID models.TeamID, err error) {
+func readUserProfile(userID string, conn common.DynamoDBConnection) (profile models.UserProfile, teamID models.TeamID, err error) {
 	var users []models.User
-	users, err = userDAO.ReadOrEmpty(userID)
+	users, err = user.ReadOrEmpty(userID)(conn)
 	if err == nil {
 		user := models.User{}
 		if len(users) > 0 {
@@ -38,7 +40,8 @@ func readUserProfile(userID string) (profile models.UserProfile, teamID models.T
 	return
 }
 
-func refreshUserCache(userID string, teamID models.TeamID) (profile models.UserProfile, isAdaptiveBot bool, err error) {
+func refreshUserCache(userID string, conn common.DynamoDBConnection) (profile models.UserProfile, isAdaptiveBot bool, err error) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	if teamID.IsEmpty() {
 		err = errors.New("teamID is empty when refreshing user " + userID)
 	} else {
@@ -52,7 +55,7 @@ func refreshUserCache(userID string, teamID models.TeamID) (profile models.UserP
 			if err == nil {
 				mUser := utilsUser.ConvertSlackUserToUser(*sUser, teamID)
 				var previousUsers [] models.User
-				previousUsers, err = userDAO.ReadOrEmpty(mUser.ID)
+				previousUsers, err = user.ReadOrEmpty(mUser.ID)(conn)
 				if err == nil {
 					for _, u := range previousUsers {
 						mUser.CreatedAt = u.CreatedAt
@@ -62,7 +65,7 @@ func refreshUserCache(userID string, teamID models.TeamID) (profile models.UserP
 						mUser.AdaptiveScheduledTime = u.AdaptiveScheduledTime
 						mUser.AdaptiveScheduledTimeInUTC = u.AdaptiveScheduledTimeInUTC
 					}
-					err = userDAO.CreateOrUpdate(mUser)
+					err = user.CreateOrUpdate(mUser)(conn)
 					logger.Infof("refreshUserCache: Created/updated user id=%s", mUser.ID)
 						
 					profile = convertUserToProfile(mUser)
@@ -75,11 +78,11 @@ func refreshUserCache(userID string, teamID models.TeamID) (profile models.UserP
 	return
 }
 
-func addUserProfileForCommunityUser(userID string, teamID models.TeamID) (err error) {
-	profile, _, err := readUserProfile(userID)
+func addUserProfileForCommunityUser(userID string, conn common.DynamoDBConnection) (err error) {
+	profile, _, err := readUserProfile(userID, conn)
 	if err == nil && profile.Id == "" {
 		log.Printf("%s user not existing, adding now", userID)
-		profile, _, err = refreshUserCache(userID, teamID)
+		profile, _, err = refreshUserCache(userID, conn)
 	}
 	return
 }

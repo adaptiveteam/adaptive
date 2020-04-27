@@ -944,7 +944,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// If there are objectives that doesn't have a partner for
 		if len(core.Distinct(users)) > 0 {
 			// Posting user select engagement to the user. User id here should be channel since we are posting into a channel
-			user.UserSelectEng(userID, engagementTable, models.TeamID(teamID), userDAO,
+			user.UserSelectEng(userID, engagementTable, conn,
 				*mc.WithTopic("coaching").WithAction(PartnerSelectUser), core.Distinct(users), []string{},
 				"Hello! Below are the users who doesn't have a partner assigned for some of their objectives.",
 				"coaching", common2.EngagementEmptyCheck)

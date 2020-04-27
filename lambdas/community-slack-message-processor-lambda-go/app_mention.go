@@ -15,15 +15,16 @@ import (
 	"strings"
 )
 
-func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, teamID models.TeamID, conn daosCommon.DynamoDBConnection) {
+func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, conn daosCommon.DynamoDBConnection) {
 	fmt.Printf("InnerEvent: %v\n", eventsAPIEvent.InnerEvent.Type)
+	teamID := models.ParseTeamID(conn.PlatformID)
 	if eventsAPIEvent.InnerEvent.Type == slackevents.AppMention {
 		slackMsg := ParseAsAppMentionEvent(eventsAPIEvent)
 		text := core.TrimLower(slackMsg.Text)
 		fmt.Printf("Got app_mention with text: %v\n", text)
 		// We first check for requestForUserRegex because botMentionRegex is a subset of this
 		if requestForUserRegex.MatchString(text) {
-			comms := subscribedCommunities(teamID, slackMsg.Channel, conn)
+			comms := subscribedCommunities(slackMsg.Channel, conn)
 
 			// It consists of 4 elements, 0: original, 1: first group (channel), 2: second group (command), 3: third group (target)
 			list := requestForUserRegex.FindStringSubmatch(text)
@@ -47,7 +48,7 @@ func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, tea
 				replyInThread(*slackMsg, teamID, simpleMessage(UnsubscribedUserCommandRejectText))
 			}
 		} else if botMentionRegex.MatchString(text) {
-			_, _, err := refreshUserCache(slackMsg.User, teamID)
+			_, _, err := refreshUserCache(slackMsg.User, conn)
 			if err == nil {
 				log.Println(fmt.Sprintf("Got app mention from %s, ensuring profile exists", slackMsg.User))
 			} else {
@@ -79,7 +80,7 @@ func userMentionGenerateReportHandler(slackMsg slackevents.AppMentionEvent, team
 func onBotMentioned(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, command string,
 	conn daosCommon.DynamoDBConnection,
 ) (response platform.Response) {
-	comms := subscribedCommunities(teamID, slackMsg.Channel, conn)
+	comms := subscribedCommunities(slackMsg.Channel, conn)
 	switch command {
 	case "hello", "hi":
 		response = onBotMentionedHelloCommand(comms, slackMsg, teamID)

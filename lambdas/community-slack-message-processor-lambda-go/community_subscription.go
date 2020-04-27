@@ -4,6 +4,7 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -47,7 +48,7 @@ func onCommunitySubscribeCommunityClicked(
 	// Let's add this channel as a new user
 	// Get the information about the user who initiated this
 	channelID := request.Channel.ID
-	err2 := createCommunityFromCreatorUser(request.User.ID, channelID, communityID)
+	err2 := createCommunityFromCreatorUser(request.User.ID, channelID, communityID, conn)
 	if err2 != nil {
 		if strings.Contains(err2.Error(), "ConditionalCheckFailedException") {
 			logger.Infof("User %s already exists, not adding", request.User.ID)
@@ -91,7 +92,7 @@ func onCommunitySubscribeCommunityClicked(
 				existingUsers := slackChannelMembers(channelID, teamID)
 				logger.Infof("Existing members in %s channel for %s community: %v", channelID, teamID, existingUsers)
 
-				setupCommunityUsers(channelID, communityID, existingUsers, teamID)
+				setupCommunityUsers(channelID, communityID, existingUsers, conn)
 				// Checking if the selected value contains ":"
 				// this happens for strategy communities where value is `community-type`:`parent-id`
 				if strings.Contains(communityID, ":") {
@@ -112,11 +113,13 @@ func onCommunitySubscribeCommunityClicked(
 	}
 }
 
-func setupCommunityUsers(channelID, communityID string, communityMemberIDs []string, teamID models.TeamID) {
+func setupCommunityUsers(channelID, communityID string, communityMemberIDs []string, 
+	conn common.DynamoDBConnection) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	hasBeenSubscribedMany := isUserSubscribedToAnyCommunityMany(communityMemberIDs)
 	userCommunities := addUsersToCommunity(teamID, channelID, communityID, communityMemberIDs)
 	logger.Infof("Added %s users from %s channel to %s community in team %v", communityMemberIDs, channelID, communityID, teamID)
-	welcomeAllUsers(teamID, userCommunities)
+	welcomeAllUsers(userCommunities, conn)
 	// If the user has already subscribed to other channels,  we don't show adaptive scheduled time engagement
 	for userID, hasBeenSubscribed := range hasBeenSubscribedMany {
 		if !hasBeenSubscribed {
@@ -212,7 +215,7 @@ func postSubscriptionRemovalToAdmin(teamID models.TeamID, communityID, userID st
 func onCommunityUnsubscribeClicked(request slack.InteractionCallback, teamID models.TeamID, conn daosCommon.DynamoDBConnection) platform.Response {
 	channelID := request.Channel.ID
 	fmt.Printf("Unsubscribing (platform=%s) from channel %s\n", teamID, channelID)
-	commIDs := subscribedCommunityIDs(teamID, channelID, conn)
+	commIDs := subscribedCommunityIDs(channelID, conn)
 	opts := liftStringToOption(simpleOptionStr)(commIDs)
 	message := selectOptionsMessage(
 		callback(channelID, "unsubscription", "select"),
@@ -229,8 +232,9 @@ func onCommunityUnsubscribeCommunityClicked(
 	request slack.InteractionCallback,
 	communityID string,
 	mc models.MessageCallback,
-	teamID models.TeamID) (message platform.MessageContent) {
-	err2 := channelUnsubscribe(request.Channel.ID, teamID)
+	conn daosCommon.DynamoDBConnection) (message platform.MessageContent) {
+	teamID := models.ParseTeamID(conn.PlatformID)
+	err2 := channelUnsubscribe(request.Channel.ID, conn)
 	if err2 == nil {
 		message = platform.MessageContent{Message: LeavingCommunityNotification(ui.PlainText(communityID))}
 		// We have now added feedback for a coaching engagement. We can now update the original engagement as answered.
@@ -257,13 +261,15 @@ func onCommunityUnsubscribeCancelled(request slack.InteractionCallback, mc model
 	return platform.MessageContent{Message: EngagementRemovedNotification}
 }
 
-func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent, teamID models.TeamID, conn daosCommon.DynamoDBConnection) {
+func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent, 
+	conn common.DynamoDBConnection) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	logger.WithField("event", "member_joined_channel").Infof("%s user joined channel", slackMsg.User)
 	// Member joined
 	// Ensuring profile exists for the user. This could be the first time Adaptive is invited and no user yet exists.
-	up, isAdaptiveBot, err := refreshUserCache(slackMsg.User, teamID)
+	up, isAdaptiveBot, err := refreshUserCache(slackMsg.User, conn)
 	// Also refresh profile for the inviter as we  would be interacting with them immediately
-	_, _, err2 := refreshUserCache(slackMsg.Inviter, teamID)
+	_, _, err2 := refreshUserCache(slackMsg.Inviter, conn)
 	if err == nil {
 		logger.Infof("Newly joined user profile: %v", up)
 		if err2 == nil {
@@ -277,11 +283,11 @@ func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent, teamID
 				logger.Infof("%s joined %s channel on invitation in %s platform", slackMsg.User, slackMsg.Channel, teamID)
 				// If another user is added
 				// Get the subscribed communities
-				subComms := subscribedCommunities(teamID, slackMsg.Channel, conn)
+				subComms := subscribedCommunities(slackMsg.Channel, conn)
 				hasBeenSubscribed := isUserSubscribedToAnyCommunity(slackMsg.User)
-				userCommunityPairs := addUserToAllCommunities(teamID, slackMsg.User, subComms)
+				userCommunityPairs := addUserToAllCommunities(slackMsg.User, subComms, conn)
 				logger.Infof("Welcoming newly added %s user", slackMsg.User)
-				welcomeAllUsers(teamID, userCommunityPairs)
+				welcomeAllUsers(userCommunityPairs, conn)
 				if !hasBeenSubscribed {
 					setupUser(slackMsg.User)
 				}
@@ -321,12 +327,13 @@ func isUserSubscribedToAnyCommunityMany(userIDs []string) (m map[string]bool) {
 // 	return
 // }
 
-func welcomeAllUsers(teamID models.TeamID, userCommunityPairs []models.AdaptiveCommunityUser3) {
+func welcomeAllUsers(userCommunityPairs []models.AdaptiveCommunityUser3, conn common.DynamoDBConnection) {
 	b1, _ := json.Marshal(userCommunityPairs)
 	fmt.Printf("### welcomeAllUsers: %v", string(b1))
+	teamID := models.ParseTeamID(conn.PlatformID)
 	for _, each := range userCommunityPairs {
 		// Ensure the user profile exists
-		err := addUserProfileForCommunityUser(each.UserID, models.ParseTeamID(each.PlatformID))
+		err := addUserProfileForCommunityUser(each.UserID, conn)
 		if err == nil {
 			welcomeUserToCommunity(teamID, each.UserID, community.AdaptiveCommunity(each.CommunityID))
 		} else {
@@ -385,14 +392,14 @@ func onGroupLeftEvent(cbEvent slackevents.EventsAPICallbackEvent, teamID models.
 
 	if len(cbEvent.AuthedUsers) > 0 {
 		authedUser := cbEvent.AuthedUsers[0]
-		us, err2 := userDAO.Read(authedUser)
+		us, err2 := daosUser.Read(authedUser)(conn)
 		if err2 != nil && strings.Contains(err2.Error(), "not found") {
 			logger.Infof("Not found user %s", authedUser)
 			err2 = nil
 		}
 		core.ErrorHandler(err2, namespace, "Error reading from users table")
 		if us.IsAdaptiveBot {
-			removeChannel(groupLeftEvent.ActorId, groupLeftEvent.Channel, teamID, conn)
+			removeChannel(groupLeftEvent.ActorId, groupLeftEvent.Channel, conn)
 		} else {
 			logger.Warnf("Weird onGroupLeftEvent (1) - %s (%s) not IsAdaptiveBot", authedUser, us.ID)
 			err2 := communityUserDAO.DeleteUserFromCommunity(groupLeftEvent.Channel, authedUser)

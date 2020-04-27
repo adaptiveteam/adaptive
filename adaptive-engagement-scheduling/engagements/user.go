@@ -214,9 +214,8 @@ func ReminderToProvideCoachingFeedback(date bt.Date, target string) {
 }
 
 func UserSelectEngagement(mc models.MessageCallback, users, filter []string, userID string,
-	text ui.RichText, context string) {
-	teamID := models.ParseTeamID(UserDAO.ReadUnsafe(userID).PlatformID)
-	user.UserSelectEng(userID, EngagementTable, teamID, UserDAO, mc,
+	text ui.RichText, context string, conn daosCommon.DynamoDBConnection) {
+	user.UserSelectEng(userID, EngagementTable, conn, mc,
 		users, filter, string(text), context, models.UserEngagementCheckWithValue{})
 }
 

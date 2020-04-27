@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
@@ -335,7 +336,8 @@ func handleMissionVisionCreate(mc models.MessageCallback, actionName, actionValu
 }
 
 func handleCapabilityCommunityCreate(mc models.MessageCallback, actionName, actionValue, userID, channelID string,
-	message slack.InteractionCallback, teamID models.TeamID) {
+	message slack.InteractionCallback, conn daosCommon.DynamoDBConnection) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	if mc.Action == string(strategy.Create) || mc.Action == string(strategy.Update) {
 		// create objective actions
 		if strings.HasPrefix(actionName, strategy.CreatePrefix) || strings.HasPrefix(actionName, strategy.UpdatePrefix) {
@@ -346,7 +348,7 @@ func handleCapabilityCommunityCreate(mc models.MessageCallback, actionName, acti
 				if update {
 					cc = strategy.CapabilityCommunityByID(teamID, mc.Target, capabilityCommunitiesTable)
 				}
-				val := utils.AttachmentSurvey("Objective Community", EditCapabilityCommunitySurveyElems(teamID, &cc))
+				val := utils.AttachmentSurvey("Objective Community", EditCapabilityCommunitySurveyElems(teamID, &cc, conn))
 				// Open a survey associated with the engagement
 				dialogFromSurveyUnsafe(teamID, userID, message, val, actionValue, mc.Target, update, core.EmptyString)
 			case string(models.Ignore):
@@ -358,7 +360,10 @@ func handleCapabilityCommunityCreate(mc models.MessageCallback, actionName, acti
 }
 
 func handleInitiativeCreate(mc models.MessageCallback, actionName, actionValue, userID, channelID string,
-	teamID models.TeamID, message slack.InteractionCallback) {
+	message slack.InteractionCallback,
+	conn daosCommon.DynamoDBConnection,
+	) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	if mc.Action == string(strategy.Create) || mc.Action == string(strategy.Update) {
 		// create objective actions
 		if strings.HasPrefix(actionName, strategy.CreatePrefix) || strings.HasPrefix(actionName, strategy.UpdatePrefix) {
@@ -370,7 +375,7 @@ func handleInitiativeCreate(mc models.MessageCallback, actionName, actionValue, 
 				initCommID := core.IfThenElse(selected != core.EmptyString, selected, mc.Target).(string)
 				if update {
 					si = strategy.StrategyInitiativeByID(teamID, mc.Target, strategyInitiativesTable)
-					if !AuthorizedForInitiativeAddEdit(userID, teamID, &si) {
+					if !AuthorizedForInitiativeAddEdit(userID, &si, conn) {
 						logger.Infof("%s user is no longer authorized to edit %s Initiative Community", userID, initCommID)
 						PostMsgToUser(fmt.Sprintf("You are no longer authorized to edit this Initiative Community"),
 							userID, channelID, message.MessageTs)
@@ -408,7 +413,8 @@ func handleInitiativeCreate(mc models.MessageCallback, actionName, actionValue, 
 }
 
 func handleInitiativeCommunityCreate(mc models.MessageCallback, actionName, actionValue, userID, channelID string,
-	message slack.InteractionCallback, teamID models.TeamID) {
+	message slack.InteractionCallback, conn daosCommon.DynamoDBConnection) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	if mc.Action == string(strategy.Create) || mc.Action == string(strategy.Update) {
 		// create objective actions
 		if strings.HasPrefix(actionName, strategy.CreatePrefix) || strings.HasPrefix(actionName, strategy.UpdatePrefix) {
@@ -420,7 +426,7 @@ func handleInitiativeCommunityCreate(mc models.MessageCallback, actionName, acti
 					sic = strategy.InitiativeCommunityByID(teamID, mc.Target, strategyInitiativeCommunitiesTable)
 				}
 				val := utils.AttachmentSurvey("Initiative Community", EditInitiativeCommunitySurveyElems(teamID, &sic,
-					userCapabilityCommunities(userID, community.Capability, teamID)))
+					userCapabilityCommunities(userID, community.Capability, conn), conn))
 				// Open a survey associated with the engagement
 				dialogFromSurveyUnsafe(teamID, userID, message, val, actionValue, mc.Target, update, core.EmptyString)
 			case string(models.Ignore):
@@ -631,9 +637,11 @@ func VisionMissionViewAttachment(mc models.MessageCallback, newVm, oldVm *models
 }
 
 // AuthorizedForInitiativeAddEdit returns if the user is authorized to add/edit an initiative
-func AuthorizedForInitiativeAddEdit(userID string, teamID models.TeamID, si *models.StrategyInitiative) (authorized bool) {
+func AuthorizedForInitiativeAddEdit(userID string, si *models.StrategyInitiative,
+	conn daosCommon.DynamoDBConnection) (authorized bool) {
+	// teamID := models.ParseTeamID(conn.PlatformID)
 	// Anyone in an Objective Community
-	userCapComms := userCapabilityCommunities(userID, community.Capability, teamID)
+	userCapComms := userCapabilityCommunities(userID, community.Capability, conn)
 	var userCapCommIDs []string
 	for _, eachComm := range userCapComms {
 		userCapCommIDs = append(userCapCommIDs, eachComm.Value)
@@ -666,8 +674,12 @@ func AuthorizedForObjectiveEdit(userID string, teamID models.TeamID, so *models.
 	return
 }
 
-func InitiativeViewAttachment(userID string, mc models.MessageCallback, newSi, oldSi *models.StrategyInitiative, enableActions, init bool,
-	teamID models.TeamID) []ebm.Attachment {
+func InitiativeViewAttachment(userID string, 
+	mc models.MessageCallback, newSi, oldSi *models.StrategyInitiative, 
+	enableActions, init bool,
+	conn daosCommon.DynamoDBConnection,
+	) []ebm.Attachment {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	editStatus := "created"
 	var title string
 	var actions []ebm.AttachmentAction
@@ -699,7 +711,7 @@ func InitiativeViewAttachment(userID string, mc models.MessageCallback, newSi, o
 		}
 	}
 
-	if enableActions && AuthorizedForInitiativeAddEdit(userID, teamID, newSi) {
+	if enableActions && AuthorizedForInitiativeAddEdit(userID, newSi, conn) {
 		title = core.IfThenElse(init, fmt.Sprintf("This is the initiative you %s", editStatus), core.EmptyString).(string)
 		actions = append(actions, strategy.EditAttachActions(mc, newSi.ID, true, true, false, InitiativeAdhocEvent)...)
 	}
@@ -734,14 +746,17 @@ func StrategyObjectiveCommunityAssociationViewAttachment(mc models.MessageCallba
 	return strategy.EntityViewAttachment(common.AttachmentEntity{MC: mc, Title: ui.RichText(title), Actions: actions, Fields: kvs})
 }
 
-func handleCreateEvent(topic, text string, userID, channelID string, teamID models.TeamID,
-	message slack.InteractionCallback, urgent bool) {
+func handleCreateEvent(topic, text string, userID, channelID string, 
+	message slack.InteractionCallback, urgent bool,
+	conn daosCommon.DynamoDBConnection,
+	) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	// Create a strategy objective
 	year, month := core.CurrentYearMonth()
 	mc := models.MessageCallback{Module: "strategy", Source: userID, Topic: topic, Action: string(strategy.Create),
 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
 	if urgent {
-		handleCreateEvent1(mc, userID, channelID, teamID, CreateActionName, mc.ToCallbackID(), message)
+		handleCreateEvent1(mc, userID, channelID, CreateActionName, mc.ToCallbackID(), message, conn)
 	} else {
 		CreateAskEngagement(engagementTable, teamID, mc, text, "", "", true, dns)
 		DeleteOriginalEng(userID, channelID, message.MessageTs)
@@ -818,8 +833,10 @@ func actionSelected(actions []*slack.AttachmentAction) string {
 	return selected
 }
 
-func handleCreateEvent1(mc models.MessageCallback, userID, channelID string, teamID models.TeamID, actionName,
-	actionValue string, message slack.InteractionCallback) {
+func handleCreateEvent1(mc models.MessageCallback, userID, channelID string, actionName,
+	actionValue string, message slack.InteractionCallback,
+	conn daosCommon.DynamoDBConnection) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	logger.WithField("mc.Topic", mc.Topic).Infof("handleCreateEvent1")
 	switch mc.Topic {
 	case ObjectiveEvent:
@@ -856,34 +873,34 @@ func handleCreateEvent1(mc models.MessageCallback, userID, channelID string, tea
 	case VisionEvent:
 		handleMissionVisionCreate(mc, actionName, actionValue, userID, channelID, teamID, message)
 	case CapabilityCommunityEvent:
-		handleCapabilityCommunityCreate(mc, actionName, actionValue, userID, channelID, message, teamID)
+		handleCapabilityCommunityCreate(mc, actionName, actionValue, userID, channelID, message, conn)
 	case strategy.InitiativeEvent:
-		handleInitiativeCreate(mc, actionName, actionValue, userID, channelID, teamID, message)
+		handleInitiativeCreate(mc, actionName, actionValue, userID, channelID, message, conn)
 	case InitiativeSelectCommunityEvent:
-		handleInitiativeCreate(mc, actionName, actionValue, userID, channelID, teamID, message)
+		handleInitiativeCreate(mc, actionName, actionValue, userID, channelID, message, conn)
 	case ObjectiveSelectCommunityEvent:
 		handleObjectiveCreate(mc, actionName, actionValue, userID, channelID, teamID, message, models.CapabilityStrategyObjective)
 	case InitiativeCommunityEvent:
-		handleInitiativeCommunityCreate(mc, actionName, actionValue, userID, channelID, message, teamID)
+		handleInitiativeCommunityCreate(mc, actionName, actionValue, userID, channelID, message, conn)
 	case ObjectiveCommunityAssociationSelectObjective:
 		handleObjectiveCommunityAssociationSelectObjective(mc, actionName, actionValue, userID, channelID, message, teamID)
 	case InitiativeCommunityAssociationSelectInitiative:
 		handleInitiativeCommunityAssociationSelectObjective(mc, actionName, actionValue, userID, channelID, message, teamID)
 	// adhoc events
 	case ObjectiveAdhocEvent:
-		handleMenuObjectiveCreate(userID, channelID, teamID, message, false)
+		handleMenuObjectiveCreate(userID, channelID, message, false, conn)
 	case AssociateObjectiveWithCapabilityCommunityEvent:
 		handleMenuObjectiveAssociationCreate(userID, channelID, message, true, teamID)
 	case strategy.CapabilityCommunityAdhocEvent:
 		// copied from CreateCapabilityCommunity event in menu_list
 		handleCreateEvent(CapabilityCommunityEvent, "Would you like to create an objective community?", userID,
-			channelID, teamID, message, true)
+			channelID, message, true, conn)
 	case InitiativeAdhocEvent:
-		handleMenuCreateInitiative(userID, channelID, teamID, message, false)
+		handleMenuCreateInitiative(userID, channelID, message, false, conn)
 	case strategy.InitiativeCommunityAdhocEvent:
 		// copied from CreateInitiativeCommunity event in menu_list
 		handleCreateEvent(InitiativeCommunityEvent, "Would you like to create an initiative community?", userID,
-			channelID, teamID, message, true)
+			channelID, message, true, conn)
 	case strategy.AssociateInitiativeWithInitiativeCommunityEvent:
 		handleMenuInitiativeAssociationCreate(userID, channelID, message, false, teamID,  mc.Target)
 	default:
@@ -997,8 +1014,11 @@ func callback(source, topic string) models.MessageCallback {
 		Year: strconv.Itoa(year)}
 }
 
-func handleMenuCreateInitiative(userID, channelID string, teamID models.TeamID,
-	message slack.InteractionCallback, deleteOriginal bool) {
+func handleMenuCreateInitiative(userID, channelID string, 
+	message slack.InteractionCallback, deleteOriginal bool,
+	conn daosCommon.DynamoDBConnection,
+	) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	logger.Infof("In handleMenuCreateInitiative for user %s with platform %s", userID, teamID)
 	// Query all the Strategy Initiative communities
 	initComms := getInitiativeCommunitiesForUserIDUnsafe(userID, models.TeamID(teamID))
@@ -1023,11 +1043,15 @@ func handleMenuCreateInitiative(userID, channelID string, teamID models.TeamID,
 		}
 	} else {
 		handleCreateEvent(InitiativeCommunityEvent, "There are no Adaptive associated Initiative Communities. If you have already created an Initiative Community, please ask the coordinator to create a *_private_* channel, invite Adaptive and associate with the community.",
-			userID, channelID, teamID, message, false)
+			userID, channelID, message, false, conn)
 	}
 }
 
-func handleMenuObjectiveCreate(userID, channelID string, teamID models.TeamID, message slack.InteractionCallback, deleteOriginal bool) {
+func handleMenuObjectiveCreate(userID, channelID string, 
+	message slack.InteractionCallback, deleteOriginal bool,
+	conn daosCommon.DynamoDBConnection,
+	) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	logger.Infof("Creating Strategy Objective by user %s for platform %s", userID, teamID)
 	if isMemberInCommunity(userID, community.Strategy) {
 		// check if the user is in strategy community
@@ -1045,7 +1069,7 @@ func handleMenuObjectiveCreate(userID, channelID string, teamID models.TeamID, m
 			}
 		} else {
 			handleCreateEvent(CapabilityCommunityEvent, "There are no Adaptive associated Capability Communities. If you have already created a Objective Community, please ask the coordinator to create a *_private_* channel, invite Adaptive and associate with the community.",
-				userID, channelID, teamID, message, false)
+				userID, channelID, message, false, conn)
 		}
 	} else {
 		// send a message that user is not authorized to create objectives
@@ -1117,11 +1141,12 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 			// err = invokeWorkflow(np)
 		} else
 		if np.Namespace == "strategy" {
+			conn := connGen.ForPlatformID(np.TeamID.ToPlatformID())
 			switch np.SlackRequest.Type {
 			case models.InteractionSlackRequestType:
-				err = onSlackInteraction(np)
+				err = onSlackInteraction(np, conn)
 			case models.DialogSubmissionSlackRequestType:
-				onDialogSubmission(np)
+				onDialogSubmission(np, conn)
 			case models.DialogCancellationSlackRequestType:
 				onDialogCancellation(np)
 			}
@@ -1130,7 +1155,7 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 	return
 }
 
-func onSlackInteraction(np models.NamespacePayload4) (err error) {
+func onSlackInteraction(np models.NamespacePayload4, conn daosCommon.DynamoDBConnection) (err error) {
 	logger.WithField("interactive_message_event", np).Info()
 
 	message := np.SlackRequest.InteractionCallback
@@ -1163,27 +1188,27 @@ func onSlackInteraction(np models.NamespacePayload4) (err error) {
 			// np.InteractionCallback.CallbackID = FirstWorkflowPath.Encode()
 			// invokeWorkflow(np) // TODO: This is a temporary invocation of workflow from menu. Just to make sure everything is working.
 			handleCreateEvent(FinancialObjectiveEvent, "Would you like to create a financial objective?",
-				userID, channelID, teamID, message, true)
+				userID, channelID, message, true, conn)
 		case CreateCustomerObjective:
 			handleCreateEvent(CustomerObjectiveEvent, "Would you like to create a customer objective?",
-				userID, channelID, teamID, message, true)
+				userID, channelID, message, true, conn)
 		case strategy.CreateVision:
 			// Create a strategy objective
 			handleCreateEvent(VisionEvent, "Would you like to add vision?", userID, channelID,
-				teamID, message, true)
+				message, true, conn)
 		case strategy.ViewVision, strategy.ViewEditVision:
 			onViewEditVision(request, teamID)
 		case CreateCapabilityCommunity:
 			handleCreateEvent(CapabilityCommunityEvent, "Would you like to create an objective community?",
-				userID, channelID, teamID, message, true)
+				userID, channelID, message, true, conn)
 		case AssociateStrategyObjectiveToCapabilityCommunity:
 			handleCreateEvent(AssociateObjectiveWithCapabilityCommunityEvent, "I see you want to associate objective with an objective community",
-				userID, channelID, teamID, message, true)
+				userID, channelID, message, true, conn)
 		case CreateInitiative:
-			handleMenuCreateInitiative(userID, channelID, teamID, message, true)
+			handleMenuCreateInitiative(userID, channelID, message, true, conn)
 		case CreateInitiativeCommunity:
 			handleCreateEvent(InitiativeCommunityEvent, "Would you like to create an initiative community?",
-				userID, channelID, teamID, message, true)
+				userID, channelID, message, true, conn)
 		case ViewAdvocacyObjectives:
 			logger.Error("Not entering Old CreateObjectiveWorkflow/ViewMyObjectivesEvent")
 			// err = enterWorkflow(CreateObjectiveWorkflow, np, ViewMyObjectivesEvent)
@@ -1205,7 +1230,7 @@ func onSlackInteraction(np models.NamespacePayload4) (err error) {
 			} else if selected.Value == ViewInitiativeCommunityInitiatives {
 				inits = InitiativeCommunityInitiatives(userID)
 			}
-			onViewInitiatives(request, teamID, inits)
+			onViewInitiatives(request, inits, conn)
 		default:
 			logger.Infof("Unhandled option %s", selected.Value)
 		}
@@ -1220,7 +1245,7 @@ func onSlackInteraction(np models.NamespacePayload4) (err error) {
 			// For menu options, action value will be empty. Assign it as callbackID
 			actionValue = message.CallbackID
 			core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-			handleCreateEvent1(*mc, userID, channelID, teamID, action.Name, actionValue, message)
+			handleCreateEvent1(*mc, userID, channelID, action.Name, actionValue, message, conn)
 		} else {
 			mc, err := utils.ParseToCallback(action.Value)
 			actionValue = action.Value
@@ -1235,7 +1260,7 @@ func onSlackInteraction(np models.NamespacePayload4) (err error) {
 						true, models.TeamID(teamID))
 				}
 			} else {
-				handleCreateEvent1(*mc, userID, channelID, teamID, action.Name, actionValue, message)
+				handleCreateEvent1(*mc, userID, channelID, action.Name, actionValue, message, conn)
 			}
 
 		}
@@ -1273,7 +1298,9 @@ func onObjectiveCommunityAssociationSelectObjectiveDelete(request slack.Interact
 }
 
 func onViewInitiatives(request slack.InteractionCallback,
-	teamID models.TeamID, inits []models.StrategyInitiative) {
+	inits []models.StrategyInitiative,
+	conn daosCommon.DynamoDBConnection) {
+	// teamID := models.ParseTeamID(conn.PlatformID)
 	message := request
 
 	userID := message.User.ID
@@ -1285,7 +1312,7 @@ func onViewInitiatives(request slack.InteractionCallback,
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 			Message: "You can find the list of initiatives in the thread."})
 		for _, each := range inits {
-			attachs := InitiativeViewAttachment(userID, mc, &each, nil, true, false, models.TeamID(teamID))
+			attachs := InitiativeViewAttachment(userID, mc, &each, nil, true, false, conn)
 			publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
 				Attachments: attachs, ThreadTs: threadTs})
 		}
@@ -1339,7 +1366,7 @@ func onViewEditVision(request slack.InteractionCallback, teamID models.TeamID) {
 	DeleteOriginalEng(userID, channelID, message.MessageTs)
 }
 
-func onDialogSubmission(np models.NamespacePayload4) {
+func onDialogSubmission(np models.NamespacePayload4, conn daosCommon.DynamoDBConnection) {
 	logger.WithField("dialog_submission_event", np).Info()
 	request := np.SlackRequest.InteractionCallback
 	// Handling dialog submission for each answer
@@ -1352,7 +1379,7 @@ func onDialogSubmission(np models.NamespacePayload4) {
 	err = json.Unmarshal([]byte(dialog.State), &msgState)
 	core.ErrorHandler(err, namespace, "Could not unmarshal to MsgState")
 
-	teamID := models.ParseTeamID(userDAO.ReadUnsafe(dialog.User.ID).PlatformID)
+	teamID := np.TeamID
 	notes := responses()
 	if mc.Topic == ObjectiveSelectCommunityEvent || mc.Topic == ObjectiveEvent {
 		if mc.Action == string(strategy.Create) || mc.Action == string(strategy.Update) {
@@ -1376,7 +1403,8 @@ func onDialogSubmission(np models.NamespacePayload4) {
 		}
 	} else if mc.Topic == InitiativeSelectCommunityEvent || mc.Topic == strategy.InitiativeEvent {
 		if mc.Action == string(strategy.Create) || mc.Action == string(strategy.Update) {
-			notes = onInitiativeSelectCommunityEventCreateOrUpdateDialogSubmission(dialog, msgState, teamID, mc)
+			notes = onInitiativeSelectCommunityEventCreateOrUpdateDialogSubmission(
+				dialog, msgState, mc, conn)
 		}
 	} else if mc.Topic == InitiativeCommunityEvent {
 		if mc.Action == string(strategy.Create) || mc.Action == string(strategy.Update) {
@@ -1686,7 +1714,12 @@ func onCapabilityCommunityEventCreateOrUpdateDialogSubmission(request slack.Inte
 		d, namespace)
 	return responses()
 }
-func onInitiativeSelectCommunityEventCreateOrUpdateDialogSubmission(request slack.InteractionCallback, msgState MsgState, teamID models.TeamID, mc *models.MessageCallback) (resp []models.PlatformSimpleNotification) {
+func onInitiativeSelectCommunityEventCreateOrUpdateDialogSubmission(
+	request slack.InteractionCallback, msgState MsgState, 
+	mc *models.MessageCallback,
+	conn daosCommon.DynamoDBConnection,
+	) (resp []models.PlatformSimpleNotification) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	dialog := request
 	userID := dialog.User.ID
 	channelID := dialog.Channel.ID
@@ -1725,9 +1758,9 @@ func onInitiativeSelectCommunityEventCreateOrUpdateDialogSubmission(request slac
 	// Write entry to table
 	err := d.PutTableEntry(*newSi, strategyInitiativesTable)
 	attachsWithActions := InitiativeViewAttachment(userID, *mc.WithTopic(strategy.InitiativeEvent), newSi,
-		oldSi, true, true, models.TeamID(teamID))
+		oldSi, true, true, conn)
 	attachsWithNoActions := InitiativeViewAttachment(userID, *mc.WithTopic(strategy.InitiativeEvent), newSi,
-		oldSi, false, true, models.TeamID(teamID))
+		oldSi, false, true, conn)
 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: msgState.ThreadTs,
 		Attachments: attachsWithActions})
 	// Do analysis on vision
@@ -1896,7 +1929,11 @@ var (
 // userCapabilityCommunities queries strategy_community for 
 // all communities for the user.
 // In case user is in strategy group, returns all communities.
-func userCapabilityCommunities(userID string, typ community.AdaptiveCommunity, teamID models.TeamID) (res []models.KvPair) {
+func userCapabilityCommunities(userID string, 
+	typ community.AdaptiveCommunity, 
+	conn daosCommon.DynamoDBConnection,
+	) (res []models.KvPair) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	var comms []strategy.CapabilityCommunity
 	if isMemberInCommunity(userID, community.Strategy) {
 		comms = AllCapabilityCommunities(teamID)
