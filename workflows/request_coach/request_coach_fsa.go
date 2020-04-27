@@ -299,6 +299,7 @@ func (w workflowImpl) OnIWouldLikeToCoachEvent() wf.Handler {
 			return
 		}
 		var msg wf.InteractiveMessage
+		var notes []wf.InteractiveMessage
 		if issue.UserObjective.AccountabilityPartner == utilsUser.UserID_Requested {
 			issue.UserObjective.AccountabilityPartner = ctx.Request.User.ID
 			issue.UserObjective.ModifiedBy = ctx.Request.User.ID
@@ -312,6 +313,7 @@ func (w workflowImpl) OnIWouldLikeToCoachEvent() wf.Handler {
 					Fields: shortViewFields(issue),
 				},
 			}
+			notes = append(notes, msg)
 		} else {
 			msg = wf.InteractiveMessage{
 				PassiveMessage: wf.PassiveMessage{
@@ -323,7 +325,9 @@ func (w workflowImpl) OnIWouldLikeToCoachEvent() wf.Handler {
 				},
 			}
 		}
-		out = out.WithCommunityInteraction(string(community.Coaching), msg)
+		out = out.
+			WithCommunityInteraction(string(community.Coaching), msg).
+			WithAnotherUserInteraction(issue.UserObjective.UserID, notes...)
 		out.NextState = wf.DoneState
 		return
 	}

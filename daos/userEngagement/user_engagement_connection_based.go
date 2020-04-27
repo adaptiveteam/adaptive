@@ -67,6 +67,27 @@ func ReadUnsafe(userID string, id string) func (conn common.DynamoDBConnection) 
 // ReadOrEmpty reads UserEngagement
 func ReadOrEmpty(userID string, id string) func (conn common.DynamoDBConnection) (out []UserEngagement, err error) {
 	return func (conn common.DynamoDBConnection) (out []UserEngagement, err error) {
+       out, err = ReadOrEmptyIncludingInactive(userID, id)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the UserEngagement. Panics in case of any errors
+func ReadOrEmptyUnsafe(userID string, id string) func (conn common.DynamoDBConnection) []UserEngagement {
+	return func (conn common.DynamoDBConnection) []UserEngagement {
+		out, err2 := ReadOrEmpty(userID, id)(conn)
+		core.ErrorHandler(err2, "daos/UserEngagement", fmt.Sprintf("Error while reading userID==%s, id==%s in %s\n", userID, id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads UserEngagement
+func ReadOrEmptyIncludingInactive(userID string, id string) func (conn common.DynamoDBConnection) (out []UserEngagement, err error) {
+	return func (conn common.DynamoDBConnection) (out []UserEngagement, err error) {
 		var outOrEmpty UserEngagement
 		ids := idParams(userID, id)
 		var found bool
@@ -84,10 +105,10 @@ func ReadOrEmpty(userID string, id string) func (conn common.DynamoDBConnection)
 }
 
 
-// ReadOrEmptyUnsafe reads the UserEngagement. Panics in case of any errors
-func ReadOrEmptyUnsafe(userID string, id string) func (conn common.DynamoDBConnection) []UserEngagement {
+// ReadOrEmptyIncludingInactiveUnsafe reads the UserEngagement. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(userID string, id string) func (conn common.DynamoDBConnection) []UserEngagement {
 	return func (conn common.DynamoDBConnection) []UserEngagement {
-		out, err2 := ReadOrEmpty(userID, id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(userID, id)(conn)
 		core.ErrorHandler(err2, "daos/UserEngagement", fmt.Sprintf("Error while reading userID==%s, id==%s in %s\n", userID, id, TableName(conn.ClientID)))
 		return out
 	}

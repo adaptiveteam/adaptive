@@ -67,6 +67,27 @@ func ReadUnsafe(platformID common.PlatformID, id string) func (conn common.Dynam
 // ReadOrEmpty reads AdaptiveCommunity
 func ReadOrEmpty(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunity, err error) {
 	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunity, err error) {
+       out, err = ReadOrEmptyIncludingInactive(platformID, id)(conn)
+       out = AdaptiveCommunityFilterActive(out)
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the AdaptiveCommunity. Panics in case of any errors
+func ReadOrEmptyUnsafe(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) []AdaptiveCommunity {
+	return func (conn common.DynamoDBConnection) []AdaptiveCommunity {
+		out, err2 := ReadOrEmpty(platformID, id)(conn)
+		core.ErrorHandler(err2, "daos/AdaptiveCommunity", fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads AdaptiveCommunity
+func ReadOrEmptyIncludingInactive(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunity, err error) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunity, err error) {
 		var outOrEmpty AdaptiveCommunity
 		ids := idParams(platformID, id)
 		var found bool
@@ -84,10 +105,10 @@ func ReadOrEmpty(platformID common.PlatformID, id string) func (conn common.Dyna
 }
 
 
-// ReadOrEmptyUnsafe reads the AdaptiveCommunity. Panics in case of any errors
-func ReadOrEmptyUnsafe(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) []AdaptiveCommunity {
+// ReadOrEmptyIncludingInactiveUnsafe reads the AdaptiveCommunity. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) []AdaptiveCommunity {
 	return func (conn common.DynamoDBConnection) []AdaptiveCommunity {
-		out, err2 := ReadOrEmpty(platformID, id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(platformID, id)(conn)
 		core.ErrorHandler(err2, "daos/AdaptiveCommunity", fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, TableName(conn.ClientID)))
 		return out
 	}
@@ -148,19 +169,26 @@ func CreateOrUpdateUnsafe(adaptiveCommunity AdaptiveCommunity) func (conn common
 }
 
 
-// Delete removes AdaptiveCommunity from db
-func Delete(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) error {
+// Deactivate "removes" AdaptiveCommunity. 
+// The mechanism is adding timestamp to `DeactivatedOn` field. 
+// Then, if this field is not empty, the instance is considered to be "active"
+func Deactivate(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) error {
 	return func (conn common.DynamoDBConnection) error {
-		return conn.Dynamo.DeleteEntry(TableName(conn.ClientID), idParams(platformID, id))
+		instance, err2 := Read(platformID, id)(conn)
+		if err2 == nil {
+			instance.DeactivatedAt = core.CurrentRFCTimestamp()
+			err2 = CreateOrUpdate(instance)(conn)
+		}
+		return err2
 	}
 }
 
 
-// DeleteUnsafe deletes AdaptiveCommunity and panics in case of errors.
-func DeleteUnsafe(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) {
+// DeactivateUnsafe "deletes" AdaptiveCommunity and panics in case of errors.
+func DeactivateUnsafe(platformID common.PlatformID, id string) func (conn common.DynamoDBConnection) {
 	return func (conn common.DynamoDBConnection) {
-		err2 := Delete(platformID, id)(conn)
-		core.ErrorHandler(err2, "daos/AdaptiveCommunity", fmt.Sprintf("Could not delete platformID==%s, id==%s in %s\n", platformID, id, TableName(conn.ClientID)))
+		err2 := Deactivate(platformID, id)(conn)
+		core.ErrorHandler(err2, "daos/AdaptiveCommunity", fmt.Sprintf("Could not deactivate platformID==%s, id==%s in %s\n", platformID, id, TableName(conn.ClientID)))
 	}
 }
 
@@ -175,7 +203,7 @@ func ReadByChannel(channelID string) func (conn common.DynamoDBConnection) (out 
 				":a0": channelID,
 			},
 		}, map[string]string{}, true, -1, &instances)
-		out = instances
+		out = AdaptiveCommunityFilterActive(instances)
 		return
 	}
 }
@@ -200,7 +228,7 @@ func ReadByPlatformID(platformID common.PlatformID) func (conn common.DynamoDBCo
 				":a0": platformID,
 			},
 		}, map[string]string{}, true, -1, &instances)
-		out = instances
+		out = AdaptiveCommunityFilterActive(instances)
 		return
 	}
 }

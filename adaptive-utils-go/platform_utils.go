@@ -1,6 +1,7 @@
 package adaptive_utils_go
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	// "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -76,28 +77,31 @@ func (p Platform)CallbackActionRule(request slack.InteractionCallback) string {
 }
 
 // DispatchInteractionCallback dispatches request using provided routing table
-func (p Platform)DispatchInteractionCallback(r RequestHandlers) func (slack.InteractionCallback) {
-	return func (request slack.InteractionCallback) {
+func (p Platform)DispatchInteractionCallback(r RequestHandlers) func (slack.InteractionCallback, common.DynamoDBConnection) {
+	return func (request slack.InteractionCallback, conn common.DynamoDBConnection) {
 		defer p.RecoverGracefully(request)
-		notes := r.DispatchByRule(ActionNameRule)(request)
+		notes, err2 := r.DispatchByRule(ActionNameRule)(request, conn)
+		core.ErrorHandler(err2, "DispatchInteractionCallback", "DispatchByRule")
 		p.PublishAll(notes)
 	}
 }
 
 // DispatchDialogSubmission dispatches request using provided routing table
-func (p Platform)DispatchDialogSubmission(r DialogSubmissionHandlers) func (slack.InteractionCallback, slack.DialogSubmissionCallback) {
-	return func (request slack.InteractionCallback, dialog slack.DialogSubmissionCallback) {
+func (p Platform)DispatchDialogSubmission(r DialogSubmissionHandlers) func (slack.InteractionCallback, slack.DialogSubmissionCallback, common.DynamoDBConnection) {
+	return func (request slack.InteractionCallback, dialog slack.DialogSubmissionCallback, conn common.DynamoDBConnection) {
 		defer p.RecoverGracefully(request)
-		notes := r.DispatchByRule(p.CallbackActionRule)(request, dialog)
+		notes, err2 := r.DispatchByRule(p.CallbackActionRule)(request, dialog, conn)
+		core.ErrorHandler(err2, "DispatchDialogSubmission", "DispatchByRule")
 		p.PublishAll(notes)
 	}
 }
 
 // DispatchDialogSubmissionByRule dispatches request using provided routing table
-func (p Platform)DispatchDialogSubmissionByRule(r DialogSubmissionHandlers, rule RequestRoutingRule) func (slack.InteractionCallback, slack.DialogSubmissionCallback) {
-	return func (request slack.InteractionCallback, dialog slack.DialogSubmissionCallback) {
+func (p Platform)DispatchDialogSubmissionByRule(r DialogSubmissionHandlers, rule RequestRoutingRule) func (slack.InteractionCallback, slack.DialogSubmissionCallback, common.DynamoDBConnection) {
+	return func (request slack.InteractionCallback, dialog slack.DialogSubmissionCallback, conn common.DynamoDBConnection) {
 		defer p.RecoverGracefully(request)
-		notes := r.DispatchByRule(rule)(request, dialog)
+		notes, err2 := r.DispatchByRule(rule)(request, dialog, conn)
+		core.ErrorHandler(err2, "DispatchDialogSubmissionByRule", "DispatchByRule")
 		p.PublishAll(notes)
 	}
 }

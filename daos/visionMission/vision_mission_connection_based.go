@@ -66,6 +66,27 @@ func ReadUnsafe(platformID common.PlatformID) func (conn common.DynamoDBConnecti
 // ReadOrEmpty reads VisionMission
 func ReadOrEmpty(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []VisionMission, err error) {
 	return func (conn common.DynamoDBConnection) (out []VisionMission, err error) {
+       out, err = ReadOrEmptyIncludingInactive(platformID)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the VisionMission. Panics in case of any errors
+func ReadOrEmptyUnsafe(platformID common.PlatformID) func (conn common.DynamoDBConnection) []VisionMission {
+	return func (conn common.DynamoDBConnection) []VisionMission {
+		out, err2 := ReadOrEmpty(platformID)(conn)
+		core.ErrorHandler(err2, "daos/VisionMission", fmt.Sprintf("Error while reading platformID==%s in %s\n", platformID, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads VisionMission
+func ReadOrEmptyIncludingInactive(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []VisionMission, err error) {
+	return func (conn common.DynamoDBConnection) (out []VisionMission, err error) {
 		var outOrEmpty VisionMission
 		ids := idParams(platformID)
 		var found bool
@@ -83,10 +104,10 @@ func ReadOrEmpty(platformID common.PlatformID) func (conn common.DynamoDBConnect
 }
 
 
-// ReadOrEmptyUnsafe reads the VisionMission. Panics in case of any errors
-func ReadOrEmptyUnsafe(platformID common.PlatformID) func (conn common.DynamoDBConnection) []VisionMission {
+// ReadOrEmptyIncludingInactiveUnsafe reads the VisionMission. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(platformID common.PlatformID) func (conn common.DynamoDBConnection) []VisionMission {
 	return func (conn common.DynamoDBConnection) []VisionMission {
-		out, err2 := ReadOrEmpty(platformID)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(platformID)(conn)
 		core.ErrorHandler(err2, "daos/VisionMission", fmt.Sprintf("Error while reading platformID==%s in %s\n", platformID, TableName(conn.ClientID)))
 		return out
 	}
