@@ -5,7 +5,7 @@ import (
 
 	"github.com/ReneKroon/ttlcache"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	"github.com/adaptiveteam/adaptive/daos/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
 	"github.com/adaptiveteam/adaptive/daos/common"
@@ -19,6 +19,8 @@ func dynString(str string) (attr *dynamodb.AttributeValue) {
 }
 
 var globalTokenCache *ttlcache.Cache
+
+var connGen = common.CreateConnectionGenFromEnv()
 
 // GetToken retrieves the token from the cache or database.
 func GetToken(teamID models.TeamID) func(common.DynamoDBConnection) (string, error) {
@@ -81,15 +83,16 @@ func GetTokenForUser(dynamo *awsutils.DynamoRequest, clientID string, userID str
 }
 
 // GetTeamIDForUser -
+// Deprecated: We should always provide team id because user id is not unique.
+// see https://github.com/adaptiveteam/adaptive/issues/318
+// and https://api.slack.com/methods/users.identity, https://stackoverflow.com/questions/39260512/slack-user-id-and-access-token-unique-across-teams-or-users
 func GetTeamIDForUser(dynamo *awsutils.DynamoRequest, clientID string, userID string) (teamID models.TeamID, err error) {
-	dao := user.DAOFromConnectionGen(common.DynamoDBConnectionGen{
-		Dynamo:          dynamo,
-		TableNamePrefix: clientID,
-	})
-	var user models.User
-	user, err = dao.Read(userID)
+	// NB! below Read doesn't use platform id from connection at the moment.
+	fakeConnWithArbitraryPlatformID := connGen.ForPlatformID("YET-UNKNOWN-PLATFORM-ID")
+	var u user.User
+	u, err = user.Read(userID)(fakeConnWithArbitraryPlatformID)
 	if err == nil {
-		teamID = models.ParseTeamID(user.PlatformID)
+		teamID = models.ParseTeamID(u.PlatformID)
 	}
 	return
 }
