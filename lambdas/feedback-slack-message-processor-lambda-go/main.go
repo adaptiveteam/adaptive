@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
 	"fmt"
 	"context"
@@ -199,7 +200,9 @@ func renderGroupsAsIDAndElementsAsSubList(groups map[string]RichTextGroup) (item
 // accountabilityPartnerID is the same as coachID
 // it's the userID for the user we are interacting at the moment
 func onViewAdvocates(accountabilityPartnerID string) platform.Response {
-	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(accountabilityPartnerID)
+	teamID := strategy.UserIDToTeamID(userDao)(accountabilityPartnerID)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(accountabilityPartnerID)(conn)
 	strObjectives := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
 	infos := GroupByUserID(strObjectives, FormatObjectiveName)
 	names := renderGroupsAsIDAndElementsInParentheses(infos)

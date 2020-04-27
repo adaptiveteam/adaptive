@@ -17,7 +17,6 @@ import (
 	// "github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
-	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 
 	// "github.com/adaptiveteam/adaptive/daos/visionMission"
 	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
@@ -81,24 +80,10 @@ func SelectFromIssuesWhereTypeAndUserID(userID string, issueType IssueType, comp
 	return selectFromIssuesWhereTypeAndUserIDIDO(userID, completed)
 }
 
-func UserObjectiveDAO() func(conn common.DynamoDBConnection) userObjective.DAO {
-	return func(conn common.DynamoDBConnection) userObjective.DAO {
-		return userObjective.NewDAO(conn.Dynamo, "userObjectiveDAO", conn.ClientID)
-	}
-}
-
-func UserObjectiveProgressDAO() func(conn common.DynamoDBConnection) userObjectiveProgress.DAO {
-	return func(conn common.DynamoDBConnection) userObjectiveProgress.DAO {
-		return userObjectiveProgress.NewDAOByTableName(conn.Dynamo, "userObjectiveProgressDAO", userObjectiveProgressTableName(conn.ClientID))
-	}
-}
-
 func selectFromIssuesWhereTypeAndUserIDIDO(userID string, completed int) func(conn DynamoDBConnection) (res []Issue, err error) {
 	return func(conn DynamoDBConnection) (res []Issue, err error) {
-		dao := UserObjectiveDAO()(conn)
-
 		var objs []userObjective.UserObjective
-		objs, err = dao.ReadByUserIDCompleted(userID, completed)
+		objs, err = userObjective.ReadByUserIDCompleted(userID, completed)(conn)
 		if err == nil {
 			for _, o := range objs {
 				if o.ObjectiveType == userObjective.IndividualDevelopmentObjective { // o.Completed == completed { // this should be automatic
@@ -132,21 +117,20 @@ func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) 
 			map[string]string{}, true, -1, &allObjs)
 		log.Printf("AllStrategyObjectives: len(allObjs)=%d\n", len(allObjs))
 
-		userObjectiveDao := UserObjectiveDAO()(conn)
 		for _, each := range allObjs {
 			// there has to be at least one objective community id
 			// TODO: This presents a tricky scenario when original objective community is updated. Think about this.
 			// Customer and financial objectives have no capability communities associated with them. For them,we only use the ID
 			id := each.ID
 			var objs []userObjective.UserObjective
-			objs, err = userObjectiveDao.ReadOrEmpty(id)
+			objs, err = userObjective.ReadOrEmpty(id)(conn)
 			if err != nil {
 				err = errors.Wrapf(err, "DynamoDBConnection) selectFromIssuesWhereTypeAndUserIDSObjective/userObjectiveDao.ReadOrEmpty")
 				return
 			}
 			if len(objs) == 0 && len(each.CapabilityCommunityIDs) > 0 {
 				id = fmt.Sprintf("%s_%s", each.ID, each.CapabilityCommunityIDs[0])
-				objs, err = userObjectiveDao.ReadOrEmpty(id)
+				objs, err = userObjective.ReadOrEmpty(id)(conn)
 				if err != nil {
 					err = errors.Wrapf(err, "DynamoDBConnection) selectFromIssuesWhereTypeAndUserIDSObjective/userObjectiveDao.ReadOrEmpty 1_2")
 					return
@@ -448,9 +432,8 @@ func Read(issueType IssueType, issueID string) func(conn DynamoDBConnection) (is
 			err = fmt.Errorf("%s issue id is empty", issueType)
 			return
 		}
-		dao := UserObjectiveDAO()(conn)
 		var objs []userObjective.UserObjective
-		objs, err = dao.ReadOrEmpty(issueID)
+		objs, err = userObjective.ReadOrEmpty(issueID)(conn)
 		if len(objs) > 0 {
 			issue.UserObjective = objs[0]
 		}
@@ -488,8 +471,7 @@ func Save(issue Issue) func(conn DynamoDBConnection) (err error) {
 	return func(conn DynamoDBConnection) (err error) {
 		log.Printf("DynamoDBConnection) Save(uo.ID=%s, so.ID=%s, si.ID=%s, issue=%v)\n",
 			issue.UserObjective.ID, issue.StrategyObjective.ID, issue.StrategyInitiative.ID, issue)
-		dao := UserObjectiveDAO()(conn)
-		err = dao.CreateOrUpdate(issue.UserObjective)
+		err = userObjective.CreateOrUpdate(issue.UserObjective)(conn)
 		if err == nil {
 			switch issue.GetIssueType() {
 			case IDO:
@@ -528,15 +510,14 @@ func Save(issue Issue) func(conn DynamoDBConnection) (err error) {
 // SetCancelled updates a single field in the entity - Cancelled - to true
 func SetCancelled(issueID string) func(conn DynamoDBConnection) (err error) {
 	return func(conn DynamoDBConnection) (err error) {
-		dao := UserObjectiveDAO()(conn)
 		var objs []userObjective.UserObjective
-		objs, err = dao.ReadOrEmpty(issueID)
+		objs, err = userObjective.ReadOrEmpty(issueID)(conn)
 		if err == nil {
 			if len(objs) > 0 {
 				objs[0].Cancelled = 1
 				objs[0].Completed = 1
 				objs[0].CompletedDate = core.ISODateLayout.Format(time.Now())
-				err = dao.CreateOrUpdate(objs[0])
+				err = userObjective.CreateOrUpdate(objs[0])(conn)
 			} else {
 				err = errors.New("UserObjective " + issueID + " not found (SetCancelled)")
 			}
@@ -549,13 +530,12 @@ func SetCancelled(issueID string) func(conn DynamoDBConnection) (err error) {
 // SetCompleted updates a single field in the entity - Completed - to true
 func SetCompleted(issueID string) func(conn DynamoDBConnection) (err error) {
 	return func(conn DynamoDBConnection) (err error) {
-		dao := UserObjectiveDAO()(conn)
 		var objs []userObjective.UserObjective
-		objs, err = dao.ReadOrEmpty(issueID)
+		objs, err = userObjective.ReadOrEmpty(issueID)(conn)
 		if len(objs) > 0 {
 			objs[0].Completed = 1
 			objs[0].CompletedDate = core.ISODateLayout.Format(time.Now())
-			err = dao.CreateOrUpdate(objs[0])
+			err = userObjective.CreateOrUpdate(objs[0])(conn)
 		} else {
 			err = errors.New("UserObjective " + issueID + " not found (SetCompleted)")
 		}
@@ -609,10 +589,10 @@ func Prefetch(issueRef *Issue, isShowingProgress bool) func(DynamoDBConnection) 
 
 // PrefetchIssueWithoutProgress loads issue information ignoring context
 func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err error) {
-	return func(DynamoDBConnection DynamoDBConnection) (err error) {
+	return func(conn DynamoDBConnection) (err error) {
 		if !utilsUser.IsSpecialOrEmptyUserID(issueRef.UserObjective.AccountabilityPartner) {
 			issueRef.PrefetchedData.AccountabilityPartner, err =
-				utilsUser.DAOFromConnection(DynamoDBConnection).
+				utilsUser.DAOFromConnection(conn).
 					Read(issueRef.UserObjective.AccountabilityPartner)
 			if err != nil {
 				return
@@ -623,15 +603,14 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 			switch issueRef.StrategyAlignmentEntityType {
 			case userObjective.ObjectiveStrategyObjectiveAlignment:
 				var sos []strategyObjective.StrategyObjective
-				sos, err = StrategyObjectiveReadOrEmpty(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
+				sos, err = StrategyObjectiveReadOrEmpty(issueRef.StrategyAlignmentEntityID)(conn)
 				if len(sos) > 0 {
 					issueRef.PrefetchedData.AlignedCapabilityObjective = sos[0]
 				}
 			case userObjective.ObjectiveStrategyInitiativeAlignment:
-				issueRef.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issueRef.StrategyAlignmentEntityID)(DynamoDBConnection)
+				issueRef.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issueRef.StrategyAlignmentEntityID)(conn)
 			case userObjective.ObjectiveCompetencyAlignment:
-				dao := adaptiveValue.NewDAOByTableName(DynamoDBConnection.Dynamo, "CompetencyDynamoDBConnection", models.SchemaForClientID(DynamoDBConnection.ClientID).AdaptiveValues.Name)
-				issueRef.PrefetchedData.AlignedCompetency, err = dao.Read(issueRef.StrategyAlignmentEntityID)
+				issueRef.PrefetchedData.AlignedCompetency, err = adaptiveValue.Read(issueRef.StrategyAlignmentEntityID)(conn)
 			}
 			if err != nil {
 				log.Printf("IGNORE ERROR Couldn't prefetch %s id=%s due to an error: %+v", issueRef.StrategyAlignmentEntityType, issueRef.StrategyAlignmentEntityID, err)
@@ -647,7 +626,7 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 			if len(issueRef.StrategyObjective.CapabilityCommunityIDs) > 0 {
 				capCommID := issueRef.StrategyObjective.CapabilityCommunityIDs[0]
 				var comms [] capabilityCommunity.CapabilityCommunity
-				comms, err = CapabilityCommunityReadOrEmpty(capCommID)(DynamoDBConnection)
+				comms, err = CapabilityCommunityReadOrEmpty(capCommID)(conn)
 				if len(comms) > 0 {
 					issueRef.PrefetchedData.AlignedCapabilityCommunity = comms[0]
 				}
@@ -666,9 +645,8 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 		case Initiative:
 			initCommID := issueRef.StrategyInitiative.InitiativeCommunityID
 			if initCommID != "" {
-				dao := strategyInitiativeCommunity.NewDAOByTableName(DynamoDBConnection.Dynamo, "PrefetchIssueWithoutProgress", models.StrategyInitiativeCommunitiesTableName(DynamoDBConnection.ClientID))
 				var comms []strategyInitiativeCommunity.StrategyInitiativeCommunity
-				comms, err = dao.ReadOrEmpty(initCommID, DynamoDBConnection.PlatformID)
+				comms, err = strategyInitiativeCommunity.ReadOrEmpty(initCommID, conn.PlatformID)(conn)
 				for _, comm := range comms {
 					issueRef.PrefetchedData.AlignedInitiativeCommunity = comm
 				}
@@ -679,7 +657,7 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 			capObjID := issueRef.StrategyInitiative.CapabilityObjective
 			if capObjID != "" {
 				var sos []strategyObjective.StrategyObjective
-				sos, err = StrategyObjectiveReadOrEmpty(capObjID)(DynamoDBConnection)
+				sos, err = StrategyObjectiveReadOrEmpty(capObjID)(conn)
 				if len(sos) > 0 {
 					issueRef.PrefetchedData.AlignedCapabilityObjective = sos[0]
 				}

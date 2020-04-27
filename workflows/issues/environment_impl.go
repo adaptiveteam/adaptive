@@ -12,7 +12,6 @@ import (
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	engIssues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
-	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	userEngagement "github.com/adaptiveteam/adaptive/daos/userEngagement"
@@ -81,9 +80,8 @@ func IssueProgressReadAll(issueID string, limit int) func(conn DynamoDBConnectio
 
 func IssueProgressRead(issueProgressID IssueProgressID) func(conn DynamoDBConnection) (res userObjectiveProgress.UserObjectiveProgress, err error) {
 	return func(conn DynamoDBConnection) (res userObjectiveProgress.UserObjectiveProgress, err error) {
-		dao := issuesUtils.UserObjectiveProgressDAO()(issuesUtils.DynamoDBConnection(conn))
 		var ops []userObjectiveProgress.UserObjectiveProgress
-		ops, err = dao.ReadOrEmpty(issueProgressID.IssueID, issueProgressID.Date)
+		ops, err = userObjectiveProgress.ReadOrEmpty(issueProgressID.IssueID, issueProgressID.Date)(conn)
 		if err == nil {
 			if len(ops) > 0 {
 				res = ops[0]
@@ -98,8 +96,7 @@ func IssueProgressRead(issueProgressID IssueProgressID) func(conn DynamoDBConnec
 
 func UserObjectiveProgressSave(issueProgress userObjectiveProgress.UserObjectiveProgress) func(conn DynamoDBConnection) (err error) {
 	return func(conn DynamoDBConnection) (err error) {
-		dao := issuesUtils.UserObjectiveProgressDAO()(conn)
-		err = dao.CreateOrUpdate(issueProgress)
+		err = userObjectiveProgress.CreateOrUpdate(issueProgress)(conn)
 		err = errors.Wrapf(err, "IssueProgressDynamoDBConnection) Read(issueProgress.ID=%s)", issueProgress.ID)
 		return
 	}
@@ -305,21 +302,11 @@ func IDOCoaches(userID string, oldCoachIDOptional string) func(conn DynamoDBConn
 	}
 }
 
-// type CompetencyDynamoDBConnection DynamoDBConnection
-
-func CompetencyRead(id string) func(conn DynamoDBConnection) (res adaptiveValue.AdaptiveValue, err error) {
-	return func(conn DynamoDBConnection) (res adaptiveValue.AdaptiveValue, err error) {
-		dao := adaptiveValue.NewDAOByTableName(conn.Dynamo, "CompetencyDynamoDBConnection", competenciesTableName(conn.ClientID))
-		res, err = dao.Read(id)
-		err = errors.Wrapf(err, "CompetencyDynamoDBConnection) Read(id=%s)", id)
-		return
-	}
-}
+var CompetencyRead = adaptiveValue.Read
 
 func CompetencyReadAll() func(conn DynamoDBConnection) (res []adaptiveValue.AdaptiveValue, err error) {
 	return func(conn DynamoDBConnection) (res []adaptiveValue.AdaptiveValue, err error) {
-		dao := adaptiveValue.NewDAOByTableName(conn.Dynamo, "CompetencyDynamoDBConnection", competenciesTableName(conn.ClientID))
-		res, err = dao.ReadByPlatformID(conn.PlatformID)
+		res, err = adaptiveValue.ReadByPlatformID(conn.PlatformID)(conn)
 		err = errors.Wrapf(err, "CompetencyDynamoDBConnection) ReadAll(conn.PlatformID=%s)", conn.PlatformID)
 		return
 	}
@@ -381,8 +368,7 @@ func StrategyInitiativeCreateOrUpdate(si models.StrategyInitiative) func(conn Dy
 // StrategyInitiativeCommunityRead -
 func StrategyInitiativeCommunityRead(id string) func(conn DynamoDBConnection) (res models.StrategyInitiativeCommunity, err error) {
 	return func(conn DynamoDBConnection) (res models.StrategyInitiativeCommunity, err error) {
-		dao := strategyInitiativeCommunity.NewDAOByTableName(conn.Dynamo, "StrategyInitiativeCommunityRead", strategyInitiativeCommunitiesTableName(conn.ClientID))
-		res, err = dao.Read(id, conn.PlatformID)
+		res, err = strategyInitiativeCommunity.Read(id, conn.PlatformID)(conn)
 		err = errors.Wrapf(err, "StrategyInitiativeCommunityRead(id=%s)", id)
 		return
 	}

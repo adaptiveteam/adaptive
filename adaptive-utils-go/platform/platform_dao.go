@@ -46,9 +46,8 @@ func GetToken(teamID models.TeamID) func(common.DynamoDBConnection) (string, err
 			if token == "" {
 				if teamID.AppID != "" {
 					log.Printf("Reading by AppID %s\n", teamID.AppID)
-					dao := clientPlatformToken.NewDAOByTableName(conn.Dynamo, "GetToken2", models.ClientPlatformTokenTableSchemaForClientID(conn.ClientID).Name)
 					var teams []clientPlatformToken.ClientPlatformToken
-					teams, err = dao.ReadOrEmpty(teamID.AppID)
+					teams, err = clientPlatformToken.ReadOrEmpty(teamID.AppID)(conn)
 					if err != nil {
 						log.Printf("Failed to read ClientPlatformToken %s: %v\n", teamID.AppID, err)
 						return
