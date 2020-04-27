@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	"strings"
 	"log"
 	"github.com/adaptiveteam/adaptive/business-time"
@@ -98,12 +99,12 @@ func FillInInitiative(userObj userObjective.UserObjective) func (conn DynamoDBCo
 			log.Printf("WARN: ID has '_': %s\n", id)
 			id = id[0:i]
 		}
-		var ini models.StrategyInitiative
-		ini, err = StrategyInitiativeRead(id)(conn)
-		if err == nil {
+		var inis []strategyInitiative.StrategyInitiative
+		inis, err = utilsIssues.StrategyInitiativeReadOrEmpty(conn.PlatformID, id)(conn)
+		if len(inis) > 0 && err == nil {
 			issue = Issue{
 				UserObjective: userObj,
-				StrategyInitiative: ini,
+				StrategyInitiative: inis[0],
 			}
 		}
 		return
