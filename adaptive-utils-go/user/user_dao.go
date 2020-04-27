@@ -9,41 +9,17 @@ import (
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/nlopes/slack"
-	// "github.com/aws/aws-sdk-go/aws"
-	// "github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 // DAO is a wrapper around the _adaptive_users Dynamo DB table to work with adaptive-users table (CRUD)
 type DAO = daosUser.DAO
 
-// interface {
-// 	Read(userID string) (models.User, error)
-// 	ReadUnsafe(userID string) models.User
-// 	ReadByPlatformIDUnsafe(teamID models.TeamID) (users []models.User)
-// 	Create(user models.User) error
-// 	CreateUnsafe(user models.User)
-// 	UserIDsToDisplayNamesUnsafe(userIDs []string) (res []models.KvPair)
-// 	Update(user models.User) error
-// 	UpdateUnsafe(user models.User)
-// }
-
-// // DAOImpl - a container for all information needed to access a DynamoDB table
-// type DAOImpl struct {
-// 	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-// 	Namespace string                  `json:"namespace"`
-// 	models.AdaptiveUsersTableSchema
-// }
 
 // NewDAO creates an instance of DAO that will provide access to ClientPlatformToken table
 var NewDAOByTableName = daosUser.NewDAOByTableName
 
 // TableName is a function that returns `_user` table name having client id
 var TableName = func(clientID string) string { return clientID + "_adaptive_users" }
-
-// DAOFromConnectionGen -
-func DAOFromConnectionGen(conn daosCommon.DynamoDBConnectionGen) DAO {
-	return NewDAOByTableName(conn.Dynamo, "UserDAO", TableName(conn.TableNamePrefix))
-}
 
 // DAOFromConnection -
 func DAOFromConnection(conn daosCommon.DynamoDBConnection) DAO {
@@ -57,38 +33,6 @@ func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema m
 	// AdaptiveUsersTableSchema: schema.AdaptiveUsers}
 }
 
-// // Read reads User
-// func (d DAOImpl) Read(userID string) (out models.User, err error) {
-// 	if userID == "" {
-// 		err = errors.Errorf("An attempt to read user with an empty user id")
-// 	} else {
-// 		err = d.Dynamo.GetItemFromTable(d.Name, idParams(userID), &out)
-// 	}
-// 	return
-// }
-
-// // ReadUnsafe reads the User. Panics in case of any errors
-// func (d DAOImpl) ReadUnsafe(userID string) models.User {
-// 	out, err := d.Read(userID)
-// 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not find %s in %s", userID, d.Name))
-// 	return out
-// }
-
-// // Create saves the User.
-// func (d DAOImpl) Create(user models.User) error {
-// 	return d.Dynamo.PutTableEntryWithCondition(user, d.Name,
-// 		"attribute_not_exists(id)")
-// }
-
-// // CreateUnsafe saves the User.
-// func (d DAOImpl) CreateUnsafe(user models.User) {
-// 	err := d.Create(user)
-// 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.ID, d.Name))
-// }
-
-// func dynString(str string) (attr *dynamodb.AttributeValue) {
-// 	return &dynamodb.AttributeValue{S: aws.String(str)}
-// }
 
 // UserIDsToDisplayNamesUnsafe converts a bunch of user ids to their names
 // NB! O(n)! TODO: implement a query that returns many users at once.
@@ -105,41 +49,6 @@ func UserIDsToDisplayNamesUnsafe(dao DAO) func(userIDs []string) (res []models.K
 	}
 }
 
-// // UserIDsToDisplayNames is a function that fetches user information for ids.
-// // For each user their display name is put to `Name` and user id to `Value`.
-// type UserIDsToDisplayNames func([]string) []models.KvPair
-
-// func idParams(id string) map[string]*dynamodb.AttributeValue {
-// 	params := map[string]*dynamodb.AttributeValue{
-// 		"id": dynString(id),
-// 	}
-// 	return params
-// }
-
-// func (d DAOImpl) ReadByPlatformIDUnsafe(teamID models.TeamID) (users []models.User) {
-// 	err := d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-// 		IndexName: d.PlatformIndex,
-// 		// there is no != operator for ConditionExpression
-// 		Condition: "platform_id = :p",
-// 		Attributes: map[string]interface{}{
-// 			":p": teamID.ToString(),
-// 		},
-// 	}, map[string]string{}, true, -1, &users)
-// 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s index on %s table",
-// 		d.PlatformIndex, d.Name))
-// 	return
-// }
-
-// // Update saves the changed User.
-// func (d DAOImpl) Update(user models.User) error {
-// 	return d.Dynamo.PutTableEntry(user, d.Name)
-// }
-
-// // UpdateUnsafe saves the changed User.
-// func (d DAOImpl) UpdateUnsafe(user models.User) {
-// 	err := d.Update(user)
-// 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.ID, d.Name))
-// }
 
 // ConvertUsersToUserProfilesAndRemoveAdaptiveBot converts users to user profiles.
 func ConvertUsersToUserProfilesAndRemoveAdaptiveBot(users []models.User) (userProfiles []models.UserProfile) {
