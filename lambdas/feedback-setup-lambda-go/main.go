@@ -262,25 +262,21 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) {
 	// }
 	// Parsing incoming payload
 	slackRequest := np.PlatformRequest.SlackRequest
-	switch slackRequest.Type {
-	case models.InteractionSlackRequestType:
-		teamID := getTeamID(slackRequest.InteractionCallback)
-		if !teamID.IsEmpty() {
+	teamID := np.TeamID
+	if !teamID.IsEmpty() {
+		switch slackRequest.Type {
+		case models.InteractionSlackRequestType:
 			dispatchSlackInteractionCallback(slackRequest.InteractionCallback, teamID)
-		} else {
-			logger.Errorf("Platform id is empty for %s user", slackRequest.InteractionCallback.User.ID)
-		}
-	case models.DialogSubmissionSlackRequestType:
-		request := slackRequest.InteractionCallback
-		dialog := slackRequest.DialogSubmissionCallback
-		logger.Infof("Got dialog submission " + dialog.State)
-		teamID := getTeamID(slackRequest.InteractionCallback)
-		if !teamID.IsEmpty() {
+		case models.DialogSubmissionSlackRequestType:
+			request := slackRequest.InteractionCallback
+			dialog := slackRequest.DialogSubmissionCallback
+			logger.Infof("Got dialog submission " + dialog.State)
 			dispatchSlackDialogSubmissionCallback(request, dialog, teamID)
-		} else {
-			logger.Errorf("Platform id is empty for %s user", slackRequest.InteractionCallback.User.ID)
 		}
+	} else {
+		logger.Errorf("Platform id is empty for %s user", slackRequest.InteractionCallback.User.ID)
 	}
+
 	return
 }
 
