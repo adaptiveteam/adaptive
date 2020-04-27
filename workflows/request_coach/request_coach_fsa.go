@@ -302,6 +302,7 @@ func (w workflowImpl) OnIWouldLikeToCoachEvent() wf.Handler {
 		var notes []wf.InteractiveMessage
 		if issue.UserObjective.AccountabilityPartner == utilsUser.UserID_Requested {
 			issue.UserObjective.AccountabilityPartner = ctx.Request.User.ID
+			issue.UserObjective.Accepted = 1
 			issue.UserObjective.ModifiedBy = ctx.Request.User.ID
 			err = issues.Save(issue)(w.DynamoDBConnection)
 			msg = wf.InteractiveMessage{
