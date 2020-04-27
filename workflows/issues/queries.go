@@ -126,7 +126,7 @@ func StaleObjectivesQueryInitiative(userID string) IssueQuery {
 			userObjectivesProgressTableName(conn.ClientID), 0)
 		for _, uo := range userObjs {
 			if uo.ID == "" {
-				log.Println("UserInitiativesWithNoProgressInAWeek returned %d objectives and one of them has empty id", len(userObjs))
+				log.Printf("UserInitiativesWithNoProgressInAWeek returned %d objectives and one of them has empty id\n", len(userObjs))
 			} else {
 				var issues2 []Issue
 				issues2, err = FillInInitiativeOrNone(uo)(conn)
