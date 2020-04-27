@@ -54,7 +54,7 @@ func StaleObjectivesQuerySObjectives(userID string) IssueQuery {
 		for _, uo := range userObjs {
 			var moreIssues []Issue
 			// log.Printf("found strategy objective. uo.ID=%s\n", uo.ID)
-			moreIssues, err = FillInSObjective(uo)(conn)
+			moreIssues, err = FillInSObjectiveOrNone(uo)(conn)
 			if err != nil { 
 				return 
 			}
@@ -67,7 +67,7 @@ func StaleObjectivesQuerySObjectives(userID string) IssueQuery {
 	}
 }
 
-func FillInSObjective(userObj userObjective.UserObjective) func (conn DynamoDBConnection) (issues [] Issue, err error) {
+func FillInSObjectiveOrNone(userObj userObjective.UserObjective) func (conn DynamoDBConnection) (issues [] Issue, err error) {
 	return func (conn DynamoDBConnection) (issues [] Issue, err error) {
 		id := userObj.ID
 		i := strings.Index(id, "_")
@@ -91,8 +91,8 @@ func FillInSObjective(userObj userObjective.UserObjective) func (conn DynamoDBCo
 	}
 }
 
-func FillInInitiative(userObj userObjective.UserObjective) func (conn DynamoDBConnection) (issue Issue, err error) {
-	return func (conn DynamoDBConnection) (issue Issue, err error) {
+func FillInInitiativeOrNone(userObj userObjective.UserObjective) func (conn DynamoDBConnection) (issues []Issue, err error) {
+	return func (conn DynamoDBConnection) (issues []Issue, err error) {
 		id := userObj.ID
 		i := strings.Index(id, "_")
 		if i >= 0 {
@@ -102,10 +102,12 @@ func FillInInitiative(userObj userObjective.UserObjective) func (conn DynamoDBCo
 		var inis []strategyInitiative.StrategyInitiative
 		inis, err = utilsIssues.StrategyInitiativeReadOrEmpty(conn.PlatformID, id)(conn)
 		if len(inis) > 0 && err == nil {
-			issue = Issue{
+			issues = append(issues, Issue{
 				UserObjective: userObj,
 				StrategyInitiative: inis[0],
-			}
+			})
+		} else {
+			log.Printf("Not found Initiative with ID = %s\n", id)
 		}
 		return
 	}
@@ -123,10 +125,14 @@ func StaleObjectivesQueryInitiative(userID string) IssueQuery {
 			userObjectivesUserIDIndex,
 			userObjectivesProgressTableName(conn.ClientID), 0)
 		for _, uo := range userObjs {
-			var issue Issue
-			issue, err = FillInInitiative(uo)(conn)
-			if err != nil { return }
-			issues = append(issues, issue)
+			if uo.ID == "" {
+				log.Println("UserInitiativesWithNoProgressInAWeek returned %d objectives and one of them has empty id", len(userObjs))
+			} else {
+				var issues2 []Issue
+				issues2, err = FillInInitiativeOrNone(uo)(conn)
+				if err != nil { return }
+				issues = append(issues, issues2...)
+			}
 		}
 		return
 	}
@@ -180,10 +186,10 @@ func AdvocacyIssuesQuerySObjectives(userID string) IssueQuery {
 			userObjectivesTypeIndex, 0)
 		for _, uo := range userObjs {
 			var moreIssues []Issue
-			moreIssues, err = FillInSObjective(uo)(conn)
+			moreIssues, err = FillInSObjectiveOrNone(uo)(conn)
 			if err != nil { return }
 			if len(moreIssues) == 0 {
-				log.Printf("WARN Couldn't FillInSObjective for uo.ID=%s\n",uo.ID)
+				log.Printf("WARN Couldn't FillInSObjectiveOrNone for uo.ID=%s\n",uo.ID)
 			}
 			issues = append(issues, moreIssues...)
 		}
@@ -206,10 +212,13 @@ func AdvocacyIssuesQueryInitiative(userID string) IssueQuery {
 			userObjectivesTypeIndex, 0)
 		fmt.Printf("len(userObjs): %d\n", len(userObjs))
 		for _, uo := range userObjs {
-			var issue Issue
-			issue, err = FillInInitiative(uo)(conn)
+			var moreIssues  []Issue
+			moreIssues, err = FillInInitiativeOrNone(uo)(conn)
 			if err != nil { return }
-			issues = append(issues, issue)
+			if len(moreIssues) == 0 {
+				log.Printf("WARN Couldn't FillInInitiativeOrNone for uo.ID=%s\n",uo.ID)
+			}
+			issues = append(issues, moreIssues...)
 		}
 		fmt.Printf("len(issues): %d\n", len(issues))
 		return

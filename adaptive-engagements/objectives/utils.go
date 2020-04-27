@@ -26,6 +26,7 @@ var (
 )
 
 // USER_OBJECTIVES_USER_ID_INDEX
+
 // AllUserObjectives retrieves all user objectives based on the objective type: stragegy/individual
 // For strategy type, it list all capability objecives and initiatives that the user is a part of
 func AllUserObjectives(userID string, userObjectivesTable, userObjectivesUserIdIndex string,
@@ -68,14 +69,13 @@ func AllUserObjectivesWithProgress(userID string, userObjectivesTable, userObjec
 // USER_OBJECTIVES_USER_ID_INDEX
 func AllUserObjectivesWithProgressWithinPeriod(userID, userObjectivesTable, userObjectivesUserIdIndex, userObjectivesProgressTable string,
 	start, end string, typ models.DevelopmentObjectiveType,
-	completed int) []models.UserObjectiveWithProgress {
-	var res []models.UserObjectiveWithProgress
+	completed int) (res []models.UserObjectiveWithProgress) {
 	objs := AllUserObjectives(userID, userObjectivesTable, userObjectivesUserIdIndex, typ, completed)
 	for _, each := range objs {
 		ops := ObjectiveProgressInPeriod(userObjectivesProgressTable, each.ID, start, end)
 		res = append(res, models.UserObjectiveWithProgress{Objective: each, Progress: ops})
 	}
-	return res
+	return
 }
 
 // USER_OBJECTIVES_PROGRESS_ID_INDEX
