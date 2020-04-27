@@ -121,6 +121,16 @@ func (s Schedule) toSliceOfParentsOrdered() (slice []Schedule) {
 	return
 }
 
+// DivMod returns quotinent and modulus making sure that modulus is not negative
+func DivMod(x, y int) (d int, m int) {
+	d, m = x / y, x % y
+	if (m < 0) {
+		m = m + y
+		d = d - 1
+	}
+	return
+}
+
 // GetPosition returns the position of the period of time moment 
 // within the parent period.
 // position for the first complete period is equal to 1.
@@ -163,12 +173,12 @@ func GetPosition(t time.Time, period, parent Period) (position, max int) {
 				max = 12
 			case FullWeek:
 				lastYearWeekLength := int(dec31.Weekday() + 1) % 7
-				position =  (yearDay   - firstYearWeekLength) / 7 + 1
+				position, _ =  DivMod(yearDay   - firstYearWeekLength + 7, 7)
 				max = (dec31.YearDay() - firstYearWeekLength - lastYearWeekLength - 1) / 7 + 1
 			case AnyWeek:
 				countOfShortWeeksInTheBeginningOfYear := (firstYearWeekLength + 6) / 7 // 0 or 1
 				// countOfShortWeeksInTheEndOfYear       := ( lastYearWeekLength + 6) / 7 // 0 or 1
-				position =     (yearDay - firstYearWeekLength) / 7 + 1 + countOfShortWeeksInTheBeginningOfYear
+				position, _ =  DivMod(yearDay   - firstYearWeekLength + 7 + countOfShortWeeksInTheBeginningOfYear*7, 7)
 				max =  (dec31.YearDay() - firstYearWeekLength) / 7 + 1 + countOfShortWeeksInTheBeginningOfYear
 			case Day:
 				position = t.YearDay()
@@ -189,12 +199,12 @@ func GetPosition(t time.Time, period, parent Period) (position, max int) {
 				max = 3
 			case FullWeek:
 				lastQuarterWeekLength := int(quarterEndPlus1.Weekday()) % 7
-				position = (quarterDay - firstQuarterWeekLength) / 7 + 1
-				max =   (quarterEndDay - firstQuarterWeekLength - lastQuarterWeekLength - 1) / 7 + 1
+				position = (7 + quarterDay - firstQuarterWeekLength) / 7
+				max =   (7 + quarterEndDay - firstQuarterWeekLength - lastQuarterWeekLength - 1) / 7
 			case AnyWeek:
 				countOfShortWeeksInTheBeginningOfQuarter := (firstQuarterWeekLength + 6) / 7 // 0 or 1
-				position = (quarterDay - firstQuarterWeekLength) / 7 + 1 + countOfShortWeeksInTheBeginningOfQuarter
-				max =   (quarterEndDay - firstQuarterWeekLength) / 7 + 1 + countOfShortWeeksInTheBeginningOfQuarter
+				position =   (7 +    quarterDay - firstQuarterWeekLength) / 7 + countOfShortWeeksInTheBeginningOfQuarter
+				max      =   (7 + quarterEndDay - firstQuarterWeekLength) / 7 + countOfShortWeeksInTheBeginningOfQuarter
 			case Day:
 				position = quarterDay
 				max = quarterEndDay
@@ -212,12 +222,12 @@ func GetPosition(t time.Time, period, parent Period) (position, max int) {
 			switch period {
 			case FullWeek:
 				lastMonthWeekLength := int(monthEndPlus1.Weekday()) % 7
-				position = (monthDay - firstMonthWeekLength) / 7 + 1
-				max =   (monthEndDay - firstMonthWeekLength - lastMonthWeekLength - 1) / 7 + 1
+				position =   (7 + monthDay    - firstMonthWeekLength) / 7
+				max      =   (7 + monthEndDay - firstMonthWeekLength - lastMonthWeekLength - 1) / 7 
 			case AnyWeek:
 				countOfShortWeeksInTheBeginningOfMonth := (firstMonthWeekLength + 6) / 7 // 0 or 1
-				position = (monthDay - firstMonthWeekLength) / 7 + 1 + countOfShortWeeksInTheBeginningOfMonth
-				max =   (monthEndDay - firstMonthWeekLength) / 7 + 1 + countOfShortWeeksInTheBeginningOfMonth
+				position = (7 + monthDay    - firstMonthWeekLength) / 7 + countOfShortWeeksInTheBeginningOfMonth
+				max      = (7 + monthEndDay - firstMonthWeekLength) / 7 + countOfShortWeeksInTheBeginningOfMonth
 			case Day:
 				position = t.Day()
 				max = monthEndDay
@@ -256,18 +266,22 @@ func (s Schedule)IsOnSchedule(t time.Time) (res bool) {
 		}
 	}
 	p, max := GetPosition(t, s.Period, parentPeriod)
-	start := 1 - 1 // expand the range by one in both directions
-	end := max + 1
+	var start, end int
 	if s.RangeEnd == 0 && s.RangeStart == 0 {
 		// range is not filtered
+		// expand the range by one in both directions
+		start = 1 - 1
+		end = max + 1
 	} else {
-		start = s.RangeStart
 		if s.RangeStart < 0 {
 			start = max + s.RangeStart + 1
+		} else {
+			start = s.RangeStart
 		}
-		end = s.RangeEnd
 		if s.RangeEnd < 0 {
 			end = max + s.RangeEnd + 1
+		} else {
+			end = s.RangeEnd
 		}
 	}
 	res = (p >= start && p <= end) && 		// within range
