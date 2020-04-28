@@ -56,8 +56,3 @@ func getSlackClient(userID string) *slack.Client {
 	ut := userTokenSyncUnsafe(userID)
 	return slack.New(ut)
 }
-
-func getTeamID(request slack.InteractionCallback) models.TeamID {
-	user := userDao.ReadUnsafe(request.User.ID)
-	return models.ParseTeamID(user.PlatformID)
-}
