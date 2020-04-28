@@ -6,7 +6,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/feedback"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	// utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -39,7 +39,7 @@ var (
 		IsInteractiveDebugEnabled: false,
 	}
 	feedbackDAO = feedback.NewDAOFromSchema(d, namespace, schema)
-	userDao     = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	// userDao     = utilsUser.NewDAOFromSchema(d, namespace, schema)
 	connGen     = daosCommon.DynamoDBConnectionGen{
 		Dynamo:          d,
 		TableNamePrefix: clientID,
