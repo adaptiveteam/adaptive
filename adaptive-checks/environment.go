@@ -3,7 +3,6 @@ package adaptive_checks
 import (
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	eholidays "github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
@@ -61,7 +60,7 @@ var (
 	connGen   = daosCommon.CreateConnectionGenFromEnv()
 
 	dns                   = common.DynamoNamespace{Dynamo: d, Namespace: namespace}
-	adHocHolidaysTableDao = eholidays.NewDAO(&dns, schema.Holidays.Name, schema.Holidays.PlatformDateIndex)
+	// adHocHolidaysTableDao = eholidays.NewDAO(&dns, schema.Holidays.Name, schema.Holidays.PlatformDateIndex)
 )
 
 // UserIDToPlatformID converts userID to teamID using
