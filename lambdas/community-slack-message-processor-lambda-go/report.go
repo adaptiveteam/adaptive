@@ -6,13 +6,14 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/engagement-builder/model"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/nlopes/slack"
 	"time"
 )
 
-func generateReportMenuHandler(request slack.InteractionCallback, mc models.MessageCallback, 
-	conn common.DynamoDBConnection) {
+func generateReportMenuHandler(request slack.InteractionCallback, 
+	mc models.MessageCallback, conn daosCommon.DynamoDBConnection) {
 	userID := request.User.ID
 	channelID := request.Channel.ID
 	mc.Set("Topic", "reports")

@@ -1,9 +1,9 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 	"context"
 	"encoding/json"
@@ -448,7 +448,7 @@ func communityNamespaceAdminAccessCallback(request slack.InteractionCallback, su
 		publish(models.PlatformSimpleNotification{UserId: request.User.ID, Channel: request.Channel.ID,
 			Message: string(AdminRequestSentAcknowledgement)})
 		userID := request.User.ID
-		user, err2 := user.Read(userID)(conn)
+		user, err2 := daosUser.Read(userID)(conn)
 		core.ErrorHandler(err2, "communityNamespaceAdminAccessCallback", "userDAO.Read")
 		teamID := models.ParseTeamID(user.PlatformID)
 		// ut := userTokenSyncUnsafe(request.User.ID)
@@ -522,7 +522,7 @@ func adaptiveChannelNamespaceEventHandler(eventsAPIEvent slackevents.EventsAPIEv
 			// This is when Adaptive leaves a private channel
 			cbEvent := *eventsAPIEvent.Data.(*slackevents.EventsAPICallbackEvent)
 			// slack.GroupLeftEvent doesn't populate user id. Do not use that field.
-			onGroupLeftEvent(cbEvent, teamID, conn)
+			onGroupLeftEvent(cbEvent, conn)
 		case "channel_deleted": // docs: https://api.slack.com/events/channel_deleted
 			channelDeletedEvent := *eventsAPIEvent.InnerEvent.Data.(*slack.ChannelDeletedEvent)
 			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, conn)

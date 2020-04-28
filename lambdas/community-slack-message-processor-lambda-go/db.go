@@ -1,8 +1,8 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/pkg/errors"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"fmt"
@@ -209,17 +209,18 @@ func subscribedCommunities(channel string, conn daosCommon.DynamoDBConnection) (
 	return
 }
 
-func createCommunityFromCreatorUser(creatorUserID string, channelID string, communityName string, conn daosCommon.DynamoDBConnection) (err error) {
+func createCommunityFromCreatorUser(creatorUserID string, 
+	channelID string, communityName string,
+	conn daosCommon.DynamoDBConnection) (err error) {
 	// Let's add this channel as a new user
 	// the information about the user who initiated this
 	var creators []models.User
 	creators, err = daosUser.ReadOrEmpty(creatorUserID)(conn)
-	creator := models.User{}
+	var creator models.User
 	if len(creators) > 0 {
 		creator = creators[0]
 	} else {
 		log.Printf("Not found in users id=%s", creatorUserID)
-		err = nil
 	}
 	if err == nil {
 		item := models.User{
@@ -331,7 +332,12 @@ func channelUnsubscribe(channelID string,
 						logger.Infof("Removed %v community for %s platform", eachComm, teamID)
 					}
 				}
-			}
+			} else {
+				logger.
+					WithField("namespace", namespace).
+					WithError(err).
+					Errorf("Could not channelUnsubscribe 1(channel=%s, platform=%v) eachComm=%v", channelID, teamID, eachComm)
+				}
 		}
 	}
 	if err != nil {
@@ -344,8 +350,9 @@ func channelUnsubscribe(channelID string,
 }
 
 func channelUnsubscribeUnsafe(channelID string, conn daosCommon.DynamoDBConnection) {
-	err := channelUnsubscribe(channelID, conn)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not handle channel_deleted event for channel %s", channelID))
+	// teamID := models.ParseTeamID(conn.PlatformID)
+	err2 := channelUnsubscribe(channelID, conn)
+	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not handle channel_deleted event for channel %s", channelID))
 }
 
 func updateStrategyCommunity(channelID string, strategyCommunityID string) error {

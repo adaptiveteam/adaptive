@@ -384,7 +384,8 @@ func onMemberLeftChannel(slackMsg slack.MemberLeftChannelEvent) {
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not remove entry from %s table", communityUsersTable))
 }
 
-func onGroupLeftEvent(cbEvent slackevents.EventsAPICallbackEvent, teamID models.TeamID, conn daosCommon.DynamoDBConnection) {
+func onGroupLeftEvent(cbEvent slackevents.EventsAPICallbackEvent, 
+	conn daosCommon.DynamoDBConnection) {
 	logger.Infof("Handling onGroupLeftEvent %v", *cbEvent.InnerEvent)
 	var groupLeftEvent models.GroupLeftEvent
 	err := json.Unmarshal(*cbEvent.InnerEvent, &groupLeftEvent)

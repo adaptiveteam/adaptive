@@ -3,19 +3,21 @@ package lambda
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	//eb "github.com/adaptiveteam/adaptive/engagement-builder"
-	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"fmt"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	daosUser "github.com/adaptiveteam/adaptive/daos/user"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
+	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/nlopes/slack"
 )
 
-func onRequestCoachClicked(request slack.InteractionCallback, mc models.MessageCallback, 
-	conn daosCommon.DynamoDBConnection) platform.Response {
+func onRequestCoachClicked(request slack.InteractionCallback, mc models.MessageCallback,
+	conn daosCommon.DynamoDBConnection,
+) platform.Response {
 	teamID := models.ParseTeamID(conn.PlatformID)
 	// Get coaching community members
 	commMembers := communityUserDAO.ReadCommunityMembersUnsafe(string(community.Coaching), teamID)
@@ -31,16 +33,16 @@ func onRequestCoachClicked(request slack.InteractionCallback, mc models.MessageC
 	userProfiles := utilsUser.ConvertUsersToUserProfilesAndRemoveAdaptiveBot(users)
 	filteredProfiles := user.UserProfilesIntersect(userProfiles, userIDs)
 	attachmentActions := user.SelectUserTemplateActions(mc2, filteredProfiles)
-	
+
 	return platform.OverrideByURL(platform.ResponseURLMessageID{ResponseURL: request.ResponseURL},
 		platform.MessageContent{
 			Message: ListOfCoachesWelcomeMessage,
 			Attachments: []ebm.Attachment{ebm.Attachment{
-				Text: string(ListOfCoachesWelcomeMessage),
+				Text:     string(ListOfCoachesWelcomeMessage),
 				Fallback: fmt.Sprintf("Select one of the users for %s", CoachingName),
-				Actions: attachmentActions,
+				Actions:  attachmentActions,
 			}},
-	})
+		})
 }
 
 // func communityNamespaceCoachingDialogSubmissionHandler(dialog slack.InteractionCallback, msgState MsgState, mc models.MessageCallback, form map[string]string) {
