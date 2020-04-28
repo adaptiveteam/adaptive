@@ -13,31 +13,34 @@ import (
 	"github.com/nlopes/slack"
 	"sync"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/user"
 )
 
-func updateSlackUser(user slack.User, event models.ClientPlatformRequest, teamID models.TeamID) (err error) {
+func updateSlackUser(slackUser slack.User, event models.ClientPlatformRequest, 
+	teamID models.TeamID,
+	conn daosCommon.DynamoDBConnection) (err error) {
 	now := core.CurrentRFCTimestamp()
 	deactivatedAt := ""
-	if user.Deleted {
+	if slackUser.Deleted {
 		deactivatedAt = now
 	}
 	item := models.User{
-		ID:             user.ID,
-		DisplayName:    user.RealName,
-		FirstName:      user.Profile.FirstName,
-		LastName:       user.Profile.LastName,
-		Timezone:       user.TZ,
-		TimezoneOffset: user.TZOffset,
+		ID:             slackUser.ID,
+		DisplayName:    slackUser.RealName,
+		FirstName:      slackUser.Profile.FirstName,
+		LastName:       slackUser.Profile.LastName,
+		Timezone:       slackUser.TZ,
+		TimezoneOffset: slackUser.TZOffset,
 		PlatformID:     event.TeamID.ToPlatformID(), 
-		IsAdmin:        user.IsAdmin,
+		IsAdmin:        slackUser.IsAdmin,
 		DeactivatedAt:  deactivatedAt,
 		CreatedAt:      now,
 		IsShared:       false}
-	item.IsAdaptiveBot = user.IsBot && user.Profile.ApiAppID == teamID.ToString()
+	item.IsAdaptiveBot = slackUser.IsBot && slackUser.Profile.ApiAppID == teamID.ToString()
 
 	// Check if the user already exists
 	var users []models.User
-	users, err = userDao.ReadOrEmpty(user.ID)
+	users, err = user.ReadOrEmpty(slackUser.ID)(conn)
 	if err == nil {
 		// Id not-empty meaning user exists
 		for _, existingUser := range users {
@@ -46,13 +49,15 @@ func updateSlackUser(user slack.User, event models.ClientPlatformRequest, teamID
 			item.AdaptiveScheduledTimeInUTC = existingUser.AdaptiveScheduledTimeInUTC
 			item.CreatedAt = existingUser.CreatedAt
 		}
-		err = userDao.CreateOrUpdate(item)
+		err = user.CreateOrUpdate(item)(conn)
 	}
 	return
 }
 
 func syncCommunityUserAsync(commUserID string, api *slack.Client,
-	event models.ClientPlatformRequest, wg *sync.WaitGroup, ec chan error, teamID models.TeamID) {
+	event models.ClientPlatformRequest, wg *sync.WaitGroup, ec chan error, 
+	teamID models.TeamID,
+	conn daosCommon.DynamoDBConnection) {
 	defer wg.Done()
 	// Get user info from Slack
 	slackUser, err := api.GetUserInfo(commUserID)
@@ -60,7 +65,7 @@ func syncCommunityUserAsync(commUserID string, api *slack.Client,
 		if slackUser != nil {
 			if (!slackUser.IsBot && slackUser.Name != "slackbot") ||
 				(slackUser.IsBot && slackUser.Profile.ApiAppID == teamID.ToString()) {
-				err = updateSlackUser(*slackUser, event, teamID)
+				err = updateSlackUser(*slackUser, event, teamID, conn)
 			}
 			if err == nil {
 				logger.Infof("Updated %s's information in the table", slackUser.ID)
@@ -82,15 +87,17 @@ func collectErrors(ec chan error) (errors []error) {
 	return
 }
 
-func syncCommunityUserProfiles(users []string, api *slack.Client, event models.ClientPlatformRequest, teamID models.TeamID) []error {
+func syncCommunityUserProfiles(users []string, api *slack.Client, event models.ClientPlatformRequest, 
+	teamID models.TeamID,
+	conn daosCommon.DynamoDBConnection) []error {
 	// Set up a wait group and a channel to handle any errors
 	wg := &sync.WaitGroup{}
 	ec := make(chan error, len(users))
 
-	for _, user := range users {
+	for _, userID := range users {
 		// Add adaptive user
 		wg.Add(1)
-		core.Go("syncCommunityUserAsync", func (){syncCommunityUserAsync(user, api, event, wg, ec, teamID)})
+		core.Go("syncCommunityUserAsync", func (){syncCommunityUserAsync(userID, api, event, wg, ec, teamID, conn)})
 	}
 
 	// Wait for all of the users to be added. 
@@ -101,23 +108,25 @@ func syncCommunityUserProfiles(users []string, api *slack.Client, event models.C
 	return collectErrors(ec)
 }
 
-func deactivateUserAsync(userID string, wg *sync.WaitGroup, ec chan error) {
+func deactivateUserAsync(userID string, wg *sync.WaitGroup, ec chan error,
+	conn daosCommon.DynamoDBConnection) {
 	defer wg.Done()
 	logger.Infof("Deactivating user %s", userID)
-	err := userDao.Deactivate(userID)
+	err := user.Deactivate(userID)(conn)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Error deactivating %s user", userID)
 		ec <- err
 	}
 }
 
-func deactivateUsers(userIDs []string) []error {
+func deactivateUsers(userIDs []string,
+	conn daosCommon.DynamoDBConnection) []error {
 	wg := &sync.WaitGroup{}
 	ec := make(chan error, len(userIDs))
 
 	for _, userID := range userIDs {
 		wg.Add(1)
-		core.Go("deactivateUserAsync", func(){ deactivateUserAsync(userID, wg, ec)})
+		core.Go("deactivateUserAsync", func(){ deactivateUserAsync(userID, wg, ec, conn)})
 	}
 	wg.Wait()
 	close(ec)
@@ -176,8 +185,9 @@ func removeCommunityUser(comm models.AdaptiveCommunity, userID string) func (con
 	return adaptiveCommunityUser.Delete(comm.ChannelID, userID)
 }
 
-func allUserIDs(teamID models.TeamID)(ids []string, err error) {
-	allUsers, err := userDao.ReadByPlatformID(teamID.ToPlatformID())
+func allUserIDs(conn daosCommon.DynamoDBConnection)(ids []string, err error) {
+	var allUsers []user.User
+	allUsers, err = user.ReadByPlatformID(conn.PlatformID)(conn)
 	for _, u := range allUsers {
 		ids = append(ids, u.ID)
 	}
@@ -228,13 +238,13 @@ func HandleRequest(ctx context.Context, event models.ClientPlatformRequest) {
 			distinctRefreshMemberIDs := core.Distinct(allRefreshOrAddIDs)
 			logger.Infof("Synchronizing user profiles")
 
-			allErrors := syncCommunityUserProfiles(distinctRefreshMemberIDs, api, event, teamID)
+			allErrors := syncCommunityUserProfiles(distinctRefreshMemberIDs, api, event, teamID, conn)
 			logger.Infof("Removing non-community members from users")
 
-			ids, err4 := allUserIDs(teamID)
+			ids, err4 := allUserIDs(conn)
 			if err4 == nil {
 				usersToRemove := core.InAButNotB(ids, distinctRefreshMemberIDs)
-				errors2 := deactivateUsers(usersToRemove)
+				errors2 := deactivateUsers(usersToRemove, conn)
 				allErrors = append(allErrors, errors2...)
 			}
 			// if there is an error in the error channel, just return the first one
