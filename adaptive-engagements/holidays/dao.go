@@ -4,26 +4,18 @@ import (
 	"github.com/pkg/errors"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	// daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"time"
 	// awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	// "github.com/aws/aws-sdk-go/service/dynamodb"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 )
 
 // DAO - wrapper around a Dynamo DB table to work with holidays inside it
 type DAO interface {
-	AddAdHocHoliday(holiday models.AdHocHoliday) error
-
-	Create(holiday models.AdHocHoliday) error
-	Read(holidayID string) (models.AdHocHoliday, bool, error)
-	ReadUnsafe(holidayID string) models.AdHocHoliday
-	Update(holiday models.AdHocHoliday) error
-	Delete(holidayID string) error
-
 	ForPlatformID(teamID models.TeamID) PlatformDAO
 }
 // PlatformDAO is a set of utilities that work for a fixed `teamID`
@@ -32,7 +24,6 @@ type PlatformDAO interface {
 	AllUnsafe() []models.AdHocHoliday
 	SelectNotEarlierThan(time time.Time) ([]models.AdHocHoliday, error)
 	SelectNotEarlierThanUnsafe(time time.Time) []models.AdHocHoliday
-	Create(holiday models.AdHocHoliday) error
 }
 
 // TableConfig is a structure that contains all configuration information from environment
@@ -82,73 +73,6 @@ func NewDAO(dns *common.DynamoNamespace, table string, index string) DAO {
 		panic(errors.New("Cannot create Holidays DAO without table and index"))
 	}
 	return DAOImpl{DNS: dns, TableConfig: TableConfig{Table: table, PlatformDateIndex: index}}
-}
-
-// Create creates an ad-hoc holiday
-func (d DAOImpl) Create(holiday models.AdHocHoliday) error {
-	return d.DNS.Dynamo.PutTableEntry(holiday, d.Table)
-}
-
-// AddAdHocHoliday creates an ad-hoc holiday
-// Deprecated: Use .Create
-func (d DAOImpl) AddAdHocHoliday(holiday models.AdHocHoliday) error {
-	return d.Create(holiday)
-}
-
-// Read reads the ad-hoc holiday
-func (d DAOImpl) Read(holidayID string) (out models.AdHocHoliday, found bool, err error) {
-	params := map[string]*dynamodb.AttributeValue{
-		"id": daosCommon.DynS(holidayID),
-	}
-	found, err = d.DNS.Dynamo.GetItemOrEmptyFromTable(d.Table, params, &out)
-	//if len(out) < 1 { return models.AdHocHoliday{}, errors.New("NotFound AdHocHoliday#ID=" + holidayID) }
-	//if len(out) > 1 { return models.AdHocHoliday{}, errors.New("Found many AdHocHoliday#ID=" + holidayID) }
-	return
-}
-
-// ReadUnsafe reads the ad-hoc holiday. Panics in case of any errors
-func (d DAOImpl) ReadUnsafe(holidayID string) models.AdHocHoliday {
-	holiday, found, err2 := d.Read(holidayID)
-	if !found {
-		panic(fmt.Errorf("Holiday %s not found", holidayID))
-	}
-	core.ErrorHandler(err2, d.DNS.Namespace, fmt.Sprintf("Could not find %s in %s", holidayID, d.Table))
-	return holiday
-}
-
-// Delete removes the ad-hoc holiday
-func (d DAOImpl) Delete(holidayID string) error {
-	userParams := map[string]*dynamodb.AttributeValue{
-		"id": daosCommon.DynS(holidayID),
-	}
-	return d.DNS.Dynamo.DeleteEntry(d.Table, userParams)
-}
-
-// Update updates the ad-hoc holiday by ID
-func (d DAOImpl) Update(holiday models.AdHocHoliday) error {
-	exprAttributes := map[string]*dynamodb.AttributeValue{
-		":name1": daosCommon.DynS(holiday.Name),
-		":description": daosCommon.DynS(holiday.Description),
-		":date1": daosCommon.DynS(holiday.Date),
-		":location": daosCommon.DynS(holiday.ScopeCommunities),
-		":platform_id": daosCommon.DynS(string(holiday.PlatformID)),
-	}
-	key := map[string]*dynamodb.AttributeValue{
-		"id": daosCommon.DynS(holiday.ID),
-	}
-	n := "name"
-	da := "date"
-	updateExpression := "set #n = :name1, description = :description, #da = :date1, scope_communities = :location, platform_id = :platform_id"
-	input := dynamodb.UpdateItemInput{
-		ExpressionAttributeValues: exprAttributes,
-		TableName:                 aws.String(d.Table),
-		Key:                       key,
-		ReturnValues:              aws.String("UPDATED_NEW"),
-		UpdateExpression:          aws.String(updateExpression),
-		ExpressionAttributeNames:  map[string]*string{"#n": &n, "#da": &da},
-	}
-
-	return d.DNS.Dynamo.UpdateItemInternal(input)
 }
 
 // ForPlatformID creates PlatformDAO that can be used for queries with PlatformID
@@ -201,10 +125,4 @@ func (p PlatformDAOImpl)SelectNotEarlierThanUnsafe(time time.Time) []models.AdHo
 	holidays, err := p.SelectNotEarlierThan(time)
 	core.ErrorHandler(err, p.DNS.Namespace, fmt.Sprintf("Could not query %s index on %s table", p.PlatformDateIndex, p.Table))
 	return holidays
-}
-// Create creates an ad-hoc holiday making sure that PlatformID is correct
-func (p PlatformDAOImpl)Create(holiday models.AdHocHoliday) error {
-	holiday2 := holiday
-	holiday2.PlatformID = p.TeamID.ToPlatformID()
-	return p.DNS.Dynamo.PutTableEntry(holiday2, p.Table)
 }
