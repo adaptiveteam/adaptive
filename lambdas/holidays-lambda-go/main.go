@@ -156,7 +156,7 @@ func DispatchDialogSubmissionByRule(p utils.Platform, r utils.DialogSubmissionHa
 // listMenuItemFunc renders the list of holidays directly in chat.
 func listMenuItemFunc(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, err error){
 	platform.Debug(request, "Listing holidays...")
-	holidays := platformDAO(teamID(request)).AllUnsafe()
+	holidays := eholidays.AllUnsafe(conn)
 	sort.Slice(holidays, func(i, j int) bool {
 		return holidays[i].Date < holidays[j].Date
 	})
@@ -243,7 +243,7 @@ func adHocHolidayEditChatMessage(request slack.InteractionCallback) func(models.
 // detailedListMenuItemFunc sends the list of holidays to thread
 func detailedListMenuItemFunc(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (notes []models.PlatformSimpleNotification, err error) {
 	platform.Debug(request, "Listing holidays...")
-	holidays := platformDAO(teamID(request)).AllUnsafe()
+	holidays := eholidays.AllUnsafe(conn)
 	sort.Slice(holidays, func(i, j int) bool {
 		return holidays[i].Date < holidays[j].Date
 	})

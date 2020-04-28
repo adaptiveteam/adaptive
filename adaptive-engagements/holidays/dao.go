@@ -4,7 +4,8 @@ import (
 	"github.com/pkg/errors"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	// daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/adHocHoliday"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"time"
 	// awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
@@ -20,8 +21,6 @@ type DAO interface {
 }
 // PlatformDAO is a set of utilities that work for a fixed `teamID`
 type PlatformDAO interface {
-	All() ([]models.AdHocHoliday, error)
-	AllUnsafe() []models.AdHocHoliday
 	SelectNotEarlierThan(time time.Time) ([]models.AdHocHoliday, error)
 	SelectNotEarlierThanUnsafe(time time.Time) []models.AdHocHoliday
 }
@@ -85,22 +84,22 @@ func (d DAOImpl) ForPlatformID(teamID models.TeamID) PlatformDAO {
 
 // All reads all ad-hoc holidays for the given PlatformID 
 // from dynamo table
-func (p PlatformDAOImpl)All() ([]models.AdHocHoliday, error){
+func All(conn daosCommon.DynamoDBConnection) ([]models.AdHocHoliday, error){
 	var res []models.AdHocHoliday
-	err := p.DNS.Dynamo.QueryTableWithIndex(p.Table, 
+	err := conn.Dynamo.QueryTableWithIndex(adHocHoliday.TableName(conn.ClientID), 
 		awsutils.DynamoIndexExpression{
-		IndexName: p.PlatformDateIndex,
+		IndexName: string(adHocHoliday.PlatformIDDateIndex),
 		Condition: "platform_id = :platform_id",
 		Attributes: map[string]interface{}{
-			":platform_id": p.TeamID.ToPlatformID(),
+			":platform_id": conn.PlatformID,
 		},
 	}, map[string]string{}, true, -1, &res)
 	return res,err
 }
 // AllUnsafe reads all ad-hoc holidays for PlatformID and panics in case of errors
-func (p PlatformDAOImpl)AllUnsafe() []models.AdHocHoliday{
-	holidays, err := p.All()
-	core.ErrorHandler(err, p.DNS.Namespace, fmt.Sprintf("Could not query table %s", p.Table))
+func AllUnsafe(conn daosCommon.DynamoDBConnection) []models.AdHocHoliday{
+	holidays, err2 := All(conn)
+	core.ErrorHandler(err2, "AllUnsafe", "Could not query table adHocHoliday table")
 	return holidays
 }
 // SelectNotEarlierThan reads all ad-hoc holidays from dynamo table
