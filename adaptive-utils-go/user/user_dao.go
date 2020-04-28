@@ -14,18 +14,6 @@ import (
 // DAO is a wrapper around the _adaptive_users Dynamo DB table to work with adaptive-users table (CRUD)
 type DAO = daosUser.DAO
 
-
-// NewDAO creates an instance of DAO that will provide access to ClientPlatformToken table
-var NewDAOByTableName = daosUser.NewDAOByTableName
-
-// TableName is a function that returns `_user` table name having client id
-var TableName = func(clientID string) string { return clientID + "_adaptive_users" }
-
-// // DAOFromConnection -
-// func DAOFromConnection(conn daosCommon.DynamoDBConnection) DAO {
-// 	return NewDAOByTableName(conn.Dynamo, "UserDAO", TableName(conn.ClientID))
-// }
-
 // NewDAOFromSchema creates an instance of DAO that will provide access to adaptiveValues table
 func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema models.Schema) DAO {
 	return daosUser.NewDAOByTableName(dynamo, namespace, schema.AdaptiveUsers.Name)
