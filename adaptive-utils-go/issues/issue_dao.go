@@ -2,6 +2,7 @@ package issues
 
 import (
 	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
+	"github.com/adaptiveteam/adaptive/daos/user"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,29 +13,16 @@ import (
 
 	"github.com/pkg/errors"
 
-	// "github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/common"
-	// "github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
-
-	// "github.com/adaptiveteam/adaptive/daos/visionMission"
-	// "github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
-
-	// "github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
-	// objectives "github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	strategy "github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
-	// alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	// aws "github.com/aws/aws-sdk-go/aws"
-	// dynamodb "github.com/aws/aws-sdk-go/service/dynamodb"
-	// userCommunity "github.com/adaptiveteam/adaptive/daos/userCommunity"
-	// dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 )
 
 type DynamoDBConnection = common.DynamoDBConnection
@@ -592,8 +580,8 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 	return func(conn DynamoDBConnection) (err error) {
 		if !utilsUser.IsSpecialOrEmptyUserID(issueRef.UserObjective.AccountabilityPartner) {
 			issueRef.PrefetchedData.AccountabilityPartner, err =
-				utilsUser.DAOFromConnection(conn).
-					Read(issueRef.UserObjective.AccountabilityPartner)
+				user.
+					Read(issueRef.UserObjective.AccountabilityPartner)(conn)
 			if err != nil {
 				return
 			}

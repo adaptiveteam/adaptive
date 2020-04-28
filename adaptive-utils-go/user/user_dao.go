@@ -6,7 +6,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	// daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/nlopes/slack"
 )
@@ -21,10 +21,10 @@ var NewDAOByTableName = daosUser.NewDAOByTableName
 // TableName is a function that returns `_user` table name having client id
 var TableName = func(clientID string) string { return clientID + "_adaptive_users" }
 
-// DAOFromConnection -
-func DAOFromConnection(conn daosCommon.DynamoDBConnection) DAO {
-	return NewDAOByTableName(conn.Dynamo, "UserDAO", TableName(conn.ClientID))
-}
+// // DAOFromConnection -
+// func DAOFromConnection(conn daosCommon.DynamoDBConnection) DAO {
+// 	return NewDAOByTableName(conn.Dynamo, "UserDAO", TableName(conn.ClientID))
+// }
 
 // NewDAOFromSchema creates an instance of DAO that will provide access to adaptiveValues table
 func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema models.Schema) DAO {

@@ -2,21 +2,18 @@ package issues
 
 import (
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	"github.com/adaptiveteam/adaptive/daos/user"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"fmt"
 	"log"
-
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
-
 	"github.com/pkg/errors"
-
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	engIssues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	userEngagement "github.com/adaptiveteam/adaptive/daos/userEngagement"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
-
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	objectives "github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	strategy "github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
@@ -27,8 +24,6 @@ import (
 	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
 	aws "github.com/aws/aws-sdk-go/aws"
 	dynamodb "github.com/aws/aws-sdk-go/service/dynamodb"
-
-	// userCommunity "github.com/adaptiveteam/adaptive/daos/userCommunity"
 	userObjectiveProgress "github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 )
@@ -228,16 +223,12 @@ func StrategyCommunityByID(id string) func(conn AdaptiveCommunityDynamoDBConnect
 
 type UserDynamoDBConnection = DynamoDBConnection
 
-func userDAO(conn DynamoDBConnection) utilsUser.DAO {
-	return utilsUser.DAOFromConnection(conn)
-}
-
 func UserRead(userID string) func(conn DynamoDBConnection) (users []models.User, err error) {
 	return func(conn DynamoDBConnection) (users []models.User, err error) {
 		if utilsUser.IsSpecialOrEmptyUserID(userID) {
 			err = errors.Errorf("Cannot read nonexisting userID %s", userID)
 		} else {
-			users, err = userDAO(conn).ReadOrEmpty(userID)
+			users, err = user.ReadOrEmpty(userID)(conn)
 		}
 		err = errors.Wrapf(err, "UserDynamoDBConnection) Read(userID=%s)", userID)
 		return
@@ -259,8 +250,6 @@ var none = models.KvPair{Key: string(objectives.CoachNotNeededOption), Value: ut
 func IDOCoaches(userID string, oldCoachIDOptional string) func(conn DynamoDBConnection) (res []models.KvPair, err error) {
 	return func(conn DynamoDBConnection) (res []models.KvPair, err error) {
 		defer core.RecoverToErrorVar("IDOCoaches", &err)
-		userDao := utilsUser.DAOFromConnection(conn)
-
 		var coachingMembers []adaptiveCommunityUser.AdaptiveCommunityUser
 		coachingMembers, err = adaptiveCommunityUser.ReadByPlatformIDCommunityID(conn.PlatformID, string(community.Coaching))(conn)
 
@@ -283,7 +272,7 @@ func IDOCoaches(userID string, oldCoachIDOptional string) func(conn DynamoDBConn
 		}
 		for _, id := range userIDs {
 			var users [] models.User
-			users, err = userDao.ReadOrEmpty(id)
+			users, err = user.ReadOrEmpty(id)(conn)
 			err = errors.Wrapf(err, "UserDynamoDBConnection) IDOCoaches(userID=%s)", userID)
 			if err == nil {
 				for _, user := range users {
@@ -439,30 +428,6 @@ func communityMembers(commID string, ) []models.KvPair {
 func SelectKvPairsFromCommunityJoinUsers(communityID community.AdaptiveCommunity) func(DynamoDBConnection) ([]models.KvPair, error) {
 	return func(conn DynamoDBConnection) (members []models.KvPair, err error) {
 		defer core.RecoverToErrorVar("SelectKvPairsFromCommunityJoinUsers", &err)
-		// defer func () { // this function works. err is updated
-
-		// 	err3 := recover()
-		// 	if err3 != nil {
-		// 		log.Printf("SelectKvPairsFromCommunityJoinUsers: RecoverToErrorVar: err3: %+v", err3)
-		// 		err = errors.Errorf("SelectKvPairsFromCommunityJoinUsers: recovered from%+v", err3)
-		// 		members = []models.KvPair{{Key: "Problem that should never be visible", Value: "Problem"}}
-		// 	}
-		// 	log.Printf("SelectKvPairsFromCommunityJoinUsers: RecoverToErrorVar")
-
-
-
-		// 	// var err2 error
-		// 	// core.RecoverToErrorVar("SelectKvPairsFromCommunityJoinUsers", &err2)
-		// 	// // if err != nil {
-		// 	// 	log.Printf("SelectKvPairsFromCommunityJoinUsers: RecoverToErrorVar.err=%+v", err)
-		// 	// // }
-		// 	// // if err2 != nil {
-		// 	// 	log.Printf("SelectKvPairsFromCommunityJoinUsers: RecoverToErrorVar.err2=%+v", err2)
-		// 	// 	err = err2
-		// 	// // }
-		// }()
-		userDAO1 := userDAO(conn)
-
 		log.Printf("Before calling CommunityMembers")
 		commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), string(communityID), 
 			models.ParseTeamID(conn.PlatformID) )//, string(adaptiveCommunityUser.PlatformIDCommunityIDIndex)) // communityUsersCommunityIndex)
@@ -470,7 +435,7 @@ func SelectKvPairsFromCommunityJoinUsers(communityID community.AdaptiveCommunity
 		log.Printf("Found %d in community %s", len(commMembers), communityID)
 		for _, each := range commMembers {
 			// Self user checking
-			us := userDAO1.ReadOrEmptyUnsafe(each.UserId)
+			us := user.ReadOrEmptyUnsafe(each.UserId)(conn)
 			if len(us) == 0 {
 				log.Printf("Not found user %s", each.UserId)
 			}
