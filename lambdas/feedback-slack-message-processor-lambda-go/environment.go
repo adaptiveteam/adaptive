@@ -6,7 +6,7 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	// utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/sirupsen/logrus"
@@ -35,7 +35,7 @@ var (
 	connGen = daosCommon.CreateConnectionGenFromEnv()
 
 	schema  = models.SchemaForClientID(clientID)
-	userDao = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	// userDao = utilsUser.NewDAOFromSchema(d, namespace, schema)
 
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 )
