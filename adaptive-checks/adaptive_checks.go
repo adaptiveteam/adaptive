@@ -157,10 +157,11 @@ func ObjectivesExistInMyCapabilityCommunities(userID string, date business_time.
 	if logEnabled {
 		log.Printf("Checking ObjectivesExistInMyCapabilityCommunities for userID=%s, date=%v\n", userID, date)
 	}
+	conn := platform.GetConnectionForUserFromEnvUnsafe(userID)
 	objs := strategy.UserCommunityObjectives(userID,
 		strategyObjectivesTableName, strategyObjectivesPlatformIndex,
 		userObjectivesTable,
-		communityUsersTable, communityUsersUserIndex)
+		communityUsersTable, communityUsersUserIndex, conn)
 	if logEnabled {
 		log.Printf("Checked ObjectivesExistInMyCapabilityCommunities: %d\n", len(objs))
 	}
@@ -272,9 +273,10 @@ func InitiativesExistInMyCapabilityCommunities(userID string, _ business_time.Da
 		inits = strategy.AllOpenStrategyInitiatives(teamID, initiativesTable, initiativesPlatformIndex,
 			userObjectivesTable)
 	} else {
+		conn := platform.GetConnectionForUserFromEnvUnsafe(userID)
 		inits = strategy.UserCapabilityCommunityInitiatives(userID, strategyObjectivesTableName, strategyObjectivesPlatformIndex,
 			initiativesTable, strategyInitiativesInitiativeCommunityIndex, userObjectivesTable, communityUsersTable,
-			communityUsersUserCommunityIndex, communityUsersUserIndex)
+			communityUsersUserCommunityIndex, communityUsersUserIndex, conn)
 	}
 	if logEnabled {
 		log.Println("Checked InitiativesExistInMyCapabilityCommunities: ", len(inits))

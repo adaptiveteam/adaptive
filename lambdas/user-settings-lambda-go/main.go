@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -19,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/userSetup"
 )
@@ -43,6 +45,8 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 			err = json.Unmarshal([]byte(sns.Message), &np)
 			core.ErrorHandler(err, namespace, fmt.Sprintf("Could not unmarshal stream image to NamespacePayload"))
 			if np.Namespace == "settings" {
+				connGen := common.CreateConnectionGenFromEnv()
+				conn := connGen.ForPlatformID(np.TeamID.ToPlatformID())
 				switch np.SlackRequest.Type {
 				case models.InteractionSlackRequestType:
 					byt, _ := json.Marshal(np.SlackRequest)
@@ -82,7 +86,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							switch act {
 							case string(models.Now):
 								// Query user table to get timezone
-								user := userDao.ReadUnsafe(userID)
+								user := daosUser.ReadUnsafe(userID)(conn)
 								notes = selectMeetingTimeHandler(request, user.Timezone)
 							case string(models.Cancel):
 								// Remove the engagement

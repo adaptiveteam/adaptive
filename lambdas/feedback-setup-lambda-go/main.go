@@ -1,13 +1,14 @@
 package feedbackSetupLambda
 
 import (
-	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
-	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
-	"github.com/adaptiveteam/adaptive/daos/userFeedback"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
@@ -17,16 +18,17 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
+	"github.com/adaptiveteam/adaptive/daos/userFeedback"
 	eb "github.com/adaptiveteam/adaptive/engagement-builder"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
+	feedbackReportPostingLambda "github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
 	ls "github.com/aws/aws-lambda-go/lambda"
 	"github.com/nlopes/slack"
 	"github.com/sirupsen/logrus"
-	"log"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -124,8 +126,8 @@ func engAttachActions(mc models.MessageCallback, details bool, feedbackGiven boo
 func confirmNotificationAttachmentActions(mc models.MessageCallback, noText ui.PlainText, learnTrailPath string) []ebm.AttachmentAction {
 	return models.AppendOptionalAction(
 		[]ebm.AttachmentAction{
-		*models.SimpleAttachAction(mc, models.Now, "Yes"),
-		*models.SimpleAttachAction(mc, models.Ignore, noText),
+			*models.SimpleAttachAction(mc, models.Now, "Yes"),
+			*models.SimpleAttachAction(mc, models.Ignore, noText),
 		},
 		models.LearnMoreAction(models.ConcatPrefixOpt("docs/general/", learnTrailPath)),
 	)
@@ -163,17 +165,18 @@ func feedbackRequestEngagement(target string, mc models.MessageCallback, userId,
 	bytes, err := engagement.ToJson()
 	core.ErrorHandler(err, namespace, "Could not convert engagement to JSON")
 	// TODO: Think about managing the priority here
-	eng := models.UserEngagement{UserID: userId, TargetID: target, ID: callbackId, 
+	eng := models.UserEngagement{UserID: userId, TargetID: target, ID: callbackId,
 		PlatformID: teamID.ToPlatformID(),
-		Script: string(bytes), Priority: models.UrgentPriority, Answered: 0, CreatedAt: core.CurrentRFCTimestamp()}
+		Script:     string(bytes), Priority: models.UrgentPriority, Answered: 0, CreatedAt: core.CurrentRFCTimestamp()}
 	utils.AddEng(eng, engagementTable, d, namespace)
 }
 
-func feedbackEngagementAttachment(teamID models.TeamID, value models.AdaptiveValue,
+func feedbackEngagementAttachment(value models.AdaptiveValue,
 	mc models.MessageCallback,
-	details bool) *ebm.Attachment {
+	details bool,
+	conn daosCommon.DynamoDBConnection) *ebm.Attachment {
 	var existingFeedback string
-	op, err := existingFeedbackOnDimension(teamID, mc, value)
+	op, err := existingFeedbackOnDimension(mc, value, conn)
 	if err == nil {
 		if op.Feedback != "" {
 			existingFeedback = fmt.Sprintf("[%s] %s", coaching.Feedback360RatingMap[op.ConfidenceFactor], op.Feedback)
@@ -201,7 +204,7 @@ func feedbackEngagementAttachment(teamID models.TeamID, value models.AdaptiveVal
 }
 
 func feedbackEngagement(value models.AdaptiveValue, mc models.MessageCallback, urgent bool,
-	teamID models.TeamID) {
+	conn daosCommon.DynamoDBConnection) {
 	callbackId := mc.ToCallbackID()
 
 	// Determining priority for the engagement
@@ -210,7 +213,7 @@ func feedbackEngagement(value models.AdaptiveValue, mc models.MessageCallback, u
 		priority = models.UrgentPriority
 	}
 
-	attach := feedbackEngagementAttachment(teamID, value, mc, false)
+	attach := feedbackEngagementAttachment(value, mc, false, conn)
 
 	engagement := eb.NewEngagementBuilder().
 		Id(callbackId).
@@ -219,9 +222,9 @@ func feedbackEngagement(value models.AdaptiveValue, mc models.MessageCallback, u
 		Build()
 	bytes, err := engagement.ToJson()
 	core.ErrorHandler(err, namespace, "Could not convert engagement to JSON")
-	eng := models.UserEngagement{UserID: mc.Source, TargetID: mc.Target, ID: callbackId, 
-		PlatformID: teamID.ToPlatformID(),
-		Script: string(bytes), Priority: priority, Answered: 0, CreatedAt: core.CurrentRFCTimestamp()}
+	eng := models.UserEngagement{UserID: mc.Source, TargetID: mc.Target, ID: callbackId,
+		PlatformID: conn.PlatformID,
+		Script:     string(bytes), Priority: priority, Answered: 0, CreatedAt: core.CurrentRFCTimestamp()}
 	utils.AddEng(eng, engagementTable, d, namespace)
 }
 
@@ -256,31 +259,27 @@ func EmptyAttachs() []ebm.Attachment {
 func HandleRequest(ctx context.Context, np models.NamespacePayload4) {
 	logger = logger.WithLambdaContext(ctx)
 	defer core.RecoverAsLogError("feedback-setup-lambda")
-	
+
 	// if request.Payload == "warmup" {
 	// 	return nil
 	// }
 	// Parsing incoming payload
 	slackRequest := np.PlatformRequest.SlackRequest
-	switch slackRequest.Type {
-	case models.InteractionSlackRequestType:
-		teamID := getTeamID(slackRequest.InteractionCallback)
-		if !teamID.IsEmpty() {
+	teamID := np.TeamID
+	if !teamID.IsEmpty() {
+		switch slackRequest.Type {
+		case models.InteractionSlackRequestType:
 			dispatchSlackInteractionCallback(slackRequest.InteractionCallback, teamID)
-		} else {
-			logger.Errorf("Platform id is empty for %s user", slackRequest.InteractionCallback.User.ID)
-		}
-	case models.DialogSubmissionSlackRequestType:
-		request := slackRequest.InteractionCallback
-		dialog := slackRequest.DialogSubmissionCallback
-		logger.Infof("Got dialog submission " + dialog.State)
-		teamID := getTeamID(slackRequest.InteractionCallback)
-		if !teamID.IsEmpty() {
+		case models.DialogSubmissionSlackRequestType:
+			request := slackRequest.InteractionCallback
+			dialog := slackRequest.DialogSubmissionCallback
+			logger.Infof("Got dialog submission " + dialog.State)
 			dispatchSlackDialogSubmissionCallback(request, dialog, teamID)
-		} else {
-			logger.Errorf("Platform id is empty for %s user", slackRequest.InteractionCallback.User.ID)
 		}
+	} else {
+		logger.Errorf("Platform id is empty for %s user", slackRequest.InteractionCallback.User.ID)
 	}
+
 	return
 }
 
@@ -325,7 +324,7 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 				act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s_", Ask))
 				switch act {
 				case string(models.Now):
-					notes = feedbackRequestNowHandler(request, mc, values, teamID)
+					notes = feedbackRequestNowHandler(request, mc, values, conn)
 				case string(models.Ignore):
 					notes = cancelEngagementHandler(request, mc)
 				case MoreDetails, LessDetails:
@@ -337,9 +336,9 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 						value := values[0]
 						logger.Infof("Retrieved value with id %s: %v", act, value)
 						// this corresponds to the engagements for each of the dimensions
-						notes = feedbackDimensionHandler(request, teamID, mc, action.Value, value)
+						notes = feedbackDimensionHandler(request, mc, action.Value, value, conn)
 					} else if err2 != nil {
-							logger.Errorf("Could not read value with id %s: %v", act, err2)
+						logger.Errorf("Could not read value with id %s: %v", act, err2)
 					} else {
 						logger.Errorf("Could not find value with id %s", act)
 					}
@@ -349,7 +348,7 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 				logger.WithField("action", &action).WithField("act", &act).Info()
 				switch act {
 				case string(models.Now):
-					feedbackShowSelectUserHandler(request, teamID)
+					feedbackShowSelectUserHandler(request, conn)
 					notes = []models.PlatformSimpleNotification{
 						{UserId: request.User.ID,
 							Channel: request.Channel.ID, Message: "", Ts: request.OriginalMessage.Timestamp}}
@@ -366,10 +365,10 @@ func dispatchSlackInteractionCallback(request slack.InteractionCallback, teamID 
 						notes = []models.PlatformSimpleNotification{
 							overrideOriginalMessage(request, selfCoachingMessage)}
 					} else {
-						notes = feedbackNowEngagementHandler(request, mc, selectedUser, values, teamID)
+						notes = feedbackNowEngagementHandler(request, mc, selectedUser, values, conn)
 					}
 				} else if action.Name == fmt.Sprintf("%s_later", mc.Action) {
-					notes = postponeEngagementHandler(request, mc, values, teamID)
+					notes = postponeEngagementHandler(request, mc, values, conn)
 				} else if action.Name == fmt.Sprintf("%s_ignore", mc.Action) ||
 					action.Name == fmt.Sprintf("%s_cancel", mc.Action) {
 					notes = cancelEngagementHandler(request, mc)
@@ -392,17 +391,17 @@ func quarterYear(date business_time.Date) string {
 	return fmt.Sprintf("%d:%d", quarter, year)
 }
 
-func feedbackShowSelectUserHandler(request slack.InteractionCallback, teamID models.TeamID) {
+func feedbackShowSelectUserHandler(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) {
 	year, month, _ := time.Now().Date()
 	mc := models.MessageCallback{Module: "coaching", Source: request.User.ID,
 		Topic: "user_feedback", Action: "select", Target: "", Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-	UserSelectEngagement(request.User.ID, teamID, mc, []string{}, []string{request.User.ID},
-		"Whom would you like to give feedback to?", "coaching-feedback")
+	UserSelectEngagement(request.User.ID, mc, []string{}, []string{request.User.ID},
+		"Whom would you like to give feedback to?", "coaching-feedback", conn)
 }
 
-func UserSelectEngagement(userID string, teamID models.TeamID, mc models.MessageCallback, users,
-	filter []string, text, context string) {
-	user.UserSelectEng(userID, engagementTable, teamID, userDao, mc,
+func UserSelectEngagement(userID string, mc models.MessageCallback, users,
+	filter []string, text, context string, conn daosCommon.DynamoDBConnection) {
+	user.UserSelectEng(userID, engagementTable, conn, mc,
 		users, filter, text, context, models.UserEngagementCheckWithValue{})
 }
 
@@ -432,21 +431,23 @@ func feedbackRequestNowHandler(
 	request slack.InteractionCallback,
 	mc models.MessageCallback,
 	values []models.AdaptiveValue,
-	teamID models.TeamID) []models.PlatformSimpleNotification {
+	conn daosCommon.DynamoDBConnection,
+	) []models.PlatformSimpleNotification {
 	target := mc.Target
 	utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
 	// for the user, write feedback engagements with non-urgent priority
 	for _, value := range values {
 		// We add prefix 'ask_' to each of the dimension engagement for a user
 		mc.WithAction(fmt.Sprintf("ask_%s", value.ID)).WithTarget(target)
-		feedbackEngagement(value, mc, true, teamID) // TODO: return PlatformSimpleNotification-s
+		feedbackEngagement(value, mc, true, conn) // TODO: return PlatformSimpleNotification-s
 	}
 	return []models.PlatformSimpleNotification{overrideOriginalMessage(request, "")}
 }
 
-func existingFeedbackOnDimension(teamID models.TeamID, mc models.MessageCallback, value models.AdaptiveValue) (op models.UserFeedback, err error) {
+func existingFeedbackOnDimension(mc models.MessageCallback, 
+	value models.AdaptiveValue,
+	conn daosCommon.DynamoDBConnection) (op models.UserFeedback, err error) {
 	key := mc.WithAction(value.ID).ToCallbackID()
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	var feedbacks []userFeedback.UserFeedback
 	feedbacks, err = userFeedback.ReadOrEmpty(key)(conn)
 	if len(feedbacks) > 0 {
@@ -457,13 +458,13 @@ func existingFeedbackOnDimension(teamID models.TeamID, mc models.MessageCallback
 
 func feedbackDimensionHandler(
 	request slack.InteractionCallback,
-	teamID models.TeamID,
 	mc models.MessageCallback,
 	actionValue string,
-	value models.AdaptiveValue) []models.PlatformSimpleNotification {
+	value models.AdaptiveValue,
+	conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
 
 	ut := userTokenSyncUnsafe(request.User.ID)
-	tut := userDao.ReadUnsafe(mc.Target)
+	tut := daosUser.ReadUnsafe(mc.Target)(conn)
 	api := slack.New(ut)
 	// key := mc.WithAction(value.ID).Sprint()
 	// // Query the feedback table. If this has already been answered, get the confidence factor and script associated with the id
@@ -473,7 +474,7 @@ func feedbackDimensionHandler(
 	// 	},
 	// }
 	// var op models.UserFeedback
-	op, err := existingFeedbackOnDimension(teamID, mc, value)
+	op, err := existingFeedbackOnDimension(mc, value, conn)
 	// err := d.QueryTable(feedbackTable, params, &op)
 	// core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table for default values", feedbackTable))
 	// Open a survey associated with the engagement
@@ -488,7 +489,7 @@ func feedbackNowEngagementHandler(
 	mc models.MessageCallback,
 	selectedUser string,
 	values []models.AdaptiveValue,
-	teamID models.TeamID) []models.PlatformSimpleNotification {
+	conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
 	// Add engagements with urgent priority
 	// We have now added feedback for a coaching engagement. We can now update the original engagement as answered.
 	utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
@@ -497,7 +498,7 @@ func feedbackNowEngagementHandler(
 	for _, value := range values {
 		// We add prefix 'ask_' to each of the dimension engagement for a user
 		mc.WithAction(fmt.Sprintf("ask_%s", value.ID)).WithTarget(selectedUser)
-		feedbackEngagement(value, mc, true, teamID)
+		feedbackEngagement(value, mc, true, conn)
 	}
 	// Delete original engagement
 	return []models.PlatformSimpleNotification{overrideOriginalMessage(request, "")}
@@ -507,7 +508,7 @@ func postponeEngagementHandler(
 	request slack.InteractionCallback,
 	mc models.MessageCallback,
 	values []models.AdaptiveValue,
-	teamID models.TeamID) []models.PlatformSimpleNotification {
+	conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
 	target := mc.Target
 	// Add engagements with non-urgent priority
 	// We have now added feedback for a coaching engagement. We can now update the original engagement as answered.
@@ -518,7 +519,7 @@ func postponeEngagementHandler(
 		// We add prefix 'ask_' to each of the dimension engagement for a user
 		mc.Set("Action", fmt.Sprintf("ask_%s", value.ID))
 		mc.Set("Target", target)
-		feedbackEngagement(value, mc, false, teamID)
+		feedbackEngagement(value, mc, false, conn)
 	}
 	return []models.PlatformSimpleNotification{models.PlatformSimpleNotification{UserId: request.User.ID, Channel: request.Channel.ID, Message: fmt.Sprintf(
 		"_Ok, you can provide feedback to %s during the next window._", common.TaggedUser(target)), Ts: request.OriginalMessage.Timestamp, Attachments: EmptyAttachs()}}
@@ -544,10 +545,10 @@ func viewCollaborationReportHandler(request slack.InteractionCallback,
 		bt := business_time.NewDate(y, m, 1)
 		// view report now
 		// engageBytes, _ := json.Marshal(models.UserEngage{
-		// 	UserID: request.User.ID, 
+		// 	UserID: request.User.ID,
 		// 	IsNew: false,
-		// 	Update: true, 
-		// 	Channel: request.Channel.ID, ThreadTs: request.MessageTs, 
+		// 	Update: true,
+		// 	Channel: request.Channel.ID, ThreadTs: request.MessageTs,
 		// 	Date: bt.DateToString(string(core.ISODateLayout))})
 		// Update original message
 		platform.Publish(models.PlatformSimpleNotification{UserId: request.User.ID, Channel: request.Channel.ID,
@@ -575,7 +576,7 @@ func dispatchSlackDialogSubmissionCallback(
 
 	form := dialog.Submission
 	conn := connGen.ForPlatformID(teamID.ToPlatformID())
-	var notes  []models.PlatformSimpleNotification
+	var notes []models.PlatformSimpleNotification
 	if strings.HasPrefix(mc.Action, "ask") {
 		notes = askDialogSubmissionHandler(request, dialog, form, teamID)(conn)
 	} else {
@@ -589,12 +590,12 @@ func createFeedbackMessage(request slack.InteractionCallback,
 	targetID string,
 	form map[string]string,
 	timestamp string,
-) func (conn daosCommon.DynamoDBConnection)models.PlatformSimpleNotification {
-	return func (conn daosCommon.DynamoDBConnection)models.PlatformSimpleNotification {
+) func(conn daosCommon.DynamoDBConnection) models.PlatformSimpleNotification {
+	return func(conn daosCommon.DynamoDBConnection) models.PlatformSimpleNotification {
 		competencyID := strings.TrimPrefix(editAction, "ask_")
 		values, err2 := adaptiveValue.ReadOrEmpty(competencyID)(conn)
 		values = adaptiveValue.AdaptiveValueFilterActive(values)
-		found := len(values) > 0 
+		found := len(values) > 0
 		var attachNotification models.PlatformSimpleNotification
 		if err2 == nil && found {
 			value := values[0]
@@ -693,12 +694,12 @@ func askDialogSubmissionHandler(
 	}
 }
 
-func onShowDetailsToggle(teamID models.TeamID, mc models.MessageCallback, request slack.InteractionCallback, act string) func (conn daosCommon.DynamoDBConnection)[]models.PlatformSimpleNotification {
-	return func (conn daosCommon.DynamoDBConnection)[]models.PlatformSimpleNotification {
+func onShowDetailsToggle(teamID models.TeamID, mc models.MessageCallback, request slack.InteractionCallback, act string) func(conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
+	return func(conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
 		details := act == MoreDetails
 		valueID := strings.TrimPrefix(mc.Action, fmt.Sprintf("%s_", Ask))
 		value := adaptiveValue.ReadUnsafe(valueID)(conn)
-		attach := feedbackEngagementAttachment(teamID, value, mc, details)
+		attach := feedbackEngagementAttachment(value, mc, details, conn)
 		return []models.PlatformSimpleNotification{
 			{UserId: request.User.ID,
 				Channel:     request.Channel.ID,

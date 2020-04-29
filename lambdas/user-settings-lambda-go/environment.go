@@ -5,7 +5,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/userEngagement"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	user "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 )
 
@@ -31,6 +30,4 @@ var (
 	clientID                  = utils.NonEmptyEnv("CLIENT_ID")
 
 	schema           = models.SchemaForClientID(clientID)
-
-	userDao = user.NewDAOFromSchema(d, namespace, schema)
 )

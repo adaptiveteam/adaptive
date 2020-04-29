@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
 	aesc "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/schedules"
@@ -45,7 +46,10 @@ func ScheduleOfEngagements(target, date, holidaysTable string,
 }
 
 // allSchedules returns all the applicable schedules for a user for the next n days
-func allSchedules(date business_time.Date, userID string, days int, teamID models.TeamID) []esmodels.ScheduledEngagement {
+func allSchedules(date business_time.Date, userID string, days int, 
+	conn common.DynamoDBConnection,
+) []esmodels.ScheduledEngagement {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	userSchedules, err := ScheduleOfEngagements(userID, core.ISODateLayout.Format(date.DateToTimeMidnight()),
 		adHocHolidaysTable, func() []esmodels.CrossWalk {
 			return allCrosswalks
@@ -54,11 +58,11 @@ func allSchedules(date business_time.Date, userID string, days int, teamID model
 	return userSchedules
 }
 
-func schedulesSummary(userID string, teamID models.TeamID, quarter, year int) ui.RichText {
+func schedulesSummary(userID string, conn common.DynamoDBConnection, quarter, year int) ui.RichText {
 	quarterStart := business_time.NewDateFromQuarter(quarter, year)
 	quarterEnd := quarterStart.GetLastDayOfQuarter()
 
-	userSchedules := allSchedules(quarterStart, userID, quarterEnd.DaysBetween(quarterStart), teamID)
+	userSchedules := allSchedules(quarterStart, userID, quarterEnd.DaysBetween(quarterStart), conn)
 	// fmt.Println(userSchedules)
 	// fmt.Println(len(userSchedules))
 	// byt, _ := json.Marshal(es.PrettyPrintSchedule(userSchedules))

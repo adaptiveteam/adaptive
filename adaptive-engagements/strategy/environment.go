@@ -14,7 +14,6 @@ var (
 	d         = func() *awsutils.DynamoRequest { return awsutils.NewDynamo(region(), "", namespace()) }
 	clientID  = func() string { return utils.NonEmptyEnv("CLIENT_ID") }
 	schema    = func() models.Schema { return models.SchemaForClientID(clientID()) }
-	userDAO   = func() utilsUser.DAO { return utilsUser.NewDAOFromSchema(d(), namespace(), schema()) }
 )
 
 // UserIDToTeamID converts userID to teamID using

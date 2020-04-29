@@ -3,6 +3,7 @@ package lambda
 import (
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 	"context"
 	"encoding/json"
@@ -121,7 +122,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 				// Handling event_callback messages
 				if np.SlackRequest.Type == models.EventsAPIEventSlackRequestType {
 					logger.WithField("app_mention_event", np).Info()
-					dispatchAppMentionSlackEvent(np.ToEventsAPIEventUnsafe(), np.TeamID, conn)
+					dispatchAppMentionSlackEvent(np.ToEventsAPIEventUnsafe(), conn)
 				} else {
 					request := np.SlackRequest.InteractionCallback
 					if np.TeamID.IsEmpty() {
@@ -156,20 +157,20 @@ func dispatchCommunityMenuAction2(request slack.InteractionCallback,
 	mc := callback(request.User.ID, "init", "select")
 	switch selectedMenuItem {
 	case RequestCoach:
-		response := onRequestCoachClicked(request, mc, teamID)
+		response := onRequestCoachClicked(request, mc, conn)
 		respond(teamID, response)
 	case GenerateReportHR:
-		generateReportMenuHandler(request, mc, teamID)
+		generateReportMenuHandler(request, mc, conn)
 	case FetchReportHR:
-		fetchReportMenuHandler(request, mc, teamID)
+		fetchReportMenuHandler(request, mc, conn)
 	case SimulateCurrentQuarterAction:
-		simulateCurrentQuarterMenuHandler(request, mc, teamID)
+		simulateCurrentQuarterMenuHandler(request, mc, conn)
 	case SimulateNextQuarterAction:
-		simulateNextQuarterMenuHandler(request, mc, teamID)
+		simulateNextQuarterMenuHandler(request, mc, conn)
 	case CurrentQuarterSchedule:
-		currentQuarterScheduleMenuHandler(request, teamID)
+		currentQuarterScheduleMenuHandler(request, conn)
 	case NextQuarterSchedule:
-		nextQuarterScheduleMenuHandler(request, teamID)
+		nextQuarterScheduleMenuHandler(request, conn)
 	case CommunitySubscribeAction:
 		response := onCommunitySubscribeClicked(request, teamID)
 		respond(teamID, response)
@@ -253,7 +254,7 @@ func dispatchCommunityInteractionCallback(request slack.InteractionCallback,
 				} else if mc.Topic == "unsubscription" {
 					if action.Name == "select" {
 						message := onCommunityUnsubscribeCommunityClicked(request, action.SelectedOptions[0].Value,
-							*mc, teamID)
+							*mc, conn)
 						replyReplace(request, teamID, message)
 					} else if action.Name == "cancel" {
 						message := onCommunityUnsubscribeCancelled(request, *mc)
@@ -447,7 +448,7 @@ func communityNamespaceAdminAccessCallback(request slack.InteractionCallback, su
 		publish(models.PlatformSimpleNotification{UserId: request.User.ID, Channel: request.Channel.ID,
 			Message: string(AdminRequestSentAcknowledgement)})
 		userID := request.User.ID
-		user, err2 := userDAO.Read(userID)
+		user, err2 := daosUser.Read(userID)(conn)
 		core.ErrorHandler(err2, "communityNamespaceAdminAccessCallback", "userDAO.Read")
 		teamID := models.ParseTeamID(user.PlatformID)
 		// ut := userTokenSyncUnsafe(request.User.ID)
@@ -513,7 +514,7 @@ func adaptiveChannelNamespaceEventHandler(eventsAPIEvent slackevents.EventsAPIEv
 		switch eventType {
 		case slackevents.MemberJoinedChannel:
 			slackMsg := *eventsAPIEvent.InnerEvent.Data.(*slackevents.MemberJoinedChannelEvent)
-			onMemberJoinedChannel(slackMsg, teamID, conn)
+			onMemberJoinedChannel(slackMsg, conn)
 		case "member_left_channel":
 			slackMsg := *eventsAPIEvent.InnerEvent.Data.(*slack.MemberLeftChannelEvent)
 			onMemberLeftChannel(slackMsg)
@@ -521,19 +522,19 @@ func adaptiveChannelNamespaceEventHandler(eventsAPIEvent slackevents.EventsAPIEv
 			// This is when Adaptive leaves a private channel
 			cbEvent := *eventsAPIEvent.Data.(*slackevents.EventsAPICallbackEvent)
 			// slack.GroupLeftEvent doesn't populate user id. Do not use that field.
-			onGroupLeftEvent(cbEvent, teamID, conn)
+			onGroupLeftEvent(cbEvent, conn)
 		case "channel_deleted": // docs: https://api.slack.com/events/channel_deleted
 			channelDeletedEvent := *eventsAPIEvent.InnerEvent.Data.(*slack.ChannelDeletedEvent)
-			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, teamID)
+			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, conn)
 		case "channel_archive":
 			channelDeletedEvent := *eventsAPIEvent.InnerEvent.Data.(*slack.ChannelArchiveEvent)
-			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, teamID)
+			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, conn)
 		case "group_deleted":
 			channelDeletedEvent := *eventsAPIEvent.InnerEvent.Data.(*slack.GroupCloseEvent)
-			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, teamID)
+			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, conn)
 		case "group_archive":
 			channelDeletedEvent := *eventsAPIEvent.InnerEvent.Data.(*slack.GroupArchiveEvent)
-			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, teamID)
+			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, conn)
 		default:
 			logger.Warnf("Unhandled %s event type", eventType)
 		}

@@ -5,13 +5,14 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
 
-func ReadAllUserProfiles(userDAO daosUser.DAO, teamID models.TeamID) []models.UserProfile {
-	users := userDAO.ReadByPlatformIDUnsafe(teamID.ToPlatformID())
+func ReadAllUserProfiles(conn daosCommon.DynamoDBConnection) []models.UserProfile {
+	users := daosUser.ReadByPlatformIDUnsafe(conn.PlatformID)(conn)
 	return user.ConvertUsersToUserProfilesAndRemoveAdaptiveBot(users)
 }
 

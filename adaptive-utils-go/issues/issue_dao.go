@@ -19,6 +19,7 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
+	"github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/pkg/errors"
 )
@@ -293,7 +294,7 @@ func IssuesFromCapabilityCommunityInitiatives(userID string) func(conn DynamoDBC
 			strategyInitiativeTableName(conn.ClientID), strategyInitiativesInitiativeCommunityIndex,
 			userObjectiveTableName(conn.ClientID),
 			adaptiveCommunityUserTableName(conn.ClientID), communityUsersUserCommunityIndex,
-			communityUsersUserIndex)
+			communityUsersUserIndex, conn)
 		res, err = IssuesFromGivenStrategyInitiatives(inits)(conn)
 		err = errors.Wrapf(err, "CapabilityCommunityInitiatives(userID=%s)", userID)
 		return
@@ -439,8 +440,8 @@ func Read(issueType IssueType, issueID string) func(conn DynamoDBConnection) (is
 				issue.StrategyInitiative = inis[0]
 				if err == nil && len(objs) == 0 {
 					issue, err = IssueFromStrategyInitiative(issue.StrategyInitiative)(conn)
-				}	
-			}			
+				}
+			}
 		}
 		issue.NormalizeIssueDateTimes()
 		err = errors.Wrapf(err, "issue_dao.Read(issueType=%s, ID=%s)", issueType, issueID)
@@ -573,8 +574,8 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 	return func(conn DynamoDBConnection) (err error) {
 		if !utilsUser.IsSpecialOrEmptyUserID(issueRef.UserObjective.AccountabilityPartner) {
 			issueRef.PrefetchedData.AccountabilityPartner, err =
-				utilsUser.DAOFromConnection(conn).
-					Read(issueRef.UserObjective.AccountabilityPartner)
+				user.
+					Read(issueRef.UserObjective.AccountabilityPartner)(conn)
 			if err != nil {
 				return
 			}

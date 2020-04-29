@@ -6,6 +6,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 )
 
 const (
@@ -99,7 +100,8 @@ func EditInitiativeSurveyElems(si *models.StrategyInitiative, advocates, dates,
 }
 
 func EditInitiativeCommunitySurveyElems(teamID models.TeamID, cc *strategy.StrategyInitiativeCommunity,
-	capabilityComms []models.KvPair) (op []ebm.AttachmentActionTextElement) {
+	capabilityComms []models.KvPair,
+	conn daosCommon.DynamoDBConnection) (op []ebm.AttachmentActionTextElement) {
 	// Survey box should consist of a menu option to select rating and a text area for a user to enter the feedback
 	if cc == nil {
 		cc = &strategy.StrategyInitiativeCommunity{}
@@ -121,7 +123,7 @@ func EditInitiativeCommunitySurveyElems(teamID models.TeamID, cc *strategy.Strat
 			Label:    strategy.InitiativeCommunityCoordinatorLabel,
 			Name:     strategy.InitiativeCommunityCoordinator,
 			ElemType: models.MenuSelectType,
-			Options:  utils.AttachActionElementOptions(allUsersInAnyStrategyCommunities(teamID)),
+			Options:  utils.AttachActionElementOptions(allUsersInAnyStrategyCommunities(conn)),
 			Value:    cc.Advocate,
 		},
 		{

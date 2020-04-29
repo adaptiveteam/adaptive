@@ -7,7 +7,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
-	"github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,9 +18,6 @@ var (
 
 	d      = awsutils.NewDynamo(region, "", namespace)
 	schema = models.SchemaForClientID(clientID)
-
-	// instead of profile lambda
-	userDao = user.NewDAOByTableName(d, namespace, schema.AdaptiveUsers.Name)
 
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 

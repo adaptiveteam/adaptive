@@ -3,7 +3,6 @@ package feedbackReportPostingLambda
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -23,7 +22,6 @@ var (
 	D                         = awsutils.NewDynamo(region, "", namespace)
 	clientID                  = utils.NonEmptyEnv("CLIENT_ID")
 	schema    = models.SchemaForClientID(clientID)
-	userDAO   = daosUser.NewDAOByTableName(D, namespace, schema.AdaptiveUsers.Name)
 
 	reportName = "performance_report.pdf"
 )

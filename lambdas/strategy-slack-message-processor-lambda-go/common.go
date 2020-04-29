@@ -10,6 +10,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 )
 
 const (
@@ -54,26 +55,15 @@ var (
 	dialogFetcherDAO    = dialogFetcher.NewDAO(d, dialogTableName)
 )
 
-// func allUsers(teamID models.TeamID, list []string) []models.KvPair {
-// 	var users []models.KvPair
-// 	// Get user options
-// 	userProfiles := user.ReadAllUserProfiles(userDAO, teamID)
-// 	for _, each := range userProfiles {
-// 		if len(list) == 0 || core.ListContainsString(list, each.Id) {
-// 			users = append(users, models.KvPair{Key: each.DisplayName, Value: each.Id})
-// 		}
-// 	}
-// 	return users
-// }
-
 // allUsersInAnyStrategyCommunities should return users that belong to one of the communities
-func allUsersInAnyStrategyCommunities(teamID models.TeamID) []models.KvPair {
+func allUsersInAnyStrategyCommunities(conn daosCommon.DynamoDBConnection) []models.KvPair {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	communityUsers := communityMembersDao.ReadAnyCommunityUsersUnsafe(teamID)
 	userIDsSet := getUserIDsSet(communityUsers)
 	var users []models.KvPair
 	// Get user options
 
-	userProfiles := user.ReadAllUserProfiles(userDAO, teamID)
+	userProfiles := user.ReadAllUserProfiles(conn)
 	for _, each := range userProfiles {
 		if _, ok := userIDsSet[each.Id]; ok {
 			users = append(users, models.KvPair{Key: each.DisplayName, Value: each.Id})

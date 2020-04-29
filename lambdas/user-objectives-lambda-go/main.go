@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
@@ -944,7 +945,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// If there are objectives that doesn't have a partner for
 		if len(core.Distinct(users)) > 0 {
 			// Posting user select engagement to the user. User id here should be channel since we are posting into a channel
-			user.UserSelectEng(userID, engagementTable, models.TeamID(teamID), userDAO,
+			user.UserSelectEng(userID, engagementTable, conn,
 				*mc.WithTopic("coaching").WithAction(PartnerSelectUser), core.Distinct(users), []string{},
 				"Hello! Below are the users who doesn't have a partner assigned for some of their objectives.",
 				"coaching", common2.EngagementEmptyCheck)
@@ -2358,9 +2359,13 @@ func (a MenuOptionLabelSorter) Less(i, j int) bool { return a[i].Label < a[j].La
 
 // objectives formats one option group with objectives
 func objectivesGroup(userID string, teamID models.TeamID, initiatives []models.StrategyInitiative) (res []ebm.AttachmentActionElementOptionGroup) {
+	conn := platform.GetConnectionForUserFromEnvUnsafe(userID)
+
 	capabilityObjectives := strategy.UserStrategyObjectives(userID, strategyObjectivesTableName,
 		string(strategyObjective.PlatformIDIndex), userObjectivesTable,
-		communityUsersTable, string(adaptiveCommunityUser.UserIDCommunityIDIndex))
+		communityUsersTable, string(adaptiveCommunityUser.UserIDCommunityIDIndex), 
+		conn,
+	)
 
 	var initiativeRelatedCapabilityObjectiveIDs []string
 	// Getting the last of related Capability Objective for each of the Initiatives

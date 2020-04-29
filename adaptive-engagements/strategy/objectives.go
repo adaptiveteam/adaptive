@@ -100,11 +100,12 @@ func UserInitiativeCommunityInitiatives(userID string, initiativesTableName, ini
 func UserCapabilityCommunityInitiatives(userID string,
 	strategyObjectivesTable, strategyObjectivesPlatformIndex, initiativesTable, initiativesInitiativeCommunityIDIndex,
 	userObjectivesTable string,
-	communityUsersTable, communityUsersUserCommunityIndex, communityUsersUserIndex string) []models.StrategyInitiative {
+	communityUsersTable, communityUsersUserCommunityIndex, communityUsersUserIndex string,
+	conn daosCommon.DynamoDBConnection) []models.StrategyInitiative {
 	var op []models.StrategyInitiative
 	// Initiatives are associated with capability objectives
 	capCommObjs := UserCommunityObjectives(userID, strategyObjectivesTable, strategyObjectivesPlatformIndex, userObjectivesTable,
-		communityUsersTable, communityUsersUserCommunityIndex)
+		communityUsersTable, communityUsersUserCommunityIndex, conn)
 	var capObjIDs []string
 	for _, each := range capCommObjs {
 		capObjIDs = append(capObjIDs, each.ID)
@@ -187,13 +188,13 @@ func mapACUCommunityIDDistinct(acus []adaptiveCommunityUser.AdaptiveCommunityUse
 // UserCommunityObjectives lists all capability objectives that are associated with capability communities that the user is a part of
 func UserCommunityObjectives(userID string, strategyObjectivesTable, strategyObjectivesPlatformIndex string,
 	userObjectivesTable string,
-	communityUsersTable, communityUsersUserIndex string) []models.StrategyObjective {
+	communityUsersTable, communityUsersUserIndex string,
+	conn daosCommon.DynamoDBConnection) []models.StrategyObjective {
 	var op []models.StrategyObjective
-	teamID := UserIDToTeamID(userDAO())(userID)
 
 	// Get all capability communities for a user
-	capObjs := AllOpenStrategyObjectives(teamID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
-		userObjectivesTable)
+	capObjs := AllOpenStrategyObjectives(strategyObjectivesTable, strategyObjectivesPlatformIndex,
+		userObjectivesTable, conn)
 	capComms, _ := UserCapabilityInitiativeCommunities(userID, communityUsersTable, communityUsersUserIndex)
 	var added []string
 	// Second, showing objectives
@@ -217,7 +218,8 @@ func UserCommunityObjectives(userID string, strategyObjectivesTable, strategyObj
 func UserCommunityInitiativesObjectives(userID string, strategyObjectivesTable, strategyObjectivesPlatformIndex string,
 	userObjectivesTable string,
 	initiativesTableName, initiativesInitiativeCommunityIDIndex string,
-	communityUsersTable, communityUsersUserIndex string) []models.KvPair {
+	communityUsersTable, communityUsersUserIndex string,
+	conn daosCommon.DynamoDBConnection) []models.KvPair {
 	var res = []models.KvPair{
 		{
 			Key:   "None",
@@ -232,7 +234,7 @@ func UserCommunityInitiativesObjectives(userID string, strategyObjectivesTable, 
 
 	objs := UserCommunityObjectives(userID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
 		userObjectivesTable,
-		communityUsersTable, communityUsersUserIndex)
+		communityUsersTable, communityUsersUserIndex, conn)
 	for _, each := range objs {
 		res = append(res, models.KvPair{Key: fmt.Sprintf("[%s] %s", strings.Title(string(community.Capability)),
 			each.Name), Value: fmt.Sprintf("%s:%s", community.Capability, each.ID)})
