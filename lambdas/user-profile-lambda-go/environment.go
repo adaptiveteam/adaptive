@@ -5,7 +5,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 )
 
 var (
@@ -19,7 +18,6 @@ var (
 
 	schema           = models.SchemaForClientID(clientID)
 
-	userDao          = user.NewDAOFromSchema(d, namespace, schema)
 	connGen          = daosCommon.DynamoDBConnectionGen{
 		Dynamo:          d,
 		TableNamePrefix: clientID,

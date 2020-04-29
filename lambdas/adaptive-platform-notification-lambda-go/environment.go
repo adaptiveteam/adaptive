@@ -3,7 +3,6 @@ package lambda
 import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 )
 
@@ -16,7 +15,4 @@ var (
 
 	d      = awsutils.NewDynamo(region, "", namespace)
 	schema = models.SchemaForClientID(clientID)
-
-	// instead of profile lambda
-	userDao = user.NewDAOFromSchema(d, namespace, schema)
 )
