@@ -521,27 +521,32 @@ func routeMenuOption(
 	case coaching.GiveFeedback, coaching.RequestFeedback, user.GenerateReport,
 		user.FetchReport, coaching.ViewCoachees, coaching.ViewAdvocates:
 		invokeLambdaWithNamespace("feedback")
-	case objectives.CreateIDO, objectives.CreateIDONow,
-		user.StaleIDOsForMe,
-		coaching.SelectCoachee, coaching.ReviewCoacheeProgressSelect,
-		strategy.ViewCommunityAdvocateObjectives:
-		forwardToNamespace("objectives")
-	case coaching.RequestCoach, user.CurrentQuarterSchedule, user.NextQuarterSchedule,
-		coaching.GenerateReportHR, coaching.FetchReportHR:
-		forwardToNamespace("community")
-	case strategy.CreateStrategyObjective, strategy.CreateFinancialObjective,
-		strategy.CreateCustomerObjective, strategy.ViewStrategyObjectives,
-		strategy.ViewAdvocacyObjectives,
-		user.ViewObjectives,
-		user.StaleObjectivesForMe:
-		forwardToNamespace("objectives")
-		// invokeLambdaWithNamespace("strategy")
-	case strategy.CreateInitiative,
+	case 
+		objectives.CreateIDO,
+		objectives.CreateIDONow,
+		strategy.CreateStrategyObjective, 
+		strategy.CreateFinancialObjective,
+		strategy.CreateCustomerObjective, 
+		strategy.CreateInitiative,
+
+		coaching.SelectCoachee,
+		coaching.ReviewCoacheeProgressSelect,
 		strategy.ViewCapabilityCommunityInitiatives,
 		strategy.ViewAdvocacyInitiatives,
 		strategy.ViewInitiativeCommunityInitiatives,
+		strategy.ViewCommunityAdvocateObjectives,
+		strategy.ViewStrategyObjectives,
+		strategy.ViewAdvocacyObjectives,
+		user.ViewObjectives,
+		user.StaleIDOsForMe,
+		user.StaleObjectivesForMe,
 		user.StaleInitiativesForMe:
 		forwardToNamespace("objectives")
+	case coaching.RequestCoach, 
+		user.CurrentQuarterSchedule, 
+		user.NextQuarterSchedule,
+		coaching.GenerateReportHR, coaching.FetchReportHR:
+		forwardToNamespace("community")
 	case strategy.ViewCapabilityCommunityObjectives,
 		strategy.CreateVision, strategy.ViewVision, strategy.ViewEditVision,
 		strategy.CreateCapabilityCommunity, strategy.ViewCapabilityCommunities,
