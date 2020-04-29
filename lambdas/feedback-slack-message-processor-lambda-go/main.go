@@ -1,7 +1,6 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
 	"fmt"
 	"context"
@@ -98,7 +97,7 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 					} else if text == coaching.ViewCoachees {
 						err = workflows.EnterWorkflow(workflows.ViewCoacheesWorkflow, np, conn, "")//onViewCoacheeIDOs(np)
 					} else if text == coaching.ViewAdvocates {
-						response := onViewAdvocates(message.User.ID)
+						response := onViewAdvocates(message.User.ID, conn)
 						respond(teamID, response,
 							platform.DeleteByResponseURL(message.ResponseURL))
 					}
@@ -196,9 +195,7 @@ func renderGroupsAsIDAndElementsAsSubList(groups map[string]RichTextGroup) (item
 
 // accountabilityPartnerID is the same as coachID
 // it's the userID for the user we are interacting at the moment
-func onViewAdvocates(accountabilityPartnerID string) platform.Response {
-	teamID := strategy.UserIDToTeamID(userDao)(accountabilityPartnerID)
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+func onViewAdvocates(accountabilityPartnerID string, conn daosCommon.DynamoDBConnection) platform.Response {
 	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(accountabilityPartnerID)(conn)
 	strObjectives := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
 	infos := GroupByUserID(strObjectives, FormatObjectiveName)

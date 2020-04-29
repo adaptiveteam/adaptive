@@ -6,6 +6,8 @@ import (
 	"log"
 
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -29,7 +31,8 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 		return
 	}
 	teamID := engage.TeamID
-	profile, teamIDFromDB, found, err := readUserProfile(engage.UserID)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	profile, teamIDFromDB, found, err := readUserProfile(engage.UserID)(conn)
 	if err != nil {
 		err = wrapError(err, "Couldn't read user profile for "+engage.UserID)
 		return
@@ -61,15 +64,17 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 	return
 }
 
-func readUserProfile(userID string) (profile models.UserProfile, teamID models.TeamID, found bool, err error) {
-	var users []models.User
-	users, err = userDao.ReadOrEmpty(userID)
-	found = len(users) > 0
-	if found {
-		profile = convertUserToProfile(users[0])
-		teamID = models.ParseTeamID(users[0].PlatformID)
+func readUserProfile(userID string) func (conn daosCommon.DynamoDBConnection) (profile models.UserProfile, teamID models.TeamID, found bool, err error) {
+	return func (conn daosCommon.DynamoDBConnection) (profile models.UserProfile, teamID models.TeamID, found bool, err error) {
+		var users []models.User
+		users, err = user.ReadOrEmpty(userID)(conn)
+		found = len(users) > 0
+		if found {
+			profile = convertUserToProfile(users[0])
+			teamID = models.ParseTeamID(users[0].PlatformID)
+		}
+		return
 	}
-	return
 }
 
 func convertUserToProfile(user models.User) (profile models.UserProfile) {
@@ -95,13 +100,14 @@ func refreshUserCache(userID string, teamID models.TeamID) (profile models.UserP
 		panic(errors.New("refreshUserCache: teamID is empty when querying " + userID))
 	}
 	var token string
-	token, err = platform.GetToken(teamID)(connGen.ForPlatformID(teamID.ToPlatformID()))
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	token, err = platform.GetToken(teamID)(conn)
 	if err == nil {
 		api := slack.New(token)
-		user, err2 := api.GetUserInfo(userID)
+		us, err2 := api.GetUserInfo(userID)
 		err = err2
-		mUser := utilsUser.ConvertSlackUserToUser(*user, teamID)
-		err = userDao.Create(mUser)
+		mUser := utilsUser.ConvertSlackUserToUser(*us, teamID)
+		err = user.Create(mUser)(conn)
 		profile = models.UserProfile{ //mUser.UserProfile
 			Id:             mUser.ID,
 			DisplayName:    mUser.DisplayName,
