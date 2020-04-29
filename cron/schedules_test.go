@@ -76,11 +76,23 @@ func Test_IsOnScheduleA(t *testing.T) {
 }
 
 func Test_IsOnScheduleB(t *testing.T) {
-	b := time.Date(2020, 4, 10, 0,0,0,0,time.UTC)
-	
-	assert.True(t, cron.S().
+	s := cron.S().
 		Every(cron.Quarter).
 		InRange(cron.FullWeek, 1, 1).
-		OnWeekDay(time.Friday).
-		IsOnSchedule(b))
+		OnWeekDay(time.Friday)
+
+	assert.False(t, s.IsOnSchedule(time.Date(2020, 4, 3, 0,0,0,0,time.UTC)))
+	assert.True(t, s.IsOnSchedule(time.Date(2020, 4, 10, 0,0,0,0,time.UTC)))
+}
+
+func Test_divmod(t *testing.T) {
+	a, b := cron.DivMod(-5, 7)
+	assert.Equal(t, -1, a)
+	assert.Equal(t,  2, b)
+	a, b = cron.DivMod(-7, 7)
+	assert.Equal(t, -1, a)
+	assert.Equal(t,  0, b)
+	a, b = cron.DivMod(-1, 7)
+	assert.Equal(t, -1, a)
+	assert.Equal(t,  6, b)
 }
