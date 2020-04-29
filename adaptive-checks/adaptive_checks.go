@@ -6,6 +6,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
+	eholidays "github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
@@ -372,8 +373,9 @@ func InCompetenciesCommunity(userID string, _ business_time.Date) (res bool) {
 // HolidaysExist Holidays exist
 func HolidaysExist(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("HolidaysExist")
-	teamID := UserIDToTeamID(userDAO)(userID)
-	vals := adHocHolidaysTableDao.ForPlatformID(teamID).AllUnsafe()
+	platformID := UserIDToPlatformID(userDAO)(userID)
+	conn := daosCommon.CreateConnectionFromEnv(platformID)
+	vals := eholidays.AllUnsafe(conn)
 	return len(vals) > 0
 }
 
