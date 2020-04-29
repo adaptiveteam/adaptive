@@ -21,8 +21,6 @@ func dynString(str string) (attr *dynamodb.AttributeValue) {
 
 var globalTokenCache *ttlcache.Cache
 
-var connGen = common.CreateConnectionGenFromEnv()
-
 // GetToken retrieves the token from the cache or database.
 func GetToken(teamID models.TeamID) func(common.DynamoDBConnection) (string, error) {
 	return func(conn common.DynamoDBConnection) (token string, err error) {
@@ -88,6 +86,11 @@ func GetTokenForUser(dynamo *awsutils.DynamoRequest, clientID string, userID str
 // see https://github.com/adaptiveteam/adaptive/issues/318
 // and https://api.slack.com/methods/users.identity, https://stackoverflow.com/questions/39260512/slack-user-id-and-access-token-unique-across-teams-or-users
 func GetTeamIDForUser(dynamo *awsutils.DynamoRequest, clientID string, userID string) (teamID models.TeamID, err error) {
+	var connGen = common.DynamoDBConnectionGen{
+		Dynamo: dynamo,
+		TableNamePrefix: clientID,
+	}
+
 	// NB! below Read doesn't use platform id from connection at the moment.
 	fakeConnWithArbitraryPlatformID := connGen.ForPlatformID("YET-UNKNOWN-PLATFORM-ID")
 	var u user.User
