@@ -2,9 +2,7 @@ package lambda
 
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	eholidays "github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 )
 
@@ -20,7 +18,6 @@ var (
 	sns                   = awsutils.NewSNS(region, "", namespace)
 	d                     = awsutils.NewDynamo(region, "", namespace)
 	dns                   = common.DynamoNamespace{Dynamo: d, Namespace: namespace}
-	adHocHolidaysTableDao = eholidays.NewDAO(&dns, adHocHolidaysTable, adHocHolidaysPlatformDateIndex)
 
 	platform = utils.Platform{
 		Sns:                       *sns,
@@ -40,7 +37,3 @@ var (
 	// TODO: use DAO for the query
 	//communityUserDAO = communityUser.NewDAOFromSchema(d, namespace, schema)
 )
-
-func platformDAO(teamID models.TeamID) eholidays.PlatformDAO {
-	return adHocHolidaysTableDao.ForPlatformID(teamID)
-}
