@@ -112,10 +112,10 @@ func HandleRequest(ctx context.Context) (err error) {
 
 			// get strategy objectives
 			stratObjs := strategy.AllOpenStrategyObjectives(
-				teamID,
 				config.strategyObjectivesTable,
 				config.strategyObjectivesPlatformIndex,
 				config.userObjectivesTable,
+				conn,
 			)
 			if len(stratObjs) == 0 {
 				slackAdapter.PostAsync(plat.Post(plat.ConversationID(HRChannel), plat.MessageContent{

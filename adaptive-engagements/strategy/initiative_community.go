@@ -2,6 +2,7 @@ package strategy
 
 import (
 	"fmt"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -43,10 +44,12 @@ func communityEditStatus(si *StrategyInitiativeCommunity) string {
 }
 
 func initiativeCommunityAttachmentFields(mc models.MessageCallback, oldSi, newSi *StrategyInitiativeCommunity,
-	capabilityCommunitiesTable string) ([]models.KvPair, ui.RichText) {
+	capabilityCommunitiesTable string,
+	conn daosCommon.DynamoDBConnection,
+	) ([]models.KvPair, ui.RichText) {
 	var kvs []models.KvPair
 	dn := common.TaggedUser(newSi.Advocate)
-	teamID := UserIDToTeamID(userDAO())(mc.Source)
+	teamID := models.ParseTeamID(conn.PlatformID)
 	if oldSi != nil {
 		oldDn := common.TaggedUser(oldSi.Advocate)
 
@@ -71,14 +74,18 @@ func initiativeCommunityAttachmentFields(mc models.MessageCallback, oldSi, newSi
 }
 
 func InitiativeCommunityViewAttachmentReadOnly(mc models.MessageCallback, newSi, oldSi *StrategyInitiativeCommunity,
-	capabilityCommunitiesTable string) []ebm.Attachment {
-	kvs, title := initiativeCommunityAttachmentFields(mc, oldSi, newSi, capabilityCommunitiesTable)
+	capabilityCommunitiesTable string,
+	conn daosCommon.DynamoDBConnection,
+	) []ebm.Attachment {
+	kvs, title := initiativeCommunityAttachmentFields(mc, oldSi, newSi, capabilityCommunitiesTable, conn)
 	return EntityViewAttachment(common.AttachmentEntity{MC: mc, Title: title, Fields: kvs})
 }
 
-func initiativeCommunityEditActions(initCommID string, mc models.MessageCallback, strategyInitiativesTable, strategyInitiativesPlatformIndex string) []ebm.AttachmentAction {
+func initiativeCommunityEditActions(initCommID string, mc models.MessageCallback, strategyInitiativesTable, strategyInitiativesPlatformIndex string,
+	conn daosCommon.DynamoDBConnection,
+	) []ebm.AttachmentAction {
 	var actions []ebm.AttachmentAction
-	teamID := UserIDToTeamID(userDAO())(mc.Source)
+	teamID := models.ParseTeamID(conn.PlatformID)
 	allInits := AllStrategyInitiatives(teamID, strategyInitiativesTable, strategyInitiativesPlatformIndex)
 	mc = *mc.WithTarget(initCommID)
 	if len(allInits) > 0 {
@@ -90,10 +97,12 @@ func initiativeCommunityEditActions(initCommID string, mc models.MessageCallback
 }
 
 func InitiativeCommunityViewAttachmentEditable(mc models.MessageCallback, newSi, oldSi *StrategyInitiativeCommunity,
-	capabilityCommunitiesTable string, strategyInitiativesTable, strategyInitiativesPlatformIndex string) []ebm.Attachment {
-	kvs, title := initiativeCommunityAttachmentFields(mc, oldSi, newSi, capabilityCommunitiesTable)
+	capabilityCommunitiesTable string, strategyInitiativesTable, strategyInitiativesPlatformIndex string,
+	conn daosCommon.DynamoDBConnection,
+	) []ebm.Attachment {
+	kvs, title := initiativeCommunityAttachmentFields(mc, oldSi, newSi, capabilityCommunitiesTable, conn)
 
-	editActions := initiativeCommunityEditActions(newSi.ID, mc, strategyInitiativesTable, strategyInitiativesPlatformIndex)
+	editActions := initiativeCommunityEditActions(newSi.ID, mc, strategyInitiativesTable, strategyInitiativesPlatformIndex, conn)
 	actions := EditAttachActions(mc, newSi.ID, true, true, false, InitiativeCommunityAdhocEvent, editActions...)
 	return EntityViewAttachment(common.AttachmentEntity{MC: mc, Title: title, Actions: actions, Fields: kvs})
 }

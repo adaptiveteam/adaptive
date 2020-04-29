@@ -450,7 +450,7 @@ func postCommunityToStrategy(teamID models.TeamID, mc models.MessageCallback,
 	case string(community.Initiative):
 		initComm := strategy.InitiativeCommunityByID(models.TeamID(teamID), commID, strategyInitiativeCommunitiesTable)
 		stratComm := StrategyCommunityByID(initComm.CapabilityCommunityID)
-		attachs = strategy.InitiativeCommunityViewAttachmentReadOnly(mc, &initComm, nil, capabilityCommunitiesTable)
+		attachs = strategy.InitiativeCommunityViewAttachmentReadOnly(mc, &initComm, nil, capabilityCommunitiesTable, conn)
 		// Also post the update to objective community
 		response := platform.Post(platform.ConversationID(stratComm.ChannelID),
 			platform.MessageContent{

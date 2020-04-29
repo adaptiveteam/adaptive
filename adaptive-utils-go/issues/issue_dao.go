@@ -295,7 +295,7 @@ func IssuesFromCapabilityCommunityInitiatives(userID string) func(conn DynamoDBC
 			strategyInitiativeTableName(conn.ClientID), strategyInitiativesInitiativeCommunityIndex,
 			userObjectiveTableName(conn.ClientID),
 			adaptiveCommunityUserTableName(conn.ClientID), communityUsersUserCommunityIndex,
-			communityUsersUserIndex)
+			communityUsersUserIndex, conn)
 		res, err = IssuesFromGivenStrategyInitiatives(inits)(conn)
 		err = errors.Wrapf(err, "CapabilityCommunityInitiatives(userID=%s)", userID)
 		return

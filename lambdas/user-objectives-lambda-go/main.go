@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
@@ -2358,9 +2359,13 @@ func (a MenuOptionLabelSorter) Less(i, j int) bool { return a[i].Label < a[j].La
 
 // objectives formats one option group with objectives
 func objectivesGroup(userID string, teamID models.TeamID, initiatives []models.StrategyInitiative) (res []ebm.AttachmentActionElementOptionGroup) {
+	conn := platform.GetConnectionForUserFromEnvUnsafe(userID)
+
 	capabilityObjectives := strategy.UserStrategyObjectives(userID, strategyObjectivesTableName,
 		string(strategyObjective.PlatformIDIndex), userObjectivesTable,
-		communityUsersTable, string(adaptiveCommunityUser.UserIDCommunityIDIndex))
+		communityUsersTable, string(adaptiveCommunityUser.UserIDCommunityIDIndex), 
+		conn,
+	)
 
 	var initiativeRelatedCapabilityObjectiveIDs []string
 	// Getting the last of related Capability Objective for each of the Initiatives

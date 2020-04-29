@@ -390,7 +390,9 @@ func SelectFromStrategyObjectivesWhenUserIsInStrategyUnionSelectFromStrategyObje
 		defer core.RecoverToErrorVar("SelectFromStrategyObjectivesWhenUserIsInStrategyUnionSelectFromStrategyObjectivesJoinCapabilityCommunitiesWhereUserID", &err)
 		res = strategy.UserStrategyObjectives(userID, strategyObjectivesTableName(conn.ClientID),
 			strategyObjectivesPlatformIndex, userObjectivesTableName(conn.ClientID),
-			communityUsersTableName(conn.ClientID), communityUsersUserCommunityIndex)
+			communityUsersTableName(conn.ClientID), communityUsersUserCommunityIndex,
+			conn,
+		)
 		return
 	}
 }
@@ -526,12 +528,16 @@ func LoadObjectives(userID string) func(conn DynamoDBConnection) (objKVs []model
 			objs = strategy.UserStrategyObjectives(userID,
 				strategyObjectivesTableName(conn.ClientID), strategyObjectivesPlatformIndex,
 				userObjectivesTableName(conn.ClientID),
-				communityUsersTableName(conn.ClientID), communityUsersUserIndex)
+				communityUsersTableName(conn.ClientID), communityUsersUserIndex,
+				conn,
+			)
 		} else {
 			objs = strategy.UserCommunityObjectives(userID,
 				strategyObjectivesTableName(conn.ClientID), strategyObjectivesPlatformIndex,
 				userObjectivesTableName(conn.ClientID),
-				communityUsersTableName(conn.ClientID), communityUsersUserIndex)
+				communityUsersTableName(conn.ClientID), communityUsersUserIndex,
+				conn,
+			)
 		}
 		for _, eachObj := range objs {
 			objKVs = append(objKVs, models.KvPair{Key: eachObj.Name, Value: eachObj.ID})

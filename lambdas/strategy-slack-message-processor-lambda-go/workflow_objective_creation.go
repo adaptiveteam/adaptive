@@ -613,10 +613,11 @@ func CreateObjectiveWorkflow_OnViewObjectives(objectivesFilter ObjectivePredicat
 	return func(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 		logger.Infof("CreateObjectiveWorkflow_OnViewObjectives")
 		// userID := ctx.Request.User.ID
+		conn := connGen.ForPlatformID(ctx.TeamID.ToPlatformID())
 		out.KeepOriginal = true // we want to override it, so, not to delete
 		// Times in AWS are in UTC
-		items := strategy.AllOpenStrategyObjectives(ctx.TeamID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
-			userObjectivesTable)
+		items := strategy.AllOpenStrategyObjectives(strategyObjectivesTable, strategyObjectivesPlatformIndex,
+			userObjectivesTable, conn)
 		logger.Infof("CreateObjectiveWorkflow_OnViewObjectives items.len %d", len(items))
 		filteredItems := funk.Filter(items, objectivesFilter(ctx)).([]models.StrategyObjective)
 		logger.Infof("CreateObjectiveWorkflow_OnViewObjectives filteredItems.len %d", len(filteredItems))

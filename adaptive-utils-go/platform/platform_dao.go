@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"log"
 
 	"github.com/ReneKroon/ttlcache"
@@ -106,6 +107,14 @@ func GetConnectionForUserFromEnv(userID string) (conn common.DynamoDBConnection,
 	if err == nil {
 		conn = connGen.ForPlatformID(teamID.ToPlatformID())
 	}
+	return
+}
+// GetConnectionForUserFromEnvUnsafe reads environment variables
+// and retrieves team id for the user
+func GetConnectionForUserFromEnvUnsafe(userID string) (conn common.DynamoDBConnection) {
+	var err error
+	conn, err = GetConnectionForUserFromEnv(userID)
+	core_utils_go.ErrorHandlerf(err, "Couldn't GetConnectionForUserFromEnvUnsafe(userID=%s", userID)
 	return
 }
 
