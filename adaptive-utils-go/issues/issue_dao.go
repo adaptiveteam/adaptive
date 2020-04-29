@@ -1,28 +1,27 @@
 package issues
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
-	"github.com/adaptiveteam/adaptive/daos/user"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
-	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
-
-	"github.com/pkg/errors"
-
-	"github.com/adaptiveteam/adaptive/daos/common"
-	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
-	"github.com/adaptiveteam/adaptive/daos/userObjective"
-	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	strategy "github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
+	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
+	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
+	"github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
+	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
+	"github.com/adaptiveteam/adaptive/daos/user"
+	"github.com/adaptiveteam/adaptive/daos/userObjective"
+	"github.com/pkg/errors"
 )
 
 type DynamoDBConnection = common.DynamoDBConnection
@@ -344,16 +343,8 @@ func IssueFromStrategyInitiative(si models.StrategyInitiative) func(conn common.
 	}
 }
 
-func StrategyInitiativeRead(id string) func(conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
-	return func(conn DynamoDBConnection) (res models.StrategyInitiative, err error) {
-		defer core.RecoverToErrorVar("StrategyInitiativeRead", &err)
-		res = strategy.StrategyInitiativeByID(models.ParseTeamID(conn.PlatformID), id, strategyInitiativeTableName(conn.ClientID))
-		if res.ID != id {
-			err = fmt.Errorf("couldn't find StrategyInitiativeByID(id=%s). Instead got ID=%s", id, res.ID)
-		}
-		return
-	}
-}
+var StrategyInitiativeReadOrEmpty = strategyInitiative.ReadOrEmpty
+
 func StrategyInitiativeCreateOrUpdate(si models.StrategyInitiative) func(conn DynamoDBConnection) (err error) {
 	return func(conn DynamoDBConnection) (err error) {
 		err = conn.Dynamo.PutTableEntry(si, strategyInitiativeTableName(conn.ClientID))
@@ -385,7 +376,7 @@ func StrategyObjectiveReadOrEmpty(id string) func(conn DynamoDBConnection) (res 
 
 // CapabilityCommunityReadOrEmpty -
 func CapabilityCommunityReadOrEmpty(id string) func(conn DynamoDBConnection) (res []models.CapabilityCommunity, err error) {
-	return func(conn DynamoDBConnection) (res [] models.CapabilityCommunity, err error) {
+	return func(conn DynamoDBConnection) (res []models.CapabilityCommunity, err error) {
 		defer core.RecoverToErrorVar("CapabilityCommunityReadOrEmpty", &err)
 		res, err = capabilityCommunity.ReadOrEmpty(conn.PlatformID, id)(conn)
 		if len(res) > 0 && res[0].ID != id {
@@ -443,10 +434,13 @@ func Read(issueType IssueType, issueID string) func(conn DynamoDBConnection) (is
 				}
 			}
 		case Initiative:
-			// dao := strategyInitiative.NewDAO(conn.Dynamo, "issues_dao", conn.ClientID)
-			issue.StrategyInitiative, err = StrategyInitiativeRead(issueID)(conn)
-			if err == nil && len(objs) == 0 {
-				issue, err = IssueFromStrategyInitiative(issue.StrategyInitiative)(conn)
+			var inis []strategyInitiative.StrategyInitiative
+			inis, err = StrategyInitiativeReadOrEmpty(conn.PlatformID, issueID)(conn)
+			if len(inis) > 0 {
+				issue.StrategyInitiative = inis[0]
+				if err == nil && len(objs) == 0 {
+					issue, err = IssueFromStrategyInitiative(issue.StrategyInitiative)(conn)
+				}
 			}
 		}
 		issue.NormalizeIssueDateTimes()
@@ -472,7 +466,7 @@ func Save(issue Issue) func(conn DynamoDBConnection) (err error) {
 				if err == nil {
 					var sos []models.StrategyObjective
 					sos, err = StrategyObjectiveReadOrEmpty(issue.StrategyObjective.ID)(conn)
-					if err == nil && len(sos) > 0{
+					if err == nil && len(sos) > 0 {
 						so := sos[0]
 						if so.ID == issue.StrategyObjective.ID {
 							log.Printf("DynamoDBConnection) Saved successfully SObjective(so.ID=%s)%+v\n", issue.StrategyObjective.ID, err)
@@ -596,7 +590,11 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 					issueRef.PrefetchedData.AlignedCapabilityObjective = sos[0]
 				}
 			case userObjective.ObjectiveStrategyInitiativeAlignment:
-				issueRef.PrefetchedData.AlignedCapabilityInitiative, err = StrategyInitiativeRead(issueRef.StrategyAlignmentEntityID)(conn)
+				var inis []strategyInitiative.StrategyInitiative
+				inis, err = StrategyInitiativeReadOrEmpty(conn.PlatformID, issueRef.StrategyAlignmentEntityID)(conn)
+				if len(inis) > 0 {
+					issueRef.PrefetchedData.AlignedCapabilityInitiative = inis[0]
+				}
 			case userObjective.ObjectiveCompetencyAlignment:
 				issueRef.PrefetchedData.AlignedCompetency, err = adaptiveValue.Read(issueRef.StrategyAlignmentEntityID)(conn)
 			}
@@ -613,12 +611,11 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 			// already prefetched?
 			if len(issueRef.StrategyObjective.CapabilityCommunityIDs) > 0 {
 				capCommID := issueRef.StrategyObjective.CapabilityCommunityIDs[0]
-				var comms [] capabilityCommunity.CapabilityCommunity
+				var comms []capabilityCommunity.CapabilityCommunity
 				comms, err = CapabilityCommunityReadOrEmpty(capCommID)(conn)
 				if len(comms) > 0 {
 					issueRef.PrefetchedData.AlignedCapabilityCommunity = comms[0]
 				}
-				
 			}
 			// splits := strings.Split(issueRef.UserObjective.ID, "_")
 			// if len(splits) == 2 {

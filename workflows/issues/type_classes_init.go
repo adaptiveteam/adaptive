@@ -136,6 +136,7 @@ func (i InitiativeImpl) ExtractFromContext(ctx wf.EventHandlingContext, id strin
 	newIssue.UserObjective.Description = newIssue.StrategyInitiative.Description
 	newIssue.UserObjective.UserID = newIssue.StrategyInitiative.Advocate
 	newIssue.UserObjective.AccountabilityPartner = newIssue.StrategyInitiative.CreatedBy
+	newIssue.UserObjective.Accepted = 1 // since it is created by the same person
 	newIssue.UserObjective.Name = newIssue.StrategyInitiative.Name
 	newIssue.UserObjective.PlatformID = ctx.TeamID.ToPlatformID()
 	newIssue.UserObjective.CreatedAt = newIssue.StrategyInitiative.CreatedAt
