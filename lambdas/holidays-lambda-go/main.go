@@ -146,7 +146,7 @@ func DispatchDialogSubmissionByRule(p utils.Platform, r utils.DialogSubmissionHa
 // listMenuItemFunc renders the list of holidays directly in chat.
 func listMenuItemFunc(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (resp []models.PlatformSimpleNotification, err error) {
 	platform.Debug(request, "Listing holidays...")
-	holidays := platformDAO(models.ParseTeamID(conn.PlatformID)).AllUnsafe()
+	holidays := eholidays.AllUnsafe(conn)
 	sort.Slice(holidays, func(i, j int) bool {
 		return holidays[i].Date < holidays[j].Date
 	})
@@ -233,7 +233,7 @@ func adHocHolidayEditChatMessage(request slack.InteractionCallback) func(models.
 // detailedListMenuItemFunc sends the list of holidays to thread
 func detailedListMenuItemFunc(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) (notes []models.PlatformSimpleNotification, err error) {
 	platform.Debug(request, "Listing holidays...")
-	holidays := platformDAO(teamID(request, conn)).AllUnsafe()
+	holidays := eholidays.AllUnsafe(conn)
 	sort.Slice(holidays, func(i, j int) bool {
 		return holidays[i].Date < holidays[j].Date
 	})
@@ -285,8 +285,8 @@ func createNewHolidayDialogSubmissionHandler(request slack.InteractionCallback, 
 	if ok {
 		platform.Debug(request, "Creating holiday "+dialog.Submission["Name"])
 		holiday := convertFormToAdHocHoliday(request, dialog.Submission, conn)
-		// holiday.PlatformID = teamID(request) no need as we are using platformDAO
-		platformDAO(teamID(request, conn)).Create(holiday)
+		holiday.PlatformID = conn.PlatformID
+		adHocHoliday.CreateUnsafe(holiday)(conn)
 		platform.Debug(request, "Created holiday "+holiday.Name)
 		view := adHocHolidayInlineView(request, holiday)
 		//view.Ts = dialog.State
@@ -353,7 +353,7 @@ func editHolidayButtonFunc(request slack.InteractionCallback, conn daosCommon.Dy
 		action := request.ActionCallback.AttachmentActions[0]
 		id := action.Value
 		// ut := retrieveUserToken(request)
-		holiday := adHocHolidaysTableDao.ReadUnsafe(id)
+		holiday := adHocHoliday.ReadUnsafe(id)(conn)
 		platform.Debug(request, "Found holiday: "+holiday.Name)
 		mc := callbackID(request, SubmitUpdatedAdHocHolidayAction)
 		mc.Values.Set(HolidayIDQueryField, id)
@@ -393,8 +393,8 @@ func updateHolidayDialogSubmissionHandler(request slack.InteractionCallback, dia
 		mc := models.ParseActionPath(request.CallbackID)
 		holiday := convertFormToAdHocHoliday(request, dialog.Submission, conn)
 		holiday.ID = mc.Values.Get(HolidayIDQueryField)
-		err := adHocHolidaysTableDao.Update(holiday)
-		platform.ErrorHandler(request, "Updating holiday", err)
+		err2 := adHocHoliday.CreateOrUpdate(holiday)(conn)
+		platform.ErrorHandler(request, "Updating holiday", err2)
 		platform.Debug(request, "Updated holiday "+dialog.Submission["Name"])
 		view := adHocHolidayInlineView(request, holiday)
 		view.Ts = dialog.State
