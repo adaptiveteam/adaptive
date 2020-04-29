@@ -8,7 +8,7 @@ import (
 	communityUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	// utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 )
@@ -49,7 +49,7 @@ var (
 		strategy.StrategyInitiativeCommunityEntity: "initiative communities",
 	}
 	schema              = models.SchemaForClientID(clientID)
-	userDAO             = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	// userDAO             = utilsUser.NewDAOFromSchema(d, namespace, schema)
 	communityMembersDao = communityUser.NewDAOFromSchema(d, namespace, schema)
 	dialogTableName     = utils.NonEmptyEnv("DIALOG_TABLE")
 	dialogFetcherDAO    = dialogFetcher.NewDAO(d, dialogTableName)
