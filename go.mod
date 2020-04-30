@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize/v2 v2.0.2
+	github.com/Merovius/go-misc v0.0.0-20190816102157-30fd8989cac1
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/ReneKroon/ttlcache v1.6.0
 	github.com/acroca/go-symbols v0.1.1 // indirect
@@ -53,8 +54,8 @@ require (
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	gotest.tools v2.2.0+incompatible
-	rsc.io/sampler v1.99.99 // indirect
 	rsc.io/quote/v3 v3.1.0 // indirect
+	rsc.io/sampler v1.99.99 // indirect
 )
 
 replace github.com/nlopes/slack => github.com/adaptiveteam/slack v0.13.0
