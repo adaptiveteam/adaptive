@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
 	"fmt"
 
@@ -9,7 +10,6 @@ import (
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -48,7 +48,7 @@ var (
 
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
 	schema   = models.SchemaForClientID(clientID)
-	userDAO  = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	userDAO  = user.NewDAO(d, namespace, clientID)
 
 	sns                   = awsutils.NewSNS(region, "", namespace)
 	valueDao              = adaptiveValue.NewDAO(d, namespace, clientID)

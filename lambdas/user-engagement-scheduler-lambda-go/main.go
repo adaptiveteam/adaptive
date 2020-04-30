@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/user"
 	"context"
 	"fmt"
 	aesc "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
@@ -8,7 +9,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/schedules"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	es "github.com/adaptiveteam/adaptive/engagement-scheduling"
@@ -19,7 +19,7 @@ import (
 var (
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
 	schema   = models.SchemaForClientID(clientID)
-	userDao  = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	userDao  = user.NewDAO(d, namespace, clientID)
 )
 
 // HandleRequest -

@@ -4,23 +4,13 @@ import (
 	"fmt"
 
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	// daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/nlopes/slack"
 )
 
 // DAO is a wrapper around the _adaptive_users Dynamo DB table to work with adaptive-users table (CRUD)
 type DAO = daosUser.DAO
-
-// NewDAOFromSchema creates an instance of DAO that will provide access to adaptiveValues table
-func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema models.Schema) DAO {
-	return daosUser.NewDAOByTableName(dynamo, namespace, schema.AdaptiveUsers.Name)
-	//  DAOImpl{Dynamo: dynamo, Namespace: namespace,
-	// AdaptiveUsersTableSchema: schema.AdaptiveUsers}
-}
-
 
 // UserIDsToDisplayNamesUnsafe converts a bunch of user ids to their names
 // NB! O(n)! TODO: implement a query that returns many users at once.

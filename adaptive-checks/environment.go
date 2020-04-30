@@ -1,6 +1,7 @@
 package adaptive_checks
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/user"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -56,7 +57,7 @@ var (
 	d         = awsutils.NewDynamo(region, "", namespace)
 	clientID  = utils.NonEmptyEnv("CLIENT_ID")
 	schema    = models.SchemaForClientID(clientID)
-	userDAO   = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	userDAO   = user.NewDAO(d, namespace, clientID)
 	connGen   = daosCommon.CreateConnectionGenFromEnv()
 
 	dns                   = common.DynamoNamespace{Dynamo: d, Namespace: namespace}
