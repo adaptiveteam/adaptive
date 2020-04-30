@@ -1,6 +1,8 @@
 package adaptive_checks
 
 import (
+	"github.com/adaptiveteam/adaptive/core-utils-go"
+	"golang.org/x/sync/errgroup"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/business-time"
@@ -126,4 +128,18 @@ func EvalProfile(conn common.DynamoDBConnection, userID string, date business_ti
 		InitiativesExistInMyCapabilityCommunities: lazy.Bool(func() bool {return InitiativesExistInMyCapabilityCommunities(userID, date)}),
 		InitiativesExistInMyInitiativeCommunities: lazy.Bool(func() bool {return InitiativesExistInMyInitiativeCommunities(userID, date)}),
 	}
+}
+
+// EagerLoad loads the given list of lazy bools in parallel
+func EagerLoad(lazyBools ... LazyBool) error {
+	var errGroup errgroup.Group
+	for _, l := range lazyBools {
+		errGroup.Go(func() (err1 error) {
+			defer core_utils_go.RecoverToErrorVar("EagerLoad", &err1)
+			l()
+			return 
+		})
+	}
+
+	return errGroup.Wait()
 }
