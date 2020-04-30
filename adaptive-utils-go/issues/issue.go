@@ -96,12 +96,21 @@ func (issue Issue) GetIssueID() string {
 }
 
 func (itype IssueType)Template() (text ui.PlainText) {
+	return ui.PlainText(itype.FoldString("Individual Development Objective", "Strategy Objective", "Strategy Initiative"))
+}
+
+func (itype IssueType)FoldString(ido, sobjective, initiative string) (text string) {
 	switch itype {
-	case IDO: text = "Individual Development Objective"
-	case SObjective: text = "Strategy Objective"
-	case Initiative: text = "Strategy Initiative"
+	case IDO: text = ido
+	case SObjective: text = sobjective
+	case Initiative: text = initiative
 	}
 	return
+}
+
+// ObjectiveTypeLabel returns a user-friendly objective type label
+func ObjectiveTypeLabel(userObj models.UserObjective) ui.PlainText {
+	return DetectIssueType(userObj).Template()
 }
 
 type IssueProgressID struct {
