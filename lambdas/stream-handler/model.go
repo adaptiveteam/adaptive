@@ -53,7 +53,7 @@ var (
 		SlackTeamTableRef: mapping.SlackTeam{},
 		AdaptiveUserFeedbackTableRf: mapping.DBUserFeedback{},
 		AdaptiveUserObjectiveProgressTableRef: mapping.DBUserObjectiveProgress{},
-		AdaptiveUserObjectiveTableRef: mapping.DBObjective{},
+		AdaptiveUserObjectiveTableRef: mapping.DBUserObjective{},
 		AdaptiveUsersTableRef: mapping.DBUser{},
 		AdaptiveVisionTableRef: mapping.DBVision{},
 	}
