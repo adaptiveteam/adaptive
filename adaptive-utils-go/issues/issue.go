@@ -62,19 +62,30 @@ type IssuePredicate = func (issue Issue) bool
 
 // GetIssueType detects the issue type of the existing issue
 func (issue Issue) GetIssueType() (itype IssueType) {
-	switch issue.UserObjective.ObjectiveType {
+	return DetectIssueType(issue.UserObjective)
+}
+
+// DetectIssueType is the reference mechanism to detect issue type
+func DetectIssueType(uo userObjective.UserObjective) (itype IssueType) {
+	itype = IDO
+	switch uo.ObjectiveType {
 	case userObjective.IndividualDevelopmentObjective:
 		itype = IDO
-	case userObjective.StrategyDevelopmentObjective:
+	case userObjective.StrategyDevelopmentObjectiveIssue:
 		itype = SObjective
-		switch issue.StrategyAlignmentEntityType {
+	case userObjective.StrategyDevelopmentInitiative:
+		itype = Initiative
+	case userObjective.StrategyDevelopmentObjective:
+		log.Printf("WARN using old-style issue type detection")
+		itype = SObjective
+		switch uo.StrategyAlignmentEntityType {
 		case userObjective.ObjectiveStrategyObjectiveAlignment:
 			itype = SObjective
 		case userObjective.ObjectiveStrategyInitiativeAlignment:
 			itype = Initiative
 		}
 	default:
-		log.Printf("Couldn't determine issue type for %s. ObjectiveType=%s, StrategyAlignmentEntityType=%s\n", issue.UserObjective.ID, issue.UserObjective.ObjectiveType, issue.StrategyAlignmentEntityType)
+		log.Printf("WARN Couldn't determine issue type for %s. ObjectiveType=%s, StrategyAlignmentEntityType=%s\n", uo.ID, uo.ObjectiveType, uo.StrategyAlignmentEntityType)
 	}
 	return
 }
