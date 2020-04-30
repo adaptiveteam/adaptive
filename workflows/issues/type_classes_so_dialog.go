@@ -154,6 +154,7 @@ func (SObjectiveImpl) ExtractFromContext(ctx wf.EventHandlingContext, _ string, 
 	newIssue.UserObjective.Description = newIssue.StrategyObjective.Description
 	newIssue.UserObjective.UserID = newIssue.StrategyObjective.Advocate
 	newIssue.UserObjective.AccountabilityPartner = newIssue.StrategyObjective.CreatedBy
+	newIssue.UserObjective.Accepted = 1 // since it is created by the same person
 	newIssue.UserObjective.Name = newIssue.StrategyObjective.Name
 	newIssue.UserObjective.PlatformID = ctx.TeamID.ToPlatformID()
 	newIssue.UserObjective.CreatedAt = newIssue.StrategyObjective.CreatedAt

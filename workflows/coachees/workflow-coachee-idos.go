@@ -190,15 +190,13 @@ var userObjectiveProgressTableName             = func(clientID string) string { 
 func (w workflowImpl) ViewCoacheeIDOs_OnShowUpdates(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
 	itemID := ctx.Data[itemIDKey]
 	w.AdaptiveLogger.Infof("ViewCoacheeIDOs_OnShowUpdates itemID=%s", itemID)
-	userObjectiveDAO := userObjective.NewDAO(w.DynamoDBConnection.Dynamo, "ViewCoacheeIDOs_OnShowUpdates", w.ClientID)
-	userObjectiveProgressDAO := userObjectiveProgress.NewDAOByTableName(w.DynamoDBConnection.Dynamo, "ViewCoacheeIDOs_OnShowUpdates", userObjectiveProgressTableName(w.ClientID))
 	var items []userObjective.UserObjective
-	items, err = userObjectiveDAO.ReadOrEmpty(itemID)
+	items, err = userObjective.ReadOrEmpty(itemID)(w.DynamoDBConnection)
 	if err == nil {
 		if len(items) > 0 {
 			item := items[0]
 			var progress []userObjectiveProgress.UserObjectiveProgress
-			progress, err = userObjectiveProgressDAO.ReadByID(item.ID)
+			progress, err = userObjectiveProgress.ReadByID(item.ID)(w.DynamoDBConnection)
 
 			threadMessages := wf.InteractiveMessages()
 			if err == nil {

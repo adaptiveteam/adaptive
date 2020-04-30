@@ -65,6 +65,27 @@ func ReadUnsafe(channelID string, userID string) func (conn common.DynamoDBConne
 // ReadOrEmpty reads AdaptiveCommunityUser
 func ReadOrEmpty(channelID string, userID string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
 	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
+       out, err = ReadOrEmptyIncludingInactive(channelID, userID)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the AdaptiveCommunityUser. Panics in case of any errors
+func ReadOrEmptyUnsafe(channelID string, userID string) func (conn common.DynamoDBConnection) []AdaptiveCommunityUser {
+	return func (conn common.DynamoDBConnection) []AdaptiveCommunityUser {
+		out, err2 := ReadOrEmpty(channelID, userID)(conn)
+		core.ErrorHandler(err2, "daos/AdaptiveCommunityUser", fmt.Sprintf("Error while reading channelID==%s, userID==%s in %s\n", channelID, userID, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads AdaptiveCommunityUser
+func ReadOrEmptyIncludingInactive(channelID string, userID string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
 		var outOrEmpty AdaptiveCommunityUser
 		ids := idParams(channelID, userID)
 		var found bool
@@ -82,10 +103,10 @@ func ReadOrEmpty(channelID string, userID string) func (conn common.DynamoDBConn
 }
 
 
-// ReadOrEmptyUnsafe reads the AdaptiveCommunityUser. Panics in case of any errors
-func ReadOrEmptyUnsafe(channelID string, userID string) func (conn common.DynamoDBConnection) []AdaptiveCommunityUser {
+// ReadOrEmptyIncludingInactiveUnsafe reads the AdaptiveCommunityUser. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(channelID string, userID string) func (conn common.DynamoDBConnection) []AdaptiveCommunityUser {
 	return func (conn common.DynamoDBConnection) []AdaptiveCommunityUser {
-		out, err2 := ReadOrEmpty(channelID, userID)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(channelID, userID)(conn)
 		core.ErrorHandler(err2, "daos/AdaptiveCommunityUser", fmt.Sprintf("Error while reading channelID==%s, userID==%s in %s\n", channelID, userID, TableName(conn.ClientID)))
 		return out
 	}

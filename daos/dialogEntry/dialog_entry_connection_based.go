@@ -65,6 +65,27 @@ func ReadUnsafe(dialogID string) func (conn common.DynamoDBConnection) DialogEnt
 // ReadOrEmpty reads DialogEntry
 func ReadOrEmpty(dialogID string) func (conn common.DynamoDBConnection) (out []DialogEntry, err error) {
 	return func (conn common.DynamoDBConnection) (out []DialogEntry, err error) {
+       out, err = ReadOrEmptyIncludingInactive(dialogID)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the DialogEntry. Panics in case of any errors
+func ReadOrEmptyUnsafe(dialogID string) func (conn common.DynamoDBConnection) []DialogEntry {
+	return func (conn common.DynamoDBConnection) []DialogEntry {
+		out, err2 := ReadOrEmpty(dialogID)(conn)
+		core.ErrorHandler(err2, "daos/DialogEntry", fmt.Sprintf("Error while reading dialogID==%s in %s\n", dialogID, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads DialogEntry
+func ReadOrEmptyIncludingInactive(dialogID string) func (conn common.DynamoDBConnection) (out []DialogEntry, err error) {
+	return func (conn common.DynamoDBConnection) (out []DialogEntry, err error) {
 		var outOrEmpty DialogEntry
 		ids := idParams(dialogID)
 		var found bool
@@ -82,10 +103,10 @@ func ReadOrEmpty(dialogID string) func (conn common.DynamoDBConnection) (out []D
 }
 
 
-// ReadOrEmptyUnsafe reads the DialogEntry. Panics in case of any errors
-func ReadOrEmptyUnsafe(dialogID string) func (conn common.DynamoDBConnection) []DialogEntry {
+// ReadOrEmptyIncludingInactiveUnsafe reads the DialogEntry. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(dialogID string) func (conn common.DynamoDBConnection) []DialogEntry {
 	return func (conn common.DynamoDBConnection) []DialogEntry {
-		out, err2 := ReadOrEmpty(dialogID)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(dialogID)(conn)
 		core.ErrorHandler(err2, "daos/DialogEntry", fmt.Sprintf("Error while reading dialogID==%s in %s\n", dialogID, TableName(conn.ClientID)))
 		return out
 	}

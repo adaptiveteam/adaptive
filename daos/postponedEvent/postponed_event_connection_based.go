@@ -67,6 +67,27 @@ func ReadUnsafe(id string) func (conn common.DynamoDBConnection) PostponedEvent 
 // ReadOrEmpty reads PostponedEvent
 func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []PostponedEvent, err error) {
 	return func (conn common.DynamoDBConnection) (out []PostponedEvent, err error) {
+       out, err = ReadOrEmptyIncludingInactive(id)(conn)
+       
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the PostponedEvent. Panics in case of any errors
+func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []PostponedEvent {
+	return func (conn common.DynamoDBConnection) []PostponedEvent {
+		out, err2 := ReadOrEmpty(id)(conn)
+		core.ErrorHandler(err2, "daos/PostponedEvent", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads PostponedEvent
+func ReadOrEmptyIncludingInactive(id string) func (conn common.DynamoDBConnection) (out []PostponedEvent, err error) {
+	return func (conn common.DynamoDBConnection) (out []PostponedEvent, err error) {
 		var outOrEmpty PostponedEvent
 		ids := idParams(id)
 		var found bool
@@ -84,10 +105,10 @@ func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []Postpon
 }
 
 
-// ReadOrEmptyUnsafe reads the PostponedEvent. Panics in case of any errors
-func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []PostponedEvent {
+// ReadOrEmptyIncludingInactiveUnsafe reads the PostponedEvent. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(id string) func (conn common.DynamoDBConnection) []PostponedEvent {
 	return func (conn common.DynamoDBConnection) []PostponedEvent {
-		out, err2 := ReadOrEmpty(id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(id)(conn)
 		core.ErrorHandler(err2, "daos/PostponedEvent", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
 		return out
 	}

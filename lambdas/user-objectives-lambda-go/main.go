@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
@@ -96,9 +97,6 @@ const (
 	ReviewCoachComments      = "review_coach_comments"
 
 	// ViewObjectivesNoProgressThisWeek = user.ViewObjectivesNoProgressThisWeek
-	ViewStaleIDOs        = user.StaleIDOsForMe
-	ViewStaleObjectives  = user.StaleObjectivesForMe
-	ViewStaleInitiatives = user.StaleInitiativesForMe
 
 	ViewOpenObjectives = "view_open_objectives"
 
@@ -688,7 +686,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							onAsk(request, teamID)
 						} else if strings.HasPrefix(action.Name, string(Closeout)) {
 							onCloseoutRequest(request, teamID)
-						} else if strings.HasPrefix(action.Name, ViewStaleIDOs) {
+						} else if strings.HasPrefix(action.Name, user.StaleIDOsForMe) {
 							onViewStaleIDOs(request, teamID)
 						} else if strings.HasPrefix(action.Name, ViewOpenObjectives) {
 							onViewOpenObjectives(request, teamID)
@@ -744,7 +742,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 	channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
 	message := request
-	year, month := core.CurrentYearMonth()
+	// year, month := core.CurrentYearMonth()
 
 	selected := action.SelectedOptions[0]
 	if clientID == "" {
@@ -753,21 +751,21 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 	}
 	conn := connGen.ForPlatformID(np.TeamID.ToPlatformID())
 	switch selected.Value {
-	case objectives.CreateIDO:
-		// err = invokeWorkflow(np)
-		// if err != nil {// temporary fallback to the old mechanism TODO: remove
-		// Create an objective
-		mc := models.MessageCallback{Module: "objectives", Source: userID, Topic: "init", Action: "ask",
-			Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-		// Posting engagement to user prompting to create an objective
-		coaches := IDOCoaches(userID, teamID)
-		initObjs := InitsAndObjectives(userID, teamID)
-		objectives.CreateObjectiveEng(engagementTable, mc, coaches, objectives.DevelopmentObjectiveDates(namespace, ""),
-			initObjs, "Would you like to add a development objective?",
-			"Development objectives", true, dns, common2.IDOCreateCheck, teamID)
-		DeleteOriginalEng(userID, channelID, message.MessageTs)
-		// }
-	case objectives.CreateIDONow:
+	// case objectives.CreateIDO:
+	// 	// err = invokeWorkflow(np)
+	// 	// if err != nil {// temporary fallback to the old mechanism TODO: remove
+	// 	// Create an objective
+	// 	mc := models.MessageCallback{Module: "objectives", Source: userID, Topic: "init", Action: "ask",
+	// 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
+	// 	// Posting engagement to user prompting to create an objective
+	// 	coaches := IDOCoaches(userID, teamID)
+	// 	initObjs := InitsAndObjectives(userID, teamID)
+	// 	objectives.CreateObjectiveEng(engagementTable, mc, coaches, objectives.DevelopmentObjectiveDates(namespace, ""),
+	// 		initObjs, "Would you like to add a development objective?",
+	// 		"Development objectives", true, dns, common2.IDOCreateCheck, teamID)
+	// 	DeleteOriginalEng(userID, channelID, message.MessageTs)
+	// 	// }
+	case objectives.CreateIDO, objectives.CreateIDONow:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, "") //onCreateIDONow(np)
 		// if err != nil { // temporary fallback to the old mechanism TODO: remove
 		// 	fmt.Printf("Handling %s event", objectives.CreateIDONow)
@@ -775,11 +773,9 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
 		// 	createObjectiveNow(message, userID, teamID, mc.ToCallbackID(), &mc)
 		// }
-	case strategy.CreateStrategyObjective:
-		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.CreateIssueByTypeEvent(issues.SObjective))
-	case strategy.CreateFinancialObjective:
-		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.CreateIssueByTypeEvent(issues.SObjective))
-	case strategy.CreateCustomerObjective:
+	case strategy.CreateStrategyObjective, 
+		strategy.CreateFinancialObjective, 
+		strategy.CreateCustomerObjective:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.CreateIssueByTypeEvent(issues.SObjective))
 	case strategy.ViewStrategyObjectives:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfIssuesByTypeEvent(issues.SObjective))
@@ -807,7 +803,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 		// 		Message: "You do not have any Individual Development Objectives yet."})
 		// }
-	case ViewStaleObjectives:
+	case user.StaleObjectivesForMe:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfStaleIssuesByTypeEvent(issues.SObjective))
 		// userObjs := strategy.UserCapabilityObjectivesWithNoProgressInAMonth(userID, Today(),
 		// 	userObjectivesTable, string(userObjective.UserIDTypeIndex), userObjectivesProgressTable, 0)
@@ -826,7 +822,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// DeleteOriginalEng(userID, channelID, message.MessageTs)
 	case strategy.CreateInitiative:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.CreateIssueByTypeEvent(issues.Initiative))
-	case ViewStaleInitiatives:
+	case user.StaleInitiativesForMe:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfStaleIssuesByTypeEvent(issues.Initiative))
 		// userObjs := strategy.UserInitiativesWithNoProgressInAWeek(userID, Today(),
 		// 	userObjectivesTable, string(userObjective.UserIDTypeIndex), userObjectivesProgressTable, 0)
@@ -842,7 +838,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 		// 		Message: "All of your initiatives have been updated"})
 		// }
-	case ViewStaleIDOs:
+	case user.StaleIDOsForMe:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfStaleIssuesByTypeEvent(issues.IDO))
 		// fmt.Printf("UserIDOsWithNoProgressInAWeek(%s, %s, %s, %s, %s)",
 		// 	userID, Today(),
@@ -944,7 +940,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// If there are objectives that doesn't have a partner for
 		if len(core.Distinct(users)) > 0 {
 			// Posting user select engagement to the user. User id here should be channel since we are posting into a channel
-			user.UserSelectEng(userID, engagementTable, models.TeamID(teamID), userDAO,
+			user.UserSelectEng(userID, engagementTable, conn,
 				*mc.WithTopic("coaching").WithAction(PartnerSelectUser), core.Distinct(users), []string{},
 				"Hello! Below are the users who doesn't have a partner assigned for some of their objectives.",
 				"coaching", common2.EngagementEmptyCheck)
@@ -1274,7 +1270,7 @@ func onViewStaleIDOs(request slack.InteractionCallback, teamID models.TeamID) {
 	message := request
 	mc, err := utils.ParseToCallback(action.Value)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", ViewStaleIDOs, core.Underscore))
+	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", user.StaleIDOsForMe, core.Underscore))	
 	switch act {
 	case string(models.Now):
 		// List the objectives with no progress
@@ -2358,9 +2354,13 @@ func (a MenuOptionLabelSorter) Less(i, j int) bool { return a[i].Label < a[j].La
 
 // objectives formats one option group with objectives
 func objectivesGroup(userID string, teamID models.TeamID, initiatives []models.StrategyInitiative) (res []ebm.AttachmentActionElementOptionGroup) {
+	conn := platform.GetConnectionForUserFromEnvUnsafe(userID)
+
 	capabilityObjectives := strategy.UserStrategyObjectives(userID, strategyObjectivesTableName,
 		string(strategyObjective.PlatformIDIndex), userObjectivesTable,
-		communityUsersTable, string(adaptiveCommunityUser.UserIDCommunityIDIndex))
+		communityUsersTable, string(adaptiveCommunityUser.UserIDCommunityIDIndex), 
+		conn,
+	)
 
 	var initiativeRelatedCapabilityObjectiveIDs []string
 	// Getting the last of related Capability Objective for each of the Initiatives

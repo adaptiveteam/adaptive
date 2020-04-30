@@ -6,6 +6,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
+	eholidays "github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
@@ -156,10 +157,11 @@ func ObjectivesExistInMyCapabilityCommunities(userID string, date business_time.
 	if logEnabled {
 		log.Printf("Checking ObjectivesExistInMyCapabilityCommunities for userID=%s, date=%v\n", userID, date)
 	}
+	conn := platform.GetConnectionForUserFromEnvUnsafe(userID)
 	objs := strategy.UserCommunityObjectives(userID,
 		strategyObjectivesTableName, strategyObjectivesPlatformIndex,
 		userObjectivesTable,
-		communityUsersTable, communityUsersUserIndex)
+		communityUsersTable, communityUsersUserIndex, conn)
 	if logEnabled {
 		log.Printf("Checked ObjectivesExistInMyCapabilityCommunities: %d\n", len(objs))
 	}
@@ -271,9 +273,10 @@ func InitiativesExistInMyCapabilityCommunities(userID string, _ business_time.Da
 		inits = strategy.AllOpenStrategyInitiatives(teamID, initiativesTable, initiativesPlatformIndex,
 			userObjectivesTable)
 	} else {
+		conn := platform.GetConnectionForUserFromEnvUnsafe(userID)
 		inits = strategy.UserCapabilityCommunityInitiatives(userID, strategyObjectivesTableName, strategyObjectivesPlatformIndex,
 			initiativesTable, strategyInitiativesInitiativeCommunityIndex, userObjectivesTable, communityUsersTable,
-			communityUsersUserCommunityIndex, communityUsersUserIndex)
+			communityUsersUserCommunityIndex, communityUsersUserIndex, conn)
 	}
 	if logEnabled {
 		log.Println("Checked InitiativesExistInMyCapabilityCommunities: ", len(inits))
@@ -372,8 +375,9 @@ func InCompetenciesCommunity(userID string, _ business_time.Date) (res bool) {
 // HolidaysExist Holidays exist
 func HolidaysExist(userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("HolidaysExist")
-	teamID := UserIDToTeamID(userDAO)(userID)
-	vals := adHocHolidaysTableDao.ForPlatformID(teamID).AllUnsafe()
+	platformID := UserIDToPlatformID(userDAO)(userID)
+	conn := daosCommon.CreateConnectionFromEnv(platformID)
+	vals := eholidays.AllUnsafe(conn)
 	return len(vals) > 0
 }
 
@@ -475,14 +479,16 @@ func filterObjectivesByObjectiveType(objectives []userObjective.UserObjective, o
 	return
 }
 
-func LoadCoacheeObjectivesUnsafe(coachID string) (coacheeObjectives []userObjective.UserObjective) {
-	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(coachID)
+func LoadCoacheeObjectivesUnsafe(teamID models.TeamID, coachID string) (coacheeObjectives []userObjective.UserObjective) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(coachID)(conn)
 	coacheeObjectives = filterObjectivesByObjectiveType(objectives, userObjective.IndividualDevelopmentObjective)
 	return
 }
 
-func LoadAdvocateeObjectivesUnsafe(coachID string) (advocateeObjectives []userObjective.UserObjective) {
-	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(coachID)
+func LoadAdvocateeObjectivesUnsafe(teamID models.TeamID, coachID string) (advocateeObjectives []userObjective.UserObjective) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(coachID)(conn)
 	advocateeObjectives = filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
 	return
 }
@@ -490,14 +496,18 @@ func LoadAdvocateeObjectivesUnsafe(coachID string) (advocateeObjectives []userOb
 func CoacheesExist(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("CoacheesExist")
 	coachID := userID
-	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(coachID)
+	teamID := UserIDToTeamID(userDAO)(userID)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(coachID)(conn)
 	coacheeObjectives := filterObjectivesByObjectiveType(objectives, userObjective.IndividualDevelopmentObjective)
 	return CoacheesExistLogic(coacheeObjectives)
 }
 
 func AdvocatesExist(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("AdvocatesExist")
-	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(userID)
+	teamID := UserIDToTeamID(userDAO)(userID)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(userID)(conn)
 	advocateObjectives := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
 	return AdvocatesExistLogic(advocateObjectives)
 }

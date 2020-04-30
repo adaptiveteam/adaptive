@@ -1,7 +1,9 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 	"context"
 	"encoding/json"
@@ -113,14 +115,14 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 			var np models.NamespacePayload4
 			err := json.Unmarshal([]byte(message), &np)
 			core.ErrorHandler(err, namespace, fmt.Sprintf("Could not unmarshal sns record to NamespacePayload4"))
+			conn := connGen.ForPlatformID(np.TeamID.ToPlatformID())
 
 			// This module only looks for payload with 'app-mention' namespace
 			if np.Namespace == "community" {
-				conn := connGen.ForPlatformID(np.TeamID.ToPlatformID())
 				// Handling event_callback messages
 				if np.SlackRequest.Type == models.EventsAPIEventSlackRequestType {
 					logger.WithField("app_mention_event", np).Info()
-					dispatchAppMentionSlackEvent(np.ToEventsAPIEventUnsafe(), np.TeamID)
+					dispatchAppMentionSlackEvent(np.ToEventsAPIEventUnsafe(), conn)
 				} else {
 					request := np.SlackRequest.InteractionCallback
 					if np.TeamID.IsEmpty() {
@@ -139,7 +141,8 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 				}
 			} else if np.Namespace == "adaptive-channel" {
 				logger.WithField("adaptive_channel_event", np).Info()
-				adaptiveChannelNamespaceEventHandler(np.ToEventsAPIEventUnsafe(), np.TeamID)
+				adaptiveChannelNamespaceEventHandler(np.ToEventsAPIEventUnsafe(), 
+					np.TeamID, conn)
 			}
 		}
 	}
@@ -149,33 +152,37 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 func dispatchCommunityMenuAction2(request slack.InteractionCallback,
 	teamID models.TeamID,
 	selectedMenuItem string,
+	conn daosCommon.DynamoDBConnection,
 ) {
 	mc := callback(request.User.ID, "init", "select")
 	switch selectedMenuItem {
 	case RequestCoach:
-		response := onRequestCoachClicked(request, mc, teamID)
+		response := onRequestCoachClicked(request, mc, conn)
 		respond(teamID, response)
 	case GenerateReportHR:
-		generateReportMenuHandler(request, mc, teamID)
+		generateReportMenuHandler(request, mc, conn)
 	case FetchReportHR:
-		fetchReportMenuHandler(request, mc, teamID)
+		fetchReportMenuHandler(request, mc, conn)
 	case SimulateCurrentQuarterAction:
-		simulateCurrentQuarterMenuHandler(request, mc, teamID)
+		simulateCurrentQuarterMenuHandler(request, mc, conn)
 	case SimulateNextQuarterAction:
-		simulateNextQuarterMenuHandler(request, mc, teamID)
+		simulateNextQuarterMenuHandler(request, mc, conn)
 	case CurrentQuarterSchedule:
-		currentQuarterScheduleMenuHandler(request, teamID)
+		currentQuarterScheduleMenuHandler(request, conn)
 	case NextQuarterSchedule:
-		nextQuarterScheduleMenuHandler(request, teamID)
+		nextQuarterScheduleMenuHandler(request, conn)
 	case CommunitySubscribeAction:
 		response := onCommunitySubscribeClicked(request, teamID)
 		respond(teamID, response)
 	case CommunityUnsubscribeAction:
-		response := onCommunityUnsubscribeClicked(request, teamID)
+		response := onCommunityUnsubscribeClicked(request, teamID, conn)
 		respond(teamID, response)
 	}
 }
-func dispatchCommunityInteractionCallback(request slack.InteractionCallback, teamID models.TeamID, conn daosCommon.DynamoDBConnection) {
+func dispatchCommunityInteractionCallback(request slack.InteractionCallback,
+	teamID models.TeamID, 
+	conn daosCommon.DynamoDBConnection,
+) {
 	action := *request.ActionCallback.AttachmentActions[0]
 	logger.WithField("event", "interaction_callback").WithField("action", action.Name).
 		WithField("platform", teamID).Info("Handling Callback event")
@@ -185,7 +192,7 @@ func dispatchCommunityInteractionCallback(request slack.InteractionCallback, tea
 		selectedValue := selected.Value
 		fmt.Printf("Interaction callback handling 4. selectedValue=%s\n", selectedValue)
 		// community:<user>:init:select::4:2019
-		dispatchCommunityMenuAction2(request, teamID, selectedValue)
+		dispatchCommunityMenuAction2(request, teamID, selectedValue, conn)
 	} else {
 		// Parse callback Id to messageCallback
 		mc, err := utils.ParseToCallback(request.CallbackID)
@@ -201,7 +208,7 @@ func dispatchCommunityInteractionCallback(request slack.InteractionCallback, tea
 					case CommunitySubscribeAction:
 						onCommunitySubscribeClicked(request, teamID)
 					case CommunityUnsubscribeAction:
-						response := onCommunityUnsubscribeClicked(request, teamID)
+						response := onCommunityUnsubscribeClicked(request, teamID, conn)
 						respond(teamID, response)
 					}
 				}
@@ -232,7 +239,7 @@ func dispatchCommunityInteractionCallback(request slack.InteractionCallback, tea
 			} else if mc.Topic == string(community.Admin) {
 				if strings.HasPrefix(mc.Action, AdaptiveAccess) {
 					suffixAction := strings.TrimPrefix(action.Name, AdaptiveAccess+"_")
-					communityNamespaceAdminAccessCallback(request, suffixAction)
+					communityNamespaceAdminAccessCallback(request, suffixAction, conn)
 				}
 			} else if mc.Action == "select" {
 				action := *request.ActionCallback.AttachmentActions[0]
@@ -247,7 +254,7 @@ func dispatchCommunityInteractionCallback(request slack.InteractionCallback, tea
 				} else if mc.Topic == "unsubscription" {
 					if action.Name == "select" {
 						message := onCommunityUnsubscribeCommunityClicked(request, action.SelectedOptions[0].Value,
-							*mc, teamID)
+							*mc, conn)
 						replyReplace(request, teamID, message)
 					} else if action.Name == "cancel" {
 						message := onCommunityUnsubscribeCancelled(request, *mc)
@@ -435,19 +442,19 @@ func communityNamespaceCoachingRequestCoachCallback(request slack.InteractionCal
 
 }
 
-func communityNamespaceAdminAccessCallback(request slack.InteractionCallback, suffixAction string) {
+func communityNamespaceAdminAccessCallback(request slack.InteractionCallback, suffixAction string, conn daosCommon.DynamoDBConnection) {
 	switch suffixAction {
 	case string(models.Now):
 		publish(models.PlatformSimpleNotification{UserId: request.User.ID, Channel: request.Channel.ID,
 			Message: string(AdminRequestSentAcknowledgement)})
 		userID := request.User.ID
-		user, err2 := userDAO.Read(userID)
+		user, err2 := daosUser.Read(userID)(conn)
 		core.ErrorHandler(err2, "communityNamespaceAdminAccessCallback", "userDAO.Read")
 		teamID := models.ParseTeamID(user.PlatformID)
 		// ut := userTokenSyncUnsafe(request.User.ID)
 		//communityDAO.ReadByIDUnsafe(ut.PlatformID, string(community.Admin))
-		adminComm := communityDAO.ReadByIDUnsafe(teamID, string(community.Admin))
-		userComm := communityDAO.ReadByIDUnsafe(teamID, string(community.User))
+		adminComm := adaptiveCommunity.ReadUnsafe(teamID.ToPlatformID(), string(community.Admin))(conn)
+		userComm := adaptiveCommunity.ReadUnsafe(teamID.ToPlatformID(), string(community.User))(conn)
 		thisUser := ui.RichText("<@" + request.User.ID + ">")
 		commInfo := core.IfThenElse(userComm.ChannelID == core.EmptyString,
 			NoUserCommunityErrorMessage(thisUser),
@@ -496,7 +503,10 @@ func dispatchCommunitySimulateDialogSubmission(dialog slack.InteractionCallback,
 	}
 }
 
-func adaptiveChannelNamespaceEventHandler(eventsAPIEvent slackevents.EventsAPIEvent, teamID models.TeamID) {
+func adaptiveChannelNamespaceEventHandler(eventsAPIEvent slackevents.EventsAPIEvent, 
+	teamID models.TeamID,
+	conn daosCommon.DynamoDBConnection,
+) {
 	if eventsAPIEvent.Type == slackevents.CallbackEvent {
 		// For invite and remove events
 		eventType := eventsAPIEvent.InnerEvent.Type
@@ -504,7 +514,7 @@ func adaptiveChannelNamespaceEventHandler(eventsAPIEvent slackevents.EventsAPIEv
 		switch eventType {
 		case slackevents.MemberJoinedChannel:
 			slackMsg := *eventsAPIEvent.InnerEvent.Data.(*slackevents.MemberJoinedChannelEvent)
-			onMemberJoinedChannel(slackMsg, teamID)
+			onMemberJoinedChannel(slackMsg, conn)
 		case "member_left_channel":
 			slackMsg := *eventsAPIEvent.InnerEvent.Data.(*slack.MemberLeftChannelEvent)
 			onMemberLeftChannel(slackMsg)
@@ -512,19 +522,19 @@ func adaptiveChannelNamespaceEventHandler(eventsAPIEvent slackevents.EventsAPIEv
 			// This is when Adaptive leaves a private channel
 			cbEvent := *eventsAPIEvent.Data.(*slackevents.EventsAPICallbackEvent)
 			// slack.GroupLeftEvent doesn't populate user id. Do not use that field.
-			onGroupLeftEvent(cbEvent, teamID)
+			onGroupLeftEvent(cbEvent, conn)
 		case "channel_deleted": // docs: https://api.slack.com/events/channel_deleted
 			channelDeletedEvent := *eventsAPIEvent.InnerEvent.Data.(*slack.ChannelDeletedEvent)
-			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, teamID)
+			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, conn)
 		case "channel_archive":
 			channelDeletedEvent := *eventsAPIEvent.InnerEvent.Data.(*slack.ChannelArchiveEvent)
-			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, teamID)
+			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, conn)
 		case "group_deleted":
 			channelDeletedEvent := *eventsAPIEvent.InnerEvent.Data.(*slack.GroupCloseEvent)
-			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, teamID)
+			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, conn)
 		case "group_archive":
 			channelDeletedEvent := *eventsAPIEvent.InnerEvent.Data.(*slack.GroupArchiveEvent)
-			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, teamID)
+			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, conn)
 		default:
 			logger.Warnf("Unhandled %s event type", eventType)
 		}

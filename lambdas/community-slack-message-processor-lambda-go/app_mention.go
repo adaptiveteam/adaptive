@@ -6,6 +6,7 @@ import (
 	"github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -14,15 +15,16 @@ import (
 	"strings"
 )
 
-func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, teamID models.TeamID) {
+func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, conn daosCommon.DynamoDBConnection) {
 	fmt.Printf("InnerEvent: %v\n", eventsAPIEvent.InnerEvent.Type)
+	teamID := models.ParseTeamID(conn.PlatformID)
 	if eventsAPIEvent.InnerEvent.Type == slackevents.AppMention {
 		slackMsg := ParseAsAppMentionEvent(eventsAPIEvent)
 		text := core.TrimLower(slackMsg.Text)
 		fmt.Printf("Got app_mention with text: %v\n", text)
 		// We first check for requestForUserRegex because botMentionRegex is a subset of this
 		if requestForUserRegex.MatchString(text) {
-			comms := subscribedCommunities(teamID, slackMsg.Channel)
+			comms := subscribedCommunities(slackMsg.Channel, conn)
 
 			// It consists of 4 elements, 0: original, 1: first group (channel), 2: second group (command), 3: third group (target)
 			list := requestForUserRegex.FindStringSubmatch(text)
@@ -46,7 +48,7 @@ func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, tea
 				replyInThread(*slackMsg, teamID, simpleMessage(UnsubscribedUserCommandRejectText))
 			}
 		} else if botMentionRegex.MatchString(text) {
-			_, _, err := refreshUserCache(slackMsg.User, teamID)
+			_, _, err := refreshUserCache(slackMsg.User, conn)
 			if err == nil {
 				log.Println(fmt.Sprintf("Got app mention from %s, ensuring profile exists", slackMsg.User))
 			} else {
@@ -55,7 +57,7 @@ func dispatchAppMentionSlackEvent(eventsAPIEvent slackevents.EventsAPIEvent, tea
 			// There will be 3 elements, original, botId, text
 			matches := botMentionRegex.FindStringSubmatch(text)
 			command := core.TrimLower(strings.ToLower(matches[2]))
-			response := onBotMentioned(*slackMsg, teamID, command)
+			response := onBotMentioned(*slackMsg, teamID, command, conn)
 			respond(teamID, response)
 		}
 	}
@@ -75,8 +77,10 @@ func userMentionGenerateReportHandler(slackMsg slackevents.AppMentionEvent, team
 	core.ErrorHandler(err2, namespace, "Could not invoke GeneratePerformanceReportAndPostToUserAsync from app-mention")
 }
 
-func onBotMentioned(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, command string) (response platform.Response) {
-	comms := subscribedCommunities(teamID, slackMsg.Channel)
+func onBotMentioned(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, command string,
+	conn daosCommon.DynamoDBConnection,
+) (response platform.Response) {
+	comms := subscribedCommunities(slackMsg.Channel, conn)
 	switch command {
 	case "hello", "hi":
 		response = onBotMentionedHelloCommand(comms, slackMsg, teamID)

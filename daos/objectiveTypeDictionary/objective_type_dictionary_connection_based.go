@@ -67,6 +67,27 @@ func ReadUnsafe(id string) func (conn common.DynamoDBConnection) ObjectiveTypeDi
 // ReadOrEmpty reads ObjectiveTypeDictionary
 func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []ObjectiveTypeDictionary, err error) {
 	return func (conn common.DynamoDBConnection) (out []ObjectiveTypeDictionary, err error) {
+       out, err = ReadOrEmptyIncludingInactive(id)(conn)
+       out = ObjectiveTypeDictionaryFilterActive(out)
+       
+		return
+	}
+}
+
+
+// ReadOrEmptyUnsafe reads the ObjectiveTypeDictionary. Panics in case of any errors
+func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []ObjectiveTypeDictionary {
+	return func (conn common.DynamoDBConnection) []ObjectiveTypeDictionary {
+		out, err2 := ReadOrEmpty(id)(conn)
+		core.ErrorHandler(err2, "daos/ObjectiveTypeDictionary", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
+		return out
+	}
+}
+
+
+// ReadOrEmptyIncludingInactive reads ObjectiveTypeDictionary
+func ReadOrEmptyIncludingInactive(id string) func (conn common.DynamoDBConnection) (out []ObjectiveTypeDictionary, err error) {
+	return func (conn common.DynamoDBConnection) (out []ObjectiveTypeDictionary, err error) {
 		var outOrEmpty ObjectiveTypeDictionary
 		ids := idParams(id)
 		var found bool
@@ -84,10 +105,10 @@ func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []Objecti
 }
 
 
-// ReadOrEmptyUnsafe reads the ObjectiveTypeDictionary. Panics in case of any errors
-func ReadOrEmptyUnsafe(id string) func (conn common.DynamoDBConnection) []ObjectiveTypeDictionary {
+// ReadOrEmptyIncludingInactiveUnsafe reads the ObjectiveTypeDictionary. Panics in case of any errors
+func ReadOrEmptyIncludingInactiveUnsafeIncludingInactive(id string) func (conn common.DynamoDBConnection) []ObjectiveTypeDictionary {
 	return func (conn common.DynamoDBConnection) []ObjectiveTypeDictionary {
-		out, err2 := ReadOrEmpty(id)(conn)
+		out, err2 := ReadOrEmptyIncludingInactive(id)(conn)
 		core.ErrorHandler(err2, "daos/ObjectiveTypeDictionary", fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(conn.ClientID)))
 		return out
 	}

@@ -4,7 +4,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	// plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
@@ -38,7 +37,6 @@ var (
 		IsInteractiveDebugEnabled: false,
 	}
 
-	userDAO          = utilsUser.NewDAOFromSchema(d, namespace, schema)
 	// community
 	communityUsersTable              = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
 	communityUsersUserCommunityIndex = utils.NonEmptyEnv("COMMUNITY_USERS_USER_COMMUNITY_INDEX")

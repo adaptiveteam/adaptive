@@ -6,11 +6,11 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	// utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
-	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 	"github.com/sirupsen/logrus"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 )
 
 var (
@@ -32,14 +32,10 @@ var (
 
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
 
-	userObjectivesTable = utils.NonEmptyEnv("USER_OBJECTIVES_TABLE_NAME")
-	userObjectiveDAO    = userObjective.NewDAOByTableName(d, namespace, userObjectivesTable)
-
-	userObjectiveProgressTable = utils.NonEmptyEnv("USER_OBJECTIVES_PROGRESS_TABLE")
-	userObjectiveProgressDAO = userObjectiveProgress.NewDAOByTableName(d, namespace, userObjectiveProgressTable)
+	connGen = daosCommon.CreateConnectionGenFromEnv()
 
 	schema  = models.SchemaForClientID(clientID)
-	userDao = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	// userDao = utilsUser.NewDAOFromSchema(d, namespace, schema)
 
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 )

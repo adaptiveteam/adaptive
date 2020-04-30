@@ -6,14 +6,12 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	utilsCommunity "github.com/adaptiveteam/adaptive/adaptive-utils-go/community"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 )
 
 var (
@@ -64,13 +62,8 @@ var (
 
 	clientID         = utils.NonEmptyEnv("CLIENT_ID")
 	schema           = models.SchemaForClientID(clientID)
-	userDAO          = daosUser.NewDAOByTableName(d, namespace, schema.AdaptiveUsers.Name)
 	communityUserDAO = communityUser.NewDAOFromSchema(d, namespace, schema)
-	communityDAO     = utilsCommunity.NewDAOFromSchema(d, namespace, schema)
-	connGen          = daosCommon.DynamoDBConnectionGen{
-		Dynamo:          d,
-		TableNamePrefix: clientID,
-	}
+	connGen          = daosCommon.CreateConnectionGenFromEnv()
 )
 
 func userTokenSyncUnsafe(userID string) string {

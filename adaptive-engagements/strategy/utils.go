@@ -38,18 +38,18 @@ func platformIndexExpr(index string, teamID models.TeamID) awsutils.DynamoIndexE
 // Deprecated: use SelectFromStrategyObjectiveJoinCommunityWhereUserIDOrInStrategyCommunity
 func UserStrategyObjectives(userID string,
 	strategyObjectivesTable, strategyObjectivesPlatformIndex, userObjectivesTable string,
-	communityUsersTable, communityUsersUserCommunityIndex string) []models.StrategyObjective {
+	communityUsersTable, communityUsersUserCommunityIndex string,
+	conn daosCommon.DynamoDBConnection) []models.StrategyObjective {
 	log.Printf("UserStrategyObjectives(userID=%s, strategyObjectivesTable=%s, strategyObjectivesPlatformIndex=%s, userObjectivesTable=%s, communityUsersTable=%s, communityUsersUserCommunityIndex=%s)",
 		userID, strategyObjectivesTable, strategyObjectivesPlatformIndex, userObjectivesTable, communityUsersTable, communityUsersUserCommunityIndex)
 	if community.IsUserInCommunity(userID, communityUsersTable, communityUsersUserCommunityIndex, community.Strategy) {
 		log.Println(fmt.Sprintf("### User %s is in strategy community, showing all the objectives", userID))
-		teamID := UserIDToTeamID(userDAO())(userID)
-		return AllOpenStrategyObjectives(teamID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
-			userObjectivesTable)
+		return AllOpenStrategyObjectives(strategyObjectivesTable, strategyObjectivesPlatformIndex,
+			userObjectivesTable, conn)
 	} else {
 		log.Println(fmt.Sprintf("### User %s is not in strategy community, showing relevant objectives", userID))
 		return UserCommunityObjectives(userID, strategyObjectivesTable, strategyObjectivesPlatformIndex, userObjectivesTable,
-			communityUsersTable, communityUsersUserCommunityIndex)
+			communityUsersTable, communityUsersUserCommunityIndex, conn)
 	}
 }
 
@@ -100,8 +100,10 @@ func allStrategyObjectives(teamID models.TeamID, strategyObjectivesTable,
 // AllOpenStrategyObjectives returns a slice of open strategy objectives: capability, customer and financial objectives
 // USED
 // Deprecated: use SelectFromStrategyObjectiveJoinUserObjectiveWhereNotCompleted
-func AllOpenStrategyObjectives(teamID models.TeamID, strategyObjectivesTable, strategyObjectivesPlatformIndex,
-	userObjectivesTable string) []models.StrategyObjective {
+func AllOpenStrategyObjectives(strategyObjectivesTable, strategyObjectivesPlatformIndex,
+	userObjectivesTable string,
+	conn daosCommon.DynamoDBConnection) []models.StrategyObjective {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	allObjs := allStrategyObjectives(teamID, strategyObjectivesTable, strategyObjectivesPlatformIndex)
 	log.Printf("AllOpenStrategyObjectives: len(allObjs)=%d\n", len(allObjs))
 

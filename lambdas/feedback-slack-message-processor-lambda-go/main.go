@@ -47,11 +47,7 @@ func respond(teamID models.TeamID, responses ...platform.Response) {
 func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error) {
 	defer core.RecoverAsLogError("feedback-slack-message-processor-lambda")
 
-	conn := daosCommon.DynamoDBConnection{
-		Dynamo:     d,
-		ClientID:   clientID,
-		PlatformID: np.TeamID.ToPlatformID(),
-	}
+	conn := connGen.ForPlatformID(np.TeamID.ToPlatformID())
 	if strings.HasPrefix(np.InteractionCallback.CallbackID, "/") {
 		err = workflows.InvokeWorkflow(np, conn)
 	} else if np.ID == "" {
@@ -71,13 +67,14 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 					text := selected.Value
 					if text == coaching.GiveFeedback {
 						logger.Infof("Handling give feedback event")
-						responses := handleFeedbackRequest(teamID, message.User.ID, message.Channel.ID,
-							GiveFeedbackAction, GiveFeedbackMessage, "give-feedback", message.MessageTs)
+						responses := handleFeedbackRequest(message.User.ID, message.Channel.ID,
+							GiveFeedbackAction, GiveFeedbackMessage, "give-feedback", message.MessageTs, conn)
 						respond(teamID, responses...)
 					} else if text == coaching.RequestFeedback {
 						logger.Infof("Handling request feedback event")
-						responses := handleFeedbackRequest(teamID, message.User.ID, message.Channel.ID,
-							RequestFeedbackAction, RequestFeedbackMessage, "request-feedback", message.MessageTs)
+						responses := handleFeedbackRequest(message.User.ID, message.Channel.ID,
+							RequestFeedbackAction, RequestFeedbackMessage, "request-feedback", 
+							message.MessageTs, conn)
 						respond(teamID, responses...)
 					} else if text == user.FetchReport {
 						err = feedbackReportPostingLambda.DeliverReportToUserAsync(teamID, message.User.ID, time.Now())
@@ -100,7 +97,7 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 					} else if text == coaching.ViewCoachees {
 						err = workflows.EnterWorkflow(workflows.ViewCoacheesWorkflow, np, conn, "")//onViewCoacheeIDOs(np)
 					} else if text == coaching.ViewAdvocates {
-						response := onViewAdvocates(message.User.ID)
+						response := onViewAdvocates(message.User.ID, conn)
 						respond(teamID, response,
 							platform.DeleteByResponseURL(message.ResponseURL))
 					}
@@ -198,8 +195,8 @@ func renderGroupsAsIDAndElementsAsSubList(groups map[string]RichTextGroup) (item
 
 // accountabilityPartnerID is the same as coachID
 // it's the userID for the user we are interacting at the moment
-func onViewAdvocates(accountabilityPartnerID string) platform.Response {
-	objectives := userObjectiveDAO.ReadByAccountabilityPartnerUnsafe(accountabilityPartnerID)
+func onViewAdvocates(accountabilityPartnerID string, conn daosCommon.DynamoDBConnection) platform.Response {
+	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(accountabilityPartnerID)(conn)
 	strObjectives := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
 	infos := GroupByUserID(strObjectives, FormatObjectiveName)
 	names := renderGroupsAsIDAndElementsInParentheses(infos)
@@ -207,8 +204,9 @@ func onViewAdvocates(accountabilityPartnerID string) platform.Response {
 	return platform.Post(platform.ConversationID(accountabilityPartnerID), platform.MessageContent{Message: text})
 }
 
-func handleFeedbackRequest(teamID models.TeamID, userID, channelID, action, text, context, ts string) (
+func handleFeedbackRequest(userID, channelID, action, text, context, ts string, conn daosCommon.DynamoDBConnection) (
 	responses []platform.Response) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	// Getting current year and month
 	// We are writing month rather than year in engagement because quarter can always be inferred from month
 	year, month, _ := time.Now().Date()
@@ -220,7 +218,7 @@ func handleFeedbackRequest(teamID models.TeamID, userID, channelID, action, text
 	if err == nil {
 		usersWithoutSelf := core.InAButNotB(communityUserIDs, []string{userID})
 		if len(usersWithoutSelf) > 0 {
-			UserSelectEngagement(userID, teamID, mc, usersWithoutSelf, []string{}, text, context)
+			UserSelectEngagement(userID, mc, usersWithoutSelf, []string{}, text, context, conn)
 		} else {
 			switch action {
 			case GiveFeedbackAction:
@@ -243,8 +241,8 @@ func handleFeedbackRequest(teamID models.TeamID, userID, channelID, action, text
 	return
 }
 
-func UserSelectEngagement(userID string, teamID models.TeamID, mc models.MessageCallback,
-	users, filter []string, text, context string) {
-	user.UserSelectEng(userID, engagementsTable, teamID, userDao,
+func UserSelectEngagement(userID string, mc models.MessageCallback,
+	users, filter []string, text, context string, conn daosCommon.DynamoDBConnection) {
+	user.UserSelectEng(userID, engagementsTable, conn,
 		mc, users, filter, text, context, models.UserEngagementCheckWithValue{})
 }

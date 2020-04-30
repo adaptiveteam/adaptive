@@ -8,7 +8,7 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	daosUser "github.com/adaptiveteam/adaptive/daos/user"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/engagement-builder/model"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 )
@@ -63,8 +63,8 @@ func SelectUserTemplateActions(mc models.MessageCallback, userProfiles []models.
 // UserSelectAttachments reads users, filters them twice, then renders options as attachments.
 // Deprecated: Breaks SRP. Inline instead
 func UserSelectAttachments(mc models.MessageCallback, userIDs, toFilterOutUserIDs []string,
-	teamID models.TeamID, dao daosUser.DAO) []model.AttachmentAction {
-	userProfiles := ReadAllUserProfiles(dao, teamID)
+	conn daosCommon.DynamoDBConnection) []model.AttachmentAction {
+	userProfiles := ReadAllUserProfiles(conn)
 	if len(userIDs) > 0 {
 		// If users are passed, use them directly
 		userProfiles = UserProfilesIntersect(userProfiles, userIDs)
@@ -79,11 +79,12 @@ func UserSelectAttachments(mc models.MessageCallback, userIDs, toFilterOutUserID
 // UserSelectEng reads users, filters them twice, then renders options as attachments,
 // then creates engagement.
 // Deprecated: Breaks SRP. Inline.
-func UserSelectEng(userID, engagementsTable string, teamID models.TeamID,
-	dao daosUser.DAO,
+func UserSelectEng(userID, engagementsTable string,
+	conn daosCommon.DynamoDBConnection,
 	mc models.MessageCallback, users, toFilterUsers []string,
 	text, context string, check models.UserEngagementCheckWithValue) {
-	attachs := UserSelectAttachments(mc, users, toFilterUsers, teamID, dao)
+	teamID := models.ParseTeamID(conn.PlatformID)
+	attachs := UserSelectAttachments(mc, users, toFilterUsers, conn)
 	dns := common.DeprecatedGetGlobalDns()
 
 	utils.AddChatEngagement(mc, "", text, fmt.Sprintf("Select one of the users for %s", context), userID,

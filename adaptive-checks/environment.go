@@ -3,13 +3,11 @@ package adaptive_checks
 import (
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	eholidays "github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/adaptiveteam/adaptive/daos/userObjective"
 )
 
 var (
@@ -59,13 +57,10 @@ var (
 	clientID  = utils.NonEmptyEnv("CLIENT_ID")
 	schema    = models.SchemaForClientID(clientID)
 	userDAO   = utilsUser.NewDAOFromSchema(d, namespace, schema)
-	// Deprecated: We should change this to just client ID as soon as we rename table
-	// coachingRelationshipsTable        = utils.NonEmptyEnv("COACHING_RELATIONSHIPS_TABLE_NAME")
-	// coachingRelationshipDAO = coachingRelationship.NewDAO(d, namespace, clientID)
-	userObjectiveDAO = userObjective.NewDAOByTableName(d, namespace, userObjectivesTable)
+	connGen   = daosCommon.CreateConnectionGenFromEnv()
 
 	dns                   = common.DynamoNamespace{Dynamo: d, Namespace: namespace}
-	adHocHolidaysTableDao = eholidays.NewDAO(&dns, schema.Holidays.Name, schema.Holidays.PlatformDateIndex)
+	// adHocHolidaysTableDao = eholidays.NewDAO(&dns, schema.Holidays.Name, schema.Holidays.PlatformDateIndex)
 )
 
 // UserIDToPlatformID converts userID to teamID using

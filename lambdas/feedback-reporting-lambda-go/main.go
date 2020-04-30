@@ -66,7 +66,6 @@ var (
 	dns       = common.DynamoNamespace{Dynamo: D, Namespace: namespace}
 	schema    = models.SchemaForClientID(clientID)
 	logger    = alog.LambdaLogger(logrus.InfoLevel)
-	userDAO   = daosUser.NewDAOByTableName(D, namespace, schema.AdaptiveUsers.Name)
 	connGen   = daosCommon.CreateConnectionGenFromEnv()
 )
 
