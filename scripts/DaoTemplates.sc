@@ -89,20 +89,20 @@ type DAOImpl struct {
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create ${goPublicName(dao.table.entity.name)}.DAO without clientID")) }
 	return DAOImpl{
-		ConnGen   common.DynamoDBConnectionGen{
+		ConnGen:   common.DynamoDBConnectionGen{
 			Dynamo: dynamo, 
 			TableNamePrefix: clientID,
-		}
+		},
 	}
 }
 
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create ${goPublicName(dao.table.entity.name)}.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
-	}
-}
+// // NewDAOByTableName creates an instance of DAO that will provide access to the table
+// func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
+// 	if tableName == "" { panic(errors.New("Cannot create ${goPublicName(dao.table.entity.name)}.DAO without tableName")) }
+// 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
+// 		Name: tableName,
+// 	}
+// }
 """) ::: {
 		val templates = OperationImplementationTemplates(dao.table)
 		tableNameFuncTemplate(dao.table) :::
@@ -169,7 +169,7 @@ func (d DAOImpl) Create($structVarName $structName) (err error) {
 			|	$structVarName.CreatedAt = $structVarName.ModifiedAt
 			|	""".stripMargin
 			} else ""
-		}err = d.Dynamo.PutTableEntry($structVarName, d.Name)
+		}err = d.ConnGen.Dynamo.PutTableEntry($structVarName, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -182,7 +182,7 @@ s"""
 // CreateUnsafe saves the $structName.
 func (d DAOImpl) CreateUnsafe($entityArgValue) {
 	err2 := d.Create($structVarName)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create $formatIds in %s\\n", ${idFieldNames.map{f => structVarName + "." + f}.mkString(", ")}, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create $formatIds in %s\\n", ${idFieldNames.map{f => structVarName + "." + f}.mkString(", ")}, TableName(d.ConnGen.TableNamePrefix)))
 }
 """
 	def DaoOperationReadTemplate: String =
@@ -192,7 +192,7 @@ func (d DAOImpl) Read($idArgs) (out $structName, err error) {
 	var outs []$structName
 	outs, err = d.ReadOrEmpty($idVarNames)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found $formatIds in %s\\n", $idVarNames, d.Name)
+		err = fmt.Errorf("Not found $formatIds in %s\\n", $idVarNames, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -205,7 +205,7 @@ s"""
 // ReadUnsafe reads the $structName. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe($idArgs) $structName {
 	out, err2 := d.Read($idVarNames)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading $formatIds in %s\\n", $idVarNames, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading $formatIds in %s\\n", $idVarNames, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 """
@@ -217,7 +217,7 @@ func (d DAOImpl) ReadOrEmpty($idArgs) (out []$structName, err error) {
 	var outOrEmpty $structName
 	ids := idParams($idVarNames)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if ${entity.primaryKeyFields.map(fld => "outOrEmpty." + goPublicName(fld.name) + " == " + goPrivateName(fld.name)).mkString(" && ")} {
 			out = append(out, outOrEmpty)
@@ -225,7 +225,7 @@ func (d DAOImpl) ReadOrEmpty($idArgs) (out []$structName, err error) {
 			err = fmt.Errorf("Requested ids: $formatIds are different from the found ones: $formatIds", $idVarNames, ${idFieldNames.map("outOrEmpty." + _).mkString(", ")}) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "$structName DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "$structName DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 """
@@ -234,7 +234,7 @@ s"""
 // ReadOrEmptyUnsafe reads the $structName. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe($idArgs) []$structName {
 	out, err2 := d.ReadOrEmpty($idVarNames)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading $formatIds in %s\\n", $idVarNames, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading $formatIds in %s\\n", $idVarNames, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 """
@@ -256,7 +256,7 @@ func (d DAOImpl) CreateOrUpdate($structVarName $structName) (err error) {
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create($structVarName)
-			err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := ${structVarName}.CollectEmptyFields()
 			if ok {
@@ -267,18 +267,18 @@ func (d DAOImpl) CreateOrUpdate($structVarName $structName) (err error) {
 				expr, exprAttributes, names := updateExpression($structVarName, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "$structName DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -292,7 +292,7 @@ s"""
 // CreateOrUpdateUnsafe saves the $structName regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe($structVarName $structName) {
 	err2 := d.CreateOrUpdate($structVarName)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\\n", $structVarName, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\\n", $structVarName, TableName(d.ConnGen.TableNamePrefix)))
 }
 """
 
@@ -300,7 +300,7 @@ func (d DAOImpl) CreateOrUpdateUnsafe($structVarName $structName) {
 s"""
 // Delete removes $structName from db
 func (d DAOImpl)Delete($idArgs) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams($idVarNames))
+	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams($idVarNames))
 }
 """
 	def DaoOperationDeleteUnsafeTemplate: String =
@@ -308,7 +308,7 @@ s"""
 // DeleteUnsafe deletes $structName and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe($idArgs) {
 	err2 := d.Delete($idVarNames)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete $formatIds in %s\\n", $idVarNames, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete $formatIds in %s\\n", $idVarNames, TableName(d.ConnGen.TableNamePrefix)))
 }
 """
 
@@ -331,7 +331,7 @@ func (d DAOImpl)DeleteUnsafe($idArgs) {
 		|// DeactivateUnsafe "deletes" $structName and panics in case of errors.
 		|func (d DAOImpl)DeactivateUnsafe($idArgs) {
 		|	err2 := d.Deactivate($idVarNames)
-		|	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not deactivate $formatIds in %s\\n", $idVarNames, d.Name))
+		|	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not deactivate $formatIds in %s\\n", $idVarNames, TableName(d.ConnGen.TableNamePrefix)))
 		|}
 		|""".stripMargin
 
@@ -349,7 +349,7 @@ func (d DAOImpl)DeleteUnsafe($idArgs) {
 s"""
 func (d DAOImpl)ReadBy${indexShortName}($args) (out []$structName, err error) {
 	var instances []$structName
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "$indexFullName",
 		Condition: "${index.fields.zipWithIndex.map{case (fld, i) => dbExprParam(fld) + " = :a" + i.toString }.mkString(" and ")}",
 		Attributes: map[string]interface{}{
@@ -370,7 +370,7 @@ ${index.fields.zipWithIndex.map{case (fld, i) =>  "\t\t\t\":a" + i.toString + "\
 s"""
 func (d DAOImpl)ReadBy${indexShortName}Unsafe($args) (out []$structName) {
 	out, err2 := d.ReadBy${indexShortName}(${index.fields.map(varName).mkString(", ")})
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query $indexFullName on %s table\\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query $indexFullName on %s table\\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 """
