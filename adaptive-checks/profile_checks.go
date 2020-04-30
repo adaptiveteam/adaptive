@@ -1,6 +1,8 @@
 package adaptive_checks
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/business-time"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/Merovius/go-misc/lazy"
@@ -53,7 +55,33 @@ type TypedProfile struct {
 	InitiativesExistInMyInitiativeCommunities LazyBool
 }
 
+func LazyUserCommunities(f func ()[]adaptiveCommunityUser.AdaptiveCommunityUser) func ()[]adaptiveCommunityUser.AdaptiveCommunityUser {
+	lazyI := lazy.Interface(func () interface{} {
+		return f()
+	})
+	return func ()[]adaptiveCommunityUser.AdaptiveCommunityUser {
+		i := lazyI()
+		return i.([]adaptiveCommunityUser.AdaptiveCommunityUser)
+	}
+}
+
+func isUserInCommunityCurry(conn common.DynamoDBConnection, userID string) func (communityID community.AdaptiveCommunity) bool {
+	userCommunities := LazyUserCommunities(func ()[]adaptiveCommunityUser.AdaptiveCommunityUser {
+		return adaptiveCommunityUser.ReadByUserIDUnsafe(userID)(conn)
+	})
+	return func (communityID community.AdaptiveCommunity) bool {
+		for _, uc := range userCommunities() {
+			if uc.CommunityID == string(communityID) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
 func EvalProfile(conn common.DynamoDBConnection, userID string, date business_time.Date) TypedProfile {
+	isUserInCommunity := isUserInCommunityCurry(conn, userID)
+
 	return TypedProfile{
 		FeedbackGivenThisQuarter: lazy.Bool(func() bool { return FeedbackGivenForTheQuarter(userID, date) }),
 		FeedbackForThePreviousQuarterExists: lazy.Bool(func() bool {return FeedbackForThePreviousQuarterExists(userID, date)}),
@@ -69,10 +97,10 @@ func EvalProfile(conn common.DynamoDBConnection, userID string, date business_ti
 		// ObjectivesDueWithinTheWeek: lazy.Bool(func() bool {return ObjectivesDueWithinTheWeek(userID, date)}),
 		// ObjectivesDueWithinTheMonth: lazy.Bool(func() bool {return ObjectivesDueWithinTheMonth(userID, date)}),
 		// ObjectivesDueWithinTheQuarter: lazy.Bool(func() bool {return ObjectivesDueWithinTheQuarter(userID, date)}),
-		InCapabilityCommunity: lazy.Bool(func() bool {return InCapabilityCommunity(userID, date)}),
-		InValuesCommunity: lazy.Bool(func() bool {return InCompetenciesCommunity(userID, date)}),
-		InHRCommunity: lazy.Bool(func() bool {return InHRCommunity(userID, date)}),
-		InStrategyCommunity: lazy.Bool(func() bool {return InStrategyCommunity(userID, date)}),
+		InCapabilityCommunity: lazy.Bool(func() bool {return isUserInCommunity(community.Capability)}),
+		InValuesCommunity: lazy.Bool(func() bool {return isUserInCommunity(community.Competency)}),
+		InHRCommunity: lazy.Bool(func() bool {return isUserInCommunity(community.HR)}),
+		InStrategyCommunity: lazy.Bool(func() bool {return isUserInCommunity(community.Strategy) }),
 		InInitiativeCommunity: lazy.Bool(func() bool {return InitiativeCommunityExistsForMe(userID, date)}),
 		UserSettingsExist: lazy.Bool(func() bool {return true}),
 		HolidaysExist: lazy.Bool(func() bool {return HolidaysExist(userID, date)}),
