@@ -52,26 +52,27 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create ContextAliasEntry.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create ContextAliasEntry.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
-	}
-}
+// // NewDAOByTableName creates an instance of DAO that will provide access to the table
+// func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
+// 	if tableName == "" { panic(errors.New("Cannot create ContextAliasEntry.DAO without tableName")) }
+// 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
+// 		Name: tableName,
+// 	}
+// }
 // TableNameSuffixVar is a global variable that contains table name suffix.
 // After renaming all tables this may be made `const`.
 var TableNameSuffixVar = "_context_alias_entry"
@@ -85,7 +86,7 @@ func TableName(prefix string) string {
 func (d DAOImpl) Create(contextAliasEntry ContextAliasEntry) (err error) {
 	emptyFields, ok := contextAliasEntry.CollectEmptyFields()
 	if ok {
-		err = d.Dynamo.PutTableEntry(contextAliasEntry, d.Name)
+		err = d.ConnGen.Dynamo.PutTableEntry(contextAliasEntry, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -96,7 +97,7 @@ func (d DAOImpl) Create(contextAliasEntry ContextAliasEntry) (err error) {
 // CreateUnsafe saves the ContextAliasEntry.
 func (d DAOImpl) CreateUnsafe(contextAliasEntry ContextAliasEntry) {
 	err2 := d.Create(contextAliasEntry)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create applicationAlias==%s in %s\n", contextAliasEntry.ApplicationAlias, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create applicationAlias==%s in %s\n", contextAliasEntry.ApplicationAlias, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -105,7 +106,7 @@ func (d DAOImpl) Read(applicationAlias string) (out ContextAliasEntry, err error
 	var outs []ContextAliasEntry
 	outs, err = d.ReadOrEmpty(applicationAlias)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found applicationAlias==%s in %s\n", applicationAlias, d.Name)
+		err = fmt.Errorf("Not found applicationAlias==%s in %s\n", applicationAlias, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -117,7 +118,7 @@ func (d DAOImpl) Read(applicationAlias string) (out ContextAliasEntry, err error
 // ReadUnsafe reads the ContextAliasEntry. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(applicationAlias string) ContextAliasEntry {
 	out, err2 := d.Read(applicationAlias)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading applicationAlias==%s in %s\n", applicationAlias, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading applicationAlias==%s in %s\n", applicationAlias, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -127,7 +128,7 @@ func (d DAOImpl) ReadOrEmpty(applicationAlias string) (out []ContextAliasEntry, 
 	var outOrEmpty ContextAliasEntry
 	ids := idParams(applicationAlias)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.ApplicationAlias == applicationAlias {
 			out = append(out, outOrEmpty)
@@ -135,7 +136,7 @@ func (d DAOImpl) ReadOrEmpty(applicationAlias string) (out []ContextAliasEntry, 
 			err = fmt.Errorf("Requested ids: applicationAlias==%s are different from the found ones: applicationAlias==%s", applicationAlias, outOrEmpty.ApplicationAlias) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "ContextAliasEntry DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "ContextAliasEntry DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -143,7 +144,7 @@ func (d DAOImpl) ReadOrEmpty(applicationAlias string) (out []ContextAliasEntry, 
 // ReadOrEmptyUnsafe reads the ContextAliasEntry. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(applicationAlias string) []ContextAliasEntry {
 	out, err2 := d.ReadOrEmpty(applicationAlias)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading applicationAlias==%s in %s\n", applicationAlias, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading applicationAlias==%s in %s\n", applicationAlias, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -157,7 +158,7 @@ func (d DAOImpl) CreateOrUpdate(contextAliasEntry ContextAliasEntry) (err error)
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(contextAliasEntry)
-			err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := contextAliasEntry.CollectEmptyFields()
 			if ok {
@@ -168,18 +169,18 @@ func (d DAOImpl) CreateOrUpdate(contextAliasEntry ContextAliasEntry) (err error)
 				expr, exprAttributes, names := updateExpression(contextAliasEntry, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "ContextAliasEntry DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -192,20 +193,20 @@ func (d DAOImpl) CreateOrUpdate(contextAliasEntry ContextAliasEntry) (err error)
 // CreateOrUpdateUnsafe saves the ContextAliasEntry regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(contextAliasEntry ContextAliasEntry) {
 	err2 := d.CreateOrUpdate(contextAliasEntry)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", contextAliasEntry, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", contextAliasEntry, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 // Delete removes ContextAliasEntry from db
 func (d DAOImpl)Delete(applicationAlias string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(applicationAlias))
+	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(applicationAlias))
 }
 
 
 // DeleteUnsafe deletes ContextAliasEntry and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(applicationAlias string) {
 	err2 := d.Delete(applicationAlias)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete applicationAlias==%s in %s\n", applicationAlias, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete applicationAlias==%s in %s\n", applicationAlias, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 func idParams(applicationAlias string) map[string]*dynamodb.AttributeValue {

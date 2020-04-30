@@ -78,26 +78,27 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create DialogEntry.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create DialogEntry.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
-	}
-}
+// // NewDAOByTableName creates an instance of DAO that will provide access to the table
+// func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
+// 	if tableName == "" { panic(errors.New("Cannot create DialogEntry.DAO without tableName")) }
+// 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
+// 		Name: tableName,
+// 	}
+// }
 // TableNameSuffixVar is a global variable that contains table name suffix.
 // After renaming all tables this may be made `const`.
 var TableNameSuffixVar = "_dialog_entry"
@@ -111,7 +112,7 @@ func TableName(prefix string) string {
 func (d DAOImpl) Create(dialogEntry DialogEntry) (err error) {
 	emptyFields, ok := dialogEntry.CollectEmptyFields()
 	if ok {
-		err = d.Dynamo.PutTableEntry(dialogEntry, d.Name)
+		err = d.ConnGen.Dynamo.PutTableEntry(dialogEntry, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -122,7 +123,7 @@ func (d DAOImpl) Create(dialogEntry DialogEntry) (err error) {
 // CreateUnsafe saves the DialogEntry.
 func (d DAOImpl) CreateUnsafe(dialogEntry DialogEntry) {
 	err2 := d.Create(dialogEntry)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create dialogID==%s in %s\n", dialogEntry.DialogID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create dialogID==%s in %s\n", dialogEntry.DialogID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -131,7 +132,7 @@ func (d DAOImpl) Read(dialogID string) (out DialogEntry, err error) {
 	var outs []DialogEntry
 	outs, err = d.ReadOrEmpty(dialogID)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found dialogID==%s in %s\n", dialogID, d.Name)
+		err = fmt.Errorf("Not found dialogID==%s in %s\n", dialogID, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -143,7 +144,7 @@ func (d DAOImpl) Read(dialogID string) (out DialogEntry, err error) {
 // ReadUnsafe reads the DialogEntry. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(dialogID string) DialogEntry {
 	out, err2 := d.Read(dialogID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading dialogID==%s in %s\n", dialogID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading dialogID==%s in %s\n", dialogID, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -153,7 +154,7 @@ func (d DAOImpl) ReadOrEmpty(dialogID string) (out []DialogEntry, err error) {
 	var outOrEmpty DialogEntry
 	ids := idParams(dialogID)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.DialogID == dialogID {
 			out = append(out, outOrEmpty)
@@ -161,7 +162,7 @@ func (d DAOImpl) ReadOrEmpty(dialogID string) (out []DialogEntry, err error) {
 			err = fmt.Errorf("Requested ids: dialogID==%s are different from the found ones: dialogID==%s", dialogID, outOrEmpty.DialogID) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "DialogEntry DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "DialogEntry DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -169,7 +170,7 @@ func (d DAOImpl) ReadOrEmpty(dialogID string) (out []DialogEntry, err error) {
 // ReadOrEmptyUnsafe reads the DialogEntry. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(dialogID string) []DialogEntry {
 	out, err2 := d.ReadOrEmpty(dialogID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading dialogID==%s in %s\n", dialogID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading dialogID==%s in %s\n", dialogID, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -183,7 +184,7 @@ func (d DAOImpl) CreateOrUpdate(dialogEntry DialogEntry) (err error) {
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(dialogEntry)
-			err = errors.Wrapf(err, "DialogEntry DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "DialogEntry DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := dialogEntry.CollectEmptyFields()
 			if ok {
@@ -194,18 +195,18 @@ func (d DAOImpl) CreateOrUpdate(dialogEntry DialogEntry) (err error) {
 				expr, exprAttributes, names := updateExpression(dialogEntry, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "DialogEntry DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "DialogEntry DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -218,26 +219,26 @@ func (d DAOImpl) CreateOrUpdate(dialogEntry DialogEntry) (err error) {
 // CreateOrUpdateUnsafe saves the DialogEntry regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(dialogEntry DialogEntry) {
 	err2 := d.CreateOrUpdate(dialogEntry)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", dialogEntry, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", dialogEntry, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 // Delete removes DialogEntry from db
 func (d DAOImpl)Delete(dialogID string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(dialogID))
+	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(dialogID))
 }
 
 
 // DeleteUnsafe deletes DialogEntry and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(dialogID string) {
 	err2 := d.Delete(dialogID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete dialogID==%s in %s\n", dialogID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete dialogID==%s in %s\n", dialogID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 func (d DAOImpl)ReadByContextSubject(context string, subject string) (out []DialogEntry, err error) {
 	var instances []DialogEntry
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "ContextSubjectIndex",
 		Condition: "context = :a0 and subject = :a1",
 		Attributes: map[string]interface{}{
@@ -252,7 +253,7 @@ func (d DAOImpl)ReadByContextSubject(context string, subject string) (out []Dial
 
 func (d DAOImpl)ReadByContextSubjectUnsafe(context string, subject string) (out []DialogEntry) {
 	out, err2 := d.ReadByContextSubject(context, subject)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query ContextSubjectIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query ContextSubjectIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 

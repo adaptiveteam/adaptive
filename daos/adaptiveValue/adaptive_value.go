@@ -67,26 +67,27 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create AdaptiveValue.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create AdaptiveValue.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
-	}
-}
+// // NewDAOByTableName creates an instance of DAO that will provide access to the table
+// func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
+// 	if tableName == "" { panic(errors.New("Cannot create AdaptiveValue.DAO without tableName")) }
+// 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
+// 		Name: tableName,
+// 	}
+// }
 // TableNameSuffixVar is a global variable that contains table name suffix.
 // After renaming all tables this may be made `const`.
 var TableNameSuffixVar = "_adaptive_value"
@@ -100,7 +101,7 @@ func TableName(prefix string) string {
 func (d DAOImpl) Create(adaptiveValue AdaptiveValue) (err error) {
 	emptyFields, ok := adaptiveValue.CollectEmptyFields()
 	if ok {
-		err = d.Dynamo.PutTableEntry(adaptiveValue, d.Name)
+		err = d.ConnGen.Dynamo.PutTableEntry(adaptiveValue, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -111,7 +112,7 @@ func (d DAOImpl) Create(adaptiveValue AdaptiveValue) (err error) {
 // CreateUnsafe saves the AdaptiveValue.
 func (d DAOImpl) CreateUnsafe(adaptiveValue AdaptiveValue) {
 	err2 := d.Create(adaptiveValue)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", adaptiveValue.ID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create id==%s in %s\n", adaptiveValue.ID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -120,7 +121,7 @@ func (d DAOImpl) Read(id string) (out AdaptiveValue, err error) {
 	var outs []AdaptiveValue
 	outs, err = d.ReadOrEmpty(id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -132,7 +133,7 @@ func (d DAOImpl) Read(id string) (out AdaptiveValue, err error) {
 // ReadUnsafe reads the AdaptiveValue. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) AdaptiveValue {
 	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -142,7 +143,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveValue, err error) {
 	var outOrEmpty AdaptiveValue
 	ids := idParams(id)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
@@ -150,7 +151,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveValue, err error) {
 			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "AdaptiveValue DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "AdaptiveValue DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -158,7 +159,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []AdaptiveValue, err error) {
 // ReadOrEmptyUnsafe reads the AdaptiveValue. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []AdaptiveValue {
 	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -172,7 +173,7 @@ func (d DAOImpl) CreateOrUpdate(adaptiveValue AdaptiveValue) (err error) {
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(adaptiveValue)
-			err = errors.Wrapf(err, "AdaptiveValue DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "AdaptiveValue DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := adaptiveValue.CollectEmptyFields()
 			if ok {
@@ -183,18 +184,18 @@ func (d DAOImpl) CreateOrUpdate(adaptiveValue AdaptiveValue) (err error) {
 				expr, exprAttributes, names := updateExpression(adaptiveValue, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "AdaptiveValue DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "AdaptiveValue DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -207,7 +208,7 @@ func (d DAOImpl) CreateOrUpdate(adaptiveValue AdaptiveValue) (err error) {
 // CreateOrUpdateUnsafe saves the AdaptiveValue regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(adaptiveValue AdaptiveValue) {
 	err2 := d.CreateOrUpdate(adaptiveValue)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", adaptiveValue, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", adaptiveValue, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -227,13 +228,13 @@ func (d DAOImpl)Deactivate(id string) error {
 // DeactivateUnsafe "deletes" AdaptiveValue and panics in case of errors.
 func (d DAOImpl)DeactivateUnsafe(id string) {
 	err2 := d.Deactivate(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []AdaptiveValue, err error) {
 	var instances []AdaptiveValue
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "PlatformIDIndex",
 		Condition: "platform_id = :a0",
 		Attributes: map[string]interface{}{
@@ -247,7 +248,7 @@ func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []AdaptiveVa
 
 func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []AdaptiveValue) {
 	out, err2 := d.ReadByPlatformID(platformID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 

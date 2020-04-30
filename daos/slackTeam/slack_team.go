@@ -60,26 +60,27 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create SlackTeam.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create SlackTeam.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
-	}
-}
+// // NewDAOByTableName creates an instance of DAO that will provide access to the table
+// func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
+// 	if tableName == "" { panic(errors.New("Cannot create SlackTeam.DAO without tableName")) }
+// 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
+// 		Name: tableName,
+// 	}
+// }
 // TableNameSuffixVar is a global variable that contains table name suffix.
 // After renaming all tables this may be made `const`.
 var TableNameSuffixVar = "_slack_team"
@@ -95,7 +96,7 @@ func (d DAOImpl) Create(slackTeam SlackTeam) (err error) {
 	if ok {
 		slackTeam.ModifiedAt = core.CurrentRFCTimestamp()
 	slackTeam.CreatedAt = slackTeam.ModifiedAt
-	err = d.Dynamo.PutTableEntry(slackTeam, d.Name)
+	err = d.ConnGen.Dynamo.PutTableEntry(slackTeam, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -106,7 +107,7 @@ func (d DAOImpl) Create(slackTeam SlackTeam) (err error) {
 // CreateUnsafe saves the SlackTeam.
 func (d DAOImpl) CreateUnsafe(slackTeam SlackTeam) {
 	err2 := d.Create(slackTeam)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create teamID==%s in %s\n", slackTeam.TeamID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create teamID==%s in %s\n", slackTeam.TeamID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -115,7 +116,7 @@ func (d DAOImpl) Read(teamID common.PlatformID) (out SlackTeam, err error) {
 	var outs []SlackTeam
 	outs, err = d.ReadOrEmpty(teamID)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found teamID==%s in %s\n", teamID, d.Name)
+		err = fmt.Errorf("Not found teamID==%s in %s\n", teamID, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -127,7 +128,7 @@ func (d DAOImpl) Read(teamID common.PlatformID) (out SlackTeam, err error) {
 // ReadUnsafe reads the SlackTeam. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(teamID common.PlatformID) SlackTeam {
 	out, err2 := d.Read(teamID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading teamID==%s in %s\n", teamID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading teamID==%s in %s\n", teamID, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -137,7 +138,7 @@ func (d DAOImpl) ReadOrEmpty(teamID common.PlatformID) (out []SlackTeam, err err
 	var outOrEmpty SlackTeam
 	ids := idParams(teamID)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.TeamID == teamID {
 			out = append(out, outOrEmpty)
@@ -145,7 +146,7 @@ func (d DAOImpl) ReadOrEmpty(teamID common.PlatformID) (out []SlackTeam, err err
 			err = fmt.Errorf("Requested ids: teamID==%s are different from the found ones: teamID==%s", teamID, outOrEmpty.TeamID) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "SlackTeam DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "SlackTeam DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -153,7 +154,7 @@ func (d DAOImpl) ReadOrEmpty(teamID common.PlatformID) (out []SlackTeam, err err
 // ReadOrEmptyUnsafe reads the SlackTeam. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(teamID common.PlatformID) []SlackTeam {
 	out, err2 := d.ReadOrEmpty(teamID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading teamID==%s in %s\n", teamID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading teamID==%s in %s\n", teamID, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -169,7 +170,7 @@ func (d DAOImpl) CreateOrUpdate(slackTeam SlackTeam) (err error) {
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(slackTeam)
-			err = errors.Wrapf(err, "SlackTeam DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "SlackTeam DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := slackTeam.CollectEmptyFields()
 			if ok {
@@ -180,18 +181,18 @@ func (d DAOImpl) CreateOrUpdate(slackTeam SlackTeam) (err error) {
 				expr, exprAttributes, names := updateExpression(slackTeam, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "SlackTeam DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "SlackTeam DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -204,20 +205,20 @@ func (d DAOImpl) CreateOrUpdate(slackTeam SlackTeam) (err error) {
 // CreateOrUpdateUnsafe saves the SlackTeam regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(slackTeam SlackTeam) {
 	err2 := d.CreateOrUpdate(slackTeam)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", slackTeam, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", slackTeam, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 // Delete removes SlackTeam from db
 func (d DAOImpl)Delete(teamID common.PlatformID) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(teamID))
+	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(teamID))
 }
 
 
 // DeleteUnsafe deletes SlackTeam and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(teamID common.PlatformID) {
 	err2 := d.Delete(teamID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete teamID==%s in %s\n", teamID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete teamID==%s in %s\n", teamID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 func idParams(teamID common.PlatformID) map[string]*dynamodb.AttributeValue {

@@ -60,26 +60,27 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create CapabilityCommunity.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create CapabilityCommunity.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
-	}
-}
+// // NewDAOByTableName creates an instance of DAO that will provide access to the table
+// func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
+// 	if tableName == "" { panic(errors.New("Cannot create CapabilityCommunity.DAO without tableName")) }
+// 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
+// 		Name: tableName,
+// 	}
+// }
 // TableNameSuffixVar is a global variable that contains table name suffix.
 // After renaming all tables this may be made `const`.
 var TableNameSuffixVar = "_capability_community"
@@ -95,7 +96,7 @@ func (d DAOImpl) Create(capabilityCommunity CapabilityCommunity) (err error) {
 	if ok {
 		capabilityCommunity.ModifiedAt = core.CurrentRFCTimestamp()
 	capabilityCommunity.CreatedAt = capabilityCommunity.ModifiedAt
-	err = d.Dynamo.PutTableEntry(capabilityCommunity, d.Name)
+	err = d.ConnGen.Dynamo.PutTableEntry(capabilityCommunity, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -106,7 +107,7 @@ func (d DAOImpl) Create(capabilityCommunity CapabilityCommunity) (err error) {
 // CreateUnsafe saves the CapabilityCommunity.
 func (d DAOImpl) CreateUnsafe(capabilityCommunity CapabilityCommunity) {
 	err2 := d.Create(capabilityCommunity)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create platformID==%s, id==%s in %s\n", capabilityCommunity.PlatformID, capabilityCommunity.ID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create platformID==%s, id==%s in %s\n", capabilityCommunity.PlatformID, capabilityCommunity.ID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -115,7 +116,7 @@ func (d DAOImpl) Read(platformID common.PlatformID, id string) (out CapabilityCo
 	var outs []CapabilityCommunity
 	outs, err = d.ReadOrEmpty(platformID, id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found platformID==%s, id==%s in %s\n", platformID, id, d.Name)
+		err = fmt.Errorf("Not found platformID==%s, id==%s in %s\n", platformID, id, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -127,7 +128,7 @@ func (d DAOImpl) Read(platformID common.PlatformID, id string) (out CapabilityCo
 // ReadUnsafe reads the CapabilityCommunity. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(platformID common.PlatformID, id string) CapabilityCommunity {
 	out, err2 := d.Read(platformID, id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading platformID==%s, id==%s in %s\n", platformID, id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading platformID==%s, id==%s in %s\n", platformID, id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -137,7 +138,7 @@ func (d DAOImpl) ReadOrEmpty(platformID common.PlatformID, id string) (out []Cap
 	var outOrEmpty CapabilityCommunity
 	ids := idParams(platformID, id)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.PlatformID == platformID && outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
@@ -145,7 +146,7 @@ func (d DAOImpl) ReadOrEmpty(platformID common.PlatformID, id string) (out []Cap
 			err = fmt.Errorf("Requested ids: platformID==%s, id==%s are different from the found ones: platformID==%s, id==%s", platformID, id, outOrEmpty.PlatformID, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "CapabilityCommunity DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "CapabilityCommunity DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -153,7 +154,7 @@ func (d DAOImpl) ReadOrEmpty(platformID common.PlatformID, id string) (out []Cap
 // ReadOrEmptyUnsafe reads the CapabilityCommunity. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(platformID common.PlatformID, id string) []CapabilityCommunity {
 	out, err2 := d.ReadOrEmpty(platformID, id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading platformID==%s, id==%s in %s\n", platformID, id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -169,7 +170,7 @@ func (d DAOImpl) CreateOrUpdate(capabilityCommunity CapabilityCommunity) (err er
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(capabilityCommunity)
-			err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := capabilityCommunity.CollectEmptyFields()
 			if ok {
@@ -180,18 +181,18 @@ func (d DAOImpl) CreateOrUpdate(capabilityCommunity CapabilityCommunity) (err er
 				expr, exprAttributes, names := updateExpression(capabilityCommunity, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "CapabilityCommunity DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -204,26 +205,26 @@ func (d DAOImpl) CreateOrUpdate(capabilityCommunity CapabilityCommunity) (err er
 // CreateOrUpdateUnsafe saves the CapabilityCommunity regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(capabilityCommunity CapabilityCommunity) {
 	err2 := d.CreateOrUpdate(capabilityCommunity)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", capabilityCommunity, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", capabilityCommunity, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 // Delete removes CapabilityCommunity from db
 func (d DAOImpl)Delete(platformID common.PlatformID, id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(platformID, id))
+	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(platformID, id))
 }
 
 
 // DeleteUnsafe deletes CapabilityCommunity and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(platformID common.PlatformID, id string) {
 	err2 := d.Delete(platformID, id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete platformID==%s, id==%s in %s\n", platformID, id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete platformID==%s, id==%s in %s\n", platformID, id, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []CapabilityCommunity, err error) {
 	var instances []CapabilityCommunity
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "PlatformIDIndex",
 		Condition: "platform_id = :a0",
 		Attributes: map[string]interface{}{
@@ -237,7 +238,7 @@ func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []Capability
 
 func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []CapabilityCommunity) {
 	out, err2 := d.ReadByPlatformID(platformID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
