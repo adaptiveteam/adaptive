@@ -64,9 +64,11 @@ END AS "driving"
 
 FROM
 
-user as coach,
 user as advocate,
 user_objective
+
+LEFT JOIN user AS coach ON
+user_objective.accountability_partner = coach.id
 
 LEFT JOIN user_objective_progress ON
 user_objective_progress.objective_id = user_objective.id
@@ -86,8 +88,7 @@ initiative.capability_objective_id = aligned_objective.id
 WHERE
 
 user_objective.user_id = ? AND
-user_objective.user_id = advocate.id aND
-user_objective.accountability_partner = coach.id
+user_objective.user_id = advocate.id
 
 ORDER BY
 
