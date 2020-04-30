@@ -143,3 +143,42 @@ func EagerLoad(lazyBools ... LazyBool) error {
 
 	return errGroup.Wait()
 }
+
+// LoadAll forces all lazy evaluations
+func (p *TypedProfile) LoadAll() error {
+	return EagerLoad(
+		p.FeedbackGivenThisQuarter,
+		p.FeedbackForThePreviousQuarterExists,
+		p.InLastMonthOfQuarter,
+		p.CoacheesExist,
+		p.AdvocatesExist,
+		p.InCapabilityCommunity,
+		p.InValuesCommunity,
+		p.InHRCommunity,
+		p.InStrategyCommunity,
+		p.InInitiativeCommunity,
+		p.UserSettingsExist,
+		p.HolidaysExist,
+		p.CollaborationReportExists,
+		p.UndeliveredEngagementsExistForMe,
+		p.UndeliveredEngagementsOrPostponedEventsExistForMe,
+		p.CanBeNudgedForIDO,
+		p.TeamValuesExist,
+		p.CompanyVisionExists,
+		p.ObjectivesExist,
+		p.InitiativesExist,
+		p.IDOsExistForMe,
+		p.ObjectivesExistForMe,
+		p.InitiativesExistForMe,
+		p.StaleIDOsExistForMe,
+		p.StaleInitiativesExistForMe,
+		p.StaleObjectivesExistForMe,
+		p.CapabilityCommunityExists,
+		p.MultipleCapabilityCommunitiesExists,
+		p.InitiativeCommunityExists,
+		p.MultipleInitiativeCommunitiesExists,
+		p.ObjectivesExistInMyCapabilityCommunities,
+		p.InitiativesExistInMyCapabilityCommunities,
+		p.InitiativesExistInMyInitiativeCommunities,
+	)
+}
