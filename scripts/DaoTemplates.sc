@@ -95,14 +95,6 @@ func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 		},
 	}
 }
-
-// // NewDAOByTableName creates an instance of DAO that will provide access to the table
-// func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-// 	if tableName == "" { panic(errors.New("Cannot create ${goPublicName(dao.table.entity.name)}.DAO without tableName")) }
-// 	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-// 		Name: tableName,
-// 	}
-// }
 """) ::: {
 		val templates = OperationImplementationTemplates(dao.table)
 		tableNameFuncTemplate(dao.table) :::
