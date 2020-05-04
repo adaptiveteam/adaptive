@@ -31,6 +31,10 @@ func main() {
 					if uo.ObjectiveType == newType {
 						fmt.Println("leaving unchanged")
 					} else {
+						if uo.ExpectedEndDate == "" {
+							uo.ExpectedEndDate = "2099-12-31"
+							fmt.Printf("!Updated empty ExpectedEndDate to %s!", uo.ExpectedEndDate)
+						}
 						fields, ok := uo.CollectEmptyFields()
 						if ok {
 							fmt.Println("-> ", newType)
