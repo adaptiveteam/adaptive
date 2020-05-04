@@ -15,7 +15,7 @@ import (
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	// This import is needed for reports to work
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf *bytes.Buffer, reportname string, err error) {

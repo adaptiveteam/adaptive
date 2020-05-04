@@ -1,8 +1,9 @@
 package request_coach
 
 import (
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"time"
+
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -11,8 +12,8 @@ import (
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/adaptiveteam/adaptive/workflows/common"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
-	"github.com/nlopes/slack"
 	"github.com/pkg/errors"
+	"github.com/slack-go/slack"
 )
 
 const AnalysisChannelKey = "AnalysisChannelKey"

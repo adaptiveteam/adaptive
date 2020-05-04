@@ -3,7 +3,7 @@ package adaptive_utils_go
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/daos/common"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 // RequestHandler represents a function that handles requests from Slack and produces 

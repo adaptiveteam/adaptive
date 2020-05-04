@@ -10,7 +10,7 @@ import (
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	// mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"sync"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/user"

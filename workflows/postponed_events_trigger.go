@@ -4,7 +4,7 @@ import (
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/daos/common"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 // TriggerAllPostponedEvents reads all postponed events and run them sequentially

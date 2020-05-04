@@ -2,7 +2,7 @@ package models
 
 import (
 	"github.com/adaptiveteam/adaptive/daos/user"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/pkg/errors"
 )
 

@@ -15,7 +15,7 @@ import (
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/sirupsen/logrus"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 var (

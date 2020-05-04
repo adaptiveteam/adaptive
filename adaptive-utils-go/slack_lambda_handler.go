@@ -7,7 +7,7 @@ import (
 	"fmt"
 	ls "github.com/aws/aws-lambda-go/lambda"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 // LambdaHandler represents a structured handler for Slack events.
