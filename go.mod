@@ -58,8 +58,6 @@ require (
 	rsc.io/sampler v1.99.99 // indirect
 )
 
-// replace github.com/nlopes/slack => github.com/adaptiveteam/slack v0.14.0
-
 replace github.com/slack-go/slack => github.com/adaptiveteam/slack v0.14.0
 
 replace gopkg.in/urfave/cli.v1 => gopkg.in/urfave/cli.v1 v1.20.0
