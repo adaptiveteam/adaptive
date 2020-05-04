@@ -24,10 +24,10 @@ func main() {
 		total := 0
 		if err2 == nil {
 			for _, uo := range uos {
-				if uo.PlatformID == platformID {
+				if uo.PlatformID == platformID || platformID == "-all" {
 					total ++
-					newType := issues.DetectIssueType(uo).GetObjectiveType()
 					fmt.Printf("%s .ObjectiveType == %s: ", uo.ID, uo.ObjectiveType)
+					newType := issues.DetectIssueType(uo).GetObjectiveType()
 					if uo.ObjectiveType == newType {
 						fmt.Println("leaving unchanged")
 					} else {
