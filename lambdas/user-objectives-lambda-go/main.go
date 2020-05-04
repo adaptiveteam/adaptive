@@ -2466,14 +2466,11 @@ func closeoutAgreementContext(userObj models.UserObjective) (context string) {
 
 func closeoutDisagreementContext(userObj models.UserObjective) (context string) {
 	issueType := utilsIssues.DetectIssueType(userObj)
-	switch typeLabel {
-	case Individual:
-		context = IDOCloseoutDisagreementContext
-	case CapabilityObjective:
-		context = CapabilityObjectiveCloseoutDisagreementContext
-	case StrategyInitiative:
-		context = InitiativeCloseoutDisagreementContext
-	}
+	context = issueType.FoldString(
+		IDOCloseoutDisagreementContext,
+		CapabilityObjectiveCloseoutDisagreementContext,
+		InitiativeCloseoutDisagreementContext,
+	)
 	return
 }
 
