@@ -90,6 +90,24 @@ func DetectIssueType(uo userObjective.UserObjective) (itype IssueType) {
 	return
 }
 
+// GetObjectiveType -
+func (itype IssueType) GetObjectiveType() (otype userObjective.DevelopmentObjectiveType) {
+	switch itype {
+	case IDO:
+		otype = userObjective.IndividualDevelopmentObjective
+	case SObjective:
+		otype = userObjective.StrategyDevelopmentObjectiveIssue
+	case Initiative:
+		otype = userObjective.StrategyDevelopmentInitiative
+	}
+	return
+}
+
+// SetIssueType -
+func SetIssueType(uo *userObjective.UserObjective, itype IssueType) {
+	uo.ObjectiveType = itype.GetObjectiveType()
+}
+
 // GetIssueID returns issue.UserObjective.ID
 func (issue Issue) GetIssueID() string {
 	return issue.UserObjective.ID
