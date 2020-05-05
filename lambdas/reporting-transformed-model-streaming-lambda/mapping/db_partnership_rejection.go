@@ -11,10 +11,10 @@ import (
 
 type DBPartnershipRejection struct {
 	ID                      string `gorm:"primary_key"`
-	ObjectiveID             string `gorm:"type:CHAR(36)"`
-	AccountabilityPartnerID string `gorm:"type:CHAR(9)"`
+	ObjectiveID             string `gorm:"type:TEXT"`
+	AccountabilityPartnerID string `gorm:"type:TEXT"`
 	Comments                string `gorm:"type:TEXT"`
-	UserID                  string `gorm:"type:CHAR(9)"`
+	UserID                  string `gorm:"type:TEXT"`
 	CreatedDate             string `gorm:"type:TEXT"`
 	model.DBModel
 }

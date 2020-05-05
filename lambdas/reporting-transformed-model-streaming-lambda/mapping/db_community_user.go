@@ -2,19 +2,19 @@ package mapping
 
 import (
 	"encoding/json"
-	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
 	"github.com/jinzhu/gorm"
 	"time"
 )
 
 type DBCommunityUser struct {
 	ID          string `gorm:"primary_key"`
-	ChannelID   string `gorm:"type:CHAR(9)"`
+	ChannelID   string `gorm:"type:TEXT"`
 	CommunityID string `gorm:"type:TEXT"`
-	PlatformID  string `gorm:"type:CHAR(9)"`
-	UserID      string `gorm:"type:CHAR(9)"`
+	PlatformID  string `gorm:"type:TEXT"`
+	UserID      string `gorm:"type:TEXT"`
 	model.DBModel
 }
 

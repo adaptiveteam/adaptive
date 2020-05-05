@@ -16,7 +16,7 @@ type DBHoliday struct {
 	Date             string `gorm:"type:DATE"`
 	Description      string `gorm:"type:TEXT"`
 	Name             string `gorm:"type:TEXT"`
-	PlatformID       common.PlatformID `gorm:"type:CHAR(9)"`
+	PlatformID       common.PlatformID `gorm:"type:TEXT"`
 	ScopeCommunities string `gorm:"type:TEXT"`
 	model.DBModel
 }

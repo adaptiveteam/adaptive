@@ -13,16 +13,16 @@ import (
 
 type DBInitiative struct {
 	ID                    string  `gorm:"primary_key"`
-	Advocate              string  `gorm:"type:CHAR(9)"`
+	Advocate              string  `gorm:"type:TEXT"`
 	Budget                float64 `gorm:"type:DOUBLE"`
-	CapabilityObjectiveID string  `gorm:"type:CHAR(36)"`
-	CreatedBy             string  `gorm:"type:CHAR(9)"`
+	CapabilityObjectiveID string  `gorm:"type:TEXT"`
+	CreatedBy             string  `gorm:"type:TEXT"`
 	DefinitionOfVictory   string  `gorm:"type:TEXT"`
 	Description           string  `gorm:"type:TEXT"`
 	ExpectedEndDate       string  `gorm:"type:DATE"`
-	InitiativeCommunityID string  `gorm:"type:CHAR(36)"`
+	InitiativeCommunityID string  `gorm:"type:TEXT"`
 	Name                  string  `gorm:"type:TEXT"`
-	PlatformID            common.PlatformID  `gorm:"type:CHAR(9)"`
+	PlatformID            common.PlatformID  `gorm:"type:TEXT"`
 	CreatedAt             string  `gorm:"type:TEXT"`
 	model.DBModel
 }
