@@ -4,6 +4,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"bytes"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -28,7 +29,10 @@ func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf
 
 	// f, err = reports.StrategyPerformanceReport(db, customerID)
 
-	reportname = "Strategic Performance"
+	// TODO Please help me set the time-zone Bharath or Arseniy
+	loc, _ := time.LoadLocation("America/Indianapolis")
+	timeString := time.Now().In(loc).Format(time.RFC3339)
+	reportname = "Strategic Performance, "+timeString
 	file = excelize.NewFile()
 	properties := utilities2.CreateDocumentProperties(
 		"Strategy",
