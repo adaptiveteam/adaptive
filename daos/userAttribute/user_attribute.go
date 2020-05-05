@@ -57,24 +57,17 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create UserAttribute.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
-	}
-}
-
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create UserAttribute.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 // TableNameSuffixVar is a global variable that contains table name suffix.
@@ -90,7 +83,7 @@ func TableName(prefix string) string {
 func (d DAOImpl) Create(userAttribute UserAttribute) (err error) {
 	emptyFields, ok := userAttribute.CollectEmptyFields()
 	if ok {
-		err = d.Dynamo.PutTableEntry(userAttribute, d.Name)
+		err = d.ConnGen.Dynamo.PutTableEntry(userAttribute, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -101,7 +94,7 @@ func (d DAOImpl) Create(userAttribute UserAttribute) (err error) {
 // CreateUnsafe saves the UserAttribute.
 func (d DAOImpl) CreateUnsafe(userAttribute UserAttribute) {
 	err2 := d.Create(userAttribute)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create userID==%s, attrKey==%s in %s\n", userAttribute.UserID, userAttribute.AttrKey, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create userID==%s, attrKey==%s in %s\n", userAttribute.UserID, userAttribute.AttrKey, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -110,7 +103,7 @@ func (d DAOImpl) Read(userID string, attrKey string) (out UserAttribute, err err
 	var outs []UserAttribute
 	outs, err = d.ReadOrEmpty(userID, attrKey)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name)
+		err = fmt.Errorf("Not found userID==%s, attrKey==%s in %s\n", userID, attrKey, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -122,7 +115,7 @@ func (d DAOImpl) Read(userID string, attrKey string) (out UserAttribute, err err
 // ReadUnsafe reads the UserAttribute. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(userID string, attrKey string) UserAttribute {
 	out, err2 := d.Read(userID, attrKey)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading userID==%s, attrKey==%s in %s\n", userID, attrKey, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -132,7 +125,7 @@ func (d DAOImpl) ReadOrEmpty(userID string, attrKey string) (out []UserAttribute
 	var outOrEmpty UserAttribute
 	ids := idParams(userID, attrKey)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.UserID == userID && outOrEmpty.AttrKey == attrKey {
 			out = append(out, outOrEmpty)
@@ -140,7 +133,7 @@ func (d DAOImpl) ReadOrEmpty(userID string, attrKey string) (out []UserAttribute
 			err = fmt.Errorf("Requested ids: userID==%s, attrKey==%s are different from the found ones: userID==%s, attrKey==%s", userID, attrKey, outOrEmpty.UserID, outOrEmpty.AttrKey) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "UserAttribute DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "UserAttribute DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -148,7 +141,7 @@ func (d DAOImpl) ReadOrEmpty(userID string, attrKey string) (out []UserAttribute
 // ReadOrEmptyUnsafe reads the UserAttribute. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(userID string, attrKey string) []UserAttribute {
 	out, err2 := d.ReadOrEmpty(userID, attrKey)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading userID==%s, attrKey==%s in %s\n", userID, attrKey, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -162,7 +155,7 @@ func (d DAOImpl) CreateOrUpdate(userAttribute UserAttribute) (err error) {
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userAttribute)
-			err = errors.Wrapf(err, "UserAttribute DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "UserAttribute DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := userAttribute.CollectEmptyFields()
 			if ok {
@@ -173,18 +166,18 @@ func (d DAOImpl) CreateOrUpdate(userAttribute UserAttribute) (err error) {
 				expr, exprAttributes, names := updateExpression(userAttribute, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "UserAttribute DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "UserAttribute DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -197,20 +190,20 @@ func (d DAOImpl) CreateOrUpdate(userAttribute UserAttribute) (err error) {
 // CreateOrUpdateUnsafe saves the UserAttribute regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(userAttribute UserAttribute) {
 	err2 := d.CreateOrUpdate(userAttribute)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userAttribute, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", userAttribute, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 // Delete removes UserAttribute from db
 func (d DAOImpl)Delete(userID string, attrKey string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(userID, attrKey))
+	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(userID, attrKey))
 }
 
 
 // DeleteUnsafe deletes UserAttribute and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(userID string, attrKey string) {
 	err2 := d.Delete(userID, attrKey)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete userID==%s, attrKey==%s in %s\n", userID, attrKey, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete userID==%s, attrKey==%s in %s\n", userID, attrKey, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 func idParams(userID string, attrKey string) map[string]*dynamodb.AttributeValue {
