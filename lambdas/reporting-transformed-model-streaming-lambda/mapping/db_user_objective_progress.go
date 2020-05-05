@@ -14,16 +14,16 @@ import (
 type DBUserObjectiveProgress struct {
 	ID                      string                      `gorm:"primary_key"`
 	ObjectiveID             string                      `gorm:"type:CHAR(36)"`
-	UserID                  string                      `gorm:"type:CHAR(9)"`
+	UserID                  string                      `gorm:"type:TEXT"`
 	Comments                string                      `gorm:"type:TEXT"`
 	Closeout                bool                        `gorm:"type:BOOLEAN"`
 	PercentTimeLapsed       float64                     `gorm:"type:DOUBLE"`
 	StatusColor             models.ObjectiveStatusColor `gorm:"type:VARCHAR(6)"`
-	PartnerID               string                      `gorm:"type:CHAR(9)"`
+	PartnerID               string                      `gorm:"type:TEXT"`
 	ReviewedByPartner       bool                        `gorm:"type:BOOLEAN"`
 	PartnerComments         string                      `gorm:"type:TEXT"`
 	PartnerReportedProgress string                      `gorm:"type:TEXT"`
-	PlatformID              common.PlatformID           `gorm:"type:CHAR(9)"`
+	PlatformID              common.PlatformID           `gorm:"type:TEXT"`
 	CreatedDate             string                      `gorm:"type:TEXT"`
 	model.DBModel
 }

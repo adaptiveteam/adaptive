@@ -14,7 +14,7 @@ import (
 
 type DBUser struct {
 	ID                         string `gorm:"primary_key"`
-	PlatformID                 common.PlatformID `gorm:"type:CHAR(9)"`
+	PlatformID                 common.PlatformID `gorm:"type:TEXT"`
 	FirstName                  string `gorm:"type:TEXT"`
 	LastName                   string `gorm:"type:TEXT"`
 	DisplayName                string `gorm:"type:TEXT"`

@@ -13,10 +13,10 @@ import (
 
 type DBUserObjective struct {
 	ID                          string                          `gorm:"primary_key"`
-	UserID                      string                          `gorm:"type:CHAR(9)"`
+	UserID                      string                          `gorm:"type:TEXT"`
 	Name                        string                          `gorm:"type:TEXT"`
 	Description                 string                          `gorm:"type:TEXT"`
-	AccountabilityPartner       string                          `gorm:"type:CHAR(9)"`
+	AccountabilityPartner       string                          `gorm:"type:TEXT"`
 	Accepted                    bool                            `gorm:"type:BOOLEAN"`
 	Type                        models.DevelopmentObjectiveType `gorm:"type:TEXT"`
 	StrategyAlignmentEntityID   string                          `gorm:"type:CHAR(36)"`
@@ -29,7 +29,7 @@ type DBUserObjective struct {
 	PartnerVerifiedCompletion   bool              `gorm:"type:BOOLEAN"`
 	Comments                    string            `gorm:"type:TEXT"`
 	Cancelled                   bool              `gorm:"type:BOOLEAN"`
-	PlatformID                  common.PlatformID `gorm:"type:CHAR(9)"`
+	PlatformID                  common.PlatformID `gorm:"type:TEXT"`
 	model.DBModel
 }
 
