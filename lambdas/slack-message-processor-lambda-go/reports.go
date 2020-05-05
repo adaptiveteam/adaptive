@@ -29,9 +29,8 @@ func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf
 
 	// f, err = reports.StrategyPerformanceReport(db, customerID)
 
-	// TODO Please help me set the time-zone Bharath or Arseniy
 	loc, _ := time.LoadLocation("America/Indianapolis")
-	timeString := time.Now().In(loc).Format(time.RFC3339)
+	timeString := time.Now().In(loc).Format(string(core_utils_go.ISODateLayout))
 	reportname = "Strategic Performance, "+timeString
 	file = excelize.NewFile()
 	properties := utilities2.CreateDocumentProperties(
