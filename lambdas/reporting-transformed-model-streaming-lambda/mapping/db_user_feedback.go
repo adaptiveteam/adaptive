@@ -14,7 +14,7 @@ import (
 
 type DBUserFeedback struct {
 	ID               string            `gorm:"primary_key"`
-	CompetencyID     string            `gorm:"type:CHAR(36)"`
+	CompetencyID     string            `gorm:"type:TEXT"`
 	Source           string            `gorm:"type:TEXT"`
 	Target           string            `gorm:"type:TEXT"`
 	Channel          string            `gorm:"type:TEXT"`

@@ -4,27 +4,26 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
 	logger2 "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/jinzhu/gorm"
 	"github.com/adaptiveteam/adaptive/daos/common"
-
+	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
+	"github.com/jinzhu/gorm"
 )
 
 type DBUser struct {
-	ID                         string `gorm:"primary_key"`
+	ID                         string            `gorm:"primary_key"`
 	PlatformID                 common.PlatformID `gorm:"type:TEXT"`
-	FirstName                  string `gorm:"type:TEXT"`
-	LastName                   string `gorm:"type:TEXT"`
-	DisplayName                string `gorm:"type:TEXT"`
-	Timezone                   string `gorm:"type:TEXT"`
-	TimezoneOffset             int32  `gorm:"type:INTEGER"`
-	IsAdmin                    bool   `gorm:"type:BOOLEAN"`
-	IsShared                   bool   `gorm:"type:BOOLEAN"`
-	AdaptiveScheduledTime      string `gorm:"type:CHAR(4)"`
-	AdaptiveScheduledTimeInUTC string `gorm:"type:CHAR(4)"`
-	CreatedAt                  string `gorm:"type:TEXT"`
+	FirstName                  string            `gorm:"type:TEXT"`
+	LastName                   string            `gorm:"type:TEXT"`
+	DisplayName                string            `gorm:"type:TEXT"`
+	Timezone                   string            `gorm:"type:TEXT"`
+	TimezoneOffset             int32             `gorm:"type:INTEGER"`
+	IsAdmin                    bool              `gorm:"type:BOOLEAN"`
+	IsShared                   bool              `gorm:"type:BOOLEAN"`
+	AdaptiveScheduledTime      string            `gorm:"type:TEXT"`
+	AdaptiveScheduledTimeInUTC string            `gorm:"type:TEXT"`
+	CreatedAt                  string            `gorm:"type:TEXT"`
 	model.DBModel
 }
 

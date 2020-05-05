@@ -15,7 +15,7 @@ type DBEngagement struct {
 	Answered   bool   `gorm:"type:BOOLEAN"`
 	Ignored    bool   `gorm:"type:BOOLEAN"`
 	PlatformID string `gorm:"type:TEXT"`
-	Priority   string `gorm:"type:CHAR(6)"`
+	Priority   string `gorm:"type:TEXT"`
 	TargetId   string `gorm:"type:TEXT"`
 	UserID     string `gorm:"type:TEXT"`
 	CreatedAt  string `gorm:"type:TEXT"`

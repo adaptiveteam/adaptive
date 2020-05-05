@@ -11,7 +11,7 @@ import (
 
 type DBPartnershipRejection struct {
 	ID                      string `gorm:"primary_key"`
-	ObjectiveID             string `gorm:"type:CHAR(36)"`
+	ObjectiveID             string `gorm:"type:TEXT"`
 	AccountabilityPartnerID string `gorm:"type:TEXT"`
 	Comments                string `gorm:"type:TEXT"`
 	UserID                  string `gorm:"type:TEXT"`

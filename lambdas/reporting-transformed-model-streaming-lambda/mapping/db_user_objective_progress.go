@@ -4,21 +4,21 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
 	"github.com/jinzhu/gorm"
 )
 
 type DBUserObjectiveProgress struct {
 	ID                      string                      `gorm:"primary_key"`
-	ObjectiveID             string                      `gorm:"type:CHAR(36)"`
+	ObjectiveID             string                      `gorm:"type:TEXT"`
 	UserID                  string                      `gorm:"type:TEXT"`
 	Comments                string                      `gorm:"type:TEXT"`
 	Closeout                bool                        `gorm:"type:BOOLEAN"`
 	PercentTimeLapsed       float64                     `gorm:"type:DOUBLE"`
-	StatusColor             models.ObjectiveStatusColor `gorm:"type:VARCHAR(6)"`
+	StatusColor             models.ObjectiveStatusColor `gorm:"type:TEXT"`
 	PartnerID               string                      `gorm:"type:TEXT"`
 	ReviewedByPartner       bool                        `gorm:"type:BOOLEAN"`
 	PartnerComments         string                      `gorm:"type:TEXT"`

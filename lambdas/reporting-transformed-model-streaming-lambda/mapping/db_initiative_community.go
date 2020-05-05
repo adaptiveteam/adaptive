@@ -13,7 +13,7 @@ import (
 type DBInitiativeCommunity struct {
 	ID                    string `gorm:"primary_key"`
 	Advocate              string `gorm:"type:TEXT"`
-	CapabilityCommunityID string `gorm:"type:CHAR(36)"`
+	CapabilityCommunityID string `gorm:"type:TEXT"`
 	CreatedBy             string `gorm:"type:TEXT"`
 	Description           string `gorm:"type:TEXT"`
 	Name                  string `gorm:"type:TEXT"`

@@ -19,7 +19,7 @@ type DBUserObjective struct {
 	AccountabilityPartner       string                          `gorm:"type:TEXT"`
 	Accepted                    bool                            `gorm:"type:BOOLEAN"`
 	Type                        models.DevelopmentObjectiveType `gorm:"type:TEXT"`
-	StrategyAlignmentEntityID   string                          `gorm:"type:CHAR(36)"`
+	StrategyAlignmentEntityID   string                          `gorm:"type:TEXT"`
 	StrategyAlignmentEntityType models.AlignedStrategyType      `gorm:"type:TEXT"`
 	Quarter                     uint
 	Year                        uint
