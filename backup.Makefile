@@ -23,3 +23,10 @@ restore-table-user-objective: ./dynamodump/dynamodump.py
 rename-resource-user-objective:
 	cd terraform;\
 	terraform state mv 'aws_dynamodb_table.user_objectives' 'aws_dynamodb_table.user_objective_dynamodb_table'
+
+backup-all-zip: backup-all
+	tar -cvz dump -f $(shell date -Idate)-dump-${ADAPTIVE_CLIENT_ID}.tar.gz
+
+backup-all-zip-upload-to-s3: backup-all-zip
+	export BUCKET="adaptive-dump-backups" ;\
+	aws s3 cp $(shell date -Idate)-dump-${ADAPTIVE_CLIENT_ID}.tar.gz s3://$${BUCKET}/$(shell date -Idate)-dump-${ADAPTIVE_CLIENT_ID}.tar.gz
