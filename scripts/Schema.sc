@@ -27,7 +27,8 @@ val commonPackage = Package("common".camel, List(
                 platformIdDef, 
                 PriorityValueDef, ObjectiveStatusColorDef,
                 PlatformNameDef,
-                AdaptiveCommunityIDDef
+                AdaptiveCommunityIDDef,
+                CommunityKindDef
             )
         ))
     )
@@ -656,7 +657,8 @@ val packages = List(
     ContextAliasEntryPackage,
     ObjectiveTypeDictionaryPackage,
     PostponedEventPackage,
-    SlackTeamPackage
+    SlackTeamPackage,
+    CommunityPackage
     )
 val daosProject = GoProjectFolder("daos", packages)
 
@@ -682,7 +684,8 @@ val coreTerraformProject = TerraformProjectFolder("daos/terraform", List(
     ContextAliasEntryTable,
     ObjectiveTypeDictionaryTable,
     PostponedEventTable,
-    SlackTeamTable
+    SlackTeamTable,
+    CommunityTable
     ))
 
 val workspace: Workspace = List(daosProject, coreTerraformProject)

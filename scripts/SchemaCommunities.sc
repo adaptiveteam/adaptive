@@ -42,7 +42,6 @@ val AdaptiveCommunityUserPackage = defaultPackage(AdaptiveCommunityUserTable, im
 
 
 
-// val channelField = "Channel".camel :: string
 val AdaptiveCommunity = Entity(
     "AdaptiveCommunity".camel, 
     List(platformIdField, idField),
@@ -55,9 +54,6 @@ val AdaptiveCommunity = Entity(
     List(CreatedModifiedTimesTrait, DeactivationTrait)
 )
 
-// TODO: 
-//  stream_enabled   = true
-//  stream_view_type = var.dynamo_stream_view_type
 val AdaptiveCommunityTable = Table(AdaptiveCommunity, 
     Index(idField, Some(platformIdField)),
     List(
@@ -78,7 +74,6 @@ val StrategyCommunity = Entity(
     List(
         platformIdField,
         advocateField,
-        //createdAtField,
         "Community".camel :: AdaptiveCommunityID,
         channelIdField,
         channelCreatedField,
@@ -98,14 +93,6 @@ val StrategyCommunityTable = Table(StrategyCommunity,
 
 val StrategyCommunityPackage = defaultPackage(StrategyCommunityTable, allEntitySpecificImports(StrategyCommunity))
 
-// val StrategyCommunityPackage = Package(StrategyCommunity.name, 
-//     List(//AdaptiveCommunityID :: 
-//         daoModule(StrategyCommunityTable, allEntitySpecificImports(StrategyCommunity)),
-//         daoConnectionModule(table, imports),
-//         fieldNamesModule(table, imports)
-//     )
-// )
-
 val CapabilityCommunity = Entity(
     "CapabilityCommunity".camel, 
     List(
@@ -116,7 +103,6 @@ val CapabilityCommunity = Entity(
         nameField,
         descriptionField,
         advocateField,
-    // createdAtField,
         createdByField
     ), Nil, List(CreatedModifiedTimesTrait))
 
@@ -137,7 +123,6 @@ val StrategyInitiativeCommunity = Entity(
         descriptionField,
         advocateField,
         "CapabilityCommunityID".camel :: string,
-        //createdAtField,
         createdByField
     ), Nil, List(CreatedModifiedTimesTrait))
 
@@ -149,4 +134,42 @@ val StrategyInitiativeCommunityTable = Table(StrategyInitiativeCommunity,
 )
 
 val StrategyInitiativeCommunityPackage = defaultPackage(StrategyInitiativeCommunityTable, allEntitySpecificImports(StrategyInitiativeCommunity))
+
+
+
+val communityKindField = "CommunityKind".camel :: CommunityKind
+
+val Community = Entity(
+    "Community".camel, 
+    List(platformIdField, idField),
+    List(
+        channelIdOptionalField,
+        communityKindField,
+
+        "ParentCommunityID".camel :: optionString,
+
+        nameField,
+        descriptionField,
+
+        advocateField,
+        "AccountabilityPartner".camel :: string,
+
+        createdByField,
+        modifiedByField,
+        requestedByField
+
+    ),
+    Nil, 
+    List(CreatedModifiedTimesTrait, DeactivationTrait)
+)
+
+val CommunityTable = Table(Community, 
+    Index(idField, Some(platformIdField)),
+    List(
+        Index(channelIdOptionalField, Some(platformIdField)),
+        Index(platformIdField, Some(communityKindField))
+    )
+)
+
+val CommunityPackage = defaultPackage(CommunityTable, allEntitySpecificImports(Community))
 
