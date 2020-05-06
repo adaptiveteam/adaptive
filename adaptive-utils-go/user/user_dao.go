@@ -30,37 +30,38 @@ func UserIDsToDisplayNamesUnsafe(dao DAO) func(userIDs []string) (res []models.K
 
 // ConvertUsersToUserProfilesAndRemoveAdaptiveBot converts users to user profiles.
 func ConvertUsersToUserProfilesAndRemoveAdaptiveBot(users []models.User) (userProfiles []models.UserProfile) {
+	users = daosUser.UserFilterActive(users)
 	for _, each := range users {
-		if !each.IsShared && !each.IsAdaptiveBot && each.DeactivatedAt == "" {
-			userProfiles = append(userProfiles,
-				models.UserProfile{Id: each.ID,
-					DisplayName: each.DisplayName,
-					FirstName:   each.FirstName,
-					LastName:    each.LastName,
-					Timezone:    each.Timezone})
+		if !each.IsShared && !each.IsAdaptiveBot {
+			userProfiles = append(userProfiles, models.ConvertUserToProfile(each))
 		}
 	}
 	return
 }
 
 // ConvertSlackUserToUser -
-func ConvertSlackUserToUser(user slack.User, teamID models.TeamID) (mUser models.User) {
+func ConvertSlackUserToUser(slackUser slack.User, 
+	teamID models.TeamID,
+	adaptiveBotID string,
+) (mUser models.User) {
 	now := core.CurrentRFCTimestamp()
 	deactivatedAt := ""
-	if user.Deleted {
+	if slackUser.Deleted {
 		deactivatedAt = now
 	}
 	return models.User{
-		ID:             user.ID,
-		DisplayName:    user.RealName,
-		FirstName:      user.Profile.FirstName,
-		LastName:       user.Profile.LastName,
-		Timezone:       user.TZ,
-		TimezoneOffset: user.TZOffset,
+		ID:             slackUser.ID,
+		DisplayName:    slackUser.RealName,
+		FirstName:      slackUser.Profile.FirstName,
+		LastName:       slackUser.Profile.LastName,
+		Timezone:       slackUser.TZ,
+		TimezoneOffset: slackUser.TZOffset,
 		PlatformID:     teamID.ToPlatformID(),
-		IsAdmin:        user.IsAdmin,
+		IsAdmin:        slackUser.IsAdmin,
+		IsAdaptiveBot:  slackUser.ID == adaptiveBotID || (adaptiveBotID == "" && slackUser.IsBot),
 		DeactivatedAt:  deactivatedAt,
 		CreatedAt:      now,
+		ModifiedAt:     now,
 		IsShared:       false,
 	}
 }
