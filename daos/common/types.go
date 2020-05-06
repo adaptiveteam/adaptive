@@ -36,3 +36,17 @@ const (
 	Initiative AdaptiveCommunityID = "initiative"
 	Competency AdaptiveCommunityID = "competency"
 )
+
+type CommunityKind string
+const (
+	AdminCommunity CommunityKind = "admin"
+	HRCommunity CommunityKind = "hr"
+	CoachingCommunity CommunityKind = "coaching"
+	UserCommunity CommunityKind = "user"
+	StrategyCommunity CommunityKind = "strategy"
+	ObjectiveManagementCommunity CommunityKind = "objective-management"
+	InitiativeManagementCommunity CommunityKind = "initiative-management"
+	CompetencyCommunity CommunityKind = "competency"
+	ObjectiveCommunity CommunityKind = "objective"
+	InitiativeCommunity CommunityKind = "initiative"
+)
