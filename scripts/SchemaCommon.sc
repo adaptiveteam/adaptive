@@ -27,6 +27,19 @@ val AdaptiveCommunityIDDef = StringBasedEnum("AdaptiveCommunityID".camel, List(
 	"Competency".camel ^^ "competency"
 ))
 
+val CommunityKindDef = StringBasedEnum("CommunityKind".camel, List(
+	"AdminCommunity".camel ^^ "admin",
+	spacedName("HRCommunity") ^^ "hr",
+	"CoachingCommunity".camel ^^ "coaching",
+	"UserCommunity".camel ^^ "user",
+	"StrategyCommunity".camel ^^ "strategy",
+	"ObjectiveManagementCommunity".camel ^^ "objective-management",
+	"InitiativeManagementCommunity".camel ^^ "initiative-management",
+	"CompetencyCommunity".camel ^^ "competency",
+	"ObjectiveCommunity".camel ^^ "objective",
+	"InitiativeCommunity".camel ^^ "initiative"
+))
+
 val commonImport = ImportClause(Some("common"), "github.com/adaptiveteam/adaptive/daos/common")
 
 val coreImport = ImportClause(Some("core"), "github.com/adaptiveteam/adaptive/core-utils-go")
@@ -59,6 +72,7 @@ def allEntitySpecificImports(entity: Entity): Imports = {
 // val AdaptiveCommunityID = TypeAlias("AdaptiveCommunityID".camel, string)
 val AdaptiveCommunityID = commonImport.simpleType(goPublicName(AdaptiveCommunityIDDef.name), AdaptiveCommunityIDDef.name, "\"\"", "S")
 
+val CommunityKind = commonImport.simpleType(goPublicName(CommunityKindDef.name), CommunityKindDef.name, "\"\"", "S")
 
 val PriorityValueDef = StringBasedEnum("PriorityValue".camel, List(
 	"UrgentPriority".camel ^^ "Urgent",
@@ -66,11 +80,6 @@ val PriorityValueDef = StringBasedEnum("PriorityValue".camel, List(
 	"MediumPriority".camel ^^ "Medium",
 	"LowPriority".camel ^^ "Low"
 ))
-
-// val priorityValueDef = TypeAlias("PriorityValue".camel, string)
-// lazy val priorityValue = TypeAlias("PriorityValue", "PriorityValue".camel, "\"\"", "S")
-// lazy val priorityValue = modelsImport.simpleType("PriorityValue", "PriorityValue".camel, "\"\"", "S")
-
 
 val ObjectiveStatusColorDef = StringBasedEnum("ObjectiveStatusColor".camel, List(
 	"ObjectiveStatusRedKey".camel ^^ "Red",
@@ -111,6 +120,7 @@ val sourceField = "Source".camel :: string
 val targetField = "Target".camel :: string
 val quarterYearField = "QuarterYear".camel :: string
 val channelIdField = "ChannelID".camel :: string
+val channelIdOptionalField = "ChannelID".camel :: optionString
 val channelIDField = channelIdField//"ChannelID".camel :: string
 val channelIdFieldWithOldDbName = channelIdField.dbName("Channel".camel)  \\ "ChannelID is a channel identifier. TODO: rename db field `channel` to `channel_id`"
 
@@ -145,5 +155,6 @@ val capabilityCommunityIDsField = (spacedName("capability community IDs") :: opt
     dbName(spacedName("capability community IDs")) \\ "community id not require d for customer/financial objectives"
 val createdByField = "CreatedBy".camel :: optionString
 val modifiedByField = "ModifiedBy".camel :: optionString
+val requestedByField = "RequestedBy".camel :: optionString
 val advocateField = "Advocate".camel :: string
 val initiativeCommunityIDField = "InitiativeCommunityID".camel :: string
