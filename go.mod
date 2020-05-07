@@ -35,7 +35,6 @@ require (
 	github.com/lib/pq v1.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.4
 	github.com/mdempsky/gocode v0.0.0-20200405233807-4acdcbdea79d // indirect
-	github.com/nlopes/slack v0.6.0
 	github.com/onsi/ginkgo v1.10.2
 	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/runc v0.1.1
@@ -43,6 +42,7 @@ require (
 	github.com/pkg/errors v0.9.0
 	github.com/rogpeppe/godef v1.1.2 // indirect
 	github.com/sirupsen/logrus v1.4.2
+	github.com/slack-go/slack v0.6.4
 	github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518 // indirect
 	github.com/stamblerre/gocode v1.0.0 // indirect
 	github.com/stretchr/testify v1.4.0
@@ -58,7 +58,7 @@ require (
 	rsc.io/sampler v1.99.99 // indirect
 )
 
-replace github.com/nlopes/slack => github.com/adaptiveteam/slack v0.13.0
+replace github.com/slack-go/slack => github.com/adaptiveteam/slack v0.14.0
 
 replace gopkg.in/urfave/cli.v1 => gopkg.in/urfave/cli.v1 v1.20.0
 

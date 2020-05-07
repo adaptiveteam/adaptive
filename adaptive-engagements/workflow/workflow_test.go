@@ -5,7 +5,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"

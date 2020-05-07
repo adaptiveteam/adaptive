@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"strconv"
 )
 

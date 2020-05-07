@@ -12,7 +12,7 @@ import (
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 func onRequestCoachClicked(request slack.InteractionCallback, mc models.MessageCallback,
