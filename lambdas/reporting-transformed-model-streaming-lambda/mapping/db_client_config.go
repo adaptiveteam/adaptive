@@ -4,19 +4,20 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
 	"github.com/jinzhu/gorm"
 )
 
 type DBClientConfig struct {
 	PlatformID   common.PlatformID `gorm:"primary_key"`
-	PlatformName string            `gorm:"type:CHAR(9)"`
+	PlatformName string            `gorm:"type:TEXT"`
 	PlatformOrg  string            `gorm:"type:TEXT"`
 	model.DBModel
 }
+
 // TableName return table name
 func (d DBClientConfig) TableName() string {
 	return "client_config"
@@ -51,7 +52,6 @@ func (d DBClientConfig) AsDelete() (op DBClientConfig) {
 	op.DBDeletedAt = &currentTime
 	return
 }
-
 
 func (d DBClientConfig) ParseUnsafe(js []byte, logger logger.AdaptiveLogger) interface{} {
 	var cpt models.ClientPlatformToken
