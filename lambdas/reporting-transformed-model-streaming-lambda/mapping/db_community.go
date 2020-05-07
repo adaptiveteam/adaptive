@@ -4,19 +4,19 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
 	"github.com/jinzhu/gorm"
 )
 
 type DBCommunity struct {
 	ID          string            `gorm:"primary_key"`
 	Active      bool              `gorm:"type:BOOLEAN"`
-	Channel     string            `gorm:"type:CHAR(9)"`
-	PlatformID  common.PlatformID `gorm:"type:CHAR(9)"`
-	RequestedBy string            `gorm:"type:CHAR(9)"`
+	Channel     string            `gorm:"type:TEXT"`
+	PlatformID  common.PlatformID `gorm:"type:TEXT"`
+	RequestedBy string            `gorm:"type:TEXT"`
 	CreatedAt   string            `gorm:"type:TEXT"`
 	model.DBModel
 }

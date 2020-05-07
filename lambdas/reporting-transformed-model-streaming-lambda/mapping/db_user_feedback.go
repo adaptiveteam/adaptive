@@ -14,15 +14,15 @@ import (
 
 type DBUserFeedback struct {
 	ID               string            `gorm:"primary_key"`
-	CompetencyID     string            `gorm:"type:CHAR(36)"`
-	Source           string            `gorm:"type:CHAR(9)"`
-	Target           string            `gorm:"type:CHAR(9)"`
-	Channel          string            `gorm:"type:CHAR(9)"`
+	CompetencyID     string            `gorm:"type:TEXT"`
+	Source           string            `gorm:"type:TEXT"`
+	Target           string            `gorm:"type:TEXT"`
+	Channel          string            `gorm:"type:TEXT"`
 	Quarter          int               `gorm:"type:SMALLINT"`
 	Year             int               `gorm:"type:SMALLINT"`
 	ConfidenceFactor int               `gorm:"type:SMALLINT"`
 	Feedback         string            `gorm:"type:TEXT"`
-	PlatformID       common.PlatformID `gorm:"type:CHAR(9)"`
+	PlatformID       common.PlatformID `gorm:"type:TEXT"`
 	MsgTimestamp     string            `gorm:"type:TEXT"`
 	model.DBModel
 }

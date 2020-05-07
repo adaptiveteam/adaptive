@@ -68,24 +68,17 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create UserObjectiveProgress.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
-	}
-}
-
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create UserObjectiveProgress.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 // TableNameSuffixVar is a global variable that contains table name suffix.
@@ -101,7 +94,7 @@ func TableName(prefix string) string {
 func (d DAOImpl) Create(userObjectiveProgress UserObjectiveProgress) (err error) {
 	emptyFields, ok := userObjectiveProgress.CollectEmptyFields()
 	if ok {
-		err = d.Dynamo.PutTableEntry(userObjectiveProgress, d.Name)
+		err = d.ConnGen.Dynamo.PutTableEntry(userObjectiveProgress, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -112,7 +105,7 @@ func (d DAOImpl) Create(userObjectiveProgress UserObjectiveProgress) (err error)
 // CreateUnsafe saves the UserObjectiveProgress.
 func (d DAOImpl) CreateUnsafe(userObjectiveProgress UserObjectiveProgress) {
 	err2 := d.Create(userObjectiveProgress)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s, createdOn==%s in %s\n", userObjectiveProgress.ID, userObjectiveProgress.CreatedOn, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create id==%s, createdOn==%s in %s\n", userObjectiveProgress.ID, userObjectiveProgress.CreatedOn, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -121,7 +114,7 @@ func (d DAOImpl) Read(id string, createdOn string) (out UserObjectiveProgress, e
 	var outs []UserObjectiveProgress
 	outs, err = d.ReadOrEmpty(id, createdOn)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s, createdOn==%s in %s\n", id, createdOn, d.Name)
+		err = fmt.Errorf("Not found id==%s, createdOn==%s in %s\n", id, createdOn, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -133,7 +126,7 @@ func (d DAOImpl) Read(id string, createdOn string) (out UserObjectiveProgress, e
 // ReadUnsafe reads the UserObjectiveProgress. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string, createdOn string) UserObjectiveProgress {
 	out, err2 := d.Read(id, createdOn)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s, createdOn==%s in %s\n", id, createdOn, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading id==%s, createdOn==%s in %s\n", id, createdOn, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -143,7 +136,7 @@ func (d DAOImpl) ReadOrEmpty(id string, createdOn string) (out []UserObjectivePr
 	var outOrEmpty UserObjectiveProgress
 	ids := idParams(id, createdOn)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.ID == id && outOrEmpty.CreatedOn == createdOn {
 			out = append(out, outOrEmpty)
@@ -151,7 +144,7 @@ func (d DAOImpl) ReadOrEmpty(id string, createdOn string) (out []UserObjectivePr
 			err = fmt.Errorf("Requested ids: id==%s, createdOn==%s are different from the found ones: id==%s, createdOn==%s", id, createdOn, outOrEmpty.ID, outOrEmpty.CreatedOn) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "UserObjectiveProgress DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "UserObjectiveProgress DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -159,7 +152,7 @@ func (d DAOImpl) ReadOrEmpty(id string, createdOn string) (out []UserObjectivePr
 // ReadOrEmptyUnsafe reads the UserObjectiveProgress. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string, createdOn string) []UserObjectiveProgress {
 	out, err2 := d.ReadOrEmpty(id, createdOn)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s, createdOn==%s in %s\n", id, createdOn, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading id==%s, createdOn==%s in %s\n", id, createdOn, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -173,7 +166,7 @@ func (d DAOImpl) CreateOrUpdate(userObjectiveProgress UserObjectiveProgress) (er
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userObjectiveProgress)
-			err = errors.Wrapf(err, "UserObjectiveProgress DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "UserObjectiveProgress DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := userObjectiveProgress.CollectEmptyFields()
 			if ok {
@@ -184,18 +177,18 @@ func (d DAOImpl) CreateOrUpdate(userObjectiveProgress UserObjectiveProgress) (er
 				expr, exprAttributes, names := updateExpression(userObjectiveProgress, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "UserObjectiveProgress DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "UserObjectiveProgress DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -208,26 +201,26 @@ func (d DAOImpl) CreateOrUpdate(userObjectiveProgress UserObjectiveProgress) (er
 // CreateOrUpdateUnsafe saves the UserObjectiveProgress regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(userObjectiveProgress UserObjectiveProgress) {
 	err2 := d.CreateOrUpdate(userObjectiveProgress)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userObjectiveProgress, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", userObjectiveProgress, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 // Delete removes UserObjectiveProgress from db
 func (d DAOImpl)Delete(id string, createdOn string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id, createdOn))
+	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(id, createdOn))
 }
 
 
 // DeleteUnsafe deletes UserObjectiveProgress and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string, createdOn string) {
 	err2 := d.Delete(id, createdOn)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s, createdOn==%s in %s\n", id, createdOn, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete id==%s, createdOn==%s in %s\n", id, createdOn, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 func (d DAOImpl)ReadByID(id string) (out []UserObjectiveProgress, err error) {
 	var instances []UserObjectiveProgress
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "IDIndex",
 		Condition: "id = :a0",
 		Attributes: map[string]interface{}{
@@ -241,14 +234,14 @@ func (d DAOImpl)ReadByID(id string) (out []UserObjectiveProgress, err error) {
 
 func (d DAOImpl)ReadByIDUnsafe(id string) (out []UserObjectiveProgress) {
 	out, err2 := d.ReadByID(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query IDIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query IDIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByCreatedOn(createdOn string) (out []UserObjectiveProgress, err error) {
 	var instances []UserObjectiveProgress
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "CreatedOnIndex",
 		Condition: "created_on = :a0",
 		Attributes: map[string]interface{}{
@@ -262,7 +255,7 @@ func (d DAOImpl)ReadByCreatedOn(createdOn string) (out []UserObjectiveProgress, 
 
 func (d DAOImpl)ReadByCreatedOnUnsafe(createdOn string) (out []UserObjectiveProgress) {
 	out, err2 := d.ReadByCreatedOn(createdOn)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query CreatedOnIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query CreatedOnIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 

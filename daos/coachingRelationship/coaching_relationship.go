@@ -59,24 +59,17 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create CoachingRelationship.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
-	}
-}
-
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create CoachingRelationship.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 // TableNameSuffixVar is a global variable that contains table name suffix.
@@ -92,7 +85,7 @@ func TableName(prefix string) string {
 func (d DAOImpl) Create(coachingRelationship CoachingRelationship) (err error) {
 	emptyFields, ok := coachingRelationship.CollectEmptyFields()
 	if ok {
-		err = d.Dynamo.PutTableEntry(coachingRelationship, d.Name)
+		err = d.ConnGen.Dynamo.PutTableEntry(coachingRelationship, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -103,7 +96,7 @@ func (d DAOImpl) Create(coachingRelationship CoachingRelationship) (err error) {
 // CreateUnsafe saves the CoachingRelationship.
 func (d DAOImpl) CreateUnsafe(coachingRelationship CoachingRelationship) {
 	err2 := d.Create(coachingRelationship)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create coachQuarterYear==%s in %s\n", coachingRelationship.CoachQuarterYear, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create coachQuarterYear==%s in %s\n", coachingRelationship.CoachQuarterYear, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -112,7 +105,7 @@ func (d DAOImpl) Read(coachQuarterYear string) (out CoachingRelationship, err er
 	var outs []CoachingRelationship
 	outs, err = d.ReadOrEmpty(coachQuarterYear)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name)
+		err = fmt.Errorf("Not found coachQuarterYear==%s in %s\n", coachQuarterYear, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -124,7 +117,7 @@ func (d DAOImpl) Read(coachQuarterYear string) (out CoachingRelationship, err er
 // ReadUnsafe reads the CoachingRelationship. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(coachQuarterYear string) CoachingRelationship {
 	out, err2 := d.Read(coachQuarterYear)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading coachQuarterYear==%s in %s\n", coachQuarterYear, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -134,7 +127,7 @@ func (d DAOImpl) ReadOrEmpty(coachQuarterYear string) (out []CoachingRelationshi
 	var outOrEmpty CoachingRelationship
 	ids := idParams(coachQuarterYear)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.CoachQuarterYear == coachQuarterYear {
 			out = append(out, outOrEmpty)
@@ -142,7 +135,7 @@ func (d DAOImpl) ReadOrEmpty(coachQuarterYear string) (out []CoachingRelationshi
 			err = fmt.Errorf("Requested ids: coachQuarterYear==%s are different from the found ones: coachQuarterYear==%s", coachQuarterYear, outOrEmpty.CoachQuarterYear) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "CoachingRelationship DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "CoachingRelationship DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -150,7 +143,7 @@ func (d DAOImpl) ReadOrEmpty(coachQuarterYear string) (out []CoachingRelationshi
 // ReadOrEmptyUnsafe reads the CoachingRelationship. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(coachQuarterYear string) []CoachingRelationship {
 	out, err2 := d.ReadOrEmpty(coachQuarterYear)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading coachQuarterYear==%s in %s\n", coachQuarterYear, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -164,7 +157,7 @@ func (d DAOImpl) CreateOrUpdate(coachingRelationship CoachingRelationship) (err 
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(coachingRelationship)
-			err = errors.Wrapf(err, "CoachingRelationship DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "CoachingRelationship DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := coachingRelationship.CollectEmptyFields()
 			if ok {
@@ -175,18 +168,18 @@ func (d DAOImpl) CreateOrUpdate(coachingRelationship CoachingRelationship) (err 
 				expr, exprAttributes, names := updateExpression(coachingRelationship, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "CoachingRelationship DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "CoachingRelationship DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -199,26 +192,26 @@ func (d DAOImpl) CreateOrUpdate(coachingRelationship CoachingRelationship) (err 
 // CreateOrUpdateUnsafe saves the CoachingRelationship regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(coachingRelationship CoachingRelationship) {
 	err2 := d.CreateOrUpdate(coachingRelationship)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", coachingRelationship, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", coachingRelationship, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 // Delete removes CoachingRelationship from db
 func (d DAOImpl)Delete(coachQuarterYear string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(coachQuarterYear))
+	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(coachQuarterYear))
 }
 
 
 // DeleteUnsafe deletes CoachingRelationship and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(coachQuarterYear string) {
 	err2 := d.Delete(coachQuarterYear)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete coachQuarterYear==%s in %s\n", coachQuarterYear, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete coachQuarterYear==%s in %s\n", coachQuarterYear, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 func (d DAOImpl)ReadByCoachQuarterYear(coachQuarterYear string) (out []CoachingRelationship, err error) {
 	var instances []CoachingRelationship
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "CoachQuarterYearIndex",
 		Condition: "coach_quarter_year = :a0",
 		Attributes: map[string]interface{}{
@@ -232,14 +225,14 @@ func (d DAOImpl)ReadByCoachQuarterYear(coachQuarterYear string) (out []CoachingR
 
 func (d DAOImpl)ReadByCoachQuarterYearUnsafe(coachQuarterYear string) (out []CoachingRelationship) {
 	out, err2 := d.ReadByCoachQuarterYear(coachQuarterYear)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query CoachQuarterYearIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query CoachQuarterYearIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByQuarterYear(quarter int, year int) (out []CoachingRelationship, err error) {
 	var instances []CoachingRelationship
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "QuarterYearIndex",
 		Condition: "quarter = :a0 and #year = :a1",
 		Attributes: map[string]interface{}{
@@ -254,14 +247,14 @@ func (d DAOImpl)ReadByQuarterYear(quarter int, year int) (out []CoachingRelation
 
 func (d DAOImpl)ReadByQuarterYearUnsafe(quarter int, year int) (out []CoachingRelationship) {
 	out, err2 := d.ReadByQuarterYear(quarter, year)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query QuarterYearIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query QuarterYearIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByCoacheeQuarterYear(coacheeQuarterYear string) (out []CoachingRelationship, err error) {
 	var instances []CoachingRelationship
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "CoacheeQuarterYearIndex",
 		Condition: "coachee_quarter_year = :a0",
 		Attributes: map[string]interface{}{
@@ -275,7 +268,7 @@ func (d DAOImpl)ReadByCoacheeQuarterYear(coacheeQuarterYear string) (out []Coach
 
 func (d DAOImpl)ReadByCoacheeQuarterYearUnsafe(coacheeQuarterYear string) (out []CoachingRelationship) {
 	out, err2 := d.ReadByCoacheeQuarterYear(coacheeQuarterYear)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query CoacheeQuarterYearIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query CoacheeQuarterYearIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
