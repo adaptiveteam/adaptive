@@ -8,7 +8,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	// core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"log"
 )
 

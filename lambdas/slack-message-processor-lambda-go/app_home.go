@@ -2,8 +2,8 @@ package lambda
 
 import (
 	"encoding/json"
-	// "github.com/nlopes/slack"
-	"github.com/nlopes/slack/slackevents"
+	// "github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 )
 
 type AppHomeOpenedEvent = slackevents.AppHomeOpenedEvent

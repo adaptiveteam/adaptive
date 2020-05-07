@@ -3,7 +3,7 @@ package engagement_slack_mapper
 import (
 	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"fmt"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 )

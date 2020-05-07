@@ -19,7 +19,7 @@ import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 const (

@@ -14,7 +14,7 @@ import (
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/sirupsen/logrus"
 )
 

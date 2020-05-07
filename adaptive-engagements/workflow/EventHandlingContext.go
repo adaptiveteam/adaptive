@@ -1,7 +1,7 @@
 package workflow
 
 import (
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"

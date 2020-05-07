@@ -7,8 +7,8 @@ import (
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"fmt"
 	// "encoding/json"
-	"github.com/nlopes/slack"
-	// "github.com/nlopes/slack/slackevents"
+	"github.com/slack-go/slack"
+	// "github.com/slack-go/slack/slackevents"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 )
 

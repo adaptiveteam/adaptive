@@ -6,7 +6,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 // DAO is a wrapper around the _adaptive_users Dynamo DB table to work with adaptive-users table (CRUD)
