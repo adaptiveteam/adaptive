@@ -21,11 +21,12 @@ type Community struct  {
 	ParentCommunityID string `json:"parent_community_id,omitempty"`
 	Name string `json:"name"`
 	Description string `json:"description"`
-	Advocate string `json:"advocate"`
-	AccountabilityPartner string `json:"accountability_partner"`
+	// Owner, responsible person
+	Advocate string `json:"advocate,omitempty"`
+	// Nudging person
+	AccountabilityPartner string `json:"accountability_partner,omitempty"`
 	CreatedBy string `json:"created_by,omitempty"`
 	ModifiedBy string `json:"modified_by,omitempty"`
-	RequestedBy string `json:"requested_by,omitempty"`
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
 	// Automatically maintained field
@@ -51,8 +52,6 @@ func (community Community)CollectEmptyFields() (emptyFields []string, ok bool) {
 	if community.CommunityKind == "" { emptyFields = append(emptyFields, "CommunityKind")}
 	if community.Name == "" { emptyFields = append(emptyFields, "Name")}
 	if community.Description == "" { emptyFields = append(emptyFields, "Description")}
-	if community.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
-	if community.AccountabilityPartner == "" { emptyFields = append(emptyFields, "AccountabilityPartner")}
 	ok = len(emptyFields) == 0
 	return
 }
@@ -305,10 +304,9 @@ func allParams(community Community, old Community) (params map[string]*dynamodb.
 	if community.AccountabilityPartner != old.AccountabilityPartner { params[":a8"] = common.DynS(community.AccountabilityPartner) }
 	if community.CreatedBy != old.CreatedBy { params[":a9"] = common.DynS(community.CreatedBy) }
 	if community.ModifiedBy != old.ModifiedBy { params[":a10"] = common.DynS(community.ModifiedBy) }
-	if community.RequestedBy != old.RequestedBy { params[":a11"] = common.DynS(community.RequestedBy) }
-	if community.CreatedAt != old.CreatedAt { params[":a12"] = common.DynS(community.CreatedAt) }
-	if community.ModifiedAt != old.ModifiedAt { params[":a13"] = common.DynS(community.ModifiedAt) }
-	if community.DeactivatedAt != old.DeactivatedAt { params[":a14"] = common.DynS(community.DeactivatedAt) }
+	if community.CreatedAt != old.CreatedAt { params[":a11"] = common.DynS(community.CreatedAt) }
+	if community.ModifiedAt != old.ModifiedAt { params[":a12"] = common.DynS(community.ModifiedAt) }
+	if community.DeactivatedAt != old.DeactivatedAt { params[":a13"] = common.DynS(community.DeactivatedAt) }
 	return
 }
 func updateExpression(community Community, old Community) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -326,10 +324,9 @@ func updateExpression(community Community, old Community) (expr string, params m
 	if community.AccountabilityPartner != old.AccountabilityPartner { updateParts = append(updateParts, "accountability_partner = :a8"); params[":a8"] = common.DynS(community.AccountabilityPartner);  }
 	if community.CreatedBy != old.CreatedBy { updateParts = append(updateParts, "created_by = :a9"); params[":a9"] = common.DynS(community.CreatedBy);  }
 	if community.ModifiedBy != old.ModifiedBy { updateParts = append(updateParts, "modified_by = :a10"); params[":a10"] = common.DynS(community.ModifiedBy);  }
-	if community.RequestedBy != old.RequestedBy { updateParts = append(updateParts, "requested_by = :a11"); params[":a11"] = common.DynS(community.RequestedBy);  }
-	if community.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a12"); params[":a12"] = common.DynS(community.CreatedAt);  }
-	if community.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a13"); params[":a13"] = common.DynS(community.ModifiedAt);  }
-	if community.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a14"); params[":a14"] = common.DynS(community.DeactivatedAt);  }
+	if community.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a11"); params[":a11"] = common.DynS(community.CreatedAt);  }
+	if community.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a12"); params[":a12"] = common.DynS(community.ModifiedAt);  }
+	if community.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a13"); params[":a13"] = common.DynS(community.DeactivatedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return

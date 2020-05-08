@@ -44,8 +44,6 @@ const (
 	CoachingCommunity CommunityKind = "coaching"
 	UserCommunity CommunityKind = "user"
 	StrategyCommunity CommunityKind = "strategy"
-	ObjectiveManagementCommunity CommunityKind = "objective-management"
-	InitiativeManagementCommunity CommunityKind = "initiative-management"
 	CompetencyCommunity CommunityKind = "competency"
 	ObjectiveCommunity CommunityKind = "objective"
 	InitiativeCommunity CommunityKind = "initiative"

@@ -15,7 +15,6 @@ const (
 	AccountabilityPartner FieldName = "accountability_partner"
 	CreatedBy FieldName = "created_by"
 	ModifiedBy FieldName = "modified_by"
-	RequestedBy FieldName = "requested_by"
 )
 
 type IndexName string

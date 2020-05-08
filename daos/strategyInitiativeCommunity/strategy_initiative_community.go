@@ -18,7 +18,7 @@ type StrategyInitiativeCommunity struct  {
 	PlatformID common.PlatformID `json:"platform_id"`
 	Name string `json:"name"`
 	Description string `json:"description"`
-	Advocate string `json:"advocate"`
+	Advocate string `json:"advocate,omitempty"`
 	CapabilityCommunityID string `json:"capability_community_id"`
 	CreatedBy string `json:"created_by,omitempty"`
 	// Automatically maintained field
@@ -34,7 +34,6 @@ func (strategyInitiativeCommunity StrategyInitiativeCommunity)CollectEmptyFields
 	if strategyInitiativeCommunity.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
 	if strategyInitiativeCommunity.Name == "" { emptyFields = append(emptyFields, "Name")}
 	if strategyInitiativeCommunity.Description == "" { emptyFields = append(emptyFields, "Description")}
-	if strategyInitiativeCommunity.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
 	if strategyInitiativeCommunity.CapabilityCommunityID == "" { emptyFields = append(emptyFields, "CapabilityCommunityID")}
 	ok = len(emptyFields) == 0
 	return
