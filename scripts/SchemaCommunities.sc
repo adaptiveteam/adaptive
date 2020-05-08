@@ -151,13 +151,12 @@ val Community = Entity(
         nameField,
         descriptionField,
 
-        advocateField,
-        "AccountabilityPartner".camel :: string,
+        advocateField \\ "Owner, responsible person",
+        ("AccountabilityPartner".camel :: optionString) \\ "Nudging person",
 
         createdByField,
-        modifiedByField,
-        requestedByField
-
+        modifiedByField
+        // requestedByField
     ),
     Nil, 
     List(CreatedModifiedTimesTrait, DeactivationTrait)

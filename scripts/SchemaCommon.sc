@@ -28,16 +28,16 @@ val AdaptiveCommunityIDDef = StringBasedEnum("AdaptiveCommunityID".camel, List(
 ))
 
 val CommunityKindDef = StringBasedEnum("CommunityKind".camel, List(
-	"AdminCommunity".camel ^^ "admin",
-	spacedName("HRCommunity") ^^ "hr",
-	"CoachingCommunity".camel ^^ "coaching",
-	"UserCommunity".camel ^^ "user",
-	"StrategyCommunity".camel ^^ "strategy",
-	"ObjectiveManagementCommunity".camel ^^ "objective-management",
-	"InitiativeManagementCommunity".camel ^^ "initiative-management",
-	"CompetencyCommunity".camel ^^ "competency",
-	"ObjectiveCommunity".camel ^^ "objective",
-	"InitiativeCommunity".camel ^^ "initiative"
+	"AdminCommunity".camel ^^ "admin",          // one
+	spacedName("HRCommunity") ^^ "hr",          // one
+	"CoachingCommunity".camel ^^ "coaching",    // one
+	"UserCommunity".camel ^^ "user",            // one
+	"StrategyCommunity".camel ^^ "strategy",    // one
+	"CompetencyCommunity".camel ^^ "competency",// one
+	// "ObjectiveManagementCommunity".camel ^^ "objective-management",
+	// "InitiativeManagementCommunity".camel ^^ "initiative-management",
+	"ObjectiveCommunity".camel ^^ "objective",  // many
+	"InitiativeCommunity".camel ^^ "initiative" // many
 ))
 
 val commonImport = ImportClause(Some("common"), "github.com/adaptiveteam/adaptive/daos/common")
@@ -155,6 +155,6 @@ val capabilityCommunityIDsField = (spacedName("capability community IDs") :: opt
     dbName(spacedName("capability community IDs")) \\ "community id not require d for customer/financial objectives"
 val createdByField = "CreatedBy".camel :: optionString
 val modifiedByField = "ModifiedBy".camel :: optionString
-val requestedByField = "RequestedBy".camel :: optionString
-val advocateField = "Advocate".camel :: string
+// val requestedByField = "RequestedBy".camel :: optionString
+val advocateField = "Advocate".camel :: optionString
 val initiativeCommunityIDField = "InitiativeCommunityID".camel :: string
