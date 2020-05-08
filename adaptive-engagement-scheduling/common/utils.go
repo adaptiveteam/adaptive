@@ -8,12 +8,9 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 
 	acfn "github.com/adaptiveteam/adaptive/adaptive-check-function-names"
-	ac "github.com/adaptiveteam/adaptive/adaptive-checks"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	aug "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	business_time "github.com/adaptiveteam/adaptive/business-time"
-	"github.com/adaptiveteam/adaptive/checks"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
@@ -25,66 +22,6 @@ var (
 	IDOCreateCheck       = aug.UserEngagementCheckWithValue{
 		CheckIdentifier: acfn.IDOsExistForMe,
 		CheckValue:      false,
-	}
-	ProductionProfile = checks.CheckFunctionMap{
-		// Feedback
-		acfn.FeedbackGivenThisQuarter: ac.FeedbackGivenForTheQuarter,
-		acfn.FeedbackForThePreviousQuarterExists: ac.FeedbackForThePreviousQuarterExists,
-		acfn.InLastMonthOfQuarter: func(userID string, date business_time.Date) (rv bool) {
-			return date.GetMonth()%3 == 0
-		},
-
-		// Community membership
-		acfn.InCapabilityCommunity: ac.InCapabilityCommunity,
-		acfn.InValuesCommunity:     ac.InCompetenciesCommunity,
-		acfn.InHRCommunity:         ac.InHRCommunity,
-		acfn.InStrategyCommunity:   ac.InStrategyCommunity,
-		acfn.InInitiativeCommunity: ac.InitiativeCommunityExistsForMe,
-
-		// Component existence
-
-		// Miscellaneous
-		acfn.UserSettingsExist: func(userID string, date business_time.Date) (rv bool) {
-			return true
-		},
-		acfn.HolidaysExist:                                     ac.HolidaysExist,
-		acfn.CoacheesExist:                                     ac.CoacheesExist,
-		acfn.AdvocatesExist:                                    ac.AdvocatesExist,
-		acfn.CollaborationReportExists:                         ac.ReportExists,
-		acfn.UndeliveredEngagementsExistForMe:                  ac.UndeliveredEngagementsExistForMe,
-		acfn.UndeliveredEngagementsOrPostponedEventsExistForMe: ac.UndeliveredEngagementsOrPostponedEventsExistForMe,
-		acfn.CanBeNudgedForIDO:                                 ac.CanBeNudgedForIDOCreation,
-
-		// Strategy component existence independent of the user
-		acfn.TeamValuesExist:     ac.TeamValuesExist,
-		acfn.CompanyVisionExists: ac.CompanyVisionExists,
-		acfn.ObjectivesExist:     ac.ObjectivesExist,
-		acfn.InitiativesExist:    ac.InitiativesExistInMyCapabilityCommunities,
-
-		// Strategy component existence for a given user
-		acfn.IDOsExistForMe:        ac.IDOsExistForMe,
-		acfn.ObjectivesExistForMe:  ac.ObjectivesExistForMe,
-		acfn.InitiativesExistForMe: ac.InitiativesExistForMe,
-
-		// Stale components exist for a specific individual
-		acfn.StaleIDOsExistForMe:        ac.StaleIDOsExist,
-		acfn.StaleInitiativesExistForMe: ac.StaleInitiativesExistForMe,
-		acfn.StaleObjectivesExistForMe:  ac.StaleObjectivesExistForMe,
-
-		// Community existence
-		acfn.CapabilityCommunityExists: ac.CapabilityCommunityExists,
-		// TODO: A doubt here
-		acfn.MultipleCapabilityCommunitiesExists: ac.MultipleCapabilityCommunitiesExists,
-		acfn.InitiativeCommunityExists:           ac.InitiativeCommunityExistsForMe,
-		// TODO: Implement this
-		acfn.MultipleInitiativeCommunitiesExists: func(userID string, date business_time.Date) (rv bool) {
-			return false
-		},
-
-		// State of community
-		acfn.ObjectivesExistInMyCapabilityCommunities:  ac.ObjectivesExistInMyCapabilityCommunities,
-		acfn.InitiativesExistInMyCapabilityCommunities: ac.InitiativesExistInMyCapabilityCommunities,
-		acfn.InitiativesExistInMyInitiativeCommunities: ac.InitiativesExistInMyInitiativeCommunities,
 	}
 )
 
