@@ -660,7 +660,8 @@ val packages = List(
     ObjectiveTypeDictionaryPackage,
     PostponedEventPackage,
     SlackTeamPackage,
-    CommunityPackage
+    CommunityPackage,
+    ChannelMemberPackage,
     )
 val daosProject = GoProjectFolder("daos", packages)
 
@@ -687,7 +688,8 @@ val coreTerraformProject = TerraformProjectFolder("daos/terraform", List(
     ObjectiveTypeDictionaryTable,
     PostponedEventTable,
     SlackTeamTable,
-    CommunityTable
+    CommunityTable,
+    ChannelMemberTable,
     ))
 
 val workspace: Workspace = List(daosProject, coreTerraformProject)

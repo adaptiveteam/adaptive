@@ -172,3 +172,23 @@ val CommunityTable = Table(Community,
 
 val CommunityPackage = defaultPackage(CommunityTable, allEntitySpecificImports(Community))
 
+
+val ChannelMember = Entity(
+    "ChannelMember".camel, 
+    List(
+        channelIDField,
+        userIDField
+    ),
+    List(
+        platformIdField,
+    )
+)
+val ChannelMemberTable = Table(ChannelMember, 
+    Index(channelIDField, Some(userIDField)),
+    List(
+        Index(channelIDField, None),
+        Index(userIDField, None),
+        Index(platformIdField, Some(userIDField))
+    )
+)
+val ChannelMemberPackage = defaultPackage(ChannelMemberTable, imports)
