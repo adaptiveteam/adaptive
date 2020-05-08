@@ -1,114 +1,16 @@
 package adaptive_dynamic_menu
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	"fmt"
 	"testing"
 
-	acfn "github.com/adaptiveteam/adaptive/adaptive-check-function-names"
-	bt "github.com/adaptiveteam/adaptive/business-time"
-	"github.com/adaptiveteam/adaptive/checks"
+	// acfn "github.com/adaptiveteam/adaptive/adaptive-check-function-names"
+	// bt "github.com/adaptiveteam/adaptive/business-time"
+	// "github.com/adaptiveteam/adaptive/checks"
 	menu "github.com/adaptiveteam/adaptive/dynamic-menu"
 	"github.com/adaptiveteam/adaptive/engagement-builder/model"
 )
-
-var AllTrueTestProfile = map[string]checks.CheckFunction{
-	acfn.IDOsExistForMe:                                    checks.ReturnsTrue,
-	acfn.CanBeNudgedForIDO:                                 checks.ReturnsTrue,
-	acfn.StaleIDOsExistForMe:                               checks.ReturnsTrue,
-	acfn.CompanyVisionExists:                               checks.ReturnsTrue,
-	acfn.InStrategyCommunity:                               checks.ReturnsTrue,
-	acfn.InitiativesExist:                                  checks.ReturnsTrue,
-	acfn.ObjectivesExistForMe:                              checks.ReturnsTrue,
-	acfn.StaleObjectivesExistForMe:                         checks.ReturnsTrue,
-	acfn.ObjectivesExistInMyCapabilityCommunities:          checks.ReturnsTrue,
-	acfn.ObjectivesExist:                                   checks.ReturnsTrue,
-	acfn.InCapabilityCommunity:                             checks.ReturnsTrue,
-	acfn.CapabilityCommunityExists:                         checks.ReturnsTrue,
-	acfn.MultipleCapabilityCommunitiesExists:               checks.ReturnsTrue,
-	acfn.InitiativesExistForMe:                             checks.ReturnsTrue,
-	acfn.InitiativesExistInMyCapabilityCommunities:         checks.ReturnsTrue,
-	acfn.InitiativesExistInMyInitiativeCommunities:         checks.ReturnsTrue,
-	acfn.InitiativeCommunityExists:                         checks.ReturnsTrue,
-	acfn.StaleInitiativesExistForMe:                        checks.ReturnsTrue,
-	acfn.InInitiativeCommunity:                             checks.ReturnsTrue,
-	acfn.TeamValuesExist:                                   checks.ReturnsTrue,
-	acfn.InValuesCommunity:                                 checks.ReturnsTrue,
-	acfn.HolidaysExist:                                     checks.ReturnsTrue,
-	acfn.InHRCommunity:                                     checks.ReturnsTrue,
-	acfn.UndeliveredEngagementsExistForMe:                  checks.ReturnsTrue,
-	acfn.UndeliveredEngagementsOrPostponedEventsExistForMe: checks.ReturnsTrue,
-	acfn.CollaborationReportExists:                         checks.ReturnsTrue,
-	acfn.InLastMonthOfQuarter:                              checks.ReturnsTrue,
-	acfn.UserSettingsExist:                                 checks.ReturnsTrue,
-	acfn.CoacheesExist:                                     checks.ReturnsTrue,
-	acfn.AdvocatesExist:                                    checks.ReturnsTrue,
-}
-
-var AllFalseTestProfile = map[string]checks.CheckFunction{
-	acfn.IDOsExistForMe:                                    checks.ReturnsFalse,
-	acfn.CanBeNudgedForIDO:                                 checks.ReturnsFalse,
-	acfn.StaleIDOsExistForMe:                               checks.ReturnsFalse,
-	acfn.CompanyVisionExists:                               checks.ReturnsFalse,
-	acfn.InStrategyCommunity:                               checks.ReturnsFalse,
-	acfn.InitiativesExist:                                  checks.ReturnsFalse,
-	acfn.ObjectivesExistForMe:                              checks.ReturnsFalse,
-	acfn.StaleObjectivesExistForMe:                         checks.ReturnsFalse,
-	acfn.ObjectivesExistInMyCapabilityCommunities:          checks.ReturnsFalse,
-	acfn.ObjectivesExist:                                   checks.ReturnsFalse,
-	acfn.InCapabilityCommunity:                             checks.ReturnsFalse,
-	acfn.CapabilityCommunityExists:                         checks.ReturnsFalse,
-	acfn.MultipleCapabilityCommunitiesExists:               checks.ReturnsFalse,
-	acfn.InitiativesExistForMe:                             checks.ReturnsFalse,
-	acfn.InitiativesExistInMyCapabilityCommunities:         checks.ReturnsFalse,
-	acfn.InitiativesExistInMyInitiativeCommunities:         checks.ReturnsFalse,
-	acfn.InitiativeCommunityExists:                         checks.ReturnsFalse,
-	acfn.StaleInitiativesExistForMe:                        checks.ReturnsFalse,
-	acfn.InInitiativeCommunity:                             checks.ReturnsFalse,
-	acfn.TeamValuesExist:                                   checks.ReturnsFalse,
-	acfn.InValuesCommunity:                                 checks.ReturnsFalse,
-	acfn.HolidaysExist:                                     checks.ReturnsFalse,
-	acfn.InHRCommunity:                                     checks.ReturnsFalse,
-	acfn.UndeliveredEngagementsExistForMe:                  checks.ReturnsFalse,
-	acfn.UndeliveredEngagementsOrPostponedEventsExistForMe: checks.ReturnsFalse,
-	acfn.CollaborationReportExists:                         checks.ReturnsFalse,
-	acfn.InLastMonthOfQuarter:                              checks.ReturnsFalse,
-	acfn.UserSettingsExist:                                 checks.ReturnsFalse,
-	acfn.CoacheesExist:                                     checks.ReturnsFalse,
-	acfn.AdvocatesExist:                                    checks.ReturnsFalse,
-}
-
-var IndividualContributor = map[string]checks.CheckFunction{
-	acfn.IDOsExistForMe:                                    checks.ReturnsFalse,
-	acfn.CanBeNudgedForIDO:                                 checks.ReturnsTrue,
-	acfn.StaleIDOsExistForMe:                               checks.ReturnsFalse,
-	acfn.CompanyVisionExists:                               checks.ReturnsTrue,
-	acfn.InStrategyCommunity:                               checks.ReturnsFalse,
-	acfn.InitiativesExist:                                  checks.ReturnsFalse,
-	acfn.ObjectivesExistForMe:                              checks.ReturnsFalse,
-	acfn.StaleObjectivesExistForMe:                         checks.ReturnsFalse,
-	acfn.ObjectivesExistInMyCapabilityCommunities:          checks.ReturnsTrue,
-	acfn.ObjectivesExist:                                   checks.ReturnsTrue,
-	acfn.InCapabilityCommunity:                             checks.ReturnsFalse,
-	acfn.CapabilityCommunityExists:                         checks.ReturnsFalse,
-	acfn.MultipleCapabilityCommunitiesExists:               checks.ReturnsTrue,
-	acfn.InitiativesExistForMe:                             checks.ReturnsFalse,
-	acfn.InitiativesExistInMyCapabilityCommunities:         checks.ReturnsFalse,
-	acfn.InitiativesExistInMyInitiativeCommunities:         checks.ReturnsTrue,
-	acfn.InitiativeCommunityExists:                         checks.ReturnsTrue,
-	acfn.StaleInitiativesExistForMe:                        checks.ReturnsFalse,
-	acfn.InInitiativeCommunity:                             checks.ReturnsTrue,
-	acfn.TeamValuesExist:                                   checks.ReturnsTrue,
-	acfn.InValuesCommunity:                                 checks.ReturnsFalse,
-	acfn.HolidaysExist:                                     checks.ReturnsTrue,
-	acfn.InHRCommunity:                                     checks.ReturnsFalse,
-	acfn.UndeliveredEngagementsExistForMe:                  checks.ReturnsFalse,
-	acfn.UndeliveredEngagementsOrPostponedEventsExistForMe: checks.ReturnsFalse,
-	acfn.CollaborationReportExists:                         checks.ReturnsFalse,
-	acfn.InLastMonthOfQuarter:                              checks.ReturnsFalse,
-	acfn.UserSettingsExist:                                 checks.ReturnsTrue,
-	acfn.CoacheesExist:                                     checks.ReturnsTrue,
-	acfn.AdvocatesExist:                                    checks.ReturnsTrue,
-}
 
 var bindings = menu.FunctionBindings{
 	"FetchEngagementsForMe":      "fetch_engagements_for_me",
@@ -219,9 +121,7 @@ func Test_AllTrue(t *testing.T) {
 		},
 	}
 	checkMenu(
-		AdaptiveDynamicMenu,
-		AllTrueTestProfile,
-		bindings,
+		AdaptiveDynamicMenu(adaptive_checks.AllTrueTestProfile, bindings),
 		desiredGroups,
 		desiredOptions,
 		t,
@@ -244,10 +144,9 @@ func Test_AllFalse(t *testing.T) {
 			bindings["UserSettings"],
 		},
 	}
+	// "ctcreel", bt.NewDate(2019, 1, 1)
 	checkMenu(
-		AdaptiveDynamicMenu,
-		AllFalseTestProfile,
-		bindings,
+		AdaptiveDynamicMenu(adaptive_checks.AllFalseTestProfile, bindings),
 		desiredGroups,
 		desiredOptions,
 		t,
@@ -294,9 +193,7 @@ func Test_IndividualContributor(t *testing.T) {
 		},
 	}
 	checkMenu(
-		AdaptiveDynamicMenu,
-		IndividualContributor,
-		bindings,
+		AdaptiveDynamicMenu(adaptive_checks.IndividualContributor, bindings),
 		desiredGroups,
 		desiredOptions,
 		t,
@@ -318,15 +215,12 @@ func printOptions(v []model.MenuOption) (rv string) {
 }
 
 func checkMenu(
-	menuConstructor func(profile checks.CheckFunctionMap, bindings menu.FunctionBindings) menu.DynamicMenuSpecification,
-	profile checks.CheckFunctionMap,
-	bindings menu.FunctionBindings,
+	result menu.DynamicMenuSpecification,
 	desiredGroups []string,
 	desiredOptions map[string][]string,
 	t *testing.T,
 ) {
-	result := menuConstructor(profile, bindings)
-	newMenu := result.Build("ctcreel", bt.NewDate(2019, 1, 1))
+	newMenu := result.Build()
 	if len(newMenu) == len(desiredGroups) {
 		for i, group := range desiredGroups {
 			if len(desiredOptions[group]) == len(newMenu[i].Options) {
