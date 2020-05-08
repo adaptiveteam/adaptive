@@ -427,7 +427,9 @@ val acceptedField = ("Accepted".camel :: int) \\ "1 for true, 0 for false"
 val accountabilityPartnerField = "AccountabilityPartner".camel :: string
 val DevelopmentObjectiveType = StringBasedEnum("DevelopmentObjectiveType".camel, List(
 	"IndividualDevelopmentObjective".camel ^^ "individual",
-	"StrategyDevelopmentObjective".camel ^^ "strategy"
+	"StrategyDevelopmentObjective".camel ^^ "strategy",
+	"StrategyDevelopmentObjectiveIssue".camel ^^ "strategy_objective",
+	"StrategyDevelopmentInitiative".camel ^^ "strategy_initiative"
 ))
 val AlignedStrategyType = StringBasedEnum("AlignedStrategyType".camel, 
     List(

@@ -17,6 +17,8 @@ type DevelopmentObjectiveType string
 const (
 	IndividualDevelopmentObjective DevelopmentObjectiveType = "individual"
 	StrategyDevelopmentObjective DevelopmentObjectiveType = "strategy"
+	StrategyDevelopmentObjectiveIssue DevelopmentObjectiveType = "strategy_objective"
+	StrategyDevelopmentInitiative DevelopmentObjectiveType = "strategy_initiative"
 )
 
 type AlignedStrategyType string

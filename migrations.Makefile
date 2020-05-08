@@ -18,3 +18,13 @@ rename-user-engagement: backup-all
 	terraform apply -target=aws_dynamodb_table.adaptive_user_engagements_dynamo_table ;\
 	popd ;\
 	$(call restore-table,${ADAPTIVE_CLIENT_ID}_user_engagement)
+
+update-issues.bin:
+	pushd migrations/update-issues ;\
+	go build ;\
+	popd
+
+update-issues: backup-all update-issues.bin
+	export LOG_NAMESPACE="MAKE update-issues" ;\
+	export CLIENT_ID=${ADAPTIVE_CLIENT_ID} ;\
+	./migrations/update-issues/update-issues -all ;\

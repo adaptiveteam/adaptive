@@ -508,11 +508,14 @@ func LoadCoacheeObjectivesUnsafe(env environment, teamID models.TeamID, coachID 
 	return
 }
 
-func LoadAdvocateeObjectivesUnsafe(env environment, teamID models.TeamID, coachID string) (advocateeObjectives []userObjective.UserObjective) {
-	conn := env.connGen.ForPlatformID(teamID.ToPlatformID())
-	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(coachID)(conn)
-	advocateeObjectives = filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
-	return
+func LoadAdvocateeObjectivesUnsafe(coachID string) func (conn daosCommon.DynamoDBConnection) (advocateeObjectives []userObjective.UserObjective) {
+	return func (conn daosCommon.DynamoDBConnection) (advocateeObjectives []userObjective.UserObjective) {
+		objectives := userObjective.ReadByAccountabilityPartnerUnsafe(coachID)(conn)
+		advocateeObjectives1 := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
+		advocateeObjectives2 := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjectiveIssue)
+		advocateeObjectives = append(advocateeObjectives1, advocateeObjectives2...)
+		return
+	}
 }
 
 func CoacheesExist(env environment, userID string, date business_time.Date) (res bool) {
@@ -529,8 +532,7 @@ func AdvocatesExist(env environment, userID string, date business_time.Date) (re
 	defer RecoverToLog("AdvocatesExist")
 	teamID := UserIDToTeamID(env.userDAO)(userID)
 	conn := env.connGen.ForPlatformID(teamID.ToPlatformID())
-	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(userID)(conn)
-	advocateObjectives := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
+	advocateObjectives := LoadAdvocateeObjectivesUnsafe(userID)(conn)
 	return AdvocatesExistLogic(advocateObjectives)
 }
 
