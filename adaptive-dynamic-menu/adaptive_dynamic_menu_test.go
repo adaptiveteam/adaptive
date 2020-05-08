@@ -121,7 +121,7 @@ func Test_AllTrue(t *testing.T) {
 		},
 	}
 	checkMenu(
-		AdaptiveDynamicMenu(adaptive_checks.AllTrueTestProfile, bindings),
+		AdaptiveDynamicMenu(adaptive_checks.SomeTrueAndSomeFalseTestProfile, bindings),
 		desiredGroups,
 		desiredOptions,
 		t,

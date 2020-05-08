@@ -1,9 +1,8 @@
 package adaptive_checks
 
-
 var ReturnsTrue = ConstLazyBool(true)
 
-var AllTrueTestProfile = TypedProfile{
+var SomeTrueAndSomeFalseTestProfile = TypedProfile{
 	IDOsExistForMe:                                    ReturnsTrue,
 	CanBeNudgedForIDO:                                 ReturnsTrue,
 	StaleIDOsExistForMe:                               ReturnsTrue,
@@ -34,6 +33,18 @@ var AllTrueTestProfile = TypedProfile{
 	UserSettingsExist:                                 ReturnsTrue,
 	CoacheesExist:                                     ReturnsTrue,
 	AdvocatesExist:                                    ReturnsTrue,
+	FeedbackGivenThisQuarter:                          ReturnsFalse,
+	FeedbackForThePreviousQuarterExists:               ReturnsFalse,
+	IDOsDueWithinTheWeek:                              ReturnsFalse,
+	IDOsDueWithinTheMonth:                             ReturnsFalse,
+	IDOsDueWithinTheQuarter:                           ReturnsFalse,
+	InitiativesDueWithinTheWeek:                       ReturnsFalse,
+	InitiativesDueWithinTheMonth:                      ReturnsFalse,
+	InitiativesDueWithinTheQuarter:                    ReturnsFalse,
+	ObjectivesDueWithinTheWeek:                        ReturnsFalse,
+	ObjectivesDueWithinTheMonth:                       ReturnsFalse,
+	ObjectivesDueWithinTheQuarter:                     ReturnsFalse,
+	MultipleInitiativeCommunitiesExists:               ReturnsFalse,
 }
 
 var ReturnsFalse = ConstLazyBool(false)
@@ -68,6 +79,18 @@ var AllFalseTestProfile = TypedProfile{
 	UserSettingsExist:                                 ReturnsFalse,
 	CoacheesExist:                                     ReturnsFalse,
 	AdvocatesExist:                                    ReturnsFalse,
+	FeedbackGivenThisQuarter:                          ReturnsFalse,
+	FeedbackForThePreviousQuarterExists:               ReturnsFalse,
+	IDOsDueWithinTheWeek:                              ReturnsFalse,
+	IDOsDueWithinTheMonth:                             ReturnsFalse,
+	IDOsDueWithinTheQuarter:                           ReturnsFalse,
+	InitiativesDueWithinTheWeek:                       ReturnsFalse,
+	InitiativesDueWithinTheMonth:                      ReturnsFalse,
+	InitiativesDueWithinTheQuarter:                    ReturnsFalse,
+	ObjectivesDueWithinTheWeek:                        ReturnsFalse,
+	ObjectivesDueWithinTheMonth:                       ReturnsFalse,
+	ObjectivesDueWithinTheQuarter:                     ReturnsFalse,
+	MultipleInitiativeCommunitiesExists:               ReturnsFalse,
 }
 
 var IndividualContributor = TypedProfile{
@@ -101,4 +124,16 @@ var IndividualContributor = TypedProfile{
 	UserSettingsExist:                                 ReturnsTrue,
 	CoacheesExist:                                     ReturnsTrue,
 	AdvocatesExist:                                    ReturnsTrue,
+	FeedbackGivenThisQuarter:                          ReturnsFalse,
+	FeedbackForThePreviousQuarterExists:               ReturnsFalse,
+	IDOsDueWithinTheWeek:                              ReturnsFalse,
+	IDOsDueWithinTheMonth:                             ReturnsFalse,
+	IDOsDueWithinTheQuarter:                           ReturnsFalse,
+	InitiativesDueWithinTheWeek:                       ReturnsFalse,
+	InitiativesDueWithinTheMonth:                      ReturnsFalse,
+	InitiativesDueWithinTheQuarter:                    ReturnsFalse,
+	ObjectivesDueWithinTheWeek:                        ReturnsFalse,
+	ObjectivesDueWithinTheMonth:                       ReturnsFalse,
+	ObjectivesDueWithinTheQuarter:                     ReturnsFalse,
+	MultipleInitiativeCommunitiesExists:               ReturnsFalse,
 }
