@@ -1,7 +1,6 @@
 package dynamic_menu
 
 import (
-	bt "github.com/adaptiveteam/adaptive/business-time"
 	"github.com/adaptiveteam/adaptive/checks"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"log"
@@ -25,6 +24,7 @@ func NewAdaptiveDynamicMenuSpecification(
 	optionID string,
 	optionText string,
 	optionDescription string,
+	isActive bool,
 ) (rv OptionSpecification) {
 	if len(optionText) == 0 {
 		log.Panicln("optionText is empty")
@@ -36,43 +36,11 @@ func NewAdaptiveDynamicMenuSpecification(
 				Text:        optionText,
 				Value:       optionID,
 				Description: optionDescription,
+				Active:      isActive,
 			},
 		}
 	}
 	return rv
-}
-
-func (option OptionSpecification) AddChecks(checks ...VisibilityCheck) OptionSpecification {
-	option.Checks = append(option.Checks, checks...)
-	return option
-}
-
-func (option OptionSpecification) AddOptionCheck(
-	profile checks.CheckFunctionMap,
-	name string,
-	shouldBe bool,
-) OptionSpecification {
-	if profile[name] == nil {
-		log.Panicln(name,"is not a valid check")
-	}
-	newOption := VisibilityCheck{
-		Name:     name,
-		Check:    profile[name],
-		ShouldBe: shouldBe,
-	}
-	option.Checks = append(option.Checks, newOption)
-	return option
-}
-
-// And adds a few option checks simultaneously
-func (option OptionSpecification) And(
-	profile checks.CheckFunctionMap,
-	names ... string,
-) OptionSpecification {
-	for _, name := range names {
-		option = option.AddOptionCheck(profile, name, true)
-	}
-	return option
 }
 
 func (gs GroupSpecification) AddGroupOption(option OptionSpecification) GroupSpecification {
@@ -85,17 +53,11 @@ func (adm DynamicMenuSpecification) AddGroup(group GroupSpecification) (rv Dynam
 	return rv
 }
 
-func (adm DynamicMenuSpecification) Build(userID string, date bt.Date) (rv []ebm.MenuOptionGroup) {
-	checkResults := adm.StripOutFunctions().Evaluate(userID, date)
+func (adm DynamicMenuSpecification) Build() (rv []ebm.MenuOptionGroup) {
 	for _, currentGroup := range adm {
 		groupOptions := make([]ebm.MenuOption, 0)
 		for _, currentOption := range currentGroup.Options {
-			optionIsVisible := true
-			for i, check := range currentOption.Checks {
-				optionIsVisible = optionIsVisible && (checkResults[check.Name] == currentOption.Checks[i].ShouldBe)
-			}
-
-			if optionIsVisible {
+			if currentOption.Option.Active {
 				groupOptions = append(
 					groupOptions,
 					ebm.MenuOption{
