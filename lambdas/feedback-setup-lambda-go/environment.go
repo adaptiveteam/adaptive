@@ -11,7 +11,7 @@ import (
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/userFeedback"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 var (

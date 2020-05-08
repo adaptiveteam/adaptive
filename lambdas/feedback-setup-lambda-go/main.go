@@ -27,7 +27,7 @@ import (
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	feedbackReportPostingLambda "github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
 	ls "github.com/aws/aws-lambda-go/lambda"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/sirupsen/logrus"
 )
 

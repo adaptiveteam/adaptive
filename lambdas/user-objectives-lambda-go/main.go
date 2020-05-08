@@ -30,14 +30,15 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	utilsIssues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/nlopes/slack"
-	"github.com/nlopes/slack/slackevents"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 	wfRoutes "github.com/adaptiveteam/adaptive/workflows"
 	
 )
@@ -2464,62 +2465,35 @@ func closeoutAgreementContext(userObj models.UserObjective) (context string) {
 }
 
 func closeoutDisagreementContext(userObj models.UserObjective) (context string) {
-	typeLabel := objectiveTypeLabel(userObj)
-	switch typeLabel {
-	case Individual:
-		context = IDOCloseoutDisagreementContext
-	case CapabilityObjective:
-		context = CapabilityObjectiveCloseoutDisagreementContext
-	case StrategyInitiative:
-		context = InitiativeCloseoutDisagreementContext
-	}
+	issueType := utilsIssues.DetectIssueType(userObj)
+	context = issueType.FoldString(
+		IDOCloseoutDisagreementContext,
+		CapabilityObjectiveCloseoutDisagreementContext,
+		InitiativeCloseoutDisagreementContext,
+	)
 	return
 }
 
-func objectiveTypeLabel(userObj models.UserObjective) string {
-	var prefix string
-	switch userObj.ObjectiveType {
-	case models.IndividualDevelopmentObjective:
-		prefix = Individual
-	case models.StrategyDevelopmentObjective:
-		switch userObj.StrategyAlignmentEntityType {
-		case models.ObjectiveStrategyObjectiveAlignment:
-			prefix = CapabilityObjective
-		case models.ObjectiveStrategyInitiativeAlignment:
-			prefix = StrategyInitiative
-		}
-	}
-	return prefix
+func objectiveTypeLabel(userObj models.UserObjective) (prefix string) {
+	return string(utilsIssues.ObjectiveTypeLabel(userObj))
 }
 
 func progressUpdateContext(userObj models.UserObjective) (context string) {
-	switch userObj.ObjectiveType {
-	case models.IndividualDevelopmentObjective:
-		context = IDOProgressUpdateContext
-	case models.StrategyDevelopmentObjective:
-		switch userObj.StrategyAlignmentEntityType {
-		case models.ObjectiveStrategyObjectiveAlignment:
-			context = CapabilityObjectiveProgressUpdateContext
-		case models.ObjectiveStrategyInitiativeAlignment:
-			context = InitiativeProgressUpdateContext
-		}
-	}
-	return
+	return utilsIssues.DetectIssueType(userObj).
+		FoldString(
+			IDOProgressUpdateContext,
+			CapabilityObjectiveProgressUpdateContext,
+			InitiativeProgressUpdateContext,
+		)
 }
 
 func responseUpdateContext(userObj models.UserObjective) (context string) {
-	switch userObj.ObjectiveType {
-	case models.IndividualDevelopmentObjective:
-		context = IDOResponseObjectiveUpdateContext
-	case models.StrategyDevelopmentObjective:
-		switch userObj.StrategyAlignmentEntityType {
-		case models.ObjectiveStrategyObjectiveAlignment:
-			context = CapabilityObjectiveUpdateResponseContext
-		case models.ObjectiveStrategyInitiativeAlignment:
-			context = InitiativeUpdateResponseContext
-		}
-	}
-	return
+	return utilsIssues.DetectIssueType(userObj).
+		FoldString(
+			IDOResponseObjectiveUpdateContext,
+			CapabilityObjectiveUpdateResponseContext,
+			InitiativeUpdateResponseContext,
+		)
 }
 
 // onCoachConfirmAction handles the action when a coach is attempting to confirm a coaching request

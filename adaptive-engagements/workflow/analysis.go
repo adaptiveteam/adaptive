@@ -10,7 +10,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 // AnalyseMessageС performs all typical operations to post standard analysis.

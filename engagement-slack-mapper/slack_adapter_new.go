@@ -10,7 +10,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 // // PlatformAdapter2 is the main interface to communicate with Slack

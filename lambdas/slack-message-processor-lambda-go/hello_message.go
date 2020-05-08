@@ -4,7 +4,7 @@ import (
 	"time"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
 

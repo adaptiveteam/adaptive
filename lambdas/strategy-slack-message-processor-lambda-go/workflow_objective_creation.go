@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"encoding/json"
 	"fmt"
 
@@ -1019,18 +1020,12 @@ func PartnerReviewUserObjectiveProgressEngagement(teamID models.TeamID, mc model
 }
 
 func progressUpdateContext(userObj models.UserObjective) (context string) {
-	switch userObj.ObjectiveType {
-	case models.IndividualDevelopmentObjective:
-		context = IDOProgressUpdateContext
-	case models.StrategyDevelopmentObjective:
-		switch userObj.StrategyAlignmentEntityType {
-		case models.ObjectiveStrategyObjectiveAlignment:
-			context = CapabilityObjectiveProgressUpdateContext
-		case models.ObjectiveStrategyInitiativeAlignment:
-			context = InitiativeProgressUpdateContext
-		}
-	}
-	return
+	return issues.DetectIssueType(userObj).
+		FoldString(
+			IDOProgressUpdateContext, 
+			CapabilityObjectiveProgressUpdateContext, 
+			InitiativeProgressUpdateContext,
+		)
 }
 
 // func GetMsgStateUnsafe(request slack.InteractionCallback) (msgState MsgState) {
@@ -1148,20 +1143,8 @@ const (
 
 )
 
-func objectiveTypeLabel(userObj models.UserObjective) string {
-	var prefix string
-	switch userObj.ObjectiveType {
-	case models.IndividualDevelopmentObjective:
-		prefix = Individual
-	case models.StrategyDevelopmentObjective:
-		switch userObj.StrategyAlignmentEntityType {
-		case models.ObjectiveStrategyObjectiveAlignment:
-			prefix = CapabilityObjective
-		case models.ObjectiveStrategyInitiativeAlignment:
-			prefix = StrategyInitiative
-		}
-	}
-	return prefix
+func objectiveTypeLabel(userObj models.UserObjective) (prefix string) {
+	return string(issues.ObjectiveTypeLabel(userObj))
 }
 
 const (
@@ -1188,7 +1171,7 @@ const (
 
 const (
 	Individual          = "Individual Objective"
-	CapabilityObjective = "Capability Objective"
+	CapabilityObjective = "Objective"
 	StrategyInitiative  = "Initiative"
 	FinancialObjective  = "Financial Objective"
 	CustomerObjective   = "Customer Objective"

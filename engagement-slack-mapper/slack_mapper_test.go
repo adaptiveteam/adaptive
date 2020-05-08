@@ -4,7 +4,7 @@ import (
 	"fmt"
 	eb "github.com/adaptiveteam/adaptive/engagement-builder"
 	"github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"testing"
 )
 

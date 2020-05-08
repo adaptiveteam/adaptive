@@ -66,6 +66,16 @@ func GetToken(teamID models.TeamID) func(common.DynamoDBConnection) (string, err
 	}
 }
 
+// GetAdaptiveBotIDOptional attempts to read BotUserID of the current SlackTeam
+func GetAdaptiveBotIDOptional(conn common.DynamoDBConnection) (adaptiveBotID string, err error) {
+	var teams []slackTeam.SlackTeam
+	teams, err = slackTeam.ReadOrEmpty(conn.PlatformID)(conn)
+	for _, team := range teams {
+		adaptiveBotID = team.BotUserID
+	}
+	return
+}
+
 // GetTokenForUser searches token for the given user
 func GetTokenForUser(dynamo *awsutils.DynamoRequest, clientID string, userID string) (token string, err error) {
 	var teamID models.TeamID

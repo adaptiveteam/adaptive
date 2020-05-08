@@ -15,7 +15,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"math/rand"
 	"strings"
 	"time"

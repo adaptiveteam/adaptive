@@ -11,7 +11,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/pkg/errors"
 )
 
@@ -70,22 +70,11 @@ func readUserProfile(userID string) func (conn daosCommon.DynamoDBConnection) (p
 		users, err = user.ReadOrEmpty(userID)(conn)
 		found = len(users) > 0
 		if found {
-			profile = convertUserToProfile(users[0])
+			profile = models.ConvertUserToProfile(users[0])
 			teamID = models.ParseTeamID(users[0].PlatformID)
 		}
 		return
 	}
-}
-
-func convertUserToProfile(user models.User) (profile models.UserProfile) {
-	profile = models.UserProfile{
-		Id:          user.ID,
-		DisplayName: user.DisplayName,
-		FirstName:   user.FirstName,
-		LastName:    user.LastName,
-		Timezone:    user.Timezone,
-	}
-	return
 }
 
 func wrapError(err error, name string) error {
@@ -106,15 +95,13 @@ func refreshUserCache(userID string, teamID models.TeamID) (profile models.UserP
 		api := slack.New(token)
 		us, err2 := api.GetUserInfo(userID)
 		err = err2
-		mUser := utilsUser.ConvertSlackUserToUser(*us, teamID)
-		err = user.Create(mUser)(conn)
-		profile = models.UserProfile{ //mUser.UserProfile
-			Id:             mUser.ID,
-			DisplayName:    mUser.DisplayName,
-			FirstName:      mUser.FirstName,
-			LastName:       mUser.LastName,
-			Timezone:       mUser.Timezone,
-			TimezoneOffset: mUser.TimezoneOffset,
+		var adaptiveBotID string
+		adaptiveBotID, err = platform.GetAdaptiveBotIDOptional(conn)
+
+		if err == nil {
+			mUser := utilsUser.ConvertSlackUserToUser(*us, teamID, adaptiveBotID)
+			err = user.Create(mUser)(conn)
+			profile = models.ConvertUserToProfile(mUser)
 		}
 	}
 	return

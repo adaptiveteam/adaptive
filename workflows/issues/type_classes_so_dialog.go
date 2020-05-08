@@ -159,7 +159,7 @@ func (SObjectiveImpl) ExtractFromContext(ctx wf.EventHandlingContext, _ string, 
 	newIssue.UserObjective.PlatformID = ctx.TeamID.ToPlatformID()
 	newIssue.UserObjective.CreatedAt = newIssue.StrategyObjective.CreatedAt
 	newIssue.UserObjective.CreatedDate = core.NormalizeDate(newIssue.StrategyObjective.CreatedAt)
-	newIssue.UserObjective.ObjectiveType = userObjective.StrategyDevelopmentObjective
+	newIssue.UserObjective.ObjectiveType = userObjective.StrategyDevelopmentObjectiveIssue
 	newIssue.UserObjective.StrategyAlignmentEntityType = userObjective.ObjectiveStrategyObjectiveAlignment
 	newIssue.UserObjective.ExpectedEndDate = newIssue.StrategyObjective.ExpectedEndDate
 	newIssue.UserObjective.CreatedBy = newIssue.StrategyObjective.CreatedBy

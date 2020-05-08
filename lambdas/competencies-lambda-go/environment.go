@@ -11,7 +11,7 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 
-	// "github.com/nlopes/slack"
+	// "github.com/slack-go/slack"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
 
 )

@@ -6,7 +6,7 @@ import (
 	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 var (

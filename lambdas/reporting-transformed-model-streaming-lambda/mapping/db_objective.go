@@ -12,17 +12,17 @@ import (
 
 type DBObjective struct {
 	ID           string `gorm:"primary_key"`
-	Advocate     string `gorm:"type:CHAR(9)"`
+	Advocate     string `gorm:"type:TEXT"`
 	AsMeasuredBy string `gorm:"type:TEXT"`
 	// TODO: Look into JSON field type here
 	// https://github.com/jinzhu/gorm/issues/1935
 	CapabilityCommunityIDs string `gorm:"type:TEXT"`
 	CreatedAt              string `gorm:"type:TEXT"`
-	CreatedBy              string `gorm:"type:CHAR(9)"`
+	CreatedBy              string `gorm:"type:TEXT"`
 	Description            string `gorm:"type:TEXT"`
 	ExpectedEndDate        string `gorm:"type:DATE"`
 	Name                   string `gorm:"type:TEXT"`
-	PlatformID             common.PlatformID `gorm:"type:CHAR(9)"`
+	PlatformID             common.PlatformID `gorm:"type:TEXT"`
 	Targets                string `gorm:"type:TEXT"`
 	Type                   string `gorm:"type:TEXT"`
 	model.DBModel
