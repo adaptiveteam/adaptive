@@ -58,14 +58,14 @@ func greeting() ui.PlainText {
 }
 
 // HandleRequest -
-func HandleRequest(ctx context.Context, engage models.UserEngageWithCheckValues) {
+func HandleRequest(ctx context.Context, engage models.UserEngage) {
 	defer core.RecoverAsLogError("user-engagement-scripting-lambda-go.HandleRequest")
 	logger = logger.WithLambdaContext(ctx)
 
 	// Not invoking scheduler lambda for on-demand asking for engagements
 	if !engage.OnDemand {
 		// Invoke user-engagement-scheduler lambda to do necessary checks for the user
-		schedulerPayload, _ := json.Marshal(engage.UserEngage)
+		schedulerPayload, _ := json.Marshal(engage)
 		// Wait until all checks are done and engagements are added to the stream
 		_, err := l.InvokeFunction(userEngagementSchedulerLambda, schedulerPayload, false)
 		if err != nil {
@@ -128,7 +128,7 @@ func isNotUrgent(eng models.UserEngagement) bool {
 	return !isUrgent(eng)
 }
 
-func showEngagements(engage models.UserEngageWithCheckValues, allValidEngagements[]models.UserEngagement) {
+func showEngagements(engage models.UserEngage, allValidEngagements[]models.UserEngagement) {
 	// Check if there are any un-answered high priority engagements
 	// First post urgent engagements and then post non-urgent engagements. Also sort by TargetID to improve locality
 	sortEngagements(allValidEngagements)
