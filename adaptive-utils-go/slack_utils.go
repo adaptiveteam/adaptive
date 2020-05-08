@@ -7,8 +7,8 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/nlopes/slack"
-	"github.com/nlopes/slack/slackevents"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 )
 
 func ParseApiRequest(payload string) (slackevents.EventsAPIEvent, error) {

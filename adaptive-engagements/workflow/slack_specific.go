@@ -11,7 +11,7 @@ import (
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

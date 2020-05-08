@@ -10,7 +10,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/nlopes/slack/slackevents"
+	"github.com/slack-go/slack/slackevents"
 	"log"
 	"strings"
 )

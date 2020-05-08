@@ -6,7 +6,7 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 func analyseMessage(request slack.InteractionCallback, messageID chan mapper.MessageID, input utils.TextAnalysisInput) []models.PlatformSimpleNotification {

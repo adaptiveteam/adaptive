@@ -2,7 +2,7 @@ package lambda
 
 import (
 	"github.com/adaptiveteam/adaptive/pagination"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 // SlackChannelsToInterfaces convert []channel to []interface{}

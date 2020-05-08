@@ -13,8 +13,8 @@ import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	esmodels "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
-	"github.com/nlopes/slack"
-	"github.com/nlopes/slack/slackevents"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 	"strconv"
 )
 

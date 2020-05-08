@@ -3,7 +3,7 @@ package models
 import (
 	"encoding/json"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/nlopes/slack/slackevents"
+	"github.com/slack-go/slack/slackevents"
 )
 
 // LambdaRequestJSONUnmarshalUnsafe - unmarshalls LambdaRequest
