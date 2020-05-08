@@ -486,11 +486,14 @@ func LoadCoacheeObjectivesUnsafe(teamID models.TeamID, coachID string) (coacheeO
 	return
 }
 
-func LoadAdvocateeObjectivesUnsafe(teamID models.TeamID, coachID string) (advocateeObjectives []userObjective.UserObjective) {
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
-	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(coachID)(conn)
-	advocateeObjectives = filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
-	return
+func LoadAdvocateeObjectivesUnsafe(coachID string) func (conn daosCommon.DynamoDBConnection) (advocateeObjectives []userObjective.UserObjective) {
+	return func (conn daosCommon.DynamoDBConnection) (advocateeObjectives []userObjective.UserObjective) {
+		objectives := userObjective.ReadByAccountabilityPartnerUnsafe(coachID)(conn)
+		advocateeObjectives1 := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
+		advocateeObjectives2 := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjectiveIssue)
+		advocateeObjectives = append(advocateeObjectives1, advocateeObjectives2...)
+		return
+	}
 }
 
 func CoacheesExist(userID string, date business_time.Date) (res bool) {
@@ -507,8 +510,7 @@ func AdvocatesExist(userID string, date business_time.Date) (res bool) {
 	defer RecoverToLog("AdvocatesExist")
 	teamID := UserIDToTeamID(userDAO)(userID)
 	conn := connGen.ForPlatformID(teamID.ToPlatformID())
-	objectives := userObjective.ReadByAccountabilityPartnerUnsafe(userID)(conn)
-	advocateObjectives := filterObjectivesByObjectiveType(objectives, userObjective.StrategyDevelopmentObjective)
+	advocateObjectives := LoadAdvocateeObjectivesUnsafe(userID)(conn)
 	return AdvocatesExistLogic(advocateObjectives)
 }
 
