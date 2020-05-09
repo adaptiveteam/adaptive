@@ -64,7 +64,7 @@ func createIDOSummary(
 func TestCreateWorkbooks(t *testing.T) {
 
 	// TODO: Reimplement test to be executable on travis
-	if true { return }
+	// if true { return }
 	dynamo := awsutils.NewDynamo(utils.NonEmptyEnv("AWS_REGION"), "", "dialog")
 	dialogTableName := utils.NonEmptyEnv("DIALOG_TABLE")
 	dialogDAO := fetch_dialog.NewDAO(dynamo, dialogTableName)
@@ -77,14 +77,18 @@ func TestCreateWorkbooks(t *testing.T) {
 		os.Getenv("port"),
 		os.Getenv("database"),
 	)
-	teamID := common.PlatformID("ANT7U58AG")
+	teamID := common.PlatformID("AGEGG1U7J")
+	// teamID := common.PlatformID("ANT7U58AG")
 	userIDs := map[string]string {
+		"Ryan":"UFNLVKFT4",
+		/*
 		"April":"U38KRFVTQ",
 		"Morgan":"UMA5H21FZ",
 		"Erin":"UMAE07SR4",
 		"Courtney":"ULWS36GP5",
 		"Thomas":"ULTRB2D7F",
 		"Michael":"ULCRWKDPE",
+		*/
 	}
 	output := os.Getenv("output")
 	defer db.CloseDatabase()
