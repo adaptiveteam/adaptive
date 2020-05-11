@@ -634,6 +634,26 @@ val SlackTeamTable = Table(SlackTeam,
 
 val SlackTeamPackage = defaultPackage(SlackTeamTable, imports)
 
+val migrationIdField = ("MigrationID".camel :: string) \\ "Human-friendly identifier of migration. Should start with 3 digits for sorting purposes. Unique within platform"
+
+val Migration = Entity(
+    "Migration".camel,
+    List(platformIdField, migrationIdField),
+    List(
+        "SuccessCount".camel :: int,
+        "FailuresCount".camel :: int,
+    ),
+    Nil,
+    List(CreatedModifiedTimesTrait),
+)
+
+val MigrationTable = Table(Migration,
+    Index(platformIdField, Some(migrationIdField)), 
+    List()
+)
+
+val MigrationPackage = defaultPackage(MigrationTable, imports)
+
 val packages = List(
     commonPackage,
 
@@ -662,6 +682,7 @@ val packages = List(
     SlackTeamPackage,
     CommunityPackage,
     ChannelMemberPackage,
+    MigrationPackage,
     )
 val daosProject = GoProjectFolder("daos", packages)
 
@@ -690,6 +711,7 @@ val coreTerraformProject = TerraformProjectFolder("daos/terraform", List(
     SlackTeamTable,
     CommunityTable,
     ChannelMemberTable,
+    MigrationTable,
     ))
 
 val workspace: Workspace = List(daosProject, coreTerraformProject)
