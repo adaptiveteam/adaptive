@@ -1,16 +1,14 @@
 language: go
 
 go:
-  # - 1.12.x
-  # - 1.13.x
   - 1.14.x
 
 os:
   - linux
 services:
   - docker
-  
-dist: bionic
+
+dist: xenial
 
 sudo: false
 
@@ -20,8 +18,6 @@ env:
   - GO111MODULE=on COVERALLS_TOKEN=wHdTnciK7C03xnxA2YzIBEau8m8QBf32g \
     DIALOG_TABLE=ctcreel_adaptive_dialog TERRAFORM_VERSION=0.12.19 \
     RDS_ENDPOINT=localhost:3306 RDS_USER=no RDS_PASSWORD=no RDS_PORT=no RDS_DB_NAME=no
-notifications:
-  slack: geigsen2:TBhXpLjpz2ggwaNWOTcO7TSo
 
 before_install:
     - go get github.com/mattn/goveralls
@@ -38,14 +34,14 @@ script:
   - export TEST_OPS
 
   # Upgrade terraform (we don't need when test is short)
-  
+
   - if [ t$BRANCH = tdevelop ]; then echo $BRANCH; fi
   - if [ t$BRANCH = tdevelop ]; then sudo apt-get install unzip; fi
   - if [ t$BRANCH = tdevelop ]; then wget https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip; fi
   - if [ t$BRANCH = tdevelop ]; then unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d temp_for_zip_extract; fi
   - if [ t$BRANCH = tdevelop ]; then yes | sudo mv temp_for_zip_extract/terraform /usr/local/bin/; fi
   - if [ t$BRANCH = tdevelop ]; then terraform --version; fi
-  
+
   # - pushd infra/core/terraform; pwd; ./backends/init.sh; popd
 
   - make adaptive-build
@@ -56,7 +52,7 @@ script:
   # - pushd aws-utils-go; go test -v; popd
   # - pushd dialog-fetcher; go test -v; popd
 
-      
+
 notifications:
   slack:
     rooms:
