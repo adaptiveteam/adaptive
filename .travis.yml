@@ -15,7 +15,7 @@ sudo: false
 install: true
 
 env:
-  - GO111MODULE=on COVERALLS_TOKEN=wHdTnciK7C03xnxA2YzIBEau8m8QBf32g \
+  - GO111MODULE=on COVERALLS_TOKEN='wHdTnciK7C03xnxA2YzIBEau8m8QBf32g \
     DIALOG_TABLE=ctcreel_adaptive_dialog TERRAFORM_VERSION=0.12.19 \
     RDS_ENDPOINT=localhost:3306 RDS_USER=no RDS_PASSWORD=no RDS_PORT=no RDS_DB_NAME=no
 
