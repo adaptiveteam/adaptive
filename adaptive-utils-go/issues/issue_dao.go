@@ -170,20 +170,13 @@ func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) 
 func UserObjectiveFromStrategyObjective(so models.StrategyObjective) func(conn common.DynamoDBConnection) (uObj userObjective.UserObjective, err error) {
 	return func(conn common.DynamoDBConnection) (uObj userObjective.UserObjective, err error) {
 		defer core.RecoverToErrorVar("UserObjectiveFromStrategyObjective", &err)
-		var commID string
-		if len(so.CapabilityCommunityIDs) > 0 {
-			commID = so.CapabilityCommunityIDs[0]
-		} else {
-			commID = ""
-			log.Printf("UserObjectiveFromStrategyObjective: CapabilityCommunityIDs is empty")
-		}
 		vision := strategy.StrategyVision(models.ParseTeamID(conn.PlatformID), visionMissionTableName(conn.ClientID))
 		// We are using _ here because `:` will create issues with callback
 		id := so.ID // core.IfThenElse(commID != core.EmptyString, fmt.Sprintf("%s_%s", so.ID, commID), so.ID).(string)
 		// log.Printf("UserObjectiveFromStrategyObjective: id=%s; so.ID=%s, commID=%s, so=%v\n",  id, so.ID, commID, so)
 
 		if id == "" {
-			log.Printf("UserObjectiveFromStrategyObjective: id is empty; so.ID=%s, commID=%s, so=%v\n", so.ID, commID, so)
+			log.Printf("UserObjectiveFromStrategyObjective: id is empty; so.ID=%s, so=%v\n", so.ID, so)
 		}
 		createdDate := core.NormalizeDate(so.CreatedAt)
 		uObj = userObjective.UserObjective{
@@ -192,7 +185,7 @@ func UserObjectiveFromStrategyObjective(so models.StrategyObjective) func(conn c
 			Description:     so.Description,
 			UserID:          vision.Advocate, // TODO: why?
 			Accepted:        1,
-			ObjectiveType:   userObjective.StrategyDevelopmentObjective,
+			ObjectiveType:   userObjective.StrategyDevelopmentObjectiveIssue,
 			PlatformID:      conn.PlatformID,
 			CreatedDate:     createdDate,
 			ExpectedEndDate: so.ExpectedEndDate,
@@ -200,8 +193,8 @@ func UserObjectiveFromStrategyObjective(so models.StrategyObjective) func(conn c
 			// ModifiedAt:      so.ModifiedAt,
 
 			AccountabilityPartner:       so.Advocate,
-			StrategyAlignmentEntityID:   commID,
-			StrategyAlignmentEntityType: userObjective.ObjectiveStrategyObjectiveAlignment,
+			// StrategyAlignmentEntityID:   commID,
+			StrategyAlignmentEntityType: userObjective.ObjectiveNoStrategyAlignment,
 		}
 		err = errors.Wrapf(err, "UserObjectiveFromStrategyObjective(so.ID=%s)", so.ID)
 		return
