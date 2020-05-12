@@ -85,7 +85,7 @@ docker-up:
 docker-down:
 	docker-compose down
 
-test-with-localstack: docker-up test docker-down coverage
+test-with-localstack: docker-up test docker-down
 
 test:
 	go test -v
@@ -105,3 +105,4 @@ upgrade:
 
 coverage:
 	go tool cover -html=cover.out
+
