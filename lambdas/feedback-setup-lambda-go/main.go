@@ -174,7 +174,8 @@ func feedbackRequestEngagement(target string, mc models.MessageCallback, userId,
 func feedbackEngagementAttachment(value models.AdaptiveValue,
 	mc models.MessageCallback,
 	details bool,
-	conn daosCommon.DynamoDBConnection) *ebm.Attachment {
+	conn daosCommon.DynamoDBConnection,
+) *ebm.Attachment {
 	var existingFeedback string
 	op, err := existingFeedbackOnDimension(mc, value, conn)
 	if err == nil {
