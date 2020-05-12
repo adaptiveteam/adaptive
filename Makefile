@@ -88,10 +88,10 @@ docker-down:
 test-with-localstack: docker-up test docker-down
 
 test:
-	go test -v ./...  -coverprofile=cover.out
+	go test -v ./...
 
 test-short:
-	go test -short -v ./...  -coverprofile=cover.out
+	go test -short -v ./...
 
 clean:
 	go clean
