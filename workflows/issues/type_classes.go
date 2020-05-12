@@ -64,17 +64,15 @@ func (IDOImpl) Empty() (issue Issue) {
 	return
 }
 func (SObjectiveImpl) Empty() (issue Issue) {
-	issue.UserObjective.ObjectiveType = userObjective.StrategyDevelopmentObjective
+	issue.UserObjective.ObjectiveType = userObjective.StrategyDevelopmentObjectiveIssue
 	issue.UserObjective.CreatedAt = core.ISODateLayout.Format(time.Now())
 	issue.UserObjective.CreatedDate = core.USDateLayout.Format(time.Now())
-	issue.StrategyAlignmentEntityType = userObjective.ObjectiveStrategyObjectiveAlignment
 	return
 }
 func (InitiativeImpl) Empty() (issue Issue) {
-	issue.UserObjective.ObjectiveType = userObjective.StrategyDevelopmentObjective
+	issue.UserObjective.ObjectiveType = userObjective.StrategyDevelopmentInitiative
 	issue.UserObjective.CreatedAt = core.ISODateLayout.Format(time.Now())
 	issue.UserObjective.CreatedDate = core.USDateLayout.Format(time.Now())
-	issue.StrategyAlignmentEntityType = userObjective.ObjectiveStrategyInitiativeAlignment
 	return
 }
 func (IDOImpl) CloseoutDisagreementContext() string {

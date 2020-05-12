@@ -194,7 +194,7 @@ func UserObjectiveFromStrategyObjective(so models.StrategyObjective) func(conn c
 
 			AccountabilityPartner:       so.Advocate,
 			// StrategyAlignmentEntityID:   commID,
-			StrategyAlignmentEntityType: userObjective.ObjectiveNoStrategyAlignment,
+			// StrategyAlignmentEntityType: userObjective.ObjectiveNoStrategyAlignment,
 		}
 		err = errors.Wrapf(err, "UserObjectiveFromStrategyObjective(so.ID=%s)", so.ID)
 		return
@@ -324,9 +324,9 @@ func IssueFromStrategyInitiative(si models.StrategyInitiative) func(conn common.
 			Description:                 si.Description,
 			AccountabilityPartner:       advocate,
 			Accepted:                    1,
-			ObjectiveType:               userObjective.StrategyDevelopmentObjective,
+			ObjectiveType:               userObjective.StrategyDevelopmentInitiative,
 			StrategyAlignmentEntityID:   "", //si.InitiativeCommunityID,
-			StrategyAlignmentEntityType: userObjective.ObjectiveStrategyInitiativeAlignment,
+			StrategyAlignmentEntityType: "", //userObjective.ObjectiveNoStrategyAlignment,
 			PlatformID:                  conn.PlatformID,
 			CreatedDate:                 createdDate,
 			ExpectedEndDate:             si.ExpectedEndDate,
@@ -590,6 +590,8 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 				}
 			case userObjective.ObjectiveCompetencyAlignment:
 				issueRef.PrefetchedData.AlignedCompetency, err = adaptiveValue.Read(issueRef.StrategyAlignmentEntityID)(conn)
+			default:
+				log.Printf("IGNORE ERROR Couldn't prefetch %s id=%s due to unknown alignment type", issueRef.StrategyAlignmentEntityType, issueRef.StrategyAlignmentEntityID)
 			}
 			if err != nil {
 				log.Printf("IGNORE ERROR Couldn't prefetch %s id=%s due to an error: %+v", issueRef.StrategyAlignmentEntityType, issueRef.StrategyAlignmentEntityID, err)

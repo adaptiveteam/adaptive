@@ -142,7 +142,6 @@ func (i InitiativeImpl) ExtractFromContext(ctx wf.EventHandlingContext, id strin
 	newIssue.UserObjective.CreatedAt = newIssue.StrategyInitiative.CreatedAt
 	newIssue.UserObjective.CreatedDate = core.NormalizeDate(newIssue.StrategyInitiative.CreatedAt)
 	newIssue.UserObjective.ObjectiveType = userObjective.StrategyDevelopmentInitiative
-	newIssue.UserObjective.StrategyAlignmentEntityType = userObjective.ObjectiveStrategyInitiativeAlignment
 	newIssue.UserObjective.ExpectedEndDate = newIssue.StrategyInitiative.ExpectedEndDate
 	newIssue.UserObjective.CreatedBy = newIssue.StrategyInitiative.CreatedBy
 	newIssue.UserObjective.ModifiedBy = ctx.Request.User.ID
