@@ -85,7 +85,7 @@ docker-up:
 docker-down:
 	docker-compose down;
 
-test-with-localstack: docker-up test docker-down cove
+test-with-localstack: docker-up test docker-down coverage
 
 test:
 	go test -v ${TEST_OPS} ./...  -coverprofile=cover.out ;
@@ -99,5 +99,5 @@ deps:
 	go build -v ./...;
 upgrade:
 	go get -u;
-coverage: test
+coverage:
 	go tool cover -html=cover.out;
