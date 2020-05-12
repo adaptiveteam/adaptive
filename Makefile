@@ -79,28 +79,23 @@ generate-dry-run: ${AMM}
 all:
 	echo "all"
 
-docker-up:
-	docker-compose up -d
-
-docker-down:
+test-with-localstack:
+	docker-compose up -d ;\
+	go test ${TEST_OPS} -v ./...  -coverprofile=cover.out ;\
+	go tool cover -func cover.out ;\
 	docker-compose down
 
-test-with-localstack: docker-up test docker-down
-
 test:
-	go test -v ./...
-
+	go test -v ${TEST_OPS} ./...  -coverprofile=cover.out ;\
+	go tool cover -func cover.out
 test-short:
-	go test -short -v ./...
-
+	go test -short -v ${TEST_OPS} ./...  -coverprofile=cover.out ;\
+	go tool cover -func cover.out
 clean:
 	go clean
-
 deps:
 	go build -v ./...
-
 upgrade:
 	go get -u
-
-coverage:
+coverage: test
 	go tool cover -html=cover.out
