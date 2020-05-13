@@ -393,7 +393,7 @@ func extractObjectiveFromContext(ctx wf.EventHandlingContext) (item models.UserO
 	endDate := form[objectives.ObjectiveEndDate]
 	strategyEntityID := form[objectives.ObjectiveStrategyAlignment]
 	// Get the alignment type for the aligned objective
-	alignment, alignmentID := getAlignedStrategyTypeFromStrategyEntityID(strategyEntityID)
+	alignment, alignmentID := getAlignedStrategyTypeFromAlignmentID(strategyEntityID)
 	year, quarter := core.CurrentYearQuarter()
 
 	item = models.UserObjective{
@@ -438,7 +438,7 @@ func LoadObjectiveDialogDictionaries(userID string, teamID models.TeamID, item m
 func ObjectiveSurvey(item models.UserObjective,
 	coaches, dates []ebm.AttachmentActionElementPlainTextOption,
 	initiativesAndObjectives []ebm.AttachmentActionElementOptionGroup) ebm.AttachmentActionSurvey {
-	alignment := objectives.AlignmentFromAlignedStrategyType(item.StrategyAlignmentEntityType, item.StrategyAlignmentEntityID)
+	alignment := objectives.AlignmentIDFromAlignedStrategyType(item.StrategyAlignmentEntityType, item.StrategyAlignmentEntityID)
 	return ebm.AttachmentActionSurvey{
 		Title: "Objective",
 		Elements: []ebm.AttachmentActionTextElement{

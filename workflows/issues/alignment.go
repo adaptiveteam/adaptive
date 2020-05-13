@@ -36,6 +36,8 @@ func (IDOImpl) GetAlignment(issue Issue) (alignment string) {
 		alignment = renderStrategyAssociations("Initiative", "Name", issue.AlignedCapabilityInitiative)
 	case userObjective.ObjectiveCompetencyAlignment:
 		alignment = fmt.Sprintf("Competency: `%s`", issue.AlignedCompetency.Name)
+	default:
+		alignment = ""
 	}
 	return
 }
