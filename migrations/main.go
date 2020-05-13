@@ -5,6 +5,7 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/migration"
 	"os"
 	"github.com/adaptiveteam/adaptive/daos/common"
+	_ "github.com/adaptiveteam/adaptive/daos"
 	"fmt"
 )
 
@@ -58,7 +59,10 @@ func runMigration(mf MigrationFunction, conn common.DynamoDBConnection) (err err
 	if err != nil {
 		return
 	}
-	m := migration.Migration{}
+	m := migration.Migration{
+		MigrationID: mf.ID,
+		PlatformID: conn.PlatformID,
+	}
 	if len(ms) > 0 {
 		m = ms[0]
 	} else {
@@ -67,10 +71,15 @@ func runMigration(mf MigrationFunction, conn common.DynamoDBConnection) (err err
 	if err != nil {
 		return
 	}
-	err = mf.PerformMigration(conn, &m)
-	if err != nil {
-		return
+	if m.SuccessCount == 0 {
+		fmt.Printf("%s: Running...\n", mf.ID)
+		err = mf.PerformMigration(conn, &m)
+		if err != nil {
+			return
+		}
+		err = migration.CreateOrUpdate(m)(conn)
+	} else {
+		fmt.Printf("%s: Skipped, because success_count=%d\n", mf.ID, m.SuccessCount)
 	}
-	err = migration.CreateOrUpdate(m)(conn)
 	return
 }

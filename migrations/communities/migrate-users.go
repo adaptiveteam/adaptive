@@ -18,7 +18,7 @@ func MigrateUsers(conn common.DynamoDBConnection, m *migration.Migration) (err e
 		for _, acu := range acus {
 			if acu.PlatformID == conn.PlatformID || conn.PlatformID == "-all" {
 				total ++
-				fmt.Printf("channel %s user %s", acu.ChannelID, acu.UserID)
+				fmt.Printf("channel %s user %s: ", acu.ChannelID, acu.UserID)
 				cm := channelMember.ChannelMember{
 					PlatformID: acu.PlatformID,
 					ChannelID: acu.ChannelID,
@@ -27,6 +27,7 @@ func MigrateUsers(conn common.DynamoDBConnection, m *migration.Migration) (err e
 				err = channelMember.CreateOrUpdate(cm)(conn)
 				if err == nil {
 					m.SuccessCount ++
+					fmt.Printf("ok\n")
 				} else {
 					fmt.Printf("FAILED: %+v\n", err)
 					m.FailuresCount ++
