@@ -68,7 +68,7 @@ func LoadAndFormatInitiativesObjectiveAndCompetencies(w workflowImpl,
 func IDOObjectiveSurvey(item userObjective.UserObjective,
 	coaches, dates []ebm.AttachmentActionElementPlainTextOption,
 	initiativesAndObjectives []ebm.AttachmentActionElementOptionGroup) ebm.AttachmentActionSurvey {
-	alignment := objectives.AlignmentFromAlignedStrategyType(models.AlignedStrategyType(item.StrategyAlignmentEntityType), item.StrategyAlignmentEntityID)
+	alignmentID := objectives.AlignmentIDFromAlignedStrategyType(item.StrategyAlignmentEntityType, item.StrategyAlignmentEntityID)
 	return ebm.AttachmentActionSurvey{
 		Title: "Objective",
 		Elements: []ebm.AttachmentActionTextElement{
@@ -76,7 +76,7 @@ func IDOObjectiveSurvey(item userObjective.UserObjective,
 			ebm.NewTextArea(objectives.ObjectiveDescription, "Description", objectives.ObjectiveDescriptionPlaceholder, ui.PlainText(item.Description)),
 			ebm.NewSimpleOptionsSelect(objectives.ObjectiveAccountabilityPartner, "Coach", ebm.EmptyPlaceholder, string(item.AccountabilityPartner), coaches...),
 			ebm.NewSimpleOptionsSelect(objectives.ObjectiveEndDate, "Expected end date", ebm.EmptyPlaceholder, item.ExpectedEndDate, dates...),
-			ebm.NewSimpleOptionGroupsSelect(objectives.ObjectiveStrategyAlignment, "Strategy Alignment", ebm.EmptyPlaceholder, alignment,
+			ebm.NewSimpleOptionGroupsSelect(objectives.ObjectiveStrategyAlignment, "Strategy Alignment", ebm.EmptyPlaceholder, alignmentID,
 				initiativesAndObjectives...),
 		},
 	}
