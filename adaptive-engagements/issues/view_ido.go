@@ -44,7 +44,9 @@ func (ViewIDO) GetAlignment(issue Issue) (alignment ui.PlainText) {
 	case userObjective.ObjectiveStrategyInitiativeAlignment:
 		alignment = renderStrategyAssociations("Initiative", issue.AlignedCapabilityInitiative.Name)
 	case userObjective.ObjectiveCompetencyAlignment:
-		alignment = ui.PlainText(ui.Sprintf("Competency: `%s`", issue.AlignedCompetency.Name))
+		alignment = renderStrategyAssociations("Competency", issue.AlignedCompetency.Name)
+	default:
+		alignment = ""
 	}
 	return
 }
