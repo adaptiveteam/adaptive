@@ -212,7 +212,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	if request.HTTPMethod == "GET" {
 		err = HandleRedirectURLGetRequest(globalConnection(models.ParseTeamID("UNKNOWN-PLATFORM-ID")), request)
 		if err == nil {
-			response = responsePermanentRedirect("https://adaptiveteam.github.io/")
+			response = responsePermanentRedirect("https://www.adaptive.team/welcome-to-adaptive")
 		}
 	} else {
 		byt, _ := json.Marshal(request)
