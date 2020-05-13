@@ -83,9 +83,11 @@ func DetectIssueType(uo userObjective.UserObjective) (itype IssueType) {
 			itype = SObjective
 		case userObjective.ObjectiveStrategyInitiativeAlignment:
 			itype = Initiative
+		default:
+			log.Printf("WARN (1) Couldn't determine issue type for %s. ObjectiveType=%s, StrategyAlignmentEntityType=%s\n", uo.ID, uo.ObjectiveType, uo.StrategyAlignmentEntityType)
 		}
 	default:
-		log.Printf("WARN Couldn't determine issue type for %s. ObjectiveType=%s, StrategyAlignmentEntityType=%s\n", uo.ID, uo.ObjectiveType, uo.StrategyAlignmentEntityType)
+		log.Printf("WARN (2) Couldn't determine issue type for %s. ObjectiveType=%s, StrategyAlignmentEntityType=%s\n", uo.ID, uo.ObjectiveType, uo.StrategyAlignmentEntityType)
 	}
 	return
 }
