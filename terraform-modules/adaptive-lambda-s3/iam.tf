@@ -33,7 +33,7 @@ resource "aws_iam_role" "lambda" {
 
 # Logs policy
 resource aws_cloudwatch_log_group "log_group" {
-  name              = "/aws/lambda/${element(concat(aws_lambda_function.lambda.*.function_name), 0)}"
+  name              = "/aws/lambda/${element(concat(aws_lambda_function.lambda.*.function_name, ["unavailable"]), 0)}"
   retention_in_days = 14
 }
 
@@ -59,9 +59,8 @@ resource "aws_iam_policy" "logs" {
 resource "aws_iam_policy_attachment" "logs" {
   count      = var.enable_cloudwatch_logs ? 1 : 0
   name       = "${local.function_name}-logs"
-  roles      = [
-    aws_iam_role.lambda.name]
-  policy_arn = aws_iam_policy.logs[0].arn
+  roles      = [aws_iam_role.lambda.name]
+  policy_arn = concat(aws_iam_policy.logs.*.arn,["absent logs"])[0]
 }
 
 # Attach additional policy if required
@@ -73,26 +72,20 @@ resource "aws_iam_policy" "additional" {
 
 resource "aws_iam_policy_attachment" "additional" {
   count = var.attach_policy ? 1 : 0
-
   name       = local.function_name
-  roles      = [
-    aws_iam_role.lambda.name]
-  policy_arn = aws_iam_policy.additional[0].arn
+  roles      = [aws_iam_role.lambda.name]
+  policy_arn = concat(aws_iam_policy.additional.*.arn,["policy not found"])[0]
 }
 
 ## AWS X-ray policy
 data "aws_iam_policy_document" "xray" {
   statement {
-    effect = "Allow"
-
     actions = [
       "xray:PutTraceSegments",
       "xray:PutTelemetryRecords"
     ]
 
-    resources = [
-      "*",
-    ]
+    resources = ["*"]
   }
 }
 
@@ -103,7 +96,6 @@ resource "aws_iam_policy" "xray" {
 
 resource "aws_iam_policy_attachment" "xray" {
   name       = "${local.function_name}-xray"
-  roles      = [
-    aws_iam_role.lambda.name]
+  roles      = [aws_iam_role.lambda.name]
   policy_arn = aws_iam_policy.xray.arn
 }
