@@ -81,8 +81,10 @@ all:
 
 test-with-localstack:
 	docker-compose up -d ;\
-	go test ${TEST_OPS} -v ./...  -coverprofile=cover.out ;\
+	pushd infra/core/terraform ;\
+	go test ${TEST_OPS} -v ../../../...  -coverprofile=cover.out ;\
 	go tool cover -func cover.out ;\
+	popd ;\
 	docker-compose down
 
 test:

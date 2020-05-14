@@ -86,7 +86,7 @@ var _ = BeforeSuite(func() {
 				"TF_VAR_RDS_ENDPOINT":     "localhost:3306",
 				"TF_VAR_RDS_USER":     "no",
 				"TF_VAR_RDS_PASSWORD": "no",
-				"TF_VAR_RDS_PORT":     "no",
+				"TF_VAR_RDS_PORT":     "1234",
 				"TF_VAR_RDS_DB_NAME":  "no",
 			},
 		}
