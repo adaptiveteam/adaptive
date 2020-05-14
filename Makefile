@@ -87,6 +87,14 @@ test-with-localstack: adaptive-build
 	popd ;\
 	docker-compose down
 
+test-it-with-localstack: adaptive-build
+	docker-compose up -d ;\
+	pushd infra/core/terraform ;\
+	go test ${TEST_OPS} -v ../src/...  -coverprofile=cover.out ;\
+	go tool cover -func cover.out ;\
+	popd ;\
+	docker-compose down
+
 test: adaptive-build
 	go test -v ${TEST_OPS} ./...  -coverprofile=cover.out ;\
 	go tool cover -func cover.out
