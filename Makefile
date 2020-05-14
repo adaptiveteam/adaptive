@@ -79,7 +79,7 @@ generate-dry-run: ${AMM}
 all:
 	echo "all"
 
-test-with-localstack:
+test-with-localstack: adaptive-build
 	docker-compose up -d ;\
 	pushd infra/core/terraform ;\
 	go test ${TEST_OPS} -v ../../../...  -coverprofile=cover.out ;\
@@ -87,7 +87,7 @@ test-with-localstack:
 	popd ;\
 	docker-compose down
 
-test:
+test: adaptive-build
 	go test -v ${TEST_OPS} ./...  -coverprofile=cover.out ;\
 	go tool cover -func cover.out
 test-short:
