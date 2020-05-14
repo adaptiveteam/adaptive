@@ -11,7 +11,7 @@ require (
 	github.com/antlr/antlr4 v0.0.0-20200103163232-691acdc23f1f // indirect
 	github.com/avast/retry-go v2.4.2+incompatible
 	github.com/aws/aws-dax-go v1.1.2
-	github.com/aws/aws-lambda-go v1.13.2
+	github.com/aws/aws-lambda-go v1.13.3
 	github.com/aws/aws-sdk-go v1.27.1
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/containerd/continuity v0.0.0-20200107194136-26c1120b8d41 // indirect
@@ -29,7 +29,7 @@ require (
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b
 	github.com/google/uuid v1.1.1
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
-	github.com/gruntwork-io/terratest v0.23.4
+	github.com/gruntwork-io/terratest v0.27.2
 	github.com/jinzhu/gorm v1.9.12
 	github.com/karrick/godirwalk v1.15.6 // indirect
 	github.com/lib/pq v1.3.0 // indirect

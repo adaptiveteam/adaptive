@@ -141,6 +141,8 @@ github.com/aws/aws-lambda-go v1.13.1 h1:qVIOD3UrEUo4amwgEBu6AI0CfnBsp71XJEYU05Rb
 github.com/aws/aws-lambda-go v1.13.1/go.mod h1:z4ywteZ5WwbIEzG0tXizIAUlUwkTNNknX4upd5Z5XJM=
 github.com/aws/aws-lambda-go v1.13.2 h1:8lYuRVn6rESoUNZXdbCmtGB4bBk4vcVYojiHjE4mMrM=
 github.com/aws/aws-lambda-go v1.13.2/go.mod h1:4UKl9IzQMoD+QF79YdCuzCwp8VbmG4VAQwij/eHl5CU=
+github.com/aws/aws-lambda-go v1.13.3 h1:SuCy7H3NLyp+1Mrfp+m80jcbi9KYWAs9/BXwppwRDzY=
+github.com/aws/aws-lambda-go v1.13.3/go.mod h1:4UKl9IzQMoD+QF79YdCuzCwp8VbmG4VAQwij/eHl5CU=
 github.com/aws/aws-lambda-go v1.14.0 h1:kTr1VPabIgJsMVzHuZpNhs/5RR46LU6wyWUiHxtb3ag=
 github.com/aws/aws-lambda-go v1.16.0 h1:9+Pp1/6cjEXYhwadp8faFXKSOWt7/tHRCnQxQmKvVwM=
 github.com/aws/aws-sdk-go v1.16.26/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
@@ -343,6 +345,8 @@ github.com/gruntwork-io/terratest v0.23.3 h1:zf3K7Z2g88yMgiZiJja5vAWsig8tRqG537M
 github.com/gruntwork-io/terratest v0.23.3/go.mod h1:+fVff0FQYuRzCF3LKpKF9ac+4w384LDcwLZt7O/KmEE=
 github.com/gruntwork-io/terratest v0.23.4 h1:3H8/gS4XJvy3AwPyvil3yMMeiBB6FrGP9IvJI6e2uis=
 github.com/gruntwork-io/terratest v0.23.4/go.mod h1:ds4v1EDndcBq3zNUPs1uot0YGWDbk++I5KPSOSJ6df4=
+github.com/gruntwork-io/terratest v0.27.2 h1:T3TXpOWSHP/3hR4EWHuv/byWkkHuHGjA1ycVrdf3ThQ=
+github.com/gruntwork-io/terratest v0.27.2/go.mod h1:ONEOU6Fv3a1rN16Z5t5yWbV57DkVC7665yRyvu3aWnk=
 github.com/gunnsth/pkcs7 v0.0.0-20181213175627-3cffc6fbfe83/go.mod h1:xaGEIRenAiJcGgd9p62zbiP4993KaV3PdjczwGnP50I=
 github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
