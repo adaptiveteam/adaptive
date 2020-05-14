@@ -67,6 +67,7 @@ var _ = BeforeSuite(func() {
 			"environment": "test",
 		}
 		terraformOptions = &terraform.Options{
+			MaxRetries: 1,
 			// The path to where our Terraform code is located
 			TerraformDir: "../terraform/",
 			// Variables to pass to our Terraform code using -var options
