@@ -1,11 +1,11 @@
 output "function_arn" {
   description = "ARN of the lambda function"
-  value       = aws_lambda_function.lambda[0].arn
+  value       = concat("not-deployed", aws_lambda_function.lambda.*.arn)[0]
 }
 
 output "function_name" {
   description = "The name of the Lambda function"
-  value       = aws_lambda_function.lambda[0].function_name
+  value       = concat("not-deployed", aws_lambda_function.lambda.*.function_name)[0]
 }
 
 output "role_arn" {
