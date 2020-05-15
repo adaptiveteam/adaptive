@@ -25,7 +25,7 @@ type StrategyObjective struct  {
 	AsMeasuredBy string `json:"as_measured_by"`
 	Targets string `json:"targets"`
 	ObjectiveType StrategyObjectiveType `json:"objective_type"`
-	Advocate string `json:"advocate"`
+	Advocate string `json:"advocate,omitempty"`
 	// community id not require d for customer/financial objectives
 	CapabilityCommunityIDs []string `json:"capability_community_ids,omitempty"`
 	ExpectedEndDate string `json:"expected_end_date"`
@@ -45,7 +45,6 @@ func (strategyObjective StrategyObjective)CollectEmptyFields() (emptyFields []st
 	if strategyObjective.Description == "" { emptyFields = append(emptyFields, "Description")}
 	if strategyObjective.AsMeasuredBy == "" { emptyFields = append(emptyFields, "AsMeasuredBy")}
 	if strategyObjective.Targets == "" { emptyFields = append(emptyFields, "Targets")}
-	if strategyObjective.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
 	if strategyObjective.ExpectedEndDate == "" { emptyFields = append(emptyFields, "ExpectedEndDate")}
 	ok = len(emptyFields) == 0
 	return

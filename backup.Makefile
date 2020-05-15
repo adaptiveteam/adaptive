@@ -14,7 +14,8 @@ backup-all: ./dynamodump/dynamodump.py
 	python dynamodump/dynamodump.py -m backup  -r ${AWS_REGION} -s ${ADAPTIVE_CLIENT_ID}*
 
 restore-all: ./dynamodump/dynamodump.py
-	python dynamodump/dynamodump.py -m restore -r ${AWS_REGION} --dataOnly -s ${ADAPTIVE_CLIENT_ID}*
+	python dynamodump/dynamodump.py -m restore -r ${AWS_REGION} --dataOnly -s "*"
+# ${ADAPTIVE_CLIENT_ID}*
 
 restore-table-user-objective: ./dynamodump/dynamodump.py
 	./rename-backup.sh
