@@ -21,6 +21,8 @@ func CreateStrategySummary(
 	const initiativeIndexColumn = 4
 	const initiativeNameColumn = 5
 	const initiativeStatusColumn = 6
+	const objectiveCommunityColumn = 7
+	const initiativeCommunityColumn = 8
 	const objectiveTypeColumnLabel = 1
 	const objectiveTypeColumnValue = 2
 	const titleRow = 1
@@ -31,12 +33,12 @@ func CreateStrategySummary(
 	const labelWidth = 12
 	const indexWidth = 8
 	const nameWidth = 37
-	const farRightColumn = 6
+	const farRightColumn = 8
 
 	// Create Title
 	strategicSummary.NewMergedCell(
 		objectiveIndexColumn, titleRow,
-		initiativeStatusColumn, titleRow,
+		farRightColumn, titleRow,
 	).Value("Strategy Performance").
 		Style(
 			models.NewStyle(styles).
@@ -123,7 +125,7 @@ func CreateStrategySummary(
 				GetStyle("Horizontal Center").
 				GetStyle("White Borders").
 				ToNewStyle(f),
-		)
+		).Width(labelWidth)
 
 	// Create Initiatives index column
 	strategicSummary.NewCell(
@@ -137,6 +139,32 @@ func CreateStrategySummary(
 				GetStyle("White Borders").
 				ToNewStyle(f),
 		).Width(indexWidth)
+
+	// Create Initiative Communities column
+	strategicSummary.NewCell(
+		initiativeCommunityColumn, startingRow,
+	).Value("Initiative Communities").
+		Style(
+			models.NewStyle(styles).
+				GetStyle("Heading Font").
+				GetStyle("Heading Background").
+				GetStyle("Horizontal Center").
+				GetStyle("White Borders").
+				ToNewStyle(f),
+		).Width(nameWidth)
+
+	// Create Objective Communities column
+	strategicSummary.NewCell(
+		objectiveCommunityColumn, startingRow,
+	).Value("Objective Communities").
+		Style(
+			models.NewStyle(styles).
+				GetStyle("Heading Font").
+				GetStyle("Heading Background").
+				GetStyle("Horizontal Center").
+				GetStyle("White Borders").
+				ToNewStyle(f),
+		).Width(nameWidth)
 
 	// Now post all of the initiatives and objectives
 	initiativeStart := startingRow + 1
@@ -158,18 +186,6 @@ func CreateStrategySummary(
 		for i := 0; i < len(currentObjective.Initiatives); i++ {
 			currentInitiative := &currentObjective.Initiatives[i]
 			(*currentInitiative).SetIndex(initiativeIndex)
-			strategicSummary.NewCell(
-				initiativeStatusColumn,
-				initiativeEnd,
-			).Value((*currentInitiative).GetStatus()).
-				Style(
-					models.NewStyle(styles).
-						GetStyle((*currentInitiative).GetStatus()).
-						GetStyle("Black Borders").
-						GetStyle("Italics Font").
-						GetStyle("Vertical Center").
-						ToNewStyle(f),
-				).Width(labelWidth)
 
 			// Post the objective index and merge the rows
 			strategicSummary.NewCell(
@@ -183,7 +199,20 @@ func CreateStrategySummary(
 						GetStyle("White Borders").
 						GetStyle("Centered").
 						ToNewStyle(f),
-				).Width(indexWidth)
+				)
+
+			strategicSummary.NewCell(
+				initiativeStatusColumn,
+				initiativeEnd,
+			).Value((*currentInitiative).GetStatus()).
+				Style(
+					models.NewStyle(styles).
+						GetStyle((*currentInitiative).GetStatus()).
+						GetStyle("Black Borders").
+						GetStyle("Italics Font").
+						GetStyle("Vertical Center").
+						ToNewStyle(f),
+				)
 
 			strategicSummary.NewCell(
 				initiativeNameColumn,
@@ -201,6 +230,36 @@ func CreateStrategySummary(
 				"A",
 				1,
 			)
+
+			// Post the objective index and merge the rows
+			strategicSummary.NewCell(
+				initiativeCommunityColumn,
+				initiativeEnd,
+			).Value(currentInitiative.GetCommunity()).
+				Width(nameWidth).
+				Style(
+					models.NewStyle(styles).
+						GetStyle("Black Borders").
+						GetStyle("Vertical Center").
+						GetStyle("Normal Font").
+						GetStyle("Normal Background").
+						ToNewStyle(f),
+				)
+
+			// Post the objective index and merge the rows
+			strategicSummary.NewCell(
+				objectiveCommunityColumn,
+				initiativeEnd,
+			).Value(currentObjective.GetCommunity()).
+				Width(nameWidth).
+				Style(
+					models.NewStyle(styles).
+						GetStyle("Black Borders").
+						GetStyle("Vertical Center").
+						GetStyle("Normal Font").
+						GetStyle("Normal Background").
+						ToNewStyle(f),
+				)
 
 			if (*currentInitiative).InitiativeName != "No Initiatives" {
 				CreateComponentDetails(

@@ -64,7 +64,7 @@ func createIDOSummary(
 func TestCreateWorkbooks(t *testing.T) {
 
 	// TODO: Reimplement test to be executable on travis
-	if true { return }
+	// if true { return }
 	dynamo := awsutils.NewDynamo(utils.NonEmptyEnv("AWS_REGION"), "", "dialog")
 	dialogTableName := utils.NonEmptyEnv("DIALOG_TABLE")
 	dialogDAO := fetch_dialog.NewDAO(dynamo, dialogTableName)

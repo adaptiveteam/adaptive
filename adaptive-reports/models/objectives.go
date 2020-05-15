@@ -8,6 +8,7 @@ type Initiatives map[string]Initiative
 type Objective struct {
 	ObjectiveName        string
 	ObjectiveDescription string
+	ObjectiveCommunity   string
 	ObjectiveType        string
 	ObjectiveAdvocate    string
 	ObjectiveStatus      string
@@ -23,6 +24,7 @@ type Objective struct {
 type Initiative struct {
 	InitiativeName        string
 	InitiativeDescription string
+	InitiativeCommunity   string
 	InitiativeAdvocate    string
 	InitiativeStatus      string
 	InitiativeUpdate      string
@@ -55,6 +57,11 @@ func (c Objective) GetName() string {
 func (c Objective) GetDescription() string {
 	return c.ObjectiveDescription
 }
+
+func (c Objective) GetCommunity() string {
+	return c.ObjectiveCommunity
+}
+
 
 func (c Objective) GetUpdate() string {
 	return c.ObjectiveUpdate
@@ -98,6 +105,10 @@ func (c Initiative) GetName() string {
 
 func (c Initiative) GetDescription() string {
 	return c.InitiativeDescription
+}
+
+func (c Initiative) GetCommunity() string {
+	return c.InitiativeCommunity
 }
 
 func (c Initiative) GetUpdate() string {
@@ -148,6 +159,7 @@ func ConvertTableToObjectivesAndInitiatives(table utilities.Table, rows int) (
 		newInitiative := Initiative{
 			InitiativeName:        table.GetValue("Initiative Name", i),
 			InitiativeDescription: table.GetValue("Initiative Description", i),
+			InitiativeCommunity:   table.GetValue("Initiative Community", i),
 			InitiativeAdvocate:    table.GetValue("Initiative Advocate", i),
 			InitiativeStatus:      table.GetValue("Initiative Status", i),
 			InitiativeUpdate:      table.GetValue("Initiative Update", i),
@@ -163,6 +175,7 @@ func ConvertTableToObjectivesAndInitiatives(table utilities.Table, rows int) (
 				o = Objective{
 					ObjectiveName:        table.GetValue("Objective Name", i),
 					ObjectiveDescription: table.GetValue("Objective Description", i),
+					ObjectiveCommunity:   table.GetValue("Objective Community", i),
 					ObjectiveType:        table.GetValue("Objective Type", i),
 					ObjectiveAdvocate:    table.GetValue("Objective Advocate", i),
 					ObjectiveStatus:      table.GetValue("Objective Status", i),
