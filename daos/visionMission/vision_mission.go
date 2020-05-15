@@ -18,7 +18,7 @@ type VisionMission struct  {
 	ID string `json:"id"`
 	Mission string `json:"mission"`
 	Vision string `json:"vision"`
-	Advocate string `json:"advocate"`
+	Advocate string `json:"advocate,omitempty"`
 	CreatedBy string `json:"created_by,omitempty"`
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
@@ -33,7 +33,6 @@ func (visionMission VisionMission)CollectEmptyFields() (emptyFields []string, ok
 	if visionMission.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if visionMission.Mission == "" { emptyFields = append(emptyFields, "Mission")}
 	if visionMission.Vision == "" { emptyFields = append(emptyFields, "Vision")}
-	if visionMission.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
 	ok = len(emptyFields) == 0
 	return
 }

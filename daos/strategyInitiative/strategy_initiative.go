@@ -19,7 +19,7 @@ type StrategyInitiative struct  {
 	Name string `json:"name"`
 	Description string `json:"description"`
 	DefinitionOfVictory string `json:"definition_of_victory"`
-	Advocate string `json:"advocate"`
+	Advocate string `json:"advocate,omitempty"`
 	InitiativeCommunityID string `json:"initiative_community_id"`
 	Budget string `json:"budget"`
 	ExpectedEndDate string `json:"expected_end_date"`
@@ -40,7 +40,6 @@ func (strategyInitiative StrategyInitiative)CollectEmptyFields() (emptyFields []
 	if strategyInitiative.Name == "" { emptyFields = append(emptyFields, "Name")}
 	if strategyInitiative.Description == "" { emptyFields = append(emptyFields, "Description")}
 	if strategyInitiative.DefinitionOfVictory == "" { emptyFields = append(emptyFields, "DefinitionOfVictory")}
-	if strategyInitiative.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
 	if strategyInitiative.InitiativeCommunityID == "" { emptyFields = append(emptyFields, "InitiativeCommunityID")}
 	if strategyInitiative.Budget == "" { emptyFields = append(emptyFields, "Budget")}
 	if strategyInitiative.ExpectedEndDate == "" { emptyFields = append(emptyFields, "ExpectedEndDate")}

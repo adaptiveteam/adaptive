@@ -18,7 +18,7 @@ type CapabilityCommunity struct  {
 	ID string `json:"id"`
 	Name string `json:"name"`
 	Description string `json:"description"`
-	Advocate string `json:"advocate"`
+	Advocate string `json:"advocate,omitempty"`
 	CreatedBy string `json:"created_by,omitempty"`
 	// Automatically maintained field
 	CreatedAt string `json:"created_at"`
@@ -33,7 +33,6 @@ func (capabilityCommunity CapabilityCommunity)CollectEmptyFields() (emptyFields 
 	if capabilityCommunity.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if capabilityCommunity.Name == "" { emptyFields = append(emptyFields, "Name")}
 	if capabilityCommunity.Description == "" { emptyFields = append(emptyFields, "Description")}
-	if capabilityCommunity.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
 	ok = len(emptyFields) == 0
 	return
 }
