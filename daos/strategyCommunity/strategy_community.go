@@ -16,7 +16,7 @@ import (
 type StrategyCommunity struct  {
 	ID string `json:"id"`
 	PlatformID common.PlatformID `json:"platform_id"`
-	Advocate string `json:"advocate"`
+	Advocate string `json:"advocate,omitempty"`
 	Community common.AdaptiveCommunityID `json:"community"`
 	ChannelID string `json:"channel_id"`
 	// 0 for false
@@ -35,7 +35,6 @@ type StrategyCommunity struct  {
 func (strategyCommunity StrategyCommunity)CollectEmptyFields() (emptyFields []string, ok bool) {
 	if strategyCommunity.ID == "" { emptyFields = append(emptyFields, "ID")}
 	if strategyCommunity.PlatformID == "" { emptyFields = append(emptyFields, "PlatformID")}
-	if strategyCommunity.Advocate == "" { emptyFields = append(emptyFields, "Advocate")}
 	if strategyCommunity.Community == "" { emptyFields = append(emptyFields, "Community")}
 	if strategyCommunity.ChannelID == "" { emptyFields = append(emptyFields, "ChannelID")}
 	if strategyCommunity.AccountabilityPartner == "" { emptyFields = append(emptyFields, "AccountabilityPartner")}
