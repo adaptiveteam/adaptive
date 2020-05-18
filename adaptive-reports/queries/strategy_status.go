@@ -76,32 +76,27 @@ FROM user AS objective_advocates,
 
          LEFT JOIN (
          SELECT initiative.id,
-                initiative.name,
-                initiative.description,
-                initiative.advocate,
-                initiative.created_at,
-                initiative.db_updated_at,
-                initiative.expected_end_date,
-                initiative.capability_objective_id AS objective_id,
-                latest_update.status_color,
-                latest_update.comments,
-                MAX(latest_update.created_date)    AS last_updated
+       initiative.name,
+       initiative.description,
+       initiative.advocate,
+       initiative.created_at,
+       initiative.db_updated_at,
+       initiative.expected_end_date,
+       initiative.capability_objective_id AS objective_id,
+       latest_update.status_color,
+       latest_update.comments,
+       latest_update.created_date as last_updated
 
-         FROM initiative
+FROM initiative
 
-                  LEFT JOIN (
-             SELECT user_objective_progress.objective_id,
-                    user_objective_progress.platform_id,
-                    user_objective_progress.status_color,
-                    user_objective_progress.comments,
-                    user_objective_progress.partner_comments,
-                    user_objective_progress.created_date
-             FROM user_objective_progress
-         ) AS latest_update ON
+         LEFT JOIN (SELECT a.*
+                    FROM user_objective_progress a
+                             LEFT OUTER JOIN user_objective_progress b
+                                             ON SUBSTRING_INDEX(a.id, ':', 1) = SUBSTRING_INDEX(b.id, ':', 1) AND
+                                                a.created_date < b.created_date
+                    WHERE b.id IS NULL) as latest_update ON
                  initiative.id = latest_update.objective_id AND
                  initiative.platform_id = latest_update.platform_id
-         GROUP BY initiative.name
-         ORDER BY initiative.name
      ) AS initiative_updates ON
          objective.id = initiative_updates.objective_id
 
