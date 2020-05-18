@@ -71,6 +71,9 @@ case class DaoFunctionTemplates(table: Table){
 			case DaoQueryRow(index: Index) => 
 				val templates = QueryTemplates(index)
 				templates.apply
+			case DaoQueryRowByHashKey(index: Index) => 
+				val templates = QueryByHashKeyTemplates(index)
+				templates.apply
 		}
 	}
 
@@ -357,7 +360,52 @@ case class DaoFunctionTemplates(table: Table){
 			|""".stripMargin
 		}
 	}
+	case class QueryByHashKeyTemplates(index: Index) {
+		val indexHashKeyName = goPublicName(index.hashKey.name)
+		val fields = List(index.hashKey)
+		val indexFullName = indexName(index)
+		val args = fieldArg(index.hashKey)
+		def apply: List[String] = 
+			List(
+				ReadByHashKeyIndexTemplate,
+				ReadByHashKeyIndexUnsafeTemplate
+			)
+		def ReadByHashKeyIndexTemplate: String = {
+			s"""
+			|func ReadByHashKey${indexHashKeyName}($args) func (conn common.DynamoDBConnection) (out []$structName, err error) {
+			|	return func (conn common.DynamoDBConnection) (out []$structName, err error) {
+			|		var instances []$structName
+			|		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			|			IndexName: "$indexFullName",
+			|			Condition: "${dbExprParam(index.hashKey) + " = :a" }",
+			|			Attributes: map[string]interface{}{
+			|				":a" : ${varName(index.hashKey)},
+			|			},
+			|		}, map[string]string{${
+						fields
+							.filter(f => isDynamoReserved(f.dbName))
+							.map{ case fld => 
+								"\"" + dbExprParam(fld) + "\": \"" + dbName(fld) + "\""
+							}.mkString(", ")}}, true, -1, &instances)
+			|		out = ${if(supportsDeactivation) structName+"FilterActive(instances)" else "instances" }
+			|		return
+			|	}
+			|}
+			|""".stripMargin
+		}
 
+		def ReadByHashKeyIndexUnsafeTemplate: String = {
+			s"""
+			|func ReadByHashKey${indexHashKeyName}Unsafe($args) func (conn common.DynamoDBConnection) (out []$structName) {
+			|	return func (conn common.DynamoDBConnection) (out []$structName) {
+			|		out, err2 := ReadByHashKey${indexHashKeyName}(${varName(index.hashKey)})(conn)
+			|		core.ErrorHandler(err2, "daos/$structName", fmt.Sprintf("Could not query $indexFullName on %s table\\n", TableName(conn.ClientID)))
+			|		return
+			|	}
+			|}
+			|""".stripMargin
+		}
+	}
 	def isFieldChangedTemplate(fld: Field, newName: String, oldName: String): String = {
 		val accessField = newName + "." + fieldName(fld)
 		val accessOldField = oldName + "." + fieldName(fld)
