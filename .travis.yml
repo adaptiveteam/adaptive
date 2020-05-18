@@ -51,7 +51,8 @@ script:
   - make adaptive-build
   # - $GOPATH/bin/goveralls -service=travis-pro
   # - docker-compose up -d
-  - make test-with-localstack
+  - make test 
+  # -with-localstack
   # - docker-compose down
   # - pushd aws-utils-go; go test -v; popd
   # - pushd dialog-fetcher; go test -v; popd
