@@ -15,8 +15,6 @@ import (
 
 // DAO is a CRUD wrapper around the _community_users Dynamo DB table
 type DAO interface {
-	Create(user models.AdaptiveCommunityUser3) error
-	CreateUnsafe(user models.AdaptiveCommunityUser3)
 	DeactivateUserFromCommunity(teamID models.TeamID, channelID string, userID string) (err error)
 	DeactivateAllCommunityMembers(teamID models.TeamID, channelID string) (err error)
 	DeactivateAllCommunityMembersUnsafe(teamID models.TeamID, channelID string)
@@ -41,19 +39,6 @@ func NewDAO(dynamo *awsutils.DynamoRequest, namespace string,
 // NewDAOFromSchema creates an instance of DAO that will provide access to the table
 func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema models.Schema) DAO {
 	return NewDAO(dynamo, namespace, schema.CommunityUsers)
-}
-
-// Create saves the User.
-func (d DAOImpl) Create(user models.AdaptiveCommunityUser3) error {
-	return d.Dynamo.PutTableEntryWithCondition(user, d.Name,
-		"attribute_not_exists(id)")
-}
-
-// CreateUnsafe saves the User.
-func (d DAOImpl) CreateUnsafe(user models.AdaptiveCommunityUser3) {
-	err := d.Create(user)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.UserID, d.Name))
-
 }
 
 // DeactivateUserFromCommunity deletes a user from community
