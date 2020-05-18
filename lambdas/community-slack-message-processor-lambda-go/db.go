@@ -103,11 +103,6 @@ func StrategyCommunityByID(ID string) strategy.StrategyCommunity {
 	return stratComm
 }
 
-func getCommUsers(channelID string) (commUsers []models.AdaptiveCommunityUser3, err error) {
-	commUsers, err = communityUserDAO.ReadCommunityUsers(channelID)
-	return
-}
-
 func unsetStrategyCommunities(channelID string) {
 	var strComms []strategy.StrategyCommunity
 	err := d.QueryTableWithIndex(strategyCommunitiesTable, awsutils.DynamoIndexExpression{

@@ -17,7 +17,6 @@ import (
 type DAO interface {
 	Create(user models.AdaptiveCommunityUser3) error
 	CreateUnsafe(user models.AdaptiveCommunityUser3)
-	ReadCommunityUsers(channelID string) (users []models.AdaptiveCommunityUser3, err error)
 	ReadCommunityMembers(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error)
 	ReadCommunityMembersUnsafe(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3)
 	ReadAnyCommunityUsers(teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error)
