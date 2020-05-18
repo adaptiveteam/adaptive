@@ -25,14 +25,10 @@ type DAO interface {
 	ReadCommunityMembersUnsafe(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3)
 	ReadAnyCommunityUsers(teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error)
 	ReadAnyCommunityUsersUnsafe(teamID models.TeamID) (users []models.AdaptiveCommunityUser3)
-	ReadCommunityUserOptional(channelID string, userID string) (user []models.AdaptiveCommunityUser3, err error)
-	ReadCommunityUserOptionalUnsafe(channelID string, userID string) (user []models.AdaptiveCommunityUser3)
 	DeactivateUserFromCommunity(teamID models.TeamID, channelID string, userID string) (err error)
 	DeactivateAllCommunityMembers(teamID models.TeamID, channelID string) (err error)
 	DeactivateAllCommunityMembersUnsafe(teamID models.TeamID, channelID string)
-	// Delete(userID string) error
-	// DeleteUnsafe(userID string)
-	IsUserInCommunity(channelID string, userID string) bool
+	IsUserInCommunity(teamID models.TeamID, channelID string, userID string) bool
 }
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
@@ -184,30 +180,14 @@ func wrapError(err error, name string) error {
 	return fmt.Errorf("{%s: %v}", name, err)
 }
 
-// ReadCommunityUserOptional checks if the user is in the channel
-func (d DAOImpl) ReadCommunityUserOptional(channelID string, userID string) (user []models.AdaptiveCommunityUser3, err error) {
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: d.UserCommunityIndex,
-		Condition: "user_id = :u and community_id = :c",
-		Attributes: map[string]interface{}{
-			":u": userID,
-			":c": channelID,
-		},
-	}, map[string]string{}, true, -1, &user)
-	return
-}
-
-// ReadCommunityUserOptionalUnsafe read&panic
-func (d DAOImpl) ReadCommunityUserOptionalUnsafe(channelID string, userID string) (user []models.AdaptiveCommunityUser3) {
-	user, err := d.ReadCommunityUserOptional(channelID, userID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s table on %s index",
-		d.Name, d.UserCommunityIndex))
-	return
-}
-
 // IsUserInCommunity checks if a user is part of an Adaptive Community
-func (d DAOImpl) IsUserInCommunity(channelID string, userID string) bool {
-	return len(d.ReadCommunityUserOptionalUnsafe(channelID, userID)) > 0
+func (d DAOImpl) IsUserInCommunity(teamID models.TeamID, communityID string, userID string) bool {
+	connGen := common.CreateConnectionGenFromEnv()
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	acus, err2 := adaptiveCommunityUser.ReadByUserIDCommunityID(communityID, userID)(conn)
+	core.ErrorHandlerf(err2, d.Namespace, "ReadByUserIDCommunityID(communityID=%s, userID=%s", communityID, userID)
+
+	return len(acus) > 0
 }
 
 func (d DAOImpl) DeactivateAllCommunityMembers(teamID models.TeamID, channelID string) (err error) {
