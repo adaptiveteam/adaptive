@@ -60,26 +60,6 @@ func (d DAOImpl) CreateUnsafe(user models.AdaptiveCommunityUser3) {
 
 }
 
-// ReadCommunityUsers reads users of the channel
-// NB! Use another method with PlatformID argument.
-func (d DAOImpl) ReadCommunityUsers(channelID string) (users []models.AdaptiveCommunityUser3, err error) {
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: d.ChannelIndex,
-		Condition: "channel_id = :c",
-		Attributes: map[string]interface{}{
-			":c": channelID,
-		},
-	}, map[string]string{}, true, -1, &users)
-	return
-}
-
-// ReadCommunityUsersUnsafe reads&panics
-func (d DAOImpl) ReadCommunityUsersUnsafe(channelID string) (users []models.AdaptiveCommunityUser3) {
-	users, err := d.ReadCommunityUsers(channelID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s table on %s index", d.Name, d.UserCommunityIndex))
-	return
-}
-
 // ReadCommunityMembers reads members using teamID
 func (d DAOImpl) ReadCommunityMembers(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error) {
 	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
@@ -168,7 +148,9 @@ func (d DAOImpl) IsUserInCommunity(teamID models.TeamID, communityID string, use
 }
 
 func (d DAOImpl) DeactivateAllCommunityMembers(teamID models.TeamID, channelID string) (err error) {
-	commUsers, err := d.ReadCommunityUsers(channelID)
+	connGen := common.CreateConnectionGenFromEnv()
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	commUsers, err := adaptiveCommunityUser.ReadByChannelID(channelID)(conn)
 	if err == nil {
 		for _, each := range commUsers {
 			err := d.DeactivateUserFromCommunity(teamID, channelID, each.UserID)
