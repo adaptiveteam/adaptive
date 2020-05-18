@@ -287,3 +287,28 @@ func ReadByUserIDTypeUnsafe(userID string, objectiveType DevelopmentObjectiveTyp
 	}
 }
 
+
+func ReadByHashKeyUserID(userID string) func (conn common.DynamoDBConnection) (out []UserObjective, err error) {
+	return func (conn common.DynamoDBConnection) (out []UserObjective, err error) {
+		var instances []UserObjective
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "UserIDCompletedIndex",
+			Condition: "user_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : userID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = instances
+		return
+	}
+}
+
+
+func ReadByHashKeyUserIDUnsafe(userID string) func (conn common.DynamoDBConnection) (out []UserObjective) {
+	return func (conn common.DynamoDBConnection) (out []UserObjective) {
+		out, err2 := ReadByHashKeyUserID(userID)(conn)
+		core.ErrorHandler(err2, "daos/UserObjective", fmt.Sprintf("Could not query UserIDCompletedIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+

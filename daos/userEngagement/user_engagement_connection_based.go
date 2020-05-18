@@ -211,3 +211,28 @@ func ReadByUserIDAnsweredUnsafe(userID string, answered int) func (conn common.D
 	}
 }
 
+
+func ReadByHashKeyUserID(userID string) func (conn common.DynamoDBConnection) (out []UserEngagement, err error) {
+	return func (conn common.DynamoDBConnection) (out []UserEngagement, err error) {
+		var instances []UserEngagement
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "UserIDAnsweredIndex",
+			Condition: "user_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : userID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = instances
+		return
+	}
+}
+
+
+func ReadByHashKeyUserIDUnsafe(userID string) func (conn common.DynamoDBConnection) (out []UserEngagement) {
+	return func (conn common.DynamoDBConnection) (out []UserEngagement) {
+		out, err2 := ReadByHashKeyUserID(userID)(conn)
+		core.ErrorHandler(err2, "daos/UserEngagement", fmt.Sprintf("Could not query UserIDAnsweredIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+
