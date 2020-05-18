@@ -17,8 +17,6 @@ import (
 type DAO interface {
 	Create(user models.AdaptiveCommunityUser3) error
 	CreateUnsafe(user models.AdaptiveCommunityUser3)
-	ReadAnyCommunityUsers(teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error)
-	ReadAnyCommunityUsersUnsafe(teamID models.TeamID) (users []models.AdaptiveCommunityUser3)
 	DeactivateUserFromCommunity(teamID models.TeamID, channelID string, userID string) (err error)
 	DeactivateAllCommunityMembers(teamID models.TeamID, channelID string) (err error)
 	DeactivateAllCommunityMembersUnsafe(teamID models.TeamID, channelID string)
@@ -56,20 +54,6 @@ func (d DAOImpl) CreateUnsafe(user models.AdaptiveCommunityUser3) {
 	err := d.Create(user)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.UserID, d.Name))
 
-}
-
-func (d DAOImpl) ReadAnyCommunityUsers(teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error) {
-	connGen := common.CreateConnectionGenFromEnv()
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
-	users, err = adaptiveCommunityUser.ReadByHashKeyPlatformID(teamID.ToPlatformID())(conn)
-	return
-}
-
-func (d DAOImpl) ReadAnyCommunityUsersUnsafe(teamID models.TeamID) (users []models.AdaptiveCommunityUser3) {
-	users, err := d.ReadAnyCommunityUsers(teamID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s table on %s index",
-		d.Name, d.CommunityIndex))
-	return
 }
 
 // DeactivateUserFromCommunity deletes a user from community
