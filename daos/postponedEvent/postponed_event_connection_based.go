@@ -68,7 +68,7 @@ func ReadUnsafe(id string) func (conn common.DynamoDBConnection) PostponedEvent 
 func ReadOrEmpty(id string) func (conn common.DynamoDBConnection) (out []PostponedEvent, err error) {
 	return func (conn common.DynamoDBConnection) (out []PostponedEvent, err error) {
        out, err = ReadOrEmptyIncludingInactive(id)(conn)
-       
+       out = PostponedEventFilterActive(out)
        
 		return
 	}
@@ -169,19 +169,26 @@ func CreateOrUpdateUnsafe(postponedEvent PostponedEvent) func (conn common.Dynam
 }
 
 
-// Delete removes PostponedEvent from db
-func Delete(id string) func (conn common.DynamoDBConnection) error {
+// Deactivate "removes" PostponedEvent. 
+// The mechanism is adding timestamp to `DeactivatedOn` field. 
+// Then, if this field is not empty, the instance is considered to be "active"
+func Deactivate(id string) func (conn common.DynamoDBConnection) error {
 	return func (conn common.DynamoDBConnection) error {
-		return conn.Dynamo.DeleteEntry(TableName(conn.ClientID), idParams(id))
+		instance, err2 := Read(id)(conn)
+		if err2 == nil {
+			instance.DeactivatedAt = core.CurrentRFCTimestamp()
+			err2 = CreateOrUpdate(instance)(conn)
+		}
+		return err2
 	}
 }
 
 
-// DeleteUnsafe deletes PostponedEvent and panics in case of errors.
-func DeleteUnsafe(id string) func (conn common.DynamoDBConnection) {
+// DeactivateUnsafe "deletes" PostponedEvent and panics in case of errors.
+func DeactivateUnsafe(id string) func (conn common.DynamoDBConnection) {
 	return func (conn common.DynamoDBConnection) {
-		err2 := Delete(id)(conn)
-		core.ErrorHandler(err2, "daos/PostponedEvent", fmt.Sprintf("Could not delete id==%s in %s\n", id, TableName(conn.ClientID)))
+		err2 := Deactivate(id)(conn)
+		core.ErrorHandler(err2, "daos/PostponedEvent", fmt.Sprintf("Could not deactivate id==%s in %s\n", id, TableName(conn.ClientID)))
 	}
 }
 
@@ -197,7 +204,7 @@ func ReadByPlatformIDUserID(platformID common.PlatformID, userID string) func (c
 			":a1": userID,
 			},
 		}, map[string]string{}, true, -1, &instances)
-		out = instances
+		out = PostponedEventFilterActive(instances)
 		return
 	}
 }
@@ -222,7 +229,7 @@ func ReadByUserID(userID string) func (conn common.DynamoDBConnection) (out []Po
 				":a0": userID,
 			},
 		}, map[string]string{}, true, -1, &instances)
-		out = instances
+		out = PostponedEventFilterActive(instances)
 		return
 	}
 }

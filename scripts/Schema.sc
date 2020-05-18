@@ -199,7 +199,7 @@ val PostponedEvent = Entity("PostponedEvent".camel,
         ("ActionPath".camel :: string) \\ "ActionPath is callback for triggering workflows", 
         ("ValidThrough".camel :: timestamp) \\ "ValidThrough is the last time moment when this event might still be valid"
     ),
-    Nil, List(CreatedModifiedTimesTrait)
+    Nil, List(CreatedModifiedTimesTrait, DeactivationTrait)
 )
 
 val PostponedEventTable = Table(PostponedEvent,
