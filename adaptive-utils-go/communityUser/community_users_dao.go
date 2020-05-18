@@ -17,8 +17,6 @@ import (
 type DAO interface {
 	Create(user models.AdaptiveCommunityUser3) error
 	CreateUnsafe(user models.AdaptiveCommunityUser3)
-	ReadCommunityMembers(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error)
-	ReadCommunityMembersUnsafe(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3)
 	ReadAnyCommunityUsers(teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error)
 	ReadAnyCommunityUsersUnsafe(teamID models.TeamID) (users []models.AdaptiveCommunityUser3)
 	DeactivateUserFromCommunity(teamID models.TeamID, channelID string, userID string) (err error)
@@ -58,27 +56,6 @@ func (d DAOImpl) CreateUnsafe(user models.AdaptiveCommunityUser3) {
 	err := d.Create(user)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.UserID, d.Name))
 
-}
-
-// ReadCommunityMembers reads members using teamID
-func (d DAOImpl) ReadCommunityMembers(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error) {
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: d.UserCommunityIndex,
-		Condition: "platform_id = :pi AND community_id = :c",
-		Attributes: map[string]interface{}{
-			":c":  channelID,
-			":pi": teamID.ToString(),
-		},
-	}, map[string]string{}, true, -1, &users)
-	return
-}
-
-// ReadCommunityMembersUnsafe read and panic
-func (d DAOImpl) ReadCommunityMembersUnsafe(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3) {
-	users, err := d.ReadCommunityMembers(channelID, teamID)
-	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not query %s table on %s index",
-		d.Name, d.UserCommunityIndex))
-	return
 }
 
 func (d DAOImpl) ReadAnyCommunityUsers(teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error) {
