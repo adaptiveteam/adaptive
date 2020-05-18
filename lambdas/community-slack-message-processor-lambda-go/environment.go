@@ -6,7 +6,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
@@ -62,7 +61,6 @@ var (
 
 	clientID         = utils.NonEmptyEnv("CLIENT_ID")
 	schema           = models.SchemaForClientID(clientID)
-	communityUserDAO = communityUser.NewDAOFromSchema(d, namespace, schema)
 	connGen          = daosCommon.CreateConnectionGenFromEnv()
 )
 

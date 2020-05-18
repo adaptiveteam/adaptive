@@ -8,36 +8,10 @@ import (
 
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	
-	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
-
-// DAO is a CRUD wrapper around the _community_users Dynamo DB table
-type DAO interface {
-	IsUserInCommunity(teamID models.TeamID, channelID string, userID string) bool
-}
-
-// DAOImpl - a container for all information needed to access a DynamoDB table
-type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	models.CommunityUsersTableSchema
-}
-
-// NewDAO creates an instance of DAO that will provide access to the table
-func NewDAO(dynamo *awsutils.DynamoRequest, namespace string,
-	table models.CommunityUsersTableSchema) DAO {
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace,
-		CommunityUsersTableSchema: table,
-	}
-}
-
-// NewDAOFromSchema creates an instance of DAO that will provide access to the table
-func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema models.Schema) DAO {
-	return NewDAO(dynamo, namespace, schema.CommunityUsers)
-}
 
 // DeactivateUserFromCommunity deletes a user from community
 func DeactivateUserFromCommunity(teamID models.TeamID, channelID string, userID string) func (conn common.DynamoDBConnection) (err error) {
@@ -65,14 +39,14 @@ func wrapError(err error, name string) error {
 	return fmt.Errorf("{%s: %v}", name, err)
 }
 
-// IsUserInCommunity checks if a user is part of an Adaptive Community
-func (d DAOImpl) IsUserInCommunity(teamID models.TeamID, communityID string, userID string) bool {
-	connGen := common.CreateConnectionGenFromEnv()
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
-	acus, err2 := adaptiveCommunityUser.ReadByUserIDCommunityID(communityID, userID)(conn)
-	core.ErrorHandlerf(err2, d.Namespace, "ReadByUserIDCommunityID(communityID=%s, userID=%s", communityID, userID)
+// IsUserInCommunityUnsafe checks if a user is part of an Adaptive Community
+func IsUserInCommunityUnsafe(teamID models.TeamID, communityID string, userID string) func (conn common.DynamoDBConnection) bool {
+	return func (conn common.DynamoDBConnection) bool {
+		acus, err2 := adaptiveCommunityUser.ReadByUserIDCommunityID(communityID, userID)(conn)
+		core.ErrorHandlerf(err2, "IsUserInCommunityUnsafe", "ReadByUserIDCommunityID(communityID=%s, userID=%s", communityID, userID)
 
-	return len(acus) > 0
+		return len(acus) > 0
+	}
 }
 
 func DeactivateAllCommunityMembers(teamID models.TeamID, channelID string) func (conn common.DynamoDBConnection) (err error) {
