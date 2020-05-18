@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -116,7 +117,7 @@ func onCommunitySubscribeCommunityClicked(
 func setupCommunityUsers(channelID, communityID string, communityMemberIDs []string, 
 	conn common.DynamoDBConnection) {
 	teamID := models.ParseTeamID(conn.PlatformID)
-	hasBeenSubscribedMany := isUserSubscribedToAnyCommunityMany(communityMemberIDs)
+	hasBeenSubscribedMany := isUserSubscribedToAnyCommunityMany(communityMemberIDs)(conn)
 	userCommunities := addUsersToCommunity(teamID, channelID, communityID, communityMemberIDs)
 	logger.Infof("Added %s users from %s channel to %s community in team %v", communityMemberIDs, channelID, communityID, teamID)
 	welcomeAllUsers(userCommunities, conn)
@@ -284,7 +285,7 @@ func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent,
 				// If another user is added
 				// Get the subscribed communities
 				subComms := subscribedCommunities(slackMsg.Channel, conn)
-				hasBeenSubscribed := isUserSubscribedToAnyCommunity(slackMsg.User)
+				hasBeenSubscribed := isUserSubscribedToAnyCommunity(slackMsg.User)(conn)
 				userCommunityPairs := addUserToAllCommunities(slackMsg.User, subComms, conn)
 				logger.Infof("Welcoming newly added %s user", slackMsg.User)
 				welcomeAllUsers(userCommunityPairs, conn)
@@ -300,20 +301,24 @@ func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent,
 	}
 }
 
-func isUserSubscribedToAnyCommunity(userID string) bool {
-	comms, err2 := communityUserDAO.Read(userID)
-	if err2 != nil && strings.Contains(err2.Error(), "not found") {
-		logger.Infof("Not found community user %s", userID)
+func isUserSubscribedToAnyCommunity(userID string) func(conn common.DynamoDBConnection) bool {
+	return func(conn common.DynamoDBConnection) bool {
+		comms, err2 := adaptiveCommunityUser.ReadByUserID(userID)(conn)
+		if err2 != nil && strings.Contains(err2.Error(), "not found") {
+			logger.Infof("Not found community user %s", userID)
+		}
+		return err2 == nil && len(comms) > 0
 	}
-	return err2 == nil && len(comms) > 0
 }
 
-func isUserSubscribedToAnyCommunityMany(userIDs []string) (m map[string]bool) {
-	m = make(map[string]bool)
-	for _, u := range userIDs {
-		m[u] = isUserSubscribedToAnyCommunity(u)
+func isUserSubscribedToAnyCommunityMany(userIDs []string)func(conn common.DynamoDBConnection)  (m map[string]bool) {
+	return func(conn common.DynamoDBConnection)  (m map[string]bool) {
+		m = make(map[string]bool)
+		for _, u := range userIDs {
+			m[u] = isUserSubscribedToAnyCommunity(u)(conn)
+		}
+		return
 	}
-	return
 }
 
 // func getUserIDs(userCommunityPairs []models.AdaptiveCommunityUser3) (userIDs []string) {

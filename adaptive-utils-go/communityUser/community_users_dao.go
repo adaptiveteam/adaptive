@@ -17,9 +17,6 @@ import (
 type DAO interface {
 	Create(user models.AdaptiveCommunityUser3) error
 	CreateUnsafe(user models.AdaptiveCommunityUser3)
-	// Read reads user by id, returns zero or one results
-	Read(userID string) ([]models.AdaptiveCommunityUser3, error)
-	ReadUnsafe(userID string) []models.AdaptiveCommunityUser3
 	ReadCommunityUsers(channelID string) (users []models.AdaptiveCommunityUser3, err error)
 	ReadCommunityMembers(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error)
 	ReadCommunityMembersUnsafe(channelID string, teamID models.TeamID) (users []models.AdaptiveCommunityUser3)
@@ -62,25 +59,6 @@ func (d DAOImpl) CreateUnsafe(user models.AdaptiveCommunityUser3) {
 	err := d.Create(user)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("Could not create %s in %s", user.UserID, d.Name))
 
-}
-
-// Read reads user by id, returns zero or one results
-func (d DAOImpl) Read(userID string) (out []models.AdaptiveCommunityUser3, err error) {
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: d.UserIndex,
-		Condition: "user_id = :u",
-		Attributes: map[string]interface{}{
-			":u": userID,
-		},
-	}, map[string]string{}, true, -1, &out)
-	return
-}
-
-// ReadUnsafe reads data. Panics in case of errors
-func (d DAOImpl) ReadUnsafe(userID string) []models.AdaptiveCommunityUser3 {
-	out, err2 := d.Read(userID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not find %s in %s using index %s", userID, d.Name, d.UserIndex))
-	return out
 }
 
 // ReadCommunityUsers reads users of the channel
