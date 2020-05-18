@@ -425,7 +425,7 @@ func getSubscribeMessage(channelID platform.ConversationID, teamID models.TeamID
 	availComms := liftStringToOption(simpleOptionStr)(availableCommunities(teamID))
 	availStrComms := liftKvPairToOption(kvPairToMenuOption)(availableStrategyCommunities(teamID, userID))
 	opts := append(availComms, availStrComms...)
-	logger.Infof("Available communities for Adaptive to join: %s", opts)
+	logger.Infof("Available communities for Adaptive to join: %v", opts)
 	if len(opts) > 0 {
 		message = selectOptionsMessage(mc,
 			PostSubscribeEngagementTitle,
