@@ -27,7 +27,7 @@ func availableCommunities(teamID models.TeamID) []string {
 	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	// Get all used communities
 	comms, err := adaptiveCommunity.ReadByPlatformID(teamID.ToPlatformID())(conn)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not scan %s table", orgCommunitiesTable))
+	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not scan adaptiveCommunity table"))
 	var b []string
 	for _, each := range comms {
 		b = append(b, each.ID)
@@ -321,10 +321,9 @@ func channelUnsubscribe(channelID string,
 				err = deleteCommunityMembersByCommunityID(teamID, eachComm.ID, eachComm.ChannelID, conn)
 				if err == nil {
 					logger.Infof("Removed all community members in %s community for %s platform", eachComm.ID, teamID)
-					commParams := idAndPlatformIDParams(eachComm.ID, teamID)
 					// Delete entry from communities table
-					err = d.DeleteEntry(orgCommunitiesTable, commParams)
-					err = errors.Wrapf(err, "Could not delete from %s table in %s platform", orgCommunitiesTable, teamID)
+					err = adaptiveCommunity.Deactivate(conn.PlatformID, eachComm.ID)(conn)
+					err = errors.Wrapf(err, "Could not delete from adaptiveCommunity table in %s platform", teamID)
 					if err == nil {
 						logger.Infof("Removed %v community for %s platform", eachComm, teamID)
 					}

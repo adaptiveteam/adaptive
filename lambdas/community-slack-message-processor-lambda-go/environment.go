@@ -24,7 +24,6 @@ var (
 	userProfileLambda               = utils.NonEmptyEnv("USER_PROFILE_LAMBDA_NAME")
 	usersTable                      = utils.NonEmptyEnv("USERS_TABLE_NAME")
 	engagementTable                 = utils.NonEmptyEnv("USER_ENGAGEMENTS_TABLE_NAME")
-	orgCommunitiesTable             = utils.NonEmptyEnv("USER_COMMUNITIES_TABLE")
 	namespace                       = utils.NonEmptyEnv("LOG_NAMESPACE")
 	FeedbackReportPostingLambdaName = utils.NonEmptyEnv("FEEDBACK_REPORT_POSTING_LAMBDA_NAME")
 	FeedbackReportingLambdaName     = utils.NonEmptyEnv("FEEDBACK_REPORTING_LAMBDA_NAME")

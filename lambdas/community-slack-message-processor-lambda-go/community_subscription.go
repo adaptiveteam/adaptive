@@ -89,7 +89,7 @@ func onCommunitySubscribeCommunityClicked(
 			err2 = adaptiveCommunity.Create(comm)(conn)
 			if err2 != nil {
 				logger.WithField("namespace", namespace).WithField("error", err2).
-					Errorf("Could not add entry to %s table", orgCommunitiesTable)
+					Errorf("Could not add entry to adaptiveCommunity table")
 			} else {
 				// Once a channel/group is subscribed to a community, get all existing users from the channel and add as community users
 				// Adding existing channel members
