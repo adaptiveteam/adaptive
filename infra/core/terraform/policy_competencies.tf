@@ -12,7 +12,6 @@ data "aws_iam_policy_document" "competencies_policy" {
       "dynamodb:GetItem",
       "dynamodb:Scan",
       "dynamodb:UpdateItem",
-      "dynamodb:DeleteItem",
     ]
     resources = [aws_dynamodb_table.adaptive_value_dynamodb_table.arn]
   }
