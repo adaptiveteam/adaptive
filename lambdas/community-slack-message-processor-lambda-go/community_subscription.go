@@ -379,12 +379,12 @@ func onAdaptiveJoinedChannel(channelID platform.ConversationID, teamID models.Te
 }
 
 // A regular user is removed from the channel
-func onMemberLeftChannel(slackMsg slack.MemberLeftChannelEvent) {
-	err := communityUserDAO.DeleteUserFromCommunity(slackMsg.Channel, slackMsg.User)
+func onMemberLeftChannel(teamID models.TeamID, slackMsg slack.MemberLeftChannelEvent) {
+	err := communityUserDAO.DeactivateUserFromCommunity(teamID, slackMsg.Channel, slackMsg.User)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not remove entry from %s table", communityUsersTable))
 }
 
-func onGroupLeftEvent(cbEvent slackevents.EventsAPICallbackEvent, 
+func onGroupLeftEvent(teamID models.TeamID, cbEvent slackevents.EventsAPICallbackEvent, 
 	conn daosCommon.DynamoDBConnection) {
 	logger.Infof("Handling onGroupLeftEvent %v", *cbEvent.InnerEvent)
 	var groupLeftEvent models.GroupLeftEvent
@@ -403,7 +403,7 @@ func onGroupLeftEvent(cbEvent slackevents.EventsAPICallbackEvent,
 			removeChannel(groupLeftEvent.ActorId, groupLeftEvent.Channel, conn)
 		} else {
 			logger.Warnf("Weird onGroupLeftEvent (1) - %s (%s) not IsAdaptiveBot", authedUser, us.ID)
-			err2 := communityUserDAO.DeleteUserFromCommunity(groupLeftEvent.Channel, authedUser)
+			err2 := communityUserDAO.DeactivateUserFromCommunity(teamID, groupLeftEvent.Channel, authedUser)
 			core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not remove entry from %s table", communityUsersTable))
 		}
 	} else {

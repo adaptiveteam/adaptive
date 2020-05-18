@@ -3,6 +3,9 @@ package communityUser
 import (
 	"fmt"
 
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	"github.com/adaptiveteam/adaptive/daos/common"
+
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -24,9 +27,9 @@ type DAO interface {
 	ReadAnyCommunityUsersUnsafe(teamID models.TeamID) (users []models.AdaptiveCommunityUser3)
 	ReadCommunityUserOptional(channelID string, userID string) (user []models.AdaptiveCommunityUser3, err error)
 	ReadCommunityUserOptionalUnsafe(channelID string, userID string) (user []models.AdaptiveCommunityUser3)
-	DeleteUserFromCommunity(channelID string, userID string) (err error)
-	DeleteAllCommunityMembers(channelID string) (err error)
-	DeleteAllCommunityMembersUnsafe(channelID string)
+	DeactivateUserFromCommunity(teamID models.TeamID, channelID string, userID string) (err error)
+	DeactivateAllCommunityMembers(teamID models.TeamID, channelID string) (err error)
+	DeactivateAllCommunityMembersUnsafe(teamID models.TeamID, channelID string)
 	// Delete(userID string) error
 	// DeleteUnsafe(userID string)
 	IsUserInCommunity(channelID string, userID string) bool
@@ -126,13 +129,9 @@ func (d DAOImpl) ReadCommunityMembersUnsafe(channelID string, teamID models.Team
 }
 
 func (d DAOImpl) ReadAnyCommunityUsers(teamID models.TeamID) (users []models.AdaptiveCommunityUser3, err error) {
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
-		IndexName: d.CommunityIndex,
-		Condition: "platform_id = :pi",
-		Attributes: map[string]interface{}{
-			":pi": teamID.ToString(),
-		},
-	}, map[string]string{}, true, -1, &users)
+	connGen := common.CreateConnectionGenFromEnv()
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	users, err = adaptiveCommunityUser.ReadByHashKeyPlatformID(teamID.ToPlatformID())(conn)
 	return
 }
 
@@ -143,14 +142,17 @@ func (d DAOImpl) ReadAnyCommunityUsersUnsafe(teamID models.TeamID) (users []mode
 	return
 }
 
-// DeleteUserFromCommunity deletes a user from community
-func (d DAOImpl) DeleteUserFromCommunity(channelID string, userID string) (err error) {
-	commUserParams := map[string]*dynamodb.AttributeValue{
-		"channel_id": dynString(channelID),
-		"user_id":    dynString(userID),
-	}
-	err = d.Dynamo.DeleteEntry(d.Name, commUserParams)
-	return wrapError(err, "deleteUserFromCommunity("+userID+","+channelID+")")
+// DeactivateUserFromCommunity deletes a user from community
+func (d DAOImpl) DeactivateUserFromCommunity(teamID models.TeamID, channelID string, userID string) (err error) {
+	connGen := common.CreateConnectionGenFromEnv()
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	err = adaptiveCommunityUser.Deactivate(channelID, userID)(conn)
+	// commUserParams := map[string]*dynamodb.AttributeValue{
+	// 	"channel_id": dynString(channelID),
+	// 	"user_id":    dynString(userID),
+	// }
+	// err = d.Dynamo.DeleteEntry(d.Name, commUserParams)
+	return wrapError(err, "DeactivateUserFromCommunity("+userID+","+channelID+")")
 }
 
 func dynString(str string) (attr *dynamodb.AttributeValue) {
@@ -208,11 +210,11 @@ func (d DAOImpl) IsUserInCommunity(channelID string, userID string) bool {
 	return len(d.ReadCommunityUserOptionalUnsafe(channelID, userID)) > 0
 }
 
-func (d DAOImpl) DeleteAllCommunityMembers(channelID string) (err error) {
+func (d DAOImpl) DeactivateAllCommunityMembers(teamID models.TeamID, channelID string) (err error) {
 	commUsers, err := d.ReadCommunityUsers(channelID)
 	if err == nil {
 		for _, each := range commUsers {
-			err := d.DeleteUserFromCommunity(channelID, each.UserID)
+			err := d.DeactivateUserFromCommunity(teamID, channelID, each.UserID)
 			if err != nil {
 				break
 			}
@@ -221,8 +223,8 @@ func (d DAOImpl) DeleteAllCommunityMembers(channelID string) (err error) {
 	return wrapError(err, "removeCommunityMembers("+channelID+")")
 }
 
-func (d DAOImpl) DeleteAllCommunityMembersUnsafe(channelID string) {
-	err := d.DeleteAllCommunityMembers(channelID)
+func (d DAOImpl) DeactivateAllCommunityMembersUnsafe(teamID models.TeamID, channelID string) {
+	err := d.DeactivateAllCommunityMembers(teamID, channelID)
 	core.ErrorHandler(err, d.Namespace, fmt.Sprintf("removeCommunityMembersUnsafe: Could not query %s table on %s index",
 		d.Name, d.ChannelIndex))
 }

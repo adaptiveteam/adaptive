@@ -285,7 +285,7 @@ func removeChannel(userID, channelID string, conn daosCommon.DynamoDBConnection)
 	// We should delete this channel from users table and deactivate the community
 	for _, each := range comms {
 		// Delete users from community users table
-		communityUserDAO.DeleteAllCommunityMembersUnsafe(each.ChannelID)
+		communityUserDAO.DeactivateAllCommunityMembersUnsafe(teamID, each.ChannelID)
 		// Delete entry from communities table
 		adaptiveCommunity.DeactivateUnsafe(each.PlatformID, each.ID)(conn)
 		// Deleting channel user
@@ -299,8 +299,8 @@ func removeChannel(userID, channelID string, conn daosCommon.DynamoDBConnection)
 
 // TODO: Update this to remove by community id instead of channel id
 // This is assuming that there is only one community per channel
-func deleteCommunityMembersByCommunityID(communityID string, channelID string) (err error) {
-	return communityUserDAO.DeleteAllCommunityMembers(channelID)
+func deleteCommunityMembersByCommunityID(teamID models.TeamID, communityID string, channelID string) (err error) {
+	return communityUserDAO.DeactivateAllCommunityMembers(teamID, channelID)
 }
 
 // channelUnsubscribe removes the channel association with a community.
@@ -321,7 +321,7 @@ func channelUnsubscribe(channelID string,
 			err = daosUser.Deactivate(channelID)(conn)
 			if err == nil {
 				// Delete users from user communities table for the community
-				err = deleteCommunityMembersByCommunityID(eachComm.ID, eachComm.ChannelID)
+				err = deleteCommunityMembersByCommunityID(teamID, eachComm.ID, eachComm.ChannelID)
 				if err == nil {
 					logger.Infof("Removed all community members in %s community for %s platform", eachComm.ID, teamID)
 					commParams := idAndPlatformIDParams(eachComm.ID, teamID)
