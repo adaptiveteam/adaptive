@@ -14,7 +14,10 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
@@ -385,7 +388,9 @@ func onAdaptiveJoinedChannel(channelID platform.ConversationID, teamID models.Te
 
 // A regular user is removed from the channel
 func onMemberLeftChannel(teamID models.TeamID, slackMsg slack.MemberLeftChannelEvent) {
-	err := communityUserDAO.DeactivateUserFromCommunity(teamID, slackMsg.Channel, slackMsg.User)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+
+	err := communityUser.DeactivateUserFromCommunity(teamID, slackMsg.Channel, slackMsg.User)(conn)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not remove entry from %s table", communityUsersTable))
 }
 
@@ -408,7 +413,7 @@ func onGroupLeftEvent(teamID models.TeamID, cbEvent slackevents.EventsAPICallbac
 			removeChannel(groupLeftEvent.ActorId, groupLeftEvent.Channel, conn)
 		} else {
 			logger.Warnf("Weird onGroupLeftEvent (1) - %s (%s) not IsAdaptiveBot", authedUser, us.ID)
-			err2 := communityUserDAO.DeactivateUserFromCommunity(teamID, groupLeftEvent.Channel, authedUser)
+			err2 := communityUser.DeactivateUserFromCommunity(teamID, groupLeftEvent.Channel, authedUser)(conn)
 			core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not remove entry from %s table", communityUsersTable))
 		}
 	} else {

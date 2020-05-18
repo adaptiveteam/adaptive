@@ -7,6 +7,7 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/common"
 
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,7 +16,6 @@ import (
 
 // DAO is a CRUD wrapper around the _community_users Dynamo DB table
 type DAO interface {
-	DeactivateUserFromCommunity(teamID models.TeamID, channelID string, userID string) (err error)
 	DeactivateAllCommunityMembers(teamID models.TeamID, channelID string) (err error)
 	DeactivateAllCommunityMembersUnsafe(teamID models.TeamID, channelID string)
 	IsUserInCommunity(teamID models.TeamID, channelID string, userID string) bool
@@ -42,16 +42,11 @@ func NewDAOFromSchema(dynamo *awsutils.DynamoRequest, namespace string, schema m
 }
 
 // DeactivateUserFromCommunity deletes a user from community
-func (d DAOImpl) DeactivateUserFromCommunity(teamID models.TeamID, channelID string, userID string) (err error) {
-	connGen := common.CreateConnectionGenFromEnv()
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
-	err = adaptiveCommunityUser.Deactivate(channelID, userID)(conn)
-	// commUserParams := map[string]*dynamodb.AttributeValue{
-	// 	"channel_id": dynString(channelID),
-	// 	"user_id":    dynString(userID),
-	// }
-	// err = d.Dynamo.DeleteEntry(d.Name, commUserParams)
-	return wrapError(err, "DeactivateUserFromCommunity("+userID+","+channelID+")")
+func DeactivateUserFromCommunity(teamID models.TeamID, channelID string, userID string) func (conn common.DynamoDBConnection) (err error) {
+	return func (conn common.DynamoDBConnection) (err error) {
+		err = adaptiveCommunityUser.Deactivate(channelID, userID)(conn)
+		return wrapError(err, "DeactivateUserFromCommunity("+userID+","+channelID+")")
+	}
 }
 
 func dynString(str string) (attr *dynamodb.AttributeValue) {
@@ -99,7 +94,7 @@ func (d DAOImpl) DeactivateAllCommunityMembers(teamID models.TeamID, channelID s
 	commUsers, err := adaptiveCommunityUser.ReadByChannelID(channelID)(conn)
 	if err == nil {
 		for _, each := range commUsers {
-			err := d.DeactivateUserFromCommunity(teamID, channelID, each.UserID)
+			err := DeactivateUserFromCommunity(teamID, channelID, each.UserID)
 			if err != nil {
 				break
 			}
