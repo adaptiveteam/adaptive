@@ -257,3 +257,28 @@ func ReadByPlatformIDUserIDUnsafe(platformID common.PlatformID, userID string) f
 	}
 }
 
+
+func ReadByHashKeyPlatformID(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []ChannelMember, err error) {
+	return func (conn common.DynamoDBConnection) (out []ChannelMember, err error) {
+		var instances []ChannelMember
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "PlatformIDUserIDIndex",
+			Condition: "platform_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : platformID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = instances
+		return
+	}
+}
+
+
+func ReadByHashKeyPlatformIDUnsafe(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []ChannelMember) {
+	return func (conn common.DynamoDBConnection) (out []ChannelMember) {
+		out, err2 := ReadByHashKeyPlatformID(platformID)(conn)
+		core.ErrorHandler(err2, "daos/ChannelMember", fmt.Sprintf("Could not query PlatformIDUserIDIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+

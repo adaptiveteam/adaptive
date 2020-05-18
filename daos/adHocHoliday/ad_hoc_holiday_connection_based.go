@@ -214,3 +214,28 @@ func ReadByPlatformIDDateUnsafe(platformID common.PlatformID, date string) func 
 	}
 }
 
+
+func ReadByHashKeyPlatformID(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []AdHocHoliday, err error) {
+	return func (conn common.DynamoDBConnection) (out []AdHocHoliday, err error) {
+		var instances []AdHocHoliday
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "PlatformIDDateIndex",
+			Condition: "platform_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : platformID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = AdHocHolidayFilterActive(instances)
+		return
+	}
+}
+
+
+func ReadByHashKeyPlatformIDUnsafe(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []AdHocHoliday) {
+	return func (conn common.DynamoDBConnection) (out []AdHocHoliday) {
+		out, err2 := ReadByHashKeyPlatformID(platformID)(conn)
+		core.ErrorHandler(err2, "daos/AdHocHoliday", fmt.Sprintf("Could not query PlatformIDDateIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+

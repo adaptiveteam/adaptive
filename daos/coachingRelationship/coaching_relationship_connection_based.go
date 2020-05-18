@@ -257,3 +257,28 @@ func ReadByCoacheeQuarterYearUnsafe(coacheeQuarterYear string) func (conn common
 	}
 }
 
+
+func ReadByHashKeyQuarter(quarter int) func (conn common.DynamoDBConnection) (out []CoachingRelationship, err error) {
+	return func (conn common.DynamoDBConnection) (out []CoachingRelationship, err error) {
+		var instances []CoachingRelationship
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "QuarterYearIndex",
+			Condition: "quarter = :a",
+			Attributes: map[string]interface{}{
+				":a" : quarter,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = instances
+		return
+	}
+}
+
+
+func ReadByHashKeyQuarterUnsafe(quarter int) func (conn common.DynamoDBConnection) (out []CoachingRelationship) {
+	return func (conn common.DynamoDBConnection) (out []CoachingRelationship) {
+		out, err2 := ReadByHashKeyQuarter(quarter)(conn)
+		core.ErrorHandler(err2, "daos/CoachingRelationship", fmt.Sprintf("Could not query QuarterYearIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+
