@@ -10,44 +10,11 @@ import GoTypes._
 import $file.Templates
 import Templates._
 
-// lazy val modelsImport = ImportClause(None, "github.com/adaptiveteam/adaptive/adaptive-utils-go/models")
-val platformIdDef = TypeAlias("PlatformID".camel, string)
-// val platformId = simpleType("PlatformId", "models.PlatformID", "S")
-// lazy val platformId = modelsImport.simpleType("PlatformId", "PlatformID".camel, "\"\"", "S")
+import $file.SchemaCommon
+import SchemaCommon._
 
-val PriorityValueDef = StringBasedEnum("PriorityValue".camel, List(
-	"UrgentPriority".camel ^^ "Urgent",
-	"HighPriority".camel ^^ "High",
-	"MediumPriority".camel ^^ "Medium",
-	"LowPriority".camel ^^ "Low"
-))
-
-// val priorityValueDef = TypeAlias("PriorityValue".camel, string)
-// lazy val priorityValue = TypeAlias("PriorityValue", "PriorityValue".camel, "\"\"", "S")
-// lazy val priorityValue = modelsImport.simpleType("PriorityValue", "PriorityValue".camel, "\"\"", "S")
-
-
-val ObjectiveStatusColorDef = StringBasedEnum("ObjectiveStatusColor".camel, List(
-	"ObjectiveStatusRedKey".camel ^^ "Red",
-	"ObjectiveStatusYellowKey".camel ^^ "Yellow",
-	"ObjectiveStatusGreenKey".camel ^^ "Green"
-))
-
-val PlatformNameDef = StringBasedEnum("PlatformName".camel, List(
-	"SlackPlatform".camel ^^ "slack",
-	"MsTeamsPlatform".camel ^^ "ms-teams"
-)) 
-
-val AdaptiveCommunityIDDef = StringBasedEnum("AdaptiveCommunityID".camel, List(
-	"Admin".camel ^^ "admin",
-	spacedName("HR") ^^ "hr",
-	"Coaching".camel ^^ "coaching",
-	"User".camel ^^ "user",
-	"Strategy".camel ^^ "strategy",
-	"Capability".camel ^^ "capability",
-	"Initiative".camel ^^ "initiative",
-	"Competency".camel ^^ "competency"
-))
+import $file.SchemaCommunities
+import SchemaCommunities._
 
 // val commonDefs = 
 // lazy val ObjectiveStatusColor = modelsImport.simpleType("ObjectiveStatusColor", "ObjectiveStatusColor".camel, "\"\"", "S")
@@ -60,7 +27,8 @@ val commonPackage = Package("common".camel, List(
                 platformIdDef, 
                 PriorityValueDef, ObjectiveStatusColorDef,
                 PlatformNameDef,
-                AdaptiveCommunityIDDef
+                AdaptiveCommunityIDDef,
+                CommunityKindDef
             )
         ))
     )
@@ -68,49 +36,6 @@ val commonPackage = Package("common".camel, List(
 
 def goField(decl: String): Field = goFieldParser(goTypes)(decl)
 
-val coreImport = ImportClause(Some("core"), "github.com/adaptiveteam/adaptive/core-utils-go")
-val commonImport = ImportClause(Some("common"), "github.com/adaptiveteam/adaptive/daos/common")
-
-val ObjectiveStatusColor = commonImport.simpleType(goPublicName(ObjectiveStatusColorDef.name), ObjectiveStatusColorDef.name, "\"\"", "S")
-//  ObjectiveStatusColorDef.typeAliasTypeInfo
-val priorityValue = commonImport.simpleType(goPublicName(PriorityValueDef.name), PriorityValueDef.name, "\"\"", "S")
-val platformId = commonImport.simpleType(goPublicName(platformIdDef.name), platformIdDef.name, "\"\"", "S")
-val PlatformName = commonImport.simpleType(goPublicName(PlatformNameDef.name), PlatformNameDef.name, "\"\"", "S")
-//val PlatformName = TypeAlias("PlatformName".camel, string)
-
-// val AdaptiveCommunityID = TypeAlias("AdaptiveCommunityID".camel, string)
-val AdaptiveCommunityID = commonImport.simpleType(goPublicName(AdaptiveCommunityIDDef.name), AdaptiveCommunityIDDef.name, "\"\"", "S")
-
-val imports = Imports(List(
-    ImportClause(None, "github.com/aws/aws-sdk-go/aws"),
-    ImportClause(Some("awsutils"), "github.com/adaptiveteam/adaptive/aws-utils-go"),
-    commonImport,
-    coreImport,
-    ImportClause(None, "github.com/aws/aws-sdk-go/service/dynamodb"),
-    ImportClause(None, "github.com/pkg/errors"),
-    ImportClause(None, "fmt"),
-    ImportClause(None, "encoding/json"),
-    ImportClause(None, "strings")
-    // ImportClause(None, "strconv")
-))
-
-val timeImport = ImportClause(None, "time")
-
-val idField = underscoredName("id") :: string
-val timezoneOffsetField = underscoredName("timezone_offset") :: int
-val adaptiveScheduledTimeInUtcField = underscoredName("adaptive_scheduled_time_in_UTC") :: optionTimestamp
-val platformIdField = spacedName("platform ID") :: platformId
-
-def entitySpecificImports(entity: Entity): List[ImportClause] = {
-    entity.traits.flatMap{
-        case DeactivationTrait => List()
-        case CreatedModifiedTimesTrait => List()
-    }.distinct
-}
-
-def allEntitySpecificImports(entity: Entity): Imports = {
-    entitySpecificImports(entity) ::: imports
-}
 // val userProfile = Entity(
 //     spacedName("user profile"),
 //     List(
@@ -154,11 +79,6 @@ val userTable = Table(user, userTableDefaultIndex, List(
 
 val userPackage = defaultPackage(userTable, imports)
 
-val coachQuarterYearField = spacedName("coach quarter year") :: string
-val coacheeQuarterYearField = spacedName("coachee quarter year") :: string
-val coacheeField = "coachee".camel :: string
-val quarterField = "quarter".camel :: int
-val yearField = "year".camel :: int
 // TODO: Remove CoachingRelationship as it is not being used
 val coachingRelationship = Entity("CoachingRelationship".camel,
         List(
@@ -188,13 +108,6 @@ val coachingRelationshipDao = Dao(coachingRelationshipTable)
 
 val coachingRelationshipPackage = defaultPackage(coachingRelationshipTable, imports)
 
-val sourceField = "Source".camel :: string
-val targetField = "Target".camel :: string
-val quarterYearField = "QuarterYear".camel :: string
-val channelIdField = "ChannelID".camel :: string
-val channelIDField = channelIdField//"ChannelID".camel :: string
-val channelIdFieldWithOldDbName = channelIdField.dbName("Channel".camel)  \\ "ChannelID is a channel identifier. TODO: rename db field `channel` to `channel_id`"
-
 val UserFeedback = Entity(
     "UserFeedback".camel, 
     List(idField),
@@ -222,25 +135,6 @@ val UserFeedbackTable = Table(UserFeedback,
 )
 
 val UserFeedbackPackage = defaultPackage(UserFeedbackTable, imports)
-
-val userIdField = ("UserID".camel :: string) \\ 
-    "UserID is the ID of the user to send an engagement to" \\
-    "This usually corresponds to the platform user id"
-val targetIdField = ("TargetID".camel :: string) \\ 
-    "TargetID is the ID of the user for whom this is related to"
-val answeredField = ("Answered".camel :: int) \\ 
-    "Answered is a flag indicating that a user has responded to the engagement: 1 for answered, 0 for un-answered. "\\
-    "This is required because, we need to keep the engagement even after a user has answered it. "\\
-    "If the user wants to edit later, we will refer to the same engagement to post to user, like getting survey information"\\
-    "So, we need a way to differentiate between answered and unanswered engagements"
-val scriptField = ("Script".camel :: string) \\ 
-    "Script that should be sent to a user to start engaging." \\
-    "It's a serialized ebm.Message" \\
-    "deprecated. Use `Message` directly."
-val priorityField = ("Priority".camel :: priorityValue) \\ "Priority of the engagement" \\
-    "Urgent priority engagements are immediately sent to a user" \\
-    "Other priority engagements are queued up in the order of priority to be sent to user in next window"
-val ignoredField = ("Ignored".camel :: int) \\ "Flag indicating if an engagement is ignored, 1 for yes, 0 for no"
 
 
 val ebmImport = ImportClause(Some("ebm"), "github.com/adaptiveteam/adaptive/engagement-builder/model")
@@ -318,56 +212,6 @@ val PostponedEventTable = Table(PostponedEvent,
 
 val PostponedEventPackage = defaultPackage(PostponedEventTable, allEntitySpecificImports(PostponedEvent))
 
-val userIDField = userIdField // "UserID".camel :: string
-val communityIDField = "CommunityID".camel :: string
-val AdaptiveCommunityUser = Entity(
-    "AdaptiveCommunityUser".camel, 
-    List(
-        channelIDField,
-        userIDField
-    ),
-    List(
-        platformIdField,
-        communityIDField,
-    )
-)
-val AdaptiveCommunityUserTable = Table(AdaptiveCommunityUser, 
-    Index(channelIDField, Some(userIDField)),
-    List(
-        Index(channelIDField, None),
-        Index(userIDField, Some(communityIDField)),
-        Index(userIDField, None),
-        Index(platformIdField, Some(communityIDField))
-    )
-)
-val AdaptiveCommunityUserPackage = defaultPackage(AdaptiveCommunityUserTable, imports)
-
-// val channelField = "Channel".camel :: string
-val AdaptiveCommunity = Entity(
-    "AdaptiveCommunity".camel, 
-    List(platformIdField, idField),
-    List(
-        channelIdFieldWithOldDbName, // TODO: rename db field to channel_id
-        "Active".camel :: boolean,
-        "RequestedBy".camel :: string
-    ),
-    Nil, 
-    List(CreatedModifiedTimesTrait, DeactivationTrait)
-)
-
-// TODO: 
-//  stream_enabled   = true
-//  stream_view_type = var.dynamo_stream_view_type
-val AdaptiveCommunityTable = Table(AdaptiveCommunity, 
-    Index(idField, Some(platformIdField)),
-    List(
-        Index(channelIdFieldWithOldDbName, None),
-        Index(platformIdField, None)
-    )
-)
-
-val AdaptiveCommunityPackage = defaultPackage(AdaptiveCommunityTable, allEntitySpecificImports(AdaptiveCommunity))
-
 
 val attrKeyField = ("AttrKey".camel::string) \\ "Key of the setting"
 val UserAttribute = Entity(
@@ -441,17 +285,6 @@ val AlignedStrategyType = StringBasedEnum("AlignedStrategyType".camel,
 val objectiveTypeField = ("ObjectiveType".camel :: DevelopmentObjectiveType.typeAliasTypeInfo)
     .dbName("type".camel)
 
-val nameField = "Name".camel :: string
-val descriptionField = "Description".camel :: string
-
-val StrategyObjectiveType = TypeAlias("StrategyObjectiveType".camel, string)
-// TODO: rename field in DB and then remove `dbName` 
-val capabilityCommunityIDsField = (spacedName("capability community IDs") :: optionStringArray).
-    dbName(spacedName("capability community IDs")) \\ "community id not require d for customer/financial objectives"
-val createdByField = "CreatedBy".camel :: optionString
-val modifiedByField = "ModifiedBy".camel :: optionString
-val advocateField = "Advocate".camel :: string
-val initiativeCommunityIDField = "InitiativeCommunityID".camel :: string
 
 val UserObjective = Entity(
     "UserObjective".camel,
@@ -728,85 +561,6 @@ val VisionMissionTable = Table(VisionMission,
 
 val VisionMissionPackage = defaultPackage(VisionMissionTable, allEntitySpecificImports(VisionMission))
 
-val channelCreatedField = ("ChannelCreated".camel :: int)\\ "0 for false"
-val StrategyCommunity = Entity(
-    "StrategyCommunity".camel, 
-    List(idField),
-    List(
-        platformIdField,
-        advocateField,
-        //createdAtField,
-        "Community".camel :: AdaptiveCommunityID,
-        channelIdField,
-        channelCreatedField,
-        "AccountabilityPartner".camel :: string,
-        "ParentCommunity".camel :: AdaptiveCommunityID,
-        "ParentCommunityChannelID".camel :: string
-    ), Nil, List(CreatedModifiedTimesTrait))
-
-val StrategyCommunityTable = Table(StrategyCommunity, 
-    Index(idField, None),
-    List(
-        Index(platformIdField, Some(channelCreatedField)),
-        Index(platformIdField, None),
-        Index(channelIdField, None)
-    )
-)
-
-val StrategyCommunityPackage = defaultPackage(StrategyCommunityTable, allEntitySpecificImports(StrategyCommunity))
-
-// val StrategyCommunityPackage = Package(StrategyCommunity.name, 
-//     List(//AdaptiveCommunityID :: 
-//         daoModule(StrategyCommunityTable, allEntitySpecificImports(StrategyCommunity)),
-//         daoConnectionModule(table, imports),
-//         fieldNamesModule(table, imports)
-//     )
-// )
-
-val CapabilityCommunity = Entity(
-    "CapabilityCommunity".camel, 
-    List(
-        platformIdField,// GetItem requires all primary key attributes
-        idField
-        ),
-    List(
-        nameField,
-        descriptionField,
-        advocateField,
-    // createdAtField,
-        createdByField
-    ), Nil, List(CreatedModifiedTimesTrait))
-
-val CapabilityCommunityTable = Table(CapabilityCommunity, 
-    Index(idField, Some(platformIdField)),
-    List(
-        Index(platformIdField, None)
-    )
-)
-
-val CapabilityCommunityPackage = defaultPackage(CapabilityCommunityTable, allEntitySpecificImports(CapabilityCommunity))
-
-val StrategyInitiativeCommunity = Entity(
-    "StrategyInitiativeCommunity".camel, 
-    List(idField, platformIdField), // GetItem requires all primary key attributes
-    List(
-        nameField,
-        descriptionField,
-        advocateField,
-        "CapabilityCommunityID".camel :: string,
-        //createdAtField,
-        createdByField
-    ), Nil, List(CreatedModifiedTimesTrait))
-
-val StrategyInitiativeCommunityTable = Table(StrategyInitiativeCommunity, 
-    Index(idField, Some(platformIdField)),
-    List(
-        Index(platformIdField, None)
-    )
-)
-
-val StrategyInitiativeCommunityPackage = defaultPackage(StrategyInitiativeCommunityTable, allEntitySpecificImports(StrategyInitiativeCommunity))
-
 val dialogIDField = ("DialogID".camel :: string) \\ "This is an immutable UUID that developers can use"
 val contextField = ("Context".camel :: string) \\ "This is the context path for the piece of dialog"
 val subjectField = ("Subject".camel :: string) \\ "This is the dialog subject"
@@ -880,6 +634,26 @@ val SlackTeamTable = Table(SlackTeam,
 
 val SlackTeamPackage = defaultPackage(SlackTeamTable, imports)
 
+val migrationIdField = ("MigrationID".camel :: string) \\ "Human-friendly identifier of migration. Should start with 3 digits for sorting purposes. Unique within platform"
+
+val Migration = Entity(
+    "Migration".camel,
+    List(platformIdField, migrationIdField),
+    List(
+        "SuccessCount".camel :: int,
+        "FailuresCount".camel :: int,
+    ),
+    Nil,
+    List(CreatedModifiedTimesTrait),
+)
+
+val MigrationTable = Table(Migration,
+    Index(platformIdField, Some(migrationIdField)), 
+    List()
+)
+
+val MigrationPackage = defaultPackage(MigrationTable, imports)
+
 val packages = List(
     commonPackage,
 
@@ -905,7 +679,10 @@ val packages = List(
     ContextAliasEntryPackage,
     ObjectiveTypeDictionaryPackage,
     PostponedEventPackage,
-    SlackTeamPackage
+    SlackTeamPackage,
+    CommunityPackage,
+    ChannelMemberPackage,
+    MigrationPackage,
     )
 val daosProject = GoProjectFolder("daos", packages)
 
@@ -931,7 +708,10 @@ val coreTerraformProject = TerraformProjectFolder("daos/terraform", List(
     ContextAliasEntryTable,
     ObjectiveTypeDictionaryTable,
     PostponedEventTable,
-    SlackTeamTable
+    SlackTeamTable,
+    CommunityTable,
+    ChannelMemberTable,
+    MigrationTable,
     ))
 
 val workspace: Workspace = List(daosProject, coreTerraformProject)
