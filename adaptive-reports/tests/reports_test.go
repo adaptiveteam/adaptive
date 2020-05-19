@@ -11,6 +11,7 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v4"
 	"os"
 	"testing"
 )

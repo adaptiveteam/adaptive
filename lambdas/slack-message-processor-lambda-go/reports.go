@@ -15,7 +15,9 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	// This import is needed for reports to work
+	// we import both drivers and choose at a different moment
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v4"
 	"github.com/slack-go/slack"
 )
 
