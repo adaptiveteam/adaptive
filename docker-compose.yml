@@ -3,18 +3,22 @@ version: '2.1'
 services:
   localstack:
     container_name: "${LOCALSTACK_DOCKER_NAME-localstack_main}"
-    image: localstack/localstack:0.10.5
+    image: localstack/localstack
     ports:
-      - "4567-4597:4567-4597"
+      - "443:443"
+      - "4510-4520:4510-4520"
+      - "4566-4615:4566-4615"
       - "${PORT_WEB_UI-8080}:${PORT_WEB_UI-8080}"
     environment:
-      - SERVICES=${SERVICES- }
+      - SERVICES=${SERVICES-serverless,cognito,rds,secretsmanager,sns}
+      - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY- }
+      # - SERVICES=serverless,cognito,rds
       - DEBUG=${DEBUG- }
+      # - DEBUG=1
       - DATA_DIR=${DATA_DIR- }
-      - PORT_WEB_UI=${PORT_WEB_UI- }
+      # - DATA_DIR=/tmp/localstack/data
+      # - PORT_WEB_UI=${PORT_WEB_UI- }
       - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR- }
       - KINESIS_ERROR_PROBABILITY=${KINESIS_ERROR_PROBABILITY- }
       - DOCKER_HOST=unix:///var/run/docker.sock
-    volumes:
-      - "${TMPDIR:-/tmp/localstack}:/tmp/localstack"
-      - "/var/run/docker.sock:/var/run/docker.sock"
+
