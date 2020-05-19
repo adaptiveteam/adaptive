@@ -5,16 +5,19 @@ module "reporting_db" {
   identifier = "${local.client_id}-reporting"
   name = var.RDS_DB_NAME
 
-  engine            = "mysql"
-  engine_version    = "8.0.17"
+  engine            = "postgres"
+  engine_version    = "9.6.9"
   instance_class    = "db.t2.micro"
   allocated_storage = 5
+  storage_encrypted = false
 
   port     = var.RDS_PORT
   username = var.RDS_USER
   password = var.RDS_PASSWORD
 
+
   iam_database_authentication_enabled = true
+
   vpc_security_group_ids              = [
     aws_security_group.reporting.id,
   ]
@@ -23,9 +26,9 @@ module "reporting_db" {
   subnet_ids = module.reporting_vpc.database_subnets
 
   # DB parameter group
-  family               = "mysql8.0"
+  family = "postgres9.6"
   # DB option group
-  major_engine_version = "8.0"
+  major_engine_version = "9.6"
 
   multi_az = false
 
