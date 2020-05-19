@@ -1,9 +1,9 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/sql-connector"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
-	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -71,9 +71,9 @@ var (
 	// platformAdapter  = mapper.SlackAdapter2(platformTokenDAO)
 )
 
-type RDSConfig = utilities.RDSConfig
+type RDSConfig = sqlconnector.RDSConfig
 
-var ReadRDSConfigFromEnv = utilities.ReadRDSConfigFromEnv
+var ReadRDSConfigFromEnv = sqlconnector.ReadRDSConfigFromEnv
 
 func globalConnection(teamID models.TeamID) daosCommon.DynamoDBConnection {
 	return connGen.ForPlatformID(teamID.ToPlatformID())

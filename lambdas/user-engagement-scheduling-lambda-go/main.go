@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/sql-connector"
 	"github.com/adaptiveteam/adaptive/daos/slackTeam"
 	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
@@ -210,7 +211,7 @@ func runGlobalScheduleForTeam(config Config, teamID models.TeamID) (err error) {
 		!scheduleTimeForToday.After(endUTCTime) {
 		logger.Infof("runGlobalScheduleForTeam(%s)", teamID.ToString())
 		year, quarter := core.CurrentYearQuarter()
-		rdsConfig := utilities.ReadRDSConfigFromEnv()
+		rdsConfig := sqlconnector.ReadRDSConfigFromEnv()
 		sqlConn := rdsConfig.SQLOpenUnsafe()
 		defer utilities.CloseUnsafe(sqlConn)
 		var stat stats.FeedbackStats

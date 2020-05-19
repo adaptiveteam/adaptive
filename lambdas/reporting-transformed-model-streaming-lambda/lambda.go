@@ -1,18 +1,19 @@
 package reporting_transformed_model_streaming_lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/mapping"
 	"context"
-	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
-	sqc "github.com/adaptiveteam/adaptive/adaptive-utils-go/sql-connector"
-	streamhandler "github.com/adaptiveteam/adaptive/lambdas/stream-handler"
+
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
+	sqlconnector "github.com/adaptiveteam/adaptive/adaptive-utils-go/sql-connector"
+	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/mapping"
+	"github.com/adaptiveteam/adaptive/lambdas/reporting-transformed-model-streaming-lambda/model"
+	streamhandler "github.com/adaptiveteam/adaptive/lambdas/stream-handler"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	logger   = alog.LambdaLogger(logrus.InfoLevel)
+	logger       = alog.LambdaLogger(logrus.InfoLevel)
 	clientIDFunc = func() string { return utils.NonEmptyEnv("CLIENT_ID") }
 )
 
@@ -20,12 +21,12 @@ func HandleRequest(ctx context.Context, e1 model.StreamEntity) {
 	logger = logger.WithLambdaContext(ctx)
 	logger.WithField("event", &e1).Info("Incoming request")
 
-	conn1, err2 := sqc.NewMySqlConnection()
-	defer func() {
-		_ = conn1.Close()
-	}()
+	conn1, err2 := sqlconnector.ReadRDSConfigFromEnv().GormOpen()
 
 	if err2 == nil {
+		defer func() {
+			_ = conn1.Close()
+		}()
 		if e1.TableName == "" {
 			logger.Info("AutoMigrate-ing AllEntities all entities")
 			mapping.AutoMigrateAllEntities(conn1)

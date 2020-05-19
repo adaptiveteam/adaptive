@@ -20,15 +20,6 @@ func WrapDB(db *sql.DB) *Database {
 	return &Database{db: db}
 }
 
-// ConnectionString concatenates all arguments into a single connection string
-func ConnectionString(
-	endPoint,
-	userName,
-	password,
-	port,
-	database string) string {
-	return userName + ":" + password + "@tcp(" + endPoint + ":" + port + ")/" + database
-}
 
 func SQLOpenUnsafe(driver,
 	connectionString string) *sql.DB {
@@ -37,23 +28,6 @@ func SQLOpenUnsafe(driver,
 		log.Panicf("Error creating database: %+v", err)
 	}
 	return db
-}
-
-func NewDatabase(
-	driver,
-	endPoint,
-	userName,
-	password,
-	port,
-	database string,
-) *Database {
-	db := SQLOpenUnsafe(driver, ConnectionString(
-		endPoint,
-		userName,
-		password,
-		port,
-		database))
-	return &Database{db: db}
 }
 
 func CloseUnsafe(db *sql.DB) {
