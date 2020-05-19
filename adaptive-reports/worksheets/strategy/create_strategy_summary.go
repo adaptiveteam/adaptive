@@ -7,6 +7,25 @@ import (
 	"strconv"
 )
 
+func greyOutCell(
+	f *excel.File,
+	strategicSummary *models.Sheet,
+	styles map[string]string,
+	start, end int,
+) {
+	strategicSummary.NewCell(
+		start,
+		end,
+	).Style(
+		models.NewStyle(styles).
+			GetStyle("No Status").
+			GetStyle("Black Borders").
+			GetStyle("Italics Font").
+			GetStyle("Vertical Center").
+			ToNewStyle(f),
+	)
+}
+
 func CreateStrategySummary(
 	f *excel.File,
 	strategicSummary *models.Sheet,
@@ -214,52 +233,83 @@ func CreateStrategySummary(
 						ToNewStyle(f),
 				)
 
-			strategicSummary.NewCell(
-				initiativeNameColumn,
-				initiativeEnd,
-			).Value((*currentInitiative).GetName()).
-				Width(nameWidth).
-				Style(
-					models.NewStyle(styles).
-						GetStyle("Black Borders").
-						GetStyle("Link Font").
-						GetStyle("Normal Background").
-						ToNewStyle(f),
-				).SetLink(
-				"Initiative "+strconv.Itoa((*currentInitiative).GetIndex()),
-				"A",
-				1,
-			)
+			if (*currentInitiative).GetName() != "No Initiatives" {
+				strategicSummary.NewCell(
+					initiativeNameColumn,
+					initiativeEnd,
+				).Value((*currentInitiative).GetName()).
+					Width(nameWidth).
+					Style(
+						models.NewStyle(styles).
+							GetStyle("Black Borders").
+							GetStyle("Link Font").
+							GetStyle("Normal Background").
+							ToNewStyle(f),
+					).SetLink(
+					"Initiative "+strconv.Itoa((*currentInitiative).GetIndex()),
+					"A",
+					1,
+				)
+			} else {
+				greyOutCell(
+					f,
+					strategicSummary,
+					styles,
+					initiativeNameColumn,
+					initiativeEnd,
+				)
+			}
 
 			// Post the objective index and merge the rows
-			strategicSummary.NewCell(
-				initiativeCommunityColumn,
-				initiativeEnd,
-			).Value(currentInitiative.GetCommunity()).
-				Width(nameWidth).
-				Style(
-					models.NewStyle(styles).
-						GetStyle("Black Borders").
-						GetStyle("Vertical Center").
-						GetStyle("Normal Font").
-						GetStyle("Normal Background").
-						ToNewStyle(f),
+			if currentInitiative.GetCommunity() != "No Initiatives" {
+				strategicSummary.NewCell(
+					initiativeCommunityColumn,
+					initiativeEnd,
+				).Value(currentInitiative.GetCommunity()).
+					Width(nameWidth).
+					Style(
+						models.NewStyle(styles).
+							GetStyle("Black Borders").
+							GetStyle("Vertical Center").
+							GetStyle("Normal Font").
+							GetStyle("Normal Background").
+							ToNewStyle(f),
+					)
+			} else {
+				greyOutCell(
+					f,
+					strategicSummary,
+					styles,
+					initiativeCommunityColumn,
+					initiativeEnd,
 				)
+			}
+
 
 			// Post the objective index and merge the rows
-			strategicSummary.NewCell(
-				objectiveCommunityColumn,
-				initiativeEnd,
-			).Value(currentObjective.GetCommunity()).
-				Width(nameWidth).
-				Style(
-					models.NewStyle(styles).
-						GetStyle("Black Borders").
-						GetStyle("Vertical Center").
-						GetStyle("Normal Font").
-						GetStyle("Normal Background").
-						ToNewStyle(f),
+			if currentObjective.GetCommunity() != "No Initiatives" {
+				strategicSummary.NewCell(
+					objectiveCommunityColumn,
+					initiativeEnd,
+				).Value(currentObjective.GetCommunity()).
+					Width(nameWidth).
+					Style(
+						models.NewStyle(styles).
+							GetStyle("Black Borders").
+							GetStyle("Vertical Center").
+							GetStyle("Normal Font").
+							GetStyle("Normal Background").
+							ToNewStyle(f),
+					)
+			} else {
+				greyOutCell(
+					f,
+					strategicSummary,
+					styles,
+					objectiveCommunityColumn,
+					initiativeEnd,
 				)
+			}
 
 			if (*currentInitiative).InitiativeName != "No Initiatives" {
 				CreateComponentDetails(
