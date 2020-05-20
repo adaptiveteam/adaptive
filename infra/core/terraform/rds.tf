@@ -5,11 +5,19 @@ module "reporting_db" {
   identifier = "${local.client_id}-reporting"
   name = var.RDS_DB_NAME
 
-  engine            = "postgres"
-  engine_version    = "9.6.9"
+  engine            = "mysql"
+  engine_version    = "8.0.17"
+  major_engine_version = "8.0"
+  family = "mysql8.0"
+
+  # engine            = "postgres"
+  # engine_version    = "9.6.9"
+  # major_engine_version = "9.6"
+  # family = "postgres9.6"
+  
   instance_class    = "db.t2.micro"
   allocated_storage = 5
-  storage_encrypted = false
+  # storage_encrypted = false
 
   port     = var.RDS_PORT
   username = var.RDS_USER
@@ -24,11 +32,6 @@ module "reporting_db" {
 
   # DB subnet group
   subnet_ids = module.reporting_vpc.database_subnets
-
-  # DB parameter group
-  family = "postgres9.6"
-  # DB option group
-  major_engine_version = "9.6"
 
   multi_az = false
 
