@@ -12,13 +12,13 @@ services:
     environment:
       - SERVICES=${SERVICES-serverless,cognito,rds,secretsmanager,sns}
       - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY- }
-      # - SERVICES=serverless,cognito,rds
-      - DEBUG=${DEBUG- }
-      # - DEBUG=1
+      - DEBUG=${DEBUG-1}
       - DATA_DIR=${DATA_DIR- }
       # - DATA_DIR=/tmp/localstack/data
-      # - PORT_WEB_UI=${PORT_WEB_UI- }
+      - PORT_WEB_UI=${PORT_WEB_UI- }
       - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR- }
       - KINESIS_ERROR_PROBABILITY=${KINESIS_ERROR_PROBABILITY- }
       - DOCKER_HOST=unix:///var/run/docker.sock
-
+    volumes:
+      - "${TMPDIR:-/tmp/localstack}:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
