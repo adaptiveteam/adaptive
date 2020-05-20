@@ -54,7 +54,7 @@ func ReadConnectionInfoFromEnv() (connectionInfo ConnectionInfo) {
 
 // ReadDriverFromEnv is the single place where we specify which driver we use.
 func ReadDriverFromEnv() string {
-	return "postgres"
+	return "mysql" // "postgres"
 }
 
 func prependUnlessEmpty(prefix, port string) (res string) {
