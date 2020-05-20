@@ -42,7 +42,7 @@ func GetActionPathsForUserID(userID string) func(conn common.DynamoDBConnection)
 					actionPaths = append(actionPaths, models.ParseActionPath(e.ActionPath))
 				} else {
 					log.Printf("Eliminating elapsed action for user %s, path=%s", userID, e.ActionPath)
-					err = dao.Delete(e.ID)
+					err = dao.Deactivate(e.ID)
 					if err != nil {
 						return
 					}
@@ -77,7 +77,7 @@ func ForeachActionPathForUserID(userID string, f func(models.ActionPath, common.
 				} else {
 					log.Printf("Eliminating elapsed action for user %s, path=%s", userID, e.ActionPath)
 				}
-				err = dao.Delete(e.ID)
+				err = dao.Deactivate(e.ID)
 				if err != nil {
 					return
 				}
