@@ -41,7 +41,6 @@ data "aws_iam_policy_document" "holidays_policy" {
       "dynamodb:GetItem",
       "dynamodb:Scan",
       "dynamodb:UpdateItem",
-      "dynamodb:DeleteItem",
     ]
     resources = [aws_dynamodb_table.ad_hoc_holidays.arn]
   }

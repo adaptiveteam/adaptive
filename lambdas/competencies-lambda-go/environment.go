@@ -5,15 +5,9 @@ import (
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	// plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
-
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
-
-	// "github.com/slack-go/slack"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
-
 )
 
 var (
@@ -41,8 +35,6 @@ var (
 	communityUsersTable              = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
 	communityUsersUserCommunityIndex = utils.NonEmptyEnv("COMMUNITY_USERS_USER_COMMUNITY_INDEX")
 	communityUsersUserIndex          = utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX")
-	// TODO: use DAO for the query
-	communityUserDAO = communityUser.NewDAOFromSchema(d, namespace, schema)
 
 	connGen = daosCommon.DynamoDBConnectionGen{
 		Dynamo: d,

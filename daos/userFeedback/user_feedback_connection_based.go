@@ -233,3 +233,28 @@ func ReadByQuarterYearTargetUnsafe(quarterYear string, target string) func (conn
 	}
 }
 
+
+func ReadByHashKeyQuarterYear(quarterYear string) func (conn common.DynamoDBConnection) (out []UserFeedback, err error) {
+	return func (conn common.DynamoDBConnection) (out []UserFeedback, err error) {
+		var instances []UserFeedback
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "QuarterYearSourceIndex",
+			Condition: "quarter_year = :a",
+			Attributes: map[string]interface{}{
+				":a" : quarterYear,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = instances
+		return
+	}
+}
+
+
+func ReadByHashKeyQuarterYearUnsafe(quarterYear string) func (conn common.DynamoDBConnection) (out []UserFeedback) {
+	return func (conn common.DynamoDBConnection) (out []UserFeedback) {
+		out, err2 := ReadByHashKeyQuarterYear(quarterYear)(conn)
+		core.ErrorHandler(err2, "daos/UserFeedback", fmt.Sprintf("Could not query QuarterYearSourceIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+

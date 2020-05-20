@@ -66,7 +66,7 @@ func ReadUnsafe(channelID string, userID string) func (conn common.DynamoDBConne
 func ReadOrEmpty(channelID string, userID string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
 	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
        out, err = ReadOrEmptyIncludingInactive(channelID, userID)(conn)
-       
+       out = AdaptiveCommunityUserFilterActive(out)
        
 		return
 	}
@@ -165,19 +165,26 @@ func CreateOrUpdateUnsafe(adaptiveCommunityUser AdaptiveCommunityUser) func (con
 }
 
 
-// Delete removes AdaptiveCommunityUser from db
-func Delete(channelID string, userID string) func (conn common.DynamoDBConnection) error {
+// Deactivate "removes" AdaptiveCommunityUser. 
+// The mechanism is adding timestamp to `DeactivatedOn` field. 
+// Then, if this field is not empty, the instance is considered to be "active"
+func Deactivate(channelID string, userID string) func (conn common.DynamoDBConnection) error {
 	return func (conn common.DynamoDBConnection) error {
-		return conn.Dynamo.DeleteEntry(TableName(conn.ClientID), idParams(channelID, userID))
+		instance, err2 := Read(channelID, userID)(conn)
+		if err2 == nil {
+			instance.DeactivatedAt = core.CurrentRFCTimestamp()
+			err2 = CreateOrUpdate(instance)(conn)
+		}
+		return err2
 	}
 }
 
 
-// DeleteUnsafe deletes AdaptiveCommunityUser and panics in case of errors.
-func DeleteUnsafe(channelID string, userID string) func (conn common.DynamoDBConnection) {
+// DeactivateUnsafe "deletes" AdaptiveCommunityUser and panics in case of errors.
+func DeactivateUnsafe(channelID string, userID string) func (conn common.DynamoDBConnection) {
 	return func (conn common.DynamoDBConnection) {
-		err2 := Delete(channelID, userID)(conn)
-		core.ErrorHandler(err2, "daos/AdaptiveCommunityUser", fmt.Sprintf("Could not delete channelID==%s, userID==%s in %s\n", channelID, userID, TableName(conn.ClientID)))
+		err2 := Deactivate(channelID, userID)(conn)
+		core.ErrorHandler(err2, "daos/AdaptiveCommunityUser", fmt.Sprintf("Could not deactivate channelID==%s, userID==%s in %s\n", channelID, userID, TableName(conn.ClientID)))
 	}
 }
 
@@ -192,7 +199,7 @@ func ReadByChannelID(channelID string) func (conn common.DynamoDBConnection) (ou
 				":a0": channelID,
 			},
 		}, map[string]string{}, true, -1, &instances)
-		out = instances
+		out = AdaptiveCommunityUserFilterActive(instances)
 		return
 	}
 }
@@ -218,7 +225,7 @@ func ReadByUserIDCommunityID(userID string, communityID string) func (conn commo
 			":a1": communityID,
 			},
 		}, map[string]string{}, true, -1, &instances)
-		out = instances
+		out = AdaptiveCommunityUserFilterActive(instances)
 		return
 	}
 }
@@ -243,7 +250,7 @@ func ReadByUserID(userID string) func (conn common.DynamoDBConnection) (out []Ad
 				":a0": userID,
 			},
 		}, map[string]string{}, true, -1, &instances)
-		out = instances
+		out = AdaptiveCommunityUserFilterActive(instances)
 		return
 	}
 }
@@ -269,7 +276,7 @@ func ReadByPlatformIDCommunityID(platformID common.PlatformID, communityID strin
 			":a1": communityID,
 			},
 		}, map[string]string{}, true, -1, &instances)
-		out = instances
+		out = AdaptiveCommunityUserFilterActive(instances)
 		return
 	}
 }
@@ -279,6 +286,56 @@ func ReadByPlatformIDCommunityIDUnsafe(platformID common.PlatformID, communityID
 	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser) {
 		out, err2 := ReadByPlatformIDCommunityID(platformID, communityID)(conn)
 		core.ErrorHandler(err2, "daos/AdaptiveCommunityUser", fmt.Sprintf("Could not query PlatformIDCommunityIDIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+
+
+func ReadByHashKeyPlatformID(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
+		var instances []AdaptiveCommunityUser
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "PlatformIDCommunityIDIndex",
+			Condition: "platform_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : platformID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = AdaptiveCommunityUserFilterActive(instances)
+		return
+	}
+}
+
+
+func ReadByHashKeyPlatformIDUnsafe(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser) {
+		out, err2 := ReadByHashKeyPlatformID(platformID)(conn)
+		core.ErrorHandler(err2, "daos/AdaptiveCommunityUser", fmt.Sprintf("Could not query PlatformIDCommunityIDIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+
+
+func ReadByHashKeyUserID(userID string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
+		var instances []AdaptiveCommunityUser
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "UserIDCommunityIDIndex",
+			Condition: "user_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : userID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = AdaptiveCommunityUserFilterActive(instances)
+		return
+	}
+}
+
+
+func ReadByHashKeyUserIDUnsafe(userID string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser) {
+		out, err2 := ReadByHashKeyUserID(userID)(conn)
+		core.ErrorHandler(err2, "daos/AdaptiveCommunityUser", fmt.Sprintf("Could not query UserIDCommunityIDIndex on %s table\n", TableName(conn.ClientID)))
 		return
 	}
 }

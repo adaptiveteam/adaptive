@@ -207,3 +207,28 @@ func ReadByContextSubjectUnsafe(context string, subject string) func (conn commo
 	}
 }
 
+
+func ReadByHashKeyContext(context string) func (conn common.DynamoDBConnection) (out []DialogEntry, err error) {
+	return func (conn common.DynamoDBConnection) (out []DialogEntry, err error) {
+		var instances []DialogEntry
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "ContextSubjectIndex",
+			Condition: "context = :a",
+			Attributes: map[string]interface{}{
+				":a" : context,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = instances
+		return
+	}
+}
+
+
+func ReadByHashKeyContextUnsafe(context string) func (conn common.DynamoDBConnection) (out []DialogEntry) {
+	return func (conn common.DynamoDBConnection) (out []DialogEntry) {
+		out, err2 := ReadByHashKeyContext(context)(conn)
+		core.ErrorHandler(err2, "daos/DialogEntry", fmt.Sprintf("Could not query ContextSubjectIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+

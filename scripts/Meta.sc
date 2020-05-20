@@ -154,6 +154,7 @@ case object DaoReadOrEmptyRow extends DaoOperation
 case object DaoUpdateRow extends DaoOperation
 case object DaoDeleteRow extends DaoOperation
 case class DaoQueryRow(index: Index) extends DaoOperation
+case class DaoQueryRowByHashKey(index: Index) extends DaoOperation
 
 case class Dao(table: Table) extends GoDefinition {
     def operations: List[DaoOperation] = List(
@@ -172,9 +173,17 @@ case class ConnectionBasedDao(table: Table) extends GoDefinition {
         DaoReadRow,
         DaoReadOrEmptyRow,
         DaoUpdateRow,
-        DaoDeleteRow//,
+        DaoDeleteRow,
         // DaoQueryRow(table.defaultIndex)
-    ) ::: table.indices.map(DaoQueryRow)
+    ) ::: table.indices.map(DaoQueryRow) ::: (
+      table.indices.
+        filter(_.rangeKey.isDefined).
+        groupBy(_.hashKey).
+        map{ case (_, indices) => 
+          DaoQueryRowByHashKey(indices.head) 
+        }.
+        toList
+    )
 }
 
 case class SourceFile(path: String)

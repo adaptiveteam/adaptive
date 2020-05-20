@@ -1,11 +1,11 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
-	communityUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	// utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
@@ -49,16 +49,13 @@ var (
 		strategy.StrategyInitiativeCommunityEntity: "initiative communities",
 	}
 	schema              = models.SchemaForClientID(clientID)
-	// userDAO             = utilsUser.NewDAOFromSchema(d, namespace, schema)
-	communityMembersDao = communityUser.NewDAOFromSchema(d, namespace, schema)
 	dialogTableName     = utils.NonEmptyEnv("DIALOG_TABLE")
 	dialogFetcherDAO    = dialogFetcher.NewDAO(d, dialogTableName)
 )
 
 // allUsersInAnyStrategyCommunities should return users that belong to one of the communities
 func allUsersInAnyStrategyCommunities(conn daosCommon.DynamoDBConnection) []models.KvPair {
-	teamID := models.ParseTeamID(conn.PlatformID)
-	communityUsers := communityMembersDao.ReadAnyCommunityUsersUnsafe(teamID)
+	communityUsers := adaptiveCommunityUser.ReadByHashKeyPlatformIDUnsafe(conn.PlatformID)(conn)
 	userIDsSet := getUserIDsSet(communityUsers)
 	var users []models.KvPair
 	// Get user options
