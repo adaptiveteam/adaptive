@@ -27,6 +27,17 @@ type PostponedEvent struct  {
 	CreatedAt string `json:"created_at"`
 	// Automatically maintained field
 	ModifiedAt string `json:"modified_at,omitempty"`
+	DeactivatedAt string `json:"deactivated_at,omitempty"`
+}
+
+// PostponedEventFilterActive removes deactivated values
+func PostponedEventFilterActive(in []PostponedEvent) (res []PostponedEvent) {
+	for _, i := range in {
+		if i.DeactivatedAt == "" {
+			res = append(res, i)
+		}
+	}
+	return
 }
 
 // CollectEmptyFields returns entity field names that are empty.
@@ -55,8 +66,8 @@ type DAO interface {
 	ReadOrEmptyUnsafe(id string) (postponedEvent []PostponedEvent)
 	CreateOrUpdate(postponedEvent PostponedEvent) error
 	CreateOrUpdateUnsafe(postponedEvent PostponedEvent)
-	Delete(id string) error
-	DeleteUnsafe(id string)
+	Deactivate(id string) error
+	DeactivateUnsafe(id string)
 	ReadByPlatformIDUserID(platformID common.PlatformID, userID string) (postponedEvent []PostponedEvent, err error)
 	ReadByPlatformIDUserIDUnsafe(platformID common.PlatformID, userID string) (postponedEvent []PostponedEvent)
 	ReadByUserID(userID string) (postponedEvent []PostponedEvent, err error)
@@ -206,16 +217,23 @@ func (d DAOImpl) CreateOrUpdateUnsafe(postponedEvent PostponedEvent) {
 }
 
 
-// Delete removes PostponedEvent from db
-func (d DAOImpl)Delete(id string) error {
-	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(id))
+// Deactivate "removes" PostponedEvent. 
+// The mechanism is adding timestamp to `DeactivatedOn` field. 
+// Then, if this field is not empty, the instance is considered to be "active"
+func (d DAOImpl)Deactivate(id string) error {
+	instance, err2 := d.Read(id)
+	if err2 == nil {
+		instance.DeactivatedAt = core.CurrentRFCTimestamp()
+		err2 = d.CreateOrUpdate(instance)
+	}
+	return err2
 }
 
 
-// DeleteUnsafe deletes PostponedEvent and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(id string) {
-	err2 := d.Delete(id)
-	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
+// DeactivateUnsafe "deletes" PostponedEvent and panics in case of errors.
+func (d DAOImpl)DeactivateUnsafe(id string) {
+	err2 := d.Deactivate(id)
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -229,7 +247,7 @@ func (d DAOImpl)ReadByPlatformIDUserID(platformID common.PlatformID, userID stri
 			":a1": userID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = PostponedEventFilterActive(instances)
 	return
 }
 
@@ -250,7 +268,7 @@ func (d DAOImpl)ReadByUserID(userID string) (out []PostponedEvent, err error) {
 			":a0": userID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = PostponedEventFilterActive(instances)
 	return
 }
 
@@ -276,6 +294,7 @@ func allParams(postponedEvent PostponedEvent, old PostponedEvent) (params map[st
 	if postponedEvent.ValidThrough != old.ValidThrough { params[":a4"] = common.DynS(postponedEvent.ValidThrough) }
 	if postponedEvent.CreatedAt != old.CreatedAt { params[":a5"] = common.DynS(postponedEvent.CreatedAt) }
 	if postponedEvent.ModifiedAt != old.ModifiedAt { params[":a6"] = common.DynS(postponedEvent.ModifiedAt) }
+	if postponedEvent.DeactivatedAt != old.DeactivatedAt { params[":a7"] = common.DynS(postponedEvent.DeactivatedAt) }
 	return
 }
 func updateExpression(postponedEvent PostponedEvent, old PostponedEvent) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -289,6 +308,7 @@ func updateExpression(postponedEvent PostponedEvent, old PostponedEvent) (expr s
 	if postponedEvent.ValidThrough != old.ValidThrough { updateParts = append(updateParts, "valid_through = :a4"); params[":a4"] = common.DynS(postponedEvent.ValidThrough);  }
 	if postponedEvent.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a5"); params[":a5"] = common.DynS(postponedEvent.CreatedAt);  }
 	if postponedEvent.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a6"); params[":a6"] = common.DynS(postponedEvent.ModifiedAt);  }
+	if postponedEvent.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a7"); params[":a7"] = common.DynS(postponedEvent.DeactivatedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return

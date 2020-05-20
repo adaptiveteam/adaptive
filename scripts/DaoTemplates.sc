@@ -19,9 +19,9 @@ import VirtualFields._
 def idArgList(table: Table): String =
 	table.entity.primaryKeyFields.map(fieldArg).mkString(", ")
 
-def indexArgList(index: Index): String = fieldArg(index.hashKey) + (
-    index.rangeKey.map(fieldArg).map(", " + _).getOrElse("")
-)
+def indexArgList(index: Index): String = index.fields.
+  map(fieldArg).
+  mkString(", ")
 
 def entityArg(entity: Entity): String = arg(entity.parentField)
 

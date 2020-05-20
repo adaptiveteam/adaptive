@@ -261,3 +261,28 @@ func ReadByChannelIDUnsafe(channelID string) func (conn common.DynamoDBConnectio
 	}
 }
 
+
+func ReadByHashKeyPlatformID(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []StrategyCommunity, err error) {
+	return func (conn common.DynamoDBConnection) (out []StrategyCommunity, err error) {
+		var instances []StrategyCommunity
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "PlatformIDChannelCreatedIndex",
+			Condition: "platform_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : platformID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = instances
+		return
+	}
+}
+
+
+func ReadByHashKeyPlatformIDUnsafe(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []StrategyCommunity) {
+	return func (conn common.DynamoDBConnection) (out []StrategyCommunity) {
+		out, err2 := ReadByHashKeyPlatformID(platformID)(conn)
+		core.ErrorHandler(err2, "daos/StrategyCommunity", fmt.Sprintf("Could not query PlatformIDChannelCreatedIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+

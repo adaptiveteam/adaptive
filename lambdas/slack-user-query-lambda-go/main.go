@@ -172,7 +172,7 @@ func createOrUpdateCommunityUser(comm models.AdaptiveCommunity, userID string) f
 
 func removeCommunityUser(comm models.AdaptiveCommunity, userID string) func (conn daosCommon.DynamoDBConnection) (err error) {
 	logger.Infof("Removing user %s from community channelID=%s", userID, comm.ChannelID)
-	return adaptiveCommunityUser.Delete(comm.ChannelID, userID)
+	return adaptiveCommunityUser.Deactivate(comm.ChannelID, userID)
 }
 
 func allUserIDs(conn daosCommon.DynamoDBConnection)(ids []string, err error) {
