@@ -1,6 +1,7 @@
 package aws_utils_go
 
 import (
+	"testing"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -11,16 +12,25 @@ import (
 	"time"
 )
 
+func Init() {
+	testing.Init()
+	if !testing.Short() {
+		describeAllTests() 
+	}
+}
 // Parameters for eventual checks in tests
 var defaultEventuallyTimeout = time.Duration(30 * time.Second)
 var defaultEventuallyPollingInterval = 5 * time.Second
 
-var _ = Describe("IT Tests", func() {
+func describeAllTests() { Describe("IT Tests", func() {
+	
 
 	SetDefaultEventuallyTimeout(defaultEventuallyTimeout)
 	SetDefaultEventuallyPollingInterval(defaultEventuallyPollingInterval)
 
+	
 	Context("AWS S3 Tests", func() {
+		
 		testBucketName := "test"
 		key := "foo/var/main.zip"
 
@@ -257,3 +267,4 @@ var _ = Describe("IT Tests", func() {
 
 	})
 })
+}

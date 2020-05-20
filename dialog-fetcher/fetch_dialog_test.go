@@ -107,21 +107,23 @@ func CheckDialogEntryEquality(t *testing.T){
 
 // TestPanicsInNewDialogEntry can be run without localstack environment
 func TestPanicsInNewDialogEntry(t *testing.T) {
-	assert.Panics(t, func() {
-		NewDialogEntry(
-			"",
-			"",
-			"",
-			[]string{"test1", "test2", "test3"},
-			[]string{"comment1", "comment2", "comment3"},
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-		)
-	}, "The code did not panic")
-	fmt.Println("Test_FetchBySubject: Completed")
+	if !testing.Short() {
+		assert.Panics(t, func() {
+			NewDialogEntry(
+				"",
+				"",
+				"",
+				[]string{"test1", "test2", "test3"},
+				[]string{"comment1", "comment2", "comment3"},
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+			)
+		}, "The code did not panic")
+		fmt.Println("Test_FetchBySubject: Completed")
+	}
 }
