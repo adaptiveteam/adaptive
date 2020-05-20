@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"github.com/pkg/errors"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/sql-connector"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
@@ -80,14 +82,11 @@ func TestCreateWorkbooks(t *testing.T) {
 	dialogTableName := utils.NonEmptyEnv("DIALOG_TABLE")
 	dialogDAO := fetch_dialog.NewDAO(dynamo, dialogTableName)
 
-	db := utilities.NewDatabase(
-		os.Getenv("driver"),
-		os.Getenv("end_point"),
-		os.Getenv("user"),
-		os.Getenv("password"),
-		os.Getenv("port"),
-		os.Getenv("database"),
-	)
+	conn, err2 := sqlconnector.ReadRDSConfigFromEnv().SQLOpen()
+	if err2 != nil {
+		panic(errors.Wrap(err2, "ReadRDSConfigFromEnv().SQLOpen()"))
+	}
+	db := utilities.WrapDB(conn)
 	teamID := common.PlatformID("AGEGG1U7J")
 	// teamID := common.PlatformID("ANT7U58AG")
 	userIDs := map[string]string {
