@@ -30,21 +30,21 @@ func IDOCreateReminder(fc checks.CheckResultMap, date bt.Date) (rv string) {
 	Daily := date.DateAfter(begin, true) && date.DateBefore(end, true)
 
 	rv = utils.ScheduleEntry(
-			fc,
-			"Create Individual Development Objectives",
-		).AddScheduleBooleanCheck(
-			Daily || WeekOne || WeekTwo,
-			true,
-		).AddScheduleFunctionCheck(
-			fcn.TeamValuesExist,
-			true,
-		).AddScheduleFunctionCheck(
-			fcn.CanBeNudgedForIDO,
+		fc,
+		"Create Individual Development Objectives",
+	).AddScheduleBooleanCheck(
+		Daily || WeekOne || WeekTwo,
 		true,
-		).AddScheduleFunctionCheck(
-			fcn.IDOsExistForMe,
-			false,
-		).Message
+	).AddScheduleFunctionCheck(
+		fcn.TeamValuesExist,
+		true,
+	).AddScheduleFunctionCheck(
+		fcn.CanBeNudgedForIDO,
+		true,
+	).AddScheduleFunctionCheck(
+		fcn.IDOsExistForMe,
+		false,
+	).Message
 
 	return rv
 }
@@ -262,11 +262,10 @@ func ReminderToProvideCoachingFeedback(fc checks.CheckResultMap, date bt.Date) (
 	WeekOne := date.GetDayOfWeekInQuarter(-4, bt.Monday) == date
 	WeekTwo := date.GetDayOfWeekInQuarter(-3, bt.Monday) == date
 	WeekThree := date.GetDayOfWeekInQuarter(-2, bt.Monday) == date
+	WeekFour := date.GetDayOfWeekInQuarter(-1, bt.Monday) == date
 
-	begin := date.GetDayOfWeekInQuarter(-1, bt.Monday)
-	end := date.GetDayOfWeekInQuarter(-1, bt.Friday)
-	Daily := date.DateAfter(begin, true) && date.DateBefore(end, true)
-	feedbackCycle := Daily || WeekOne || WeekTwo || WeekThree
+	feedbackCycle := WeekFour || WeekOne || WeekTwo || WeekThree
+
 	feedbackNotGivenYet := utils.ScheduleEntry(
 		fc,
 		"Reminder to provide coaching feedback to colleagues",
