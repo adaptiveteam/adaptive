@@ -34,7 +34,7 @@ script:
   - export AWS_REGION=eu-west-2
   - BRANCH=$(git rev-parse --abbrev-ref HEAD)
   - echo $BRANCH
-  - if [ t$BRANCH = tdevelop ] ; then TEST_OPS="" ; else TEST_OPS="-short"; fi
+  #- if [ t$BRANCH = tdevelop ] ; then TEST_OPS="" ; else TEST_OPS="-short"; fi
   - export TEST_OPS
 
   # Upgrade terraform (we don't need when test is short)
