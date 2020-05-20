@@ -1,14 +1,19 @@
 package fetch_dialog
 
 import (
+	"log"
+	"flag"
 	"testing"
 	"reflect"
 	. "github.com/onsi/ginkgo"
 )
 
-func Init() {
+func init() {
 	testing.Init()
-	if !testing.Short() {
+	flag.Parse()
+	if testing.Short() {
+		log.Println("Skipping tests in short mode")
+	} else {
 		describeAllTests() 
 	}
 }
