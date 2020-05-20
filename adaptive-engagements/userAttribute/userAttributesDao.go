@@ -110,9 +110,8 @@ func (d UserDAOImpl)SetUnsafe(attribute string, value string, isDefault bool) {
 		AttrValue: value,
 		Default:   isDefault,
 	}
-	err := d.DAO.DNS.Dynamo.PutTableEntry(userAttr, d.DAO.TableConfig.Name)
-	// TODO: err := d.DAO.DNS.Dynamo.DeleteEntry(d.DAO.TableConfig.Name, )
-	core.ErrorHandler(err, d.DAO.DNS.Namespace, fmt.Sprintf("Could not save %s=%s to %s table for user %s", attribute, value, d.DAO.TableConfig.Name, d.UserID))
+	err2 := d.DAO.DNS.Dynamo.PutTableEntry(userAttr, d.DAO.TableConfig.Name)
+	core.ErrorHandler(err2, d.DAO.DNS.Namespace, fmt.Sprintf("Could not save %s=%s to %s table for user %s", attribute, value, d.DAO.TableConfig.Name, d.UserID))
 }
 
 // CheckIfAllAttribsAreSet checks that all given attributes are present

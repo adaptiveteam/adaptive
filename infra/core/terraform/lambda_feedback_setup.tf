@@ -42,14 +42,12 @@ data "aws_iam_policy_document" "feedback_setup_policy" {
       "dynamodb:DescribeTable",
       "dynamodb:PutItem",
       "dynamodb:GetItem",
-      "dynamodb:DeleteItem",
       "dynamodb:UpdateItem",]
     resources = [aws_dynamodb_table.adaptive_user_engagements_dynamo_table.arn]
   }
 
   statement {
     actions   = ["dynamodb:PutItem", 
-      "dynamodb:DeleteItem",
       "dynamodb:UpdateItem",]
     resources = [aws_dynamodb_table.adaptive_user_feedback_dynamodb_table.arn,]
   }

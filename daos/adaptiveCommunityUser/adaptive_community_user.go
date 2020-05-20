@@ -20,6 +20,17 @@ type AdaptiveCommunityUser struct  {
 	UserID string `json:"user_id"`
 	PlatformID common.PlatformID `json:"platform_id"`
 	CommunityID string `json:"community_id"`
+	DeactivatedAt string `json:"deactivated_at,omitempty"`
+}
+
+// AdaptiveCommunityUserFilterActive removes deactivated values
+func AdaptiveCommunityUserFilterActive(in []AdaptiveCommunityUser) (res []AdaptiveCommunityUser) {
+	for _, i := range in {
+		if i.DeactivatedAt == "" {
+			res = append(res, i)
+		}
+	}
+	return
 }
 
 // CollectEmptyFields returns entity field names that are empty.
@@ -47,8 +58,8 @@ type DAO interface {
 	ReadOrEmptyUnsafe(channelID string, userID string) (adaptiveCommunityUser []AdaptiveCommunityUser)
 	CreateOrUpdate(adaptiveCommunityUser AdaptiveCommunityUser) error
 	CreateOrUpdateUnsafe(adaptiveCommunityUser AdaptiveCommunityUser)
-	Delete(channelID string, userID string) error
-	DeleteUnsafe(channelID string, userID string)
+	Deactivate(channelID string, userID string) error
+	DeactivateUnsafe(channelID string, userID string)
 	ReadByChannelID(channelID string) (adaptiveCommunityUser []AdaptiveCommunityUser, err error)
 	ReadByChannelIDUnsafe(channelID string) (adaptiveCommunityUser []AdaptiveCommunityUser)
 	ReadByUserIDCommunityID(userID string, communityID string) (adaptiveCommunityUser []AdaptiveCommunityUser, err error)
@@ -198,16 +209,23 @@ func (d DAOImpl) CreateOrUpdateUnsafe(adaptiveCommunityUser AdaptiveCommunityUse
 }
 
 
-// Delete removes AdaptiveCommunityUser from db
-func (d DAOImpl)Delete(channelID string, userID string) error {
-	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(channelID, userID))
+// Deactivate "removes" AdaptiveCommunityUser. 
+// The mechanism is adding timestamp to `DeactivatedOn` field. 
+// Then, if this field is not empty, the instance is considered to be "active"
+func (d DAOImpl)Deactivate(channelID string, userID string) error {
+	instance, err2 := d.Read(channelID, userID)
+	if err2 == nil {
+		instance.DeactivatedAt = core.CurrentRFCTimestamp()
+		err2 = d.CreateOrUpdate(instance)
+	}
+	return err2
 }
 
 
-// DeleteUnsafe deletes AdaptiveCommunityUser and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(channelID string, userID string) {
-	err2 := d.Delete(channelID, userID)
-	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete channelID==%s, userID==%s in %s\n", channelID, userID, TableName(d.ConnGen.TableNamePrefix)))
+// DeactivateUnsafe "deletes" AdaptiveCommunityUser and panics in case of errors.
+func (d DAOImpl)DeactivateUnsafe(channelID string, userID string) {
+	err2 := d.Deactivate(channelID, userID)
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not deactivate channelID==%s, userID==%s in %s\n", channelID, userID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -220,7 +238,7 @@ func (d DAOImpl)ReadByChannelID(channelID string) (out []AdaptiveCommunityUser, 
 			":a0": channelID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = AdaptiveCommunityUserFilterActive(instances)
 	return
 }
 
@@ -242,7 +260,7 @@ func (d DAOImpl)ReadByUserIDCommunityID(userID string, communityID string) (out 
 			":a1": communityID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = AdaptiveCommunityUserFilterActive(instances)
 	return
 }
 
@@ -263,7 +281,7 @@ func (d DAOImpl)ReadByUserID(userID string) (out []AdaptiveCommunityUser, err er
 			":a0": userID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = AdaptiveCommunityUserFilterActive(instances)
 	return
 }
 
@@ -285,7 +303,7 @@ func (d DAOImpl)ReadByPlatformIDCommunityID(platformID common.PlatformID, commun
 			":a1": communityID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = AdaptiveCommunityUserFilterActive(instances)
 	return
 }
 
@@ -309,6 +327,7 @@ func allParams(adaptiveCommunityUser AdaptiveCommunityUser, old AdaptiveCommunit
 	if adaptiveCommunityUser.UserID != old.UserID { params[":a1"] = common.DynS(adaptiveCommunityUser.UserID) }
 	if adaptiveCommunityUser.PlatformID != old.PlatformID { params[":a2"] = common.DynS(string(adaptiveCommunityUser.PlatformID)) }
 	if adaptiveCommunityUser.CommunityID != old.CommunityID { params[":a3"] = common.DynS(adaptiveCommunityUser.CommunityID) }
+	if adaptiveCommunityUser.DeactivatedAt != old.DeactivatedAt { params[":a4"] = common.DynS(adaptiveCommunityUser.DeactivatedAt) }
 	return
 }
 func updateExpression(adaptiveCommunityUser AdaptiveCommunityUser, old AdaptiveCommunityUser) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -319,6 +338,7 @@ func updateExpression(adaptiveCommunityUser AdaptiveCommunityUser, old AdaptiveC
 	if adaptiveCommunityUser.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a1"); params[":a1"] = common.DynS(adaptiveCommunityUser.UserID);  }
 	if adaptiveCommunityUser.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a2"); params[":a2"] = common.DynS(string(adaptiveCommunityUser.PlatformID));  }
 	if adaptiveCommunityUser.CommunityID != old.CommunityID { updateParts = append(updateParts, "community_id = :a3"); params[":a3"] = common.DynS(adaptiveCommunityUser.CommunityID);  }
+	if adaptiveCommunityUser.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a4"); params[":a4"] = common.DynS(adaptiveCommunityUser.DeactivatedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return

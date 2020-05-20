@@ -21,12 +21,14 @@ val AdaptiveCommunityUser = Entity(
     "AdaptiveCommunityUser".camel, 
     List(
         channelIDField,
-        userIDField
+        userIDField,
     ),
     List(
         platformIdField,
         communityIDField,
-    )
+    ),
+    Nil,
+    List(DeactivationTrait),
 )
 val AdaptiveCommunityUserTable = Table(AdaptiveCommunityUser, 
     Index(channelIDField, Some(userIDField)),
@@ -34,8 +36,8 @@ val AdaptiveCommunityUserTable = Table(AdaptiveCommunityUser,
         Index(channelIDField, None),
         Index(userIDField, Some(communityIDField)),
         Index(userIDField, None),
-        Index(platformIdField, Some(communityIDField))
-    )
+        Index(platformIdField, Some(communityIDField)),
+    ),
 )
 val AdaptiveCommunityUserPackage = defaultPackage(AdaptiveCommunityUserTable, imports)
 

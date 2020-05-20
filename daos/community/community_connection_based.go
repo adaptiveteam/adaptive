@@ -244,3 +244,53 @@ func ReadByPlatformIDCommunityKindUnsafe(platformID common.PlatformID, community
 	}
 }
 
+
+func ReadByHashKeyPlatformID(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []Community, err error) {
+	return func (conn common.DynamoDBConnection) (out []Community, err error) {
+		var instances []Community
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "PlatformIDCommunityKindIndex",
+			Condition: "platform_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : platformID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = CommunityFilterActive(instances)
+		return
+	}
+}
+
+
+func ReadByHashKeyPlatformIDUnsafe(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []Community) {
+	return func (conn common.DynamoDBConnection) (out []Community) {
+		out, err2 := ReadByHashKeyPlatformID(platformID)(conn)
+		core.ErrorHandler(err2, "daos/Community", fmt.Sprintf("Could not query PlatformIDCommunityKindIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+
+
+func ReadByHashKeyChannelID(channelID string) func (conn common.DynamoDBConnection) (out []Community, err error) {
+	return func (conn common.DynamoDBConnection) (out []Community, err error) {
+		var instances []Community
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "ChannelIDPlatformIDIndex",
+			Condition: "channel_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : channelID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = CommunityFilterActive(instances)
+		return
+	}
+}
+
+
+func ReadByHashKeyChannelIDUnsafe(channelID string) func (conn common.DynamoDBConnection) (out []Community) {
+	return func (conn common.DynamoDBConnection) (out []Community) {
+		out, err2 := ReadByHashKeyChannelID(channelID)(conn)
+		core.ErrorHandler(err2, "daos/Community", fmt.Sprintf("Could not query ChannelIDPlatformIDIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+
