@@ -216,11 +216,10 @@ func ReminderToProvideCoachingFeedback(fc adaptive_checks.TypedProfile, date bt.
 	WeekOne := date.GetDayOfWeekInQuarter(-4, bt.Monday) == date
 	WeekTwo := date.GetDayOfWeekInQuarter(-3, bt.Monday) == date
 	WeekThree := date.GetDayOfWeekInQuarter(-2, bt.Monday) == date
+	WeekFour := date.GetDayOfWeekInQuarter(-1, bt.Monday) == date
 
-	begin := date.GetDayOfWeekInQuarter(-1, bt.Monday)
-	end := date.GetDayOfWeekInQuarter(-1, bt.Friday)
-	Daily := date.DateAfter(begin, true) && date.DateBefore(end, true)
-	feedbackCycle := Daily || WeekOne || WeekTwo || WeekThree
+	feedbackCycle := WeekFour || WeekOne || WeekTwo || WeekThree
+
 	feedbackNotGivenYet := utils.ScheduleEntry(
 		"Reminder to provide coaching feedback to colleagues",
 		feedbackCycle &&
