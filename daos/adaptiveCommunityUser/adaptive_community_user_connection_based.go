@@ -283,3 +283,53 @@ func ReadByPlatformIDCommunityIDUnsafe(platformID common.PlatformID, communityID
 	}
 }
 
+
+func ReadByHashKeyPlatformID(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
+		var instances []AdaptiveCommunityUser
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "PlatformIDCommunityIDIndex",
+			Condition: "platform_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : platformID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = instances
+		return
+	}
+}
+
+
+func ReadByHashKeyPlatformIDUnsafe(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser) {
+		out, err2 := ReadByHashKeyPlatformID(platformID)(conn)
+		core.ErrorHandler(err2, "daos/AdaptiveCommunityUser", fmt.Sprintf("Could not query PlatformIDCommunityIDIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+
+
+func ReadByHashKeyUserID(userID string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser, err error) {
+		var instances []AdaptiveCommunityUser
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "UserIDCommunityIDIndex",
+			Condition: "user_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : userID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = instances
+		return
+	}
+}
+
+
+func ReadByHashKeyUserIDUnsafe(userID string) func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser) {
+	return func (conn common.DynamoDBConnection) (out []AdaptiveCommunityUser) {
+		out, err2 := ReadByHashKeyUserID(userID)(conn)
+		core.ErrorHandler(err2, "daos/AdaptiveCommunityUser", fmt.Sprintf("Could not query UserIDCommunityIDIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+

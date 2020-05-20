@@ -269,3 +269,28 @@ func ReadByPlatformIDAdaptiveScheduledTimeInUTCUnsafe(platformID common.Platform
 	}
 }
 
+
+func ReadByHashKeyPlatformID(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []User, err error) {
+	return func (conn common.DynamoDBConnection) (out []User, err error) {
+		var instances []User
+		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
+			IndexName: "PlatformIDTimezoneOffsetIndex",
+			Condition: "platform_id = :a",
+			Attributes: map[string]interface{}{
+				":a" : platformID,
+			},
+		}, map[string]string{}, true, -1, &instances)
+		out = UserFilterActive(instances)
+		return
+	}
+}
+
+
+func ReadByHashKeyPlatformIDUnsafe(platformID common.PlatformID) func (conn common.DynamoDBConnection) (out []User) {
+	return func (conn common.DynamoDBConnection) (out []User) {
+		out, err2 := ReadByHashKeyPlatformID(platformID)(conn)
+		core.ErrorHandler(err2, "daos/User", fmt.Sprintf("Could not query PlatformIDTimezoneOffsetIndex on %s table\n", TableName(conn.ClientID)))
+		return
+	}
+}
+
