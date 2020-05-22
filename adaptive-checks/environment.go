@@ -5,7 +5,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
@@ -110,19 +109,3 @@ func readEnvironment() environment {
 }
 
 var	DateFormat = core.ISODateLayout
-
-// UserIDToPlatformID converts userID to teamID using
-// globally available variables.
-func UserIDToPlatformID(userDAO utilsUser.DAO) func(string) daosCommon.PlatformID {
-	return func(userID string) (daosCommon.PlatformID) {
-		return userDAO.ReadUnsafe(userID).PlatformID
-	}
-}
-
-// UserIDToTeamID converts userID to teamID using
-// globally available variables.
-func UserIDToTeamID(userDAO utilsUser.DAO) func(string) models.TeamID {
-	return func(userID string) (teamID models.TeamID) {
-		return models.ParseTeamID(userDAO.ReadUnsafe(userID).PlatformID)
-	}
-}
