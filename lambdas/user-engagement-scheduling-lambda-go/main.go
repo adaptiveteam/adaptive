@@ -1,23 +1,13 @@
-package lambda
+package userEngagementScheduling
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/slackTeam"
-	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
-	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
-	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
-
-	// "database/sql"
+	"github.com/pkg/errors"
 	"context"
 	"fmt"
 	"log"
 	"math"
 	"strings"
 	"time"
-
-	"github.com/adaptiveteam/adaptive/adaptive-reports/stats"
-	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
@@ -26,6 +16,10 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
+	"github.com/adaptiveteam/adaptive/daos/slackTeam"
+
+	// rename tables
 	_ "github.com/adaptiveteam/adaptive/daos"
 	"github.com/sirupsen/logrus"
 )
@@ -103,11 +97,12 @@ func HandleRequest(ctx context.Context) (err error) {
 				err = runScheduleForTeam(config, teamID)
 				if err != nil {
 					logger.WithError(err).Errorf("HandleRequest.runScheduleForTeam")
+					// ignore the previous error
 				}
-				// err = runGlobalScheduleForTeam(config, teamID)
-				// if err != nil {
-				// 	logger.WithError(err).Errorf("HandleRequest.runGlobalScheduleForTeam")
-				// }
+				err = errors.Wrapf(runGlobalScheduleForTeam(config, teamID, time.Now()), "HandleRequest")
+				if err != nil {
+					logger.WithError(err).Errorf("HandleRequest.runGlobalScheduleForTeam")
+				}
 			}
 		}
 	}
@@ -137,6 +132,8 @@ func getTeamIDsFromSlackTeams(config Config) (teamIDs []models.TeamID, err error
 	}
 	return
 }
+
+// getCurrentQuarterHourInterval returns current time as an interval of size 15 minutes.
 func getCurrentQuarterHourInterval() (startUTCTime, endUTCTime time.Time) {
 	now := time.Now().UTC()
 	// rounded to nearest hour quarter
@@ -199,48 +196,6 @@ func runScheduleForTeam(config Config, teamID models.TeamID) (err error) {
 				logger.WithError(err).Errorf("Could not invoke scripting lambda for %s user in %v platform", engage.UserID, teamID)
 			}
 		}
-	}
-	return
-}
-
-func runGlobalScheduleForTeam(config Config, teamID models.TeamID) (err error) {
-	startUTCTime, endUTCTime := getCurrentQuarterHourInterval()
-	scheduleTimeForToday := globalScheduleTime()
-	if !scheduleTimeForToday.Before(startUTCTime) &&
-		!scheduleTimeForToday.After(endUTCTime) {
-		logger.Infof("runGlobalScheduleForTeam(%s)", teamID.ToString())
-		year, quarter := core.CurrentYearQuarter()
-		rdsConfig := utilities.ReadRDSConfigFromEnv()
-		sqlConn := rdsConfig.SQLOpenUnsafe()
-		defer utilities.CloseUnsafe(sqlConn)
-		var stat stats.FeedbackStats
-		stat, err = stats.QueryFeedbackStats(teamID, year, quarter)(sqlConn)
-		if err == nil {
-			message := ui.Sprintf(
-				`People who have given feedback - %0.2f%%
-People who have received feedback - %0.2f%%`,
-				stat.Given, stat.Received)
-			logger.Info(message)
-			conn := config.connGen.ForPlatformID(teamID.ToPlatformID())
-			var communities []adaptiveCommunity.AdaptiveCommunity
-			communities, err = adaptiveCommunity.ReadOrEmpty(teamID.ToPlatformID(), string(community.User))(conn)
-			if err == nil {
-				if len(communities) > 0 {
-					userComm := communities[0]
-					slackAdapter := mapper.SlackAdapterForTeamID(conn)
-					post := platform.Post(
-						platform.ConversationID(userComm.ChannelID),
-						platform.Message(message),
-					)
-					logger.Infof("Posting to %s: %v", userComm.ChannelID, post)
-					_, err = slackAdapter.PostSync(post)
-				} else {
-					logger.Warnf("HR community not found for team %s", teamID.ToString())
-				}
-			}
-		}
-	} else {
-		logger.Infof("runGlobalScheduleForTeam(%s) - skipping. Today it's planned to %v", teamID.ToString(), scheduleTimeForToday)
 	}
 	return
 }
