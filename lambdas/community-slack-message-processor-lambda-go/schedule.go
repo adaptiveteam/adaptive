@@ -1,9 +1,9 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
-	aesc "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/schedules"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
@@ -17,7 +17,9 @@ import (
 )
 
 func ScheduleOfEngagements(target, date, holidaysTable string,
-	crosswalks func() []esmodels.CrossWalk, days int, teamID models.TeamID) ([]esmodels.ScheduledEngagement, error) {
+	crosswalks func() []esmodels.CrossWalk, days int, teamID models.TeamID,
+	conn common.DynamoDBConnection,
+) ([]esmodels.ScheduledEngagement, error) {
 	var y, m, d = time.Now().Date()
 	if date != core.EmptyString {
 		// When passed date is not empty, parse that to date
@@ -35,13 +37,14 @@ func ScheduleOfEngagements(target, date, holidaysTable string,
 
 	day := business_time.NewDate(y, int(m), d)
 	return es.GenerateScheduleOfEngagements(
-		aesc.ProductionProfile,
+		adaptive_checks.EvalProfile,
 		day,
 		target,
 		crosswalks,
 		holidaysList,
 		location,
 		days,
+		conn,
 	), nil
 }
 
@@ -53,7 +56,7 @@ func allSchedules(date business_time.Date, userID string, days int,
 	userSchedules, err := ScheduleOfEngagements(userID, core.ISODateLayout.Format(date.DateToTimeMidnight()),
 		adHocHolidaysTable, func() []esmodels.CrossWalk {
 			return allCrosswalks
-		}, days, teamID)
+		}, days, teamID, conn)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not get schedules for %s", userID))
 	return userSchedules
 }

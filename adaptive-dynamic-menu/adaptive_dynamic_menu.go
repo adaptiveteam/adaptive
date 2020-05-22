@@ -1,77 +1,83 @@
 package adaptive_dynamic_menu
 
 import (
-	acfn "github.com/adaptiveteam/adaptive/adaptive-check-function-names"
-	"github.com/adaptiveteam/adaptive/checks"
+	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	menu "github.com/adaptiveteam/adaptive/dynamic-menu"
 )
 
-func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.FunctionBindings) (adm menu.DynamicMenuSpecification) {
-	p := menu.Profile{Map: profile}
-	adm = menu.NewAdaptiveDynamicMenu()
-	adm = adm.AddGroup(
+func AdaptiveDynamicMenu(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindings) (adm menu.DynamicMenuSpecification) {
+	adm = menu.NewAdaptiveDynamicMenu().
+	AddGroup(
 		menu.NewGroupSpecification("Urgent Responsibilities").
 			AddGroupOption(
 				// Enables the user to create the company vision
 				menu.NewAdaptiveDynamicMenuSpecification(
 					bindings["CreateVision"],
 					"Create Vision",
-					"").
-					AddOptionCheck(profile, acfn.CompanyVisionExists, false).
-					AddOptionCheck(profile, acfn.InStrategyCommunity, true),
+					"",
+					!profile.CompanyVisionExists() &&
+						profile.InStrategyCommunity(),
+					),
 			).AddGroupOption(
 			// This fetches any undelivered engagements
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["FetchEngagementsForMe"],
 				"What do I have right now?",
-				"").
-				AddOptionCheck(profile, acfn.UndeliveredEngagementsOrPostponedEventsExistForMe, true),
+				"",
+				profile.UndeliveredEngagementsOrPostponedEventsExistForMe(),
+			),
 		).AddGroupOption(
 			// This fetches any IDO's not updated in the last 7 days
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["StaleIDOsExistForMe"],
 				"Update IDO's",
-				"").
-				AddOptionCheck(profile, acfn.StaleIDOsExistForMe, true),
+				"",
+				profile.StaleIDOsExistForMe(),
+			),
 		).AddGroupOption(
 			// This fetches any Objectives not updated in the last 7 days
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["StaleObjectivesExistForMe"],
 				"Update Objectives",
-				"").
-				AddOptionCheck(profile, acfn.StaleObjectivesExistForMe, true),
+				"",
+				profile.StaleObjectivesExistForMe(),
+			),
 		).AddGroupOption(
 			// This fetches any Initiatives not updated in the last 7 days
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["StaleInitiativesExistForMe"],
 				"Update Initiatives",
-				"").
-				AddOptionCheck(profile, acfn.StaleInitiativesExistForMe, true),
+				"",
+				profile.StaleInitiativesExistForMe(),
+			),
 		).AddGroupOption(
 			// Enables the user to create an IDO
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateIDO"],
 				"Create IDO",
-				"").
-				AddOptionCheck(profile, acfn.CanBeNudgedForIDO, true).
-				AddOptionCheck(profile, acfn.IDOsExistForMe, false).
-				AddOptionCheck(profile, acfn.TeamValuesExist, true),
+				"",
+				profile.CanBeNudgedForIDO() &&
+				!profile.IDOsExistForMe() &&
+				profile.TeamValuesExist(),
+			),
 		).AddGroupOption(
 			// This enables the user to post feedback to another user
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ProvideFeedback"],
 				"Provide Feedback",
-				"").
-				AddOptionCheck(profile, acfn.InLastMonthOfQuarter, true).
-				AddOptionCheck(profile, acfn.TeamValuesExist, true),
+				"",
+				profile.InLastMonthOfQuarter() && 
+				profile.TeamValuesExist(),
+			),
 		).AddGroupOption(
 			// This enables the user to request feedback from another user
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["RequestFeedback"],
 				"Request Feedback",
-				"").
-				AddOptionCheck(profile, acfn.InLastMonthOfQuarter, true).
-				AddOptionCheck(profile, acfn.TeamValuesExist, true),
+				"",
+				profile.InLastMonthOfQuarter() &&
+				profile.TeamValuesExist(),
+			),
 		),
 	).AddGroup(
 		menu.NewGroupSpecification("Responsibilities").
@@ -80,38 +86,43 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				menu.NewAdaptiveDynamicMenuSpecification(
 					bindings["AllIDOsForMe"],
 					"All IDO's",
-					"").
-					AddOptionCheck(profile, acfn.IDOsExistForMe, true),
+					"",
+					profile.IDOsExistForMe(),
+				),
 			).AddGroupOption(
 			// This fetches all Objectives
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["AllObjectivesForMe"],
 				"All Objectives",
-				"").
-				AddOptionCheck(profile, acfn.ObjectivesExistForMe, true),
+				"",
+				profile.ObjectivesExistForMe(),
+			),
 		).AddGroupOption(
 			// This fetches all Initiatives
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["AllInitiativesForMe"],
 				"All Initiatives",
-				"").
-				AddOptionCheck(profile, acfn.InitiativesExistForMe, true),
+				"",
+				profile.InitiativesExistForMe(),
+			),
 		).AddGroupOption(
 			// This enables the user to post feedback to another user
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ProvideFeedback"],
 				"Provide Feedback",
-				"").
-				AddOptionCheck(profile, acfn.InLastMonthOfQuarter, false).
-				AddOptionCheck(profile, acfn.TeamValuesExist, true),
+				"",
+				!profile.InLastMonthOfQuarter() &&
+				profile.TeamValuesExist(),
+			),
 		).AddGroupOption(
 			// This enables the user to request feedback from another user
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["RequestFeedback"],
 				"Request Feedback",
-				"").
-				AddOptionCheck(profile, acfn.InLastMonthOfQuarter, false).
-				AddOptionCheck(profile, acfn.TeamValuesExist, true),
+				"",
+				!profile.InLastMonthOfQuarter() &&
+				profile.TeamValuesExist(),
+			),
 		),
 	).AddGroup(
 		menu.NewGroupSpecification("View").
@@ -120,117 +131,134 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				menu.NewAdaptiveDynamicMenuSpecification(
 					bindings["ViewVision"],
 					"Vision",
-					"").
-					AddOptionCheck(profile, acfn.CompanyVisionExists, true).
-					AddOptionCheck(profile, acfn.InStrategyCommunity, false),
+					"",
+					profile.CompanyVisionExists() &&
+					!profile.InStrategyCommunity(),
+				),
 			).AddGroupOption(
 			// Presents the company vision
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewEditVision"],
 				"Vision",
-				"").
-				AddOptionCheck(profile, acfn.CompanyVisionExists, true).
-				AddOptionCheck(profile, acfn.InStrategyCommunity, true),
+				"",
+				profile.CompanyVisionExists() &&
+				profile.InStrategyCommunity(),
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the objectives
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewEditObjectives"],
 				"Objectives",
-				"").
-				AddOptionCheck(profile, acfn.ObjectivesExist, true).
-				AddOptionCheck(profile, acfn.InStrategyCommunity, true),
+				"",
+				profile.ObjectivesExist() &&
+				profile.InStrategyCommunity(),
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the objectives in their Capability & Initiative Communities
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewCommunityObjectives"],
 				"Objectives",
-				"").
-				AddOptionCheck(profile, acfn.ObjectivesExistInMyCapabilityCommunities, true).
-				AddOptionCheck(profile, acfn.InStrategyCommunity, false),
+				"",
+				profile.ObjectivesExistInMyCapabilityCommunities() &&
+				!profile.InStrategyCommunity(),
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the initiatives
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewCommunityInitiatives"],
 				"Initiatives",
-				"").
-				AddOptionCheck(profile, acfn.InStrategyCommunity, false).
-				AddOptionCheck(profile, acfn.InitiativesExistInMyInitiativeCommunities, true).
-				AddOptionCheck(profile, acfn.InCapabilityCommunity, false),
+				"",
+				!profile.InStrategyCommunity() &&
+				profile.InitiativesExistInMyInitiativeCommunities() &&
+				!profile.InCapabilityCommunity(),
+			),
 		).AddGroupOption(
 			// Enables the user to see and edit all of the Initiatives
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewEditInitiatives"],
 				"Initiatives",
-				"").
-				AddOptionCheck(profile, acfn.InStrategyCommunity, false).
-				AddOptionCheck(profile, acfn.InitiativesExistInMyCapabilityCommunities, true).
-				AddOptionCheck(profile, acfn.InCapabilityCommunity, true),
+				"",
+				!profile.InStrategyCommunity() &&
+				profile.InitiativesExistInMyCapabilityCommunities() &&
+				profile.InCapabilityCommunity(),
+			),
 		).AddGroupOption(
 			// Enables the user to see and edit all of the Initiatives
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewEditInitiatives"],
 				"Initiatives",
-				"").
-				AddOptionCheck(profile, acfn.InStrategyCommunity, true).
-				AddOptionCheck(profile, acfn.InitiativesExist, true),
+				"",
+				profile.InStrategyCommunity() &&
+				profile.InitiativesExist(),
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the team values
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewEditValues"],
 				"Competencies",
-				"").
-				AddOptionCheck(profile, acfn.TeamValuesExist, true).
-				AddOptionCheck(profile, acfn.InValuesCommunity, true),
+				"",
+				profile.TeamValuesExist() &&
+				profile.InValuesCommunity(),
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the team values
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewValues"],
 				"Competencies",
-				"").
-				AddOptionCheck(profile, acfn.TeamValuesExist, true).
-				AddOptionCheck(profile, acfn.InValuesCommunity, false),
+				"",
+				profile.TeamValuesExist() &&
+				!profile.InValuesCommunity(),
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the company holidays
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewHolidays"],
 				"Holidays",
-				"").
-				AddOptionCheck(profile, acfn.HolidaysExist, true).
-				AddOptionCheck(profile, acfn.InHRCommunity, false),
+				"",
+				profile.HolidaysExist() &&
+				!profile.InHRCommunity(),
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the company holidays
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewEditHolidays"],
 				"Holidays",
-				"").
-				AddOptionCheck(profile, acfn.HolidaysExist, true).
-				AddOptionCheck(profile, acfn.InHRCommunity, true),
+				"",
+				profile.HolidaysExist() &&
+				profile.InHRCommunity(),
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the scheduled events for the current quarter
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewScheduleCurrentQuarter"],
 				"Current Quarter Events",
-				""),
+				"", 
+				true,
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the scheduled events for the next quarter
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewScheduleNextQuarter"],
 				"Next Quarter Events",
-				""),
+				"", 
+				true,
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the IDOs they are coaching
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewCoachees"],
 				"Coachee IDOs",
-				"").
-				AddOptionCheck(profile, acfn.CoacheesExist, true),
+				"",
+				profile.CoacheesExist(),
+			),
 		).AddGroupOption(
 			// Enables the user to see all of the advocates for strategic elements aligned to you
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewAdvocates"],
 				"Advocates",
-				"").
-				AddOptionCheck(profile, acfn.AdvocatesExist, true),
+				"",
+				profile.AdvocatesExist(),
+			),
 		),
 	).AddGroup(
 		menu.NewGroupSpecification("Create").
@@ -239,35 +267,38 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				menu.NewAdaptiveDynamicMenuSpecification(
 					bindings["CreateIDO"],
 					"IDO",
-					"").
-					AddOptionCheck(profile, acfn.CanBeNudgedForIDO, true).
-					AddOptionCheck(profile, acfn.TeamValuesExist, true).
-					AddOptionCheck(profile, acfn.IDOsExistForMe, true),
+					"",
+					profile.CanBeNudgedForIDO() &&
+					profile.TeamValuesExist() &&
+					profile.IDOsExistForMe(),
+				),
 			).AddGroupOption(
 			// Enables a non user/initiative community user to create an IDO
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateIDO"],
 				"IDO",
-				"").
-				AddOptionCheck(profile, acfn.CanBeNudgedForIDO, false).
-				AddOptionCheck(profile, acfn.TeamValuesExist, true),
+				"",
+				!profile.CanBeNudgedForIDO() &&
+				profile.TeamValuesExist(),),
 		).AddGroupOption(
 			// Enables the user to create objectives
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateCapabilityObjectives"],
 				"Objectives",
-				"").
-				AddOptionCheck(profile, acfn.CompanyVisionExists, true).
-				AddOptionCheck(profile, acfn.InStrategyCommunity, true).
-				AddOptionCheck(profile, acfn.CapabilityCommunityExists, true),
+				"",
+				profile.CompanyVisionExists() &&
+				profile.InStrategyCommunity() &&
+				profile.CapabilityCommunityExists(),
+			),
 		).AddGroupOption(
 			// Enables the user to create Objective Communities
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateCapabilityCommunity"],
 				"Objective Communities",
-				"").
-				AddOptionCheck(profile, acfn.CompanyVisionExists, true).
-				AddOptionCheck(profile, acfn.InStrategyCommunity, true),
+				"",
+				profile.CompanyVisionExists() &&
+				profile.InStrategyCommunity(),
+			),
 			//***************************************************************************************************//
 			// The next four entries enable people who are either in a objective community to
 			// create an initiative community or initiative if they are in the strategy community
@@ -285,50 +316,56 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateInitiatives"],
 				"Initiatives",
-				"").
-				AddOptionCheck(profile, acfn.InStrategyCommunity, false).
-				AddOptionCheck(profile, acfn.ObjectivesExistInMyCapabilityCommunities, true).
-				AddOptionCheck(profile, acfn.InInitiativeCommunity, true),
+				"",
+				!profile.InStrategyCommunity() &&
+				profile.ObjectivesExistInMyCapabilityCommunities() &&
+				profile.InInitiativeCommunity(),
+			),
 		).AddGroupOption(
 			// Enables users from the strategy community to create Initiatives
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateInitiatives"],
 				"Initiatives",
-				"").
-				AddOptionCheck(profile, acfn.InStrategyCommunity, true).
-				AddOptionCheck(profile, acfn.InitiativeCommunityExists, true),
+				"",
+				profile.InStrategyCommunity() &&
+				profile.InitiativeCommunityExists(),
+			),
 		).AddGroupOption(
 			// Enables the user to create Initiative Communities
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateInitiativeCommunity"],
 				"Initiative Communities",
-				"").
-				AddOptionCheck(profile, acfn.InStrategyCommunity, false).
-				AddOptionCheck(profile, acfn.InCapabilityCommunity, true).
-				AddOptionCheck(profile, acfn.CompanyVisionExists, true),
+				"",
+				!profile.InStrategyCommunity() &&
+				profile.InCapabilityCommunity() &&
+				profile.CompanyVisionExists(),
+			),
 		).AddGroupOption(
 			// Enables users from the strategy community to create Initiative Communities
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateInitiativeCommunity"],
 				"Initiative Communities",
-				"").
-				AddOptionCheck(profile, acfn.InStrategyCommunity, true).
-				AddOptionCheck(profile, acfn.CapabilityCommunityExists, true),
+				"",
+				profile.InStrategyCommunity() &&
+				profile.CapabilityCommunityExists(),
+			),
 			//***************************************************************************************************//
 		).AddGroupOption(
 			// Enables the user to create team values
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateValues"],
 				"Competencies",
-				"").
-				AddOptionCheck(profile, acfn.InValuesCommunity, true),
+				"",
+				profile.InValuesCommunity(),
+			),
 		).AddGroupOption(
 			// Enables the user to create company holidays
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateHolidays"],
 				"Holidays",
-				"").
-				AddOptionCheck(profile, acfn.InHRCommunity, true),
+				"",
+				profile.InHRCommunity(),
+			),
 		),
 	).AddGroup(
 		menu.NewGroupSpecification("Assign").
@@ -337,10 +374,11 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				menu.NewAdaptiveDynamicMenuSpecification(
 					bindings["AssignCapabilityObjective"],
 					"Assign Objective",
-					"").
-					AddOptionCheck(profile, acfn.MultipleCapabilityCommunitiesExists, true).
-					AddOptionCheck(profile, acfn.ObjectivesExist, true).
-					AddOptionCheck(profile, acfn.InStrategyCommunity, true),
+					"",
+					profile.MultipleCapabilityCommunitiesExists() &&
+					profile.ObjectivesExist() &&
+					profile.InStrategyCommunity(),
+				),
 			),
 	).AddGroup(
 		menu.NewGroupSpecification("Settings").
@@ -348,7 +386,9 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				menu.NewAdaptiveDynamicMenuSpecification(
 					bindings["UserSettings"],
 					"Update",
-					""),
+					"",
+					true,
+				),
 			),
 	).AddGroup(
 		menu.NewGroupSpecification("Reports").
@@ -357,23 +397,26 @@ func AdaptiveDynamicMenu(profile checks.CheckFunctionMap, bindings menu.Function
 				menu.NewAdaptiveDynamicMenuSpecification(
 					bindings["ViewCollaborationReport"],
 					"Collaboration Report",
-					"").
-					AddOptionCheck(profile, acfn.CollaborationReportExists, true),
-				// AddOptionCheck(profile, acfn.InStrategyCommunity, true),
+					"",
+					profile.CollaborationReportExists(),
+				),
+				// profile.InStrategyCommunity(),),
 			).
 			AddGroupOption(
 				menu.NewAdaptiveDynamicMenuSpecification(
 					bindings["StrategyPerformanceReport"],
 					"Strategy Performance",
-					"").
-					AddOptionCheck(profile, acfn.InStrategyCommunity, true),
+					"",
+					profile.InStrategyCommunity(),
+				),
 			).
 			AddGroupOption(
 				menu.NewAdaptiveDynamicMenuSpecification(
 					bindings["IDOPerformanceReport"],
 					"IDO Performance",
-					"").
-					AddChecks(p.Check("IDOsExistForMe")),
+					"",
+					profile.IDOsExistForMe(),
+				),
 			),
 	)
 	return adm

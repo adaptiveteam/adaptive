@@ -1,6 +1,7 @@
 package userEngagementScheduling
 
 import (
+	sqlconnector "github.com/adaptiveteam/adaptive/adaptive-utils-go/sql-connector"
 	"github.com/pkg/errors"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-reports/stats"
@@ -14,7 +15,7 @@ import (
 func generateFeedbackStatsReport(config Config, teamID models.TeamID) (report ui.RichText, err error) {
 	logger.Infof("generateFeedbackStatsReport(%s)", teamID.ToString())
 	year, quarter := core.CurrentYearQuarter()
-	rdsConfig := utilities.ReadRDSConfigFromEnv()
+	rdsConfig := sqlconnector.ReadRDSConfigFromEnv()
 	sqlConn := rdsConfig.SQLOpenUnsafe()
 	defer utilities.CloseUnsafe(sqlConn)
 	var stat stats.FeedbackStats

@@ -1,14 +1,14 @@
 package engagement_scheduling
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	"fmt"
-	"log"
 	"sort"
 	"sync"
 	"time"
 
 	bt "github.com/adaptiveteam/adaptive/business-time"
-	"github.com/adaptiveteam/adaptive/checks"
 	models "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
 
 	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -19,8 +19,7 @@ import (
 // The function returns a list of all of the engagement descriptions for which
 // test_engagements were generated.
 func ActivateEngagementsOnDay(
-	//  The map of function check results
-	checkFunctionMap checks.CheckFunctionMap,
+	typedProfileConstructor adaptive_checks.TypedProfileConstructor,
 	// The day to check
 	date bt.Date,
 	// The specific crosswalk funtion to use
@@ -31,19 +30,21 @@ func ActivateEngagementsOnDay(
 	location *time.Location,
 	// Ths specific user or channel name to send the test_engagements to
 	target string,
+	conn common.DynamoDBConnection,
 ) (rv []string) {
 	// Only activate engagements if the date is a business day
 	wg := &sync.WaitGroup{}
 	var allEngagements models.ScheduledEngagementList
 
 	allEngagements = GenerateScheduleOfEngagements(
-		checkFunctionMap,
+		typedProfileConstructor,
 		date,
 		target,
 		scheduledEngagements,
 		holidays,
 		location,
 		0,
+		conn,
 	)
 	// log.Print("All engagements: ", allEngagements)
 
@@ -72,13 +73,14 @@ func ActivateEngagementsOnDay(
 // GenerateScheduleOfEngagements will generate a list of all of the test_engagements
 // that will be activated from the start date to the number of days out.
 func GenerateScheduleOfEngagements(
-	checkFunctionMap checks.CheckFunctionMap,
+	typedProfileConstructor adaptive_checks.TypedProfileConstructor,
 	date bt.Date,
 	target string,
 	scheduledEngagements func() []models.CrossWalk,
 	holidays bt.Holidays,
 	location *time.Location,
 	daysOut int,
+	conn common.DynamoDBConnection,
 ) (schedule models.ScheduledEngagementList) {
 	schedule = make(models.ScheduledEngagementList, 0)
 
@@ -100,7 +102,7 @@ func GenerateScheduleOfEngagements(
 		date2 := date
 		core_utils_go.Go(fmt.Sprintf("%d: runDay(date=%v)", i, date), func() {
 			runDay(
-				checkFunctionMap,
+				typedProfileConstructor,
 				date2,
 				endDate,
 				scheduledEngagements,
@@ -109,6 +111,7 @@ func GenerateScheduleOfEngagements(
 				target,
 				constructedDays,
 				wg,
+				conn,
 			)
 		})
 		date = date.AddTime(0, 0, 1)
@@ -149,7 +152,7 @@ func GenerateScheduleOfEngagements(
 // GetEngagementsOnDay just returns a list of the engagement descriptions
 // on a given day.
 func GetEngagementsOnDay(
-	checkResultMap checks.CheckResultMap,
+	checkResultMap adaptive_checks.TypedProfile,
 	date bt.Date,
 	scheduledEngagements func() []models.CrossWalk,
 ) (rv models.CrossWalkNameList) {
@@ -181,47 +184,13 @@ func GetEngagementNames(cw models.CrossWalkNameList) (rv []string) {
 	return rv
 }
 
-// AddScheduleFunctionCheck enables the developer to chain these checks together to more closely draft
-// the Adaptive Dynamic Menu.  The function checks the function named in the ScheduleCheck struct and
-// if it it the same as the expected value, passes the message through to the next step.  Otherwise it
-// will zero out the message.
-func (s ScheduleCheck) AddScheduleFunctionCheck(functionCheck string, expectedValue bool) (rv ScheduleCheck) {
-	rv.profile = s.profile
-
-	if len(s.Message) > 0 {
-		checkResult, err := s.profile.CheckResult(functionCheck, expectedValue)
-		if err == nil {
-			if checkResult {
-				rv.Message = s.Message
-			}
-		} else {
-			log.Printf("check function in %v is not in list", functionCheck)
-		}
-	}
-	return rv
-}
-
-// AddScheduleBooleanCheck enables the developer to chain these checks together to more closely draft
-// the Adaptive Dynamic Menu.  The function checks the expectedValue boolean and if it the same as
-// the expected value, passes the message through to the next step.  Otherwise it will zero out the message.
-func (s ScheduleCheck) AddScheduleBooleanCheck(booleanCheck, expectedValue bool) (rv ScheduleCheck) {
-	rv.profile = s.profile
-
-	if len(s.Message) > 0 && expectedValue == booleanCheck {
-		rv.Message = s.Message
-	} else {
-		rv.Message = ""
-	}
-	return rv
-}
-
 // ScheduleEntry is the beginning of the AddScheduleFunctionCheck & AddScheduleBooleanCheck chain
 // it defaults to true and then passes the ScheduleCheck through the pipeline of checks.
-func ScheduleEntry(fc checks.CheckResultMap, message string) (rv ScheduleCheck) {
-	rv.profile = fc
-	rv.Message = message
-
-	return rv
+func ScheduleEntry(message string, flag bool) (rv string) {
+	if flag {
+		rv = message
+	}
+	return
 }
 
 // Produces a "pretty print" version of the schedule

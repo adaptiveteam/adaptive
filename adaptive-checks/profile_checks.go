@@ -12,6 +12,7 @@ import (
 
 type LazyBool = func ()bool
 
+type TypedProfileConstructor = func (conn common.DynamoDBConnection, userID string, date business_time.Date) TypedProfile
 type TypedProfile struct {
 	FeedbackGivenThisQuarter LazyBool
 	FeedbackForThePreviousQuarterExists LazyBool
@@ -81,52 +82,54 @@ func isUserInCommunityCurry(conn common.DynamoDBConnection, userID string) func 
 	}
 }
 
-func EvalProfile(conn common.DynamoDBConnection, userID string, date business_time.Date) TypedProfile {
+var EvalProfile TypedProfileConstructor = func (conn common.DynamoDBConnection, userID string, date business_time.Date) TypedProfile {
 	isUserInCommunity := isUserInCommunityCurry(conn, userID)
 
+	env := readEnvironment()
+
 	return TypedProfile{
-		FeedbackGivenThisQuarter: lazy.Bool(func() bool { return FeedbackGivenForTheQuarter(userID, date) }),
-		FeedbackForThePreviousQuarterExists: lazy.Bool(func() bool {return FeedbackForThePreviousQuarterExists(userID, date)}),
+		FeedbackGivenThisQuarter: lazy.Bool(func() bool { return FeedbackGivenForTheQuarter(env, userID, date) }),
+		FeedbackForThePreviousQuarterExists: lazy.Bool(func() bool {return FeedbackForThePreviousQuarterExists(env, userID, date)}),
 		InLastMonthOfQuarter: lazy.Bool(func() bool {return date.GetMonth()%3 == 0 }),
-		CoacheesExist: lazy.Bool(func() bool {return CoacheesExist(userID, date)}),
-		AdvocatesExist: lazy.Bool(func() bool {return AdvocatesExist(userID, date)}),
-		// IDOsDueWithinTheWeek: lazy.Bool(func() bool {return IDOsDueWithinTheWeek(userID, date)}),
-		// IDOsDueWithinTheMonth: lazy.Bool(func() bool {return IDOsDueWithinTheMonth(userID, date)}),
-		// IDOsDueWithinTheQuarter: lazy.Bool(func() bool {return IDOsDueWithinTheQuarter(userID, date)}),
-		// InitiativesDueWithinTheWeek: lazy.Bool(func() bool {return InitiativesDueWithinTheWeek(userID, date)}),
-		// InitiativesDueWithinTheMonth: lazy.Bool(func() bool {return InitiativesDueWithinTheMonth(userID, date)}),
-		// InitiativesDueWithinTheQuarter: lazy.Bool(func() bool {return InitiativesDueWithinTheQuarter(userID, date)}),
-		// ObjectivesDueWithinTheWeek: lazy.Bool(func() bool {return ObjectivesDueWithinTheWeek(userID, date)}),
-		// ObjectivesDueWithinTheMonth: lazy.Bool(func() bool {return ObjectivesDueWithinTheMonth(userID, date)}),
-		// ObjectivesDueWithinTheQuarter: lazy.Bool(func() bool {return ObjectivesDueWithinTheQuarter(userID, date)}),
+		CoacheesExist: lazy.Bool(func() bool {return CoacheesExist(env, userID, date)}),
+		AdvocatesExist: lazy.Bool(func() bool {return AdvocatesExist(env, userID, date)}),
+		// IDOsDueWithinTheWeek: lazy.Bool(func() bool {return IDOsDueWithinTheWeek(env, userID, date)}),
+		// IDOsDueWithinTheMonth: lazy.Bool(func() bool {return IDOsDueWithinTheMonth(env, userID, date)}),
+		// IDOsDueWithinTheQuarter: lazy.Bool(func() bool {return IDOsDueWithinTheQuarter(env, userID, date)}),
+		// InitiativesDueWithinTheWeek: lazy.Bool(func() bool {return InitiativesDueWithinTheWeek(env, userID, date)}),
+		// InitiativesDueWithinTheMonth: lazy.Bool(func() bool {return InitiativesDueWithinTheMonth(env, userID, date)}),
+		// InitiativesDueWithinTheQuarter: lazy.Bool(func() bool {return InitiativesDueWithinTheQuarter(env, userID, date)}),
+		// ObjectivesDueWithinTheWeek: lazy.Bool(func() bool {return ObjectivesDueWithinTheWeek(env, userID, date)}),
+		// ObjectivesDueWithinTheMonth: lazy.Bool(func() bool {return ObjectivesDueWithinTheMonth(env, userID, date)}),
+		// ObjectivesDueWithinTheQuarter: lazy.Bool(func() bool {return ObjectivesDueWithinTheQuarter(env, userID, date)}),
 		InCapabilityCommunity: lazy.Bool(func() bool {return isUserInCommunity(community.Capability)}),
 		InValuesCommunity: lazy.Bool(func() bool {return isUserInCommunity(community.Competency)}),
 		InHRCommunity: lazy.Bool(func() bool {return isUserInCommunity(community.HR)}),
 		InStrategyCommunity: lazy.Bool(func() bool {return isUserInCommunity(community.Strategy) }),
-		InInitiativeCommunity: lazy.Bool(func() bool {return InitiativeCommunityExistsForMe(userID, date)}),
+		InInitiativeCommunity: lazy.Bool(func() bool {return InitiativeCommunityExistsForMe(env, userID, date)}),
 		UserSettingsExist: lazy.Bool(func() bool {return true}),
-		HolidaysExist: lazy.Bool(func() bool {return HolidaysExist(userID, date)}),
-		CollaborationReportExists: lazy.Bool(func() bool {return ReportExists(userID, date)}),
-		UndeliveredEngagementsExistForMe: lazy.Bool(func() bool {return UndeliveredEngagementsExistForMe(userID, date)}),
-		UndeliveredEngagementsOrPostponedEventsExistForMe: lazy.Bool(func() bool {return UndeliveredEngagementsOrPostponedEventsExistForMe(userID, date)}),
-		CanBeNudgedForIDO: lazy.Bool(func() bool {return CanBeNudgedForIDOCreation(userID, date)}),
-		TeamValuesExist: lazy.Bool(func() bool {return TeamValuesExist(userID, date)}),
-		CompanyVisionExists: lazy.Bool(func() bool {return CompanyVisionExists(userID, date)}),
-		ObjectivesExist: lazy.Bool(func() bool {return ObjectivesExist(userID, date)}),
-		InitiativesExist: lazy.Bool(func() bool {return InitiativesExistInMyCapabilityCommunities(userID, date)}),
-		IDOsExistForMe: lazy.Bool(func() bool {return IDOsExistForMe(userID, date)}),
-		ObjectivesExistForMe: lazy.Bool(func() bool {return ObjectivesExistForMe(userID, date)}),
-		InitiativesExistForMe: lazy.Bool(func() bool {return InitiativesExistForMe(userID, date)}),
-		StaleIDOsExistForMe: lazy.Bool(func() bool {return StaleIDOsExist(userID, date)}),
-		StaleInitiativesExistForMe: lazy.Bool(func() bool {return StaleInitiativesExistForMe(userID, date)}),
-		StaleObjectivesExistForMe: lazy.Bool(func() bool {return StaleObjectivesExistForMe(userID, date)}),
-		CapabilityCommunityExists: lazy.Bool(func() bool {return CapabilityCommunityExists(userID, date)}),
-		MultipleCapabilityCommunitiesExists: lazy.Bool(func() bool {return MultipleCapabilityCommunitiesExists(userID, date)}),
-		InitiativeCommunityExists: lazy.Bool(func() bool {return InitiativeCommunityExists(userID, date)}),
+		HolidaysExist: lazy.Bool(func() bool {return HolidaysExist(env, userID, date)}),
+		CollaborationReportExists: lazy.Bool(func() bool {return ReportExists(env, userID, date)}),
+		UndeliveredEngagementsExistForMe: lazy.Bool(func() bool {return UndeliveredEngagementsExistForMe(env, userID, date)}),
+		UndeliveredEngagementsOrPostponedEventsExistForMe: lazy.Bool(func() bool {return UndeliveredEngagementsOrPostponedEventsExistForMe(env, userID, date)}),
+		CanBeNudgedForIDO: lazy.Bool(func() bool {return CanBeNudgedForIDOCreation(env, userID, date)}),
+		TeamValuesExist: lazy.Bool(func() bool {return TeamValuesExist(env, userID, date)}),
+		CompanyVisionExists: lazy.Bool(func() bool {return CompanyVisionExists(env, userID, date)}),
+		ObjectivesExist: lazy.Bool(func() bool {return ObjectivesExist(env, userID, date)}),
+		InitiativesExist: lazy.Bool(func() bool {return InitiativesExistInMyCapabilityCommunities(env, userID, date)}),
+		IDOsExistForMe: lazy.Bool(func() bool {return IDOsExistForMe(env, userID, date)}),
+		ObjectivesExistForMe: lazy.Bool(func() bool {return ObjectivesExistForMe(env, userID, date)}),
+		InitiativesExistForMe: lazy.Bool(func() bool {return InitiativesExistForMe(env, userID, date)}),
+		StaleIDOsExistForMe: lazy.Bool(func() bool {return StaleIDOsExist(env, userID, date)}),
+		StaleInitiativesExistForMe: lazy.Bool(func() bool {return StaleInitiativesExistForMe(env, userID, date)}),
+		StaleObjectivesExistForMe: lazy.Bool(func() bool {return StaleObjectivesExistForMe(env, userID, date)}),
+		CapabilityCommunityExists: lazy.Bool(func() bool {return CapabilityCommunityExists(env, userID, date)}),
+		MultipleCapabilityCommunitiesExists: lazy.Bool(func() bool {return MultipleCapabilityCommunitiesExists(env, userID, date)}),
+		InitiativeCommunityExists: lazy.Bool(func() bool {return InitiativeCommunityExists(env, userID, date)}),
 		MultipleInitiativeCommunitiesExists: lazy.Bool(func() bool {return false}),
-		ObjectivesExistInMyCapabilityCommunities: lazy.Bool(func() bool {return ObjectivesExistInMyCapabilityCommunities(userID, date)}),
-		InitiativesExistInMyCapabilityCommunities: lazy.Bool(func() bool {return InitiativesExistInMyCapabilityCommunities(userID, date)}),
-		InitiativesExistInMyInitiativeCommunities: lazy.Bool(func() bool {return InitiativesExistInMyInitiativeCommunities(userID, date)}),
+		ObjectivesExistInMyCapabilityCommunities: lazy.Bool(func() bool {return ObjectivesExistInMyCapabilityCommunities(env, userID, date)}),
+		InitiativesExistInMyCapabilityCommunities: lazy.Bool(func() bool {return InitiativesExistInMyCapabilityCommunities(env, userID, date)}),
+		InitiativesExistInMyInitiativeCommunities: lazy.Bool(func() bool {return InitiativesExistInMyInitiativeCommunities(env, userID, date)}),
 	}
 }
 
@@ -181,4 +184,12 @@ func (p *TypedProfile) LoadAll() error {
 		p.InitiativesExistInMyCapabilityCommunities,
 		p.InitiativesExistInMyInitiativeCommunities,
 	)
+}
+
+func ConstLazyBool(value bool) func () bool {
+	return func () bool { return value }
+}
+
+func ConstLazyInt(value int) func () int {
+	return func () int { return value }
 }

@@ -30,6 +30,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/gruntwork-io/terratest v0.23.4
+	github.com/jackc/pgx/v4 v4.6.0
 	github.com/jinzhu/gorm v1.9.12
 	github.com/karrick/godirwalk v1.15.6 // indirect
 	github.com/lib/pq v1.3.0 // indirect
@@ -45,7 +46,7 @@ require (
 	github.com/slack-go/slack v0.6.4
 	github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518 // indirect
 	github.com/stamblerre/gocode v1.0.0 // indirect
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/thoas/go-funk v0.5.0
 	github.com/unidoc/unidoc v0.0.0-20190420234413-f1b8d1021126
 	github.com/unidoc/unipdf/v3 v3.1.0

@@ -33,9 +33,11 @@ const (
 )
 
 func TestDialogFetcher(t *testing.T) {
-	RegisterFailHandler(Fail)
-	testingT = t
-	RunSpecs(t, "DialogFetcher Suite")
+	if !testing.Short() {
+		RegisterFailHandler(Fail)
+		testingT = t
+		RunSpecs(t, "DialogFetcher Suite")
+	}
 }
 
 func testErrorHandler(err error, msg string) {
@@ -90,10 +92,12 @@ var _ = BeforeSuite(func() {
 	// time.Sleep(10*time.Second)
 
 	// fmt.Println("Started localstack container")
-	addDialogSchema()
-	err2 := addMockData(localStackDao())
-	if err2 != nil {
-		testingT.Errorf("Problem creating mock data: %+v", err2)
+	if !testing.Short() {
+		addDialogSchema()
+		err2 := addMockData(localStackDao())
+		if err2 != nil {
+			testingT.Errorf("Problem creating mock data: %+v", err2)
+		}
 	}
 })
 
