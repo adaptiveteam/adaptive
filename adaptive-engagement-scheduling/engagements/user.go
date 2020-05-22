@@ -44,7 +44,7 @@ func readUser(userID string) (u models.User, err error) {
 // IDOCreateReminder is meant to trigger the engagements that
 // reminds the user to create personal improvement objects in the event that they have
 // not created any.
-func IDOCreateReminder(date bt.Date, target string) {
+func IDOCreateReminder(teamID models.TeamID, date bt.Date, target string) {
 	log.Println(fmt.Sprintf("Checking IDOCreateReminder for user: %s", target))
 	user, err2 := readUser(target)
 	core.ErrorHandler(err2, "IDOCreateReminder", "readUser")
@@ -68,21 +68,21 @@ func slowlyCreateConnection(userID string) daosCommon.DynamoDBConnection {
 }
 // IDOUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale individual improvement
-func IDOUpdateReminder(_ bt.Date, targetUserID string) {
-	conn := slowlyCreateConnection(targetUserID)
-	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(targetUserID, issuesUtils.IDO, 7))(conn)
+func IDOUpdateReminder(teamID models.TeamID, _ bt.Date, userID string) {
+	conn := slowlyCreateConnection(userID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(userID, issuesUtils.IDO, 7))(conn)
 	if err2 != nil {
 		log.Printf("ERROR IDOUpdateReminder: %+v", err2)
 	}
-	// ObjectiveProgressUpdateAsk(targetUserID, user.IDOUpdateDueWithinWeek,
+	// ObjectiveProgressUpdateAsk(userID, user.IDOUpdateDueWithinWeek,
 		// "You have Individual Development Objective(s) that haven't been updated in last 7 days. Would you like to update them?")
 }
 
 // ObjectiveUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale objectives
-func ObjectiveUpdateReminder(date bt.Date, targetUserID string) {
-	conn := slowlyCreateConnection(targetUserID)
-	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(targetUserID, issuesUtils.SObjective, 30))(conn)
+func ObjectiveUpdateReminder(teamID models.TeamID, date bt.Date, userID string) {
+	conn := slowlyCreateConnection(userID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(userID, issuesUtils.SObjective, 30))(conn)
 	if err2 != nil {
 		log.Printf("ERROR ObjectiveUpdateReminder: %+v", err2)
 	}
@@ -92,9 +92,9 @@ func ObjectiveUpdateReminder(date bt.Date, targetUserID string) {
 
 // InitiativeUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale initiatives
-func InitiativeUpdateReminder(date bt.Date, targetUserID string) {
-	conn := slowlyCreateConnection(targetUserID)
-	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(targetUserID, issuesUtils.Initiative, 7))(conn)
+func InitiativeUpdateReminder(teamID models.TeamID, date bt.Date, userID string) {
+	conn := slowlyCreateConnection(userID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(userID, issuesUtils.Initiative, 7))(conn)
 	if err2 != nil {
 		log.Printf("ERROR InitiativeUpdateReminder: %+v", err2)
 	}
@@ -110,20 +110,20 @@ Closeout reminders
 
 // IDOCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an IDO due in the coming week and to close it out
-func IDOCloseoutReminder(date bt.Date, target string) {
+func IDOCloseoutReminder(teamID models.TeamID, date bt.Date, target string) {
 	// TODO: dont ask for update, ask for closeout
 	UserCloseObjectivesAsk(target, "You have IDOs that are due in a week. Would you like to close them out?")
 }
 
 // InitiativeCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an Initiative due in the coming week and to close it out
-func InitiativeCloseoutReminder(date bt.Date, target string) {
+func InitiativeCloseoutReminder(teamID models.TeamID, date bt.Date, target string) {
 	UserCloseObjectivesAsk(target, "You have Initiatives that are due in a week. Would you like to close them out?")
 }
 
 // ObjectiveCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an Objective due in the coming week and to close it out
-func ObjectiveCloseoutReminder(date bt.Date, target string) {
+func ObjectiveCloseoutReminder(teamID models.TeamID, date bt.Date, target string) {
 	UserCloseObjectivesAsk(target, "You have Capability Objectives that are due in a week. Would you like to close them out?")
 }
 
@@ -135,42 +135,42 @@ Due date reminders
 
 // IDOReminderOfDueDateInMonth is meant to trigger  engagements that reminds users
 // that they have an IDO due in the coming week
-func IDOReminderOfDueDateInMonth(date bt.Date, target string) {
+func IDOReminderOfDueDateInMonth(teamID models.TeamID, date bt.Date, target string) {
 	ObjectiveProgressUpdateAsk(target, user.IDOUpdateDueWithinMonth,
 		"You have some Individual Development Objectives that are due in 30 days from now. Would you like to update them?")
 }
 
 // IDOReminderOfDueDateInQaurter is meant to trigger  engagements that reminds users
 // that they have an IDO due in the coming week, month, quarter
-func IDOReminderOfDueDateInQaurter(date bt.Date, target string) {
+func IDOReminderOfDueDateInQaurter(teamID models.TeamID, date bt.Date, target string) {
 	ObjectiveProgressUpdateAsk(target, user.IDOUpdateDueWithinQuarter,
 		"You have some Individual Development Objectives that are due in 90 days from now. Would you like to update them?")
 }
 
 // InitiativeReminderOfDueDateInMonth is meant to trigger  engagements that reminds users
 // that they have an Initiative due in the coming week
-func InitiativeReminderOfDueDateInMonth(date bt.Date, target string) {
+func InitiativeReminderOfDueDateInMonth(teamID models.TeamID, date bt.Date, target string) {
 	ObjectiveProgressUpdateAsk(target, user.InitiativeUpdateDueWithinMonth,
 		"You have some Initiatives that are due in 30 days from now. Would you like to update them?")
 }
 
 // InitiativeReminderOfDueDateInQaurter is meant to trigger  engagements that reminds users
 // that they have an Initiative due in the coming week, month, quarter
-func InitiativeReminderOfDueDateInQaurter(date bt.Date, target string) {
+func InitiativeReminderOfDueDateInQaurter(teamID models.TeamID, date bt.Date, target string) {
 	ObjectiveProgressUpdateAsk(target, user.InitiativeUpdateDueWithinQuarter,
 		"You have some Initiatives that are due in 90 days from now. Would you like to update them?")
 }
 
 // ObjectiveReminderOfDueDateInMonth is meant to trigger  engagements that reminds users
 // that they have an Objective due in the coming week
-func ObjectiveReminderOfDueDateInMonth(date bt.Date, target string) {
+func ObjectiveReminderOfDueDateInMonth(teamID models.TeamID, date bt.Date, target string) {
 	ObjectiveProgressUpdateAsk(target, user.CapabilityObjectiveUpdateDueWithinMonth,
 		"You have some Capability Objectives that are due within a month, but haven't been updated since last week. Would you like to update them?")
 }
 
 // ObjectiveReminderOfDueDateInQaurter is meant to trigger  engagements that reminds users
 // that they have an Objective due in the coming week, month, quarter
-func ObjectiveReminderOfDueDateInQaurter(date bt.Date, target string) {
+func ObjectiveReminderOfDueDateInQaurter(teamID models.TeamID, date bt.Date, target string) {
 	ObjectiveProgressUpdateAsk(target, user.CapabilityObjectiveUpdateDueWithinQuarter,
 		"You have some Capability Objectives that are due in a quarter, but haven't been updated since last month. Would you like to update them?")
 }
@@ -183,7 +183,7 @@ Coaching feedback reminders
 
 // ReminderToProvideCoachingFeedback is meant to trigger engagements at increasingly rates
 // until the end of the quarter to maximize the amount of feedback.
-func ReminderToProvideCoachingFeedback(date bt.Date, target string) {
+func ReminderToProvideCoachingFeedback(teamID models.TeamID, date bt.Date, target string) {
 	year := date.GetYear()
 	month := date.GetMonth()
 	quarter := date.GetQuarter()
@@ -209,7 +209,6 @@ func ReminderToProvideCoachingFeedback(date bt.Date, target string) {
 		Month:  strconv.Itoa(int(month)),
 		Year:   strconv.Itoa(year),
 	}
-	teamID := strategy.UserIDToTeamID(UserDAO)(target)
 	UserConfirmEng(teamID, mc, string(text), "", false, Dns)
 }
 
@@ -226,8 +225,8 @@ Report reminders
 */
 
 // GenerateIndividualReports generates an individual coaching report
-func GenerateIndividualReports(date bt.Date, userID string) {
-	err2 := feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(userID, date.DateToTimeMidnight())
+func GenerateIndividualReports(teamID models.TeamID, date bt.Date, userID string) {
+	err2 := feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(teamID, userID, date.DateToTimeMidnight())
 	core.ErrorHandler(err2, Namespace, fmt.Sprintf("Could not invoke %s lambda", FeedbackReportingLambdaName))
 }
 
@@ -293,15 +292,14 @@ func isFeedbackExistsForUser(userID string, date bt.Date) func (daosCommon.Dynam
 
 // // DeliverIndividualReports is meant to trigger the engagements that
 // // sends out an individual coaching reports to each users.
-// func DeliverIndividualReports(date bt.Date, target string) {
+// func DeliverIndividualReports(teamID models.TeamID, date bt.Date, target string) {
 // 	DeliverIndividualReports(target, date)
 // }
 
 
 // DeliverIndividualReports - deliver individual reports. This function should only be
 // triggered if the report already exists.
-func DeliverIndividualReports(date bt.Date, userID string) {
-	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
+func DeliverIndividualReports(teamID models.TeamID, date bt.Date, userID string) {
 	// conn := daosCommon.CreateConnectionGenFromEnv().ForPlatformID(teamID.ToPlatformID())
 	// feedbackExist, err2 := isFeedbackExistsForUser(userID, date)(conn)
 	// if err2 == nil {
@@ -310,7 +308,7 @@ func DeliverIndividualReports(date bt.Date, userID string) {
 	mc := models.MessageCallback{Module: "feedback", Source: userID, Topic: "report", Action: ViewCollaborationReport,
 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
 	// if feedbackExist {
-	GenerateIndividualReports(date, userID)
+	GenerateIndividualReports(teamID, date, userID)
 	UserConfirmEng(teamID, mc,
 		fmt.Sprintf("It's that time of the year to review your collabaration report. Would you like to see it?"),
 		"", false, Dns)
@@ -318,8 +316,7 @@ func DeliverIndividualReports(date bt.Date, userID string) {
 }
 
 // NotifyOnAbsentFeedback -
-func NotifyOnAbsentFeedback(date bt.Date, userID string) {
-	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
+func NotifyOnAbsentFeedback(teamID models.TeamID, date bt.Date, userID string) {
 	conn := daosCommon.CreateConnectionGenFromEnv().ForPlatformID(teamID.ToPlatformID())
 	feedbackExist, err2 := isFeedbackExistsForUser(userID, date)(conn)
 	if err2 == nil {
@@ -373,16 +370,15 @@ func userOpenObjectives(userID string) []models.UserObjective {
 }
 
 // ProduceAndDeliverIndividualReportsOrNotifyOnAbsentFeedback -
-func ProduceAndDeliverIndividualReportsOrNotifyOnAbsentFeedback(date bt.Date, userID string) {
-	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
+func ProduceAndDeliverIndividualReportsOrNotifyOnAbsentFeedback(teamID models.TeamID, date bt.Date, userID string) {
 	conn := daosCommon.CreateConnectionGenFromEnv().ForPlatformID(teamID.ToPlatformID())
 	feedbackExist, err2 := isFeedbackExistsForUser(userID, date)(conn)
 	if err2 == nil {
 		if feedbackExist {
-			GenerateIndividualReports(date, userID)
-			DeliverIndividualReports(date, userID)
+			GenerateIndividualReports(teamID, date, userID)
+			DeliverIndividualReports(teamID, date, userID)
 		} else {
-			NotifyOnAbsentFeedback(date, userID)
+			NotifyOnAbsentFeedback(teamID, date, userID)
 		}
 	}
 	if err2 != nil {
@@ -391,15 +387,14 @@ func ProduceAndDeliverIndividualReportsOrNotifyOnAbsentFeedback(date bt.Date, us
 }
 
 // DeliverIndividualReportsOrNotifyOnAbsentFeedback -
-func DeliverIndividualReportsOrNotifyOnAbsentFeedback(date bt.Date, userID string) {
-	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
+func DeliverIndividualReportsOrNotifyOnAbsentFeedback(teamID models.TeamID, date bt.Date, userID string) {
 	conn := daosCommon.CreateConnectionGenFromEnv().ForPlatformID(teamID.ToPlatformID())
 	feedbackExist, err2 := isFeedbackExistsForUser(userID, date)(conn)
 	if err2 == nil {
 		if feedbackExist {
-			DeliverIndividualReports(date, userID)
+			DeliverIndividualReports(teamID, date, userID)
 		} else {
-			NotifyOnAbsentFeedback(date, userID)
+			NotifyOnAbsentFeedback(teamID, date, userID)
 		}
 	}
 	if err2 != nil {
