@@ -58,11 +58,6 @@ type UserEngagementCheckWithValue struct {
 	CheckValue      bool   `json:"check_value,omitempty"`
 }
 
-type UserEngageWithCheckValues struct {
-	UserEngage
-	CheckValues map[string]bool
-}
-
 // UserAttribute encapsulates key-value setting for a user
 type UserAttribute = userAttribute.UserAttribute
 // type UserAttribute struct {

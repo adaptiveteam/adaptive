@@ -1,8 +1,8 @@
 package tests
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/engagement-scheduling/test_engagements"
-	"github.com/adaptiveteam/adaptive/checks"
 	es "github.com/adaptiveteam/adaptive/engagement-scheduling"
 	"github.com/adaptiveteam/adaptive/engagement-scheduling/test_checks"
 	"github.com/adaptiveteam/adaptive/engagement-scheduling/test_crosswalks"
@@ -37,14 +37,18 @@ func TestCreateQuarterlySchedule(t *testing.T) {
 
 	quarterEnd := quarterStart.GetLastDayOfQuarter()
 
+	conn := common.DynamoDBConnection{
+		PlatformID: "TEST-PLATFORM-ID",
+	}
 	allUsersSchedule := es.GenerateScheduleOfEngagements(
-		test_checks.AllTrueTestProfile,
+		test_checks.ConstructTestProfile,
 		quarterStart,
 		target,
 		test_crosswalks.UserCrosswalk,
 		holidays,
 		time.UTC,
 		quarterEnd.DaysBetween(quarterStart),
+		conn,
 	)
 
 	test_engagements.Println("Schedule of Engagements for all users.")
@@ -118,16 +122,20 @@ func TestActivateEngagements(t *testing.T) {
 
 	daysInQuarter := bt.NewDateFromQuarter(1, 2019).GetFirstDayOfQuarter().DaysBetween(bt.NewDateFromQuarter(4, 2019).GetLastDayOfQuarter())
 	date := bt.NewDateFromQuarter(1, 2019)
+	conn := common.DynamoDBConnection{
+		PlatformID: "TEST-PLATFORM-ID",
+	}
 	for i := 0; i < daysInQuarter; i++ {
 		if date.IsBusinessDay(holidays,time.UTC) {
 			engagements := es.GenerateScheduleOfEngagements(
-				test_checks.AllTrueTestProfile,
+				test_checks.ConstructTestProfile,
 				date,
 				target,
 				test_crosswalks.UserCrosswalk,
 				holidays,
 				time.UTC,
 				0,
+				conn,
 			)
 			if len(engagements) >= 1 {
 				tests = append(
@@ -163,17 +171,18 @@ func TestActivateEngagements(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotRv := es.ActivateEngagementsOnDay(
-				test_checks.AllTrueTestProfile,
+				test_checks.ConstructTestProfile,
 				tt.args.date,
 				test_crosswalks.UserCrosswalk,
 				tt.args.holidays,
 				time.UTC,
 				tt.args.target,
+				conn,
 			)
 			sort.Strings(gotRv)
 			sort.Strings(tt.wantRv)
 			if !reflect.DeepEqual(gotRv, tt.wantRv) {
-				t.Errorf("ActivateEngagements() = %v, want %v", gotRv, tt.wantRv)
+				t.Errorf("%s: ActivateEngagementsOnDay(date=%v) = %v, want %v", tt.name, tt.args.date, gotRv, tt.wantRv)
 			}
 		})
 	}
@@ -184,7 +193,6 @@ func TestGenerateScheduleOfEngagements(t *testing.T) {
 	target := "ctcreel"
 
 	type args struct {
-		checkFunctionMap       checks.CheckFunctionMap
 		date                 bt.Date
 		target               string
 		scheduledEngagements func() []models.CrossWalk
@@ -200,7 +208,6 @@ func TestGenerateScheduleOfEngagements(t *testing.T) {
 		{
 			name:"on holiday",
 			args: args{
-				checkFunctionMap:test_checks.AllTrueTestProfile,
 				date:bt.NewDate(2019, 10, 14),
 				target:target,
 				scheduledEngagements:test_crosswalks.UserCrosswalk,
@@ -211,16 +218,20 @@ func TestGenerateScheduleOfEngagements(t *testing.T) {
 			wantSchedule: models.ScheduledEngagementList{},
 		},
 	}
+	conn := common.DynamoDBConnection{
+		PlatformID: "TEST-PLATFORM-ID",
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if gotSchedule := es.GenerateScheduleOfEngagements(
-				tt.args.checkFunctionMap,
+				test_checks.ConstructTestProfile,
 				tt.args.date,
 				tt.args.target,
 				tt.args.scheduledEngagements,
 				tt.args.holidays,
 				tt.args.location,
 				tt.args.daysOut,
+				conn,
 			); !reflect.DeepEqual(gotSchedule, tt.wantSchedule) {
 				t.Errorf("GenerateScheduleOfEngagements() = %v, want %v", gotSchedule, tt.wantSchedule)
 			}

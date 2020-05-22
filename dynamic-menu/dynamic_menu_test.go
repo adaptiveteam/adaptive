@@ -1,13 +1,13 @@
 package dynamic_menu
 
 import (
-	business_time "github.com/adaptiveteam/adaptive/business-time"
-	"github.com/adaptiveteam/adaptive/checks"
+	// business_time "github.com/adaptiveteam/adaptive/business-time"
+	// "github.com/adaptiveteam/adaptive/checks"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"testing"
 )
 
-func MenuForTesting(profile checks.CheckFunctionMap) (menu DynamicMenuSpecification) {
+func MenuForTesting() (menu DynamicMenuSpecification) {
 	menu = NewAdaptiveDynamicMenu()
 	menu = menu.AddGroup(
 		NewGroupSpecification("Test Group #1").
@@ -15,16 +15,12 @@ func MenuForTesting(profile checks.CheckFunctionMap) (menu DynamicMenuSpecificat
 				NewAdaptiveDynamicMenuSpecification(
 					"test ID #1.1",
 					"test text #1.1",
-					"text description #1.1").
-					AddOptionCheck(profile, "ReturnsTrue", true).
-					AddOptionCheck(profile, "ReturnsTrue", true),
+					"text description #1.1", true),
 			).AddGroupOption(
-			NewAdaptiveDynamicMenuSpecification(
-				"test ID #1.2",
-				"test text #1.2",
-				"text description #1.2").
-				AddOptionCheck(profile, "ReturnsTrue", true).
-				AddOptionCheck(profile, "ReturnsTrue", true),
+				NewAdaptiveDynamicMenuSpecification(
+					"test ID #1.2",
+					"test text #1.2",
+					"text description #1.2", true),
 		),
 	).AddGroup(
 		NewGroupSpecification("Test Group #2").
@@ -32,16 +28,14 @@ func MenuForTesting(profile checks.CheckFunctionMap) (menu DynamicMenuSpecificat
 				NewAdaptiveDynamicMenuSpecification(
 					"test ID #2.1",
 					"test text #2.1",
-					"text description #2.1").
-					AddOptionCheck(profile, "ReturnsTrue", true).
-					AddOptionCheck(profile, "ReturnsTrue", true),
+					"text description #2.1",
+					 true),
 			).AddGroupOption(
-			NewAdaptiveDynamicMenuSpecification(
-				"test ID #2.2",
-				"test text #2.2",
-				"text description #2.2").
-				AddOptionCheck(profile, "ReturnsTrue", true).
-				AddOptionCheck(profile, "ReturnsTrue", true),
+				NewAdaptiveDynamicMenuSpecification(
+					"test ID #2.2",
+					"test text #2.2",
+					"text description #2.2", 
+					true),
 		),
 	).AddGroup(
 		NewGroupSpecification("Test Group #3").
@@ -49,16 +43,12 @@ func MenuForTesting(profile checks.CheckFunctionMap) (menu DynamicMenuSpecificat
 				NewAdaptiveDynamicMenuSpecification(
 					"test ID #3.1",
 					"test text #3.1",
-					"text description #3.1").
-					AddOptionCheck(profile, "ReturnsTrue", true).
-					AddOptionCheck(profile, "ReturnsTrue", true),
+					"text description #3.1", true),
 			).AddGroupOption(
 			NewAdaptiveDynamicMenuSpecification(
 				"test ID #3.2",
 				"test text #3.2",
-				"text description #3.2").
-				AddOptionCheck(profile, "ReturnsTrue", true).
-				AddOptionCheck(profile, "ReturnsTrue", false),
+				"text description #3.2", false),
 		),
 	).AddGroup(
 		NewGroupSpecification("Test Group #4").
@@ -66,9 +56,7 @@ func MenuForTesting(profile checks.CheckFunctionMap) (menu DynamicMenuSpecificat
 				NewAdaptiveDynamicMenuSpecification(
 					"test ID #4.1",
 					"test text #4.1",
-					"text description #4.1").
-					AddOptionCheck(profile, "ReturnsTrue", false).
-					AddOptionCheck(profile, "ReturnsTrue", false),
+					"text description #4.1", false),
 			),
 	)
 	return menu
@@ -96,8 +84,7 @@ func Test_ADM(t *testing.T) {
 		},
 	}
 	checkMenu(
-		MenuForTesting,
-		checks.SimpleTestProfile,
+		MenuForTesting(),
 		desiredGroups,
 		desiredOptions,
 		t,
@@ -119,14 +106,14 @@ func printOptions(v []ebm.MenuOption) (rv string) {
 }
 
 func checkMenu(
-	menuConstructor func(profile checks.CheckFunctionMap) DynamicMenuSpecification,
-	profile checks.CheckFunctionMap,
+	menuSpec DynamicMenuSpecification,
 	desiredGroups []string,
 	desiredOptions map[string][]string,
 	t *testing.T,
 ) {
-	result := menuConstructor(profile)
-	menu := result.Build("ctcreel", business_time.NewDate(2019, 1, 1))
+	// "ctcreel", business_time.NewDate(2019, 1, 1)
+	// result := menuConstructor()
+	menu := menuSpec.Build()
 	if len(menu) == len(desiredGroups) {
 		for i, group := range desiredGroups {
 			if len(desiredOptions[group]) == len(menu[i].Options) {

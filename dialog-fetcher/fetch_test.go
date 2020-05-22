@@ -1,11 +1,24 @@
 package fetch_dialog
 
 import (
+	"log"
+	"flag"
+	"testing"
 	"reflect"
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("Fetching dialog using DAO", func() {
+func init() {
+	testing.Init()
+	flag.Parse()
+	if testing.Short() {
+		log.Println("Skipping tests in short mode")
+	} else {
+		describeAllTests() 
+	}
+}
+
+func describeAllTests(){ Describe("Fetching dialog using DAO", func() {
 	Context("FetchDialogBySubject", func(){
 		It("should fetch a predefined dialog", func(){
 			dao := localStackDao()
@@ -28,5 +41,5 @@ var _ = Describe("Fetching dialog using DAO", func() {
 			CheckDialogEntryEquality(testingT)
 		})
 	})
-	
 })
+}
