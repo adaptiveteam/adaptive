@@ -12,9 +12,7 @@ import (
 	"log"
 	"net/url"
 	"time"
-
 	"github.com/pkg/errors"
-
 	adm "github.com/adaptiveteam/adaptive/adaptive-dynamic-menu"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
@@ -314,7 +312,14 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 		if _, ok := objMap["callback_id"]; ok {
 			userID := getUserID(eventsAPIEvent)
 			callbackID := getCallbackID(eventsAPIEvent)
-			err = routeByCallbackID(eventsAPIEvent, requestPayload, userID, callbackID)
+			var teamID models.TeamID
+			teamID, err = ensureTeamID(
+				daosCommon.PlatformID(eventsAPIEvent.TeamID), 
+				daosCommon.PlatformID(eventsAPIEvent.APIAppID),
+			)
+			if err == nil {
+				err = routeByCallbackID(eventsAPIEvent, requestPayload, teamID, userID, callbackID)
+			}
 		} else {
 			fmt.Printf("Couldn't find callback_id in map: %+v", objMap)
 		}
@@ -423,14 +428,12 @@ func routeCallbackEvent(
 func routeByCallbackID(
 	eventsAPIEvent slackevents.EventsAPIEvent,
 	requestPayload string,
+	teamID models.TeamID,
 	userID, callbackID string,
 ) (err error) {
 	fmt.Printf("routeByCallbackID(userID=%s,callbackID=%s)\n", userID, callbackID)
 
 	slackRequest := models.EventsAPIEvent(requestPayload)
-	u := userDAO.ReadUnsafe(userID)
-	apiAppID := u.PlatformID
-	teamID := models.ParseTeamID(apiAppID)
 	np := models.NamespacePayload4{
 		ID:        core.Uuid(),
 		Namespace: namespace,
