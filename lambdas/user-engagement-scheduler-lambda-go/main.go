@@ -1,14 +1,15 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-checks"
+	"github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/user"
 	"context"
 	"fmt"
-	aesc "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/crosswalks"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/schedules"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	es "github.com/adaptiveteam/adaptive/engagement-scheduling"
@@ -19,7 +20,7 @@ import (
 var (
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
 	schema   = models.SchemaForClientID(clientID)
-	userDao  = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	userDao  = user.NewDAO(d, namespace, clientID)
 )
 
 // HandleRequest -
@@ -45,13 +46,16 @@ func HandleRequest(ctx context.Context, event models.UserEngage) (err error) {
 	// 	return concatAppend([][]esmodels.CrossWalk{crosswalks.UserCrosswalk()})
 	// }
 	day := business_time.NewDate(y, int(m), d)
+	connGen := common.CreateConnectionGenFromEnv()
+	conn := connGen.ForPlatformID(event.TeamID.ToPlatformID())
 	es.ActivateEngagementsOnDay(
-		aesc.ProductionProfile,
+		adaptive_checks.EvalProfile,
 		day,
 		crosswalks.UserCrosswalk,
 		holidaysList,
 		location,
 		event.UserID,
+		conn,
 	)
 	return
 }

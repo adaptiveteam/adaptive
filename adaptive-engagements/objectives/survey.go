@@ -2,6 +2,7 @@ package objectives
 
 import (
 	"fmt"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -14,7 +15,7 @@ const (
 	ObjectiveDescriptionPlaceholder ui.PlainText = ebm.EmptyPlaceholder
 )
 
-func AlignmentFromAlignedStrategyType(tpe models.AlignedStrategyType, id string) (alignment string) {
+func AlignmentIDFromAlignedStrategyType(tpe models.AlignedStrategyType, id string) (alignment string) {
 	switch tpe {
 	case models.ObjectiveStrategyObjectiveAlignment:
 		alignment = fmt.Sprintf("%s:%s", community.Capability, id)
@@ -22,8 +23,8 @@ func AlignmentFromAlignedStrategyType(tpe models.AlignedStrategyType, id string)
 		alignment = fmt.Sprintf("%s:%s", community.Initiative, id)
 	case models.ObjectiveCompetencyAlignment:
 		alignment = fmt.Sprintf("%s:%s", models.ObjectiveCompetencyAlignment, id)
-	case models.ObjectiveNoStrategyAlignment:
-		alignment = "None"
+	default: //case models.ObjectiveNoStrategyAlignment:
+		alignment = ""
 	}
 	return
 }
@@ -32,9 +33,9 @@ func EditObjectiveSurveyElems2(obj *models.UserObjective, coaches, dates []model
 	initiativesAndObjectives []ebm.AttachmentActionElementOptionGroup) []ebm.AttachmentActionTextElement {
 	var op []ebm.AttachmentActionTextElement
 	// Survey box should consist of a menu option to select rating and a text area for a user to enter the feedback
-	alignment := ""
+	currentAlignmentID := ""
 	if obj != nil {
-		alignment = AlignmentFromAlignedStrategyType(obj.StrategyAlignmentEntityType, obj.StrategyAlignmentEntityID)
+		currentAlignmentID = AlignmentIDFromAlignedStrategyType(obj.StrategyAlignmentEntityType, obj.StrategyAlignmentEntityID)
 	}
 
 	if obj == nil {
@@ -72,7 +73,7 @@ func EditObjectiveSurveyElems2(obj *models.UserObjective, coaches, dates []model
 				ElemType:     models.MenuSelectType,
 				OptionGroups: initiativesAndObjectives,
 				// Options:  utils.AttachActionElementOptions(initiativesAndObjectives),
-				Value: alignment,
+				Value:        currentAlignmentID,
 			},
 		)
 	}

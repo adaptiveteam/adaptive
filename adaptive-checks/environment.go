@@ -1,6 +1,7 @@
 package adaptive_checks
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/user"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -10,58 +11,108 @@ import (
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
 
-var (
-	// vision
-	visionTable = utils.NonEmptyEnv("VISION_TABLE_NAME")
+type environment struct {
+	visionTable string
 
 	// IDOs
-	userObjectivesTable         = utils.NonEmptyEnv("USER_OBJECTIVES_TABLE_NAME")
-	userObjectivesUserIndex     = utils.NonEmptyEnv("USER_OBJECTIVES_USER_ID_INDEX")
-	userObjectivesProgressTable = utils.NonEmptyEnv("USER_OBJECTIVES_PROGRESS_TABLE")
-	userObjectivesTypeIndex     = "UserIDTypeIndex"
+	userObjectivesTable string
+	userObjectivesUserIndex string
+	userObjectivesProgressTable string
+	userObjectivesTypeIndex string
 
 	// community
-	communityUsersTable              = utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME")
-	communityUsersUserCommunityIndex = utils.NonEmptyEnv("COMMUNITY_USERS_USER_COMMUNITY_INDEX")
-	communityUsersUserIndex          = utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX")
+	communityUsersTable string
+	communityUsersUserCommunityIndex string
+	communityUsersUserIndex string
 
 	// engagements
-	engagementsTable         = utils.NonEmptyEnv("USER_ENGAGEMENTS_TABLE_NAME")
-	engagementsAnsweredIndex = "UserIDAnsweredIndex"
+	engagementsTable string
+	engagementsAnsweredIndex string
 
 	// strategy
-	initiativesTable                   = utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE_NAME")
-	initiativesPlatformIndex           = "PlatformIDIndex"
-	strategyObjectivesTableName        = utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME")
-	strategyObjectivesPlatformIndex    = "PlatformIDIndex"
-	capabilityCommunitiesTable         = utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME")
-	capabilityCommunitiesPlatformIndex = "PlatformIDIndex"
-	initiativeCommunitiesTableName     = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME")
-	initiativeCommunitiesPlatformIndex = utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX")
-	strategyCommunitiesTable           = utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME")
+	initiativesTable string
+	initiativesPlatformIndex string
+	strategyObjectivesTableName string
+	strategyObjectivesPlatformIndex string
+	capabilityCommunitiesTable string
+	capabilityCommunitiesPlatformIndex string
+	initiativeCommunitiesTableName string
+	initiativeCommunitiesPlatformIndex string
+	strategyCommunitiesTable string
+	strategyObjectivesCapabilityCommunityIndex string
+	strategyInitiativesInitiativeCommunityIndex string
+	userFeedbackTable string
+	userFeedbackSourceQYIndex string
+	reportsBucket string
+	namespace string
+	region string
+	clientID string
+	d         *awsutils.DynamoRequest
+	schema    models.Schema
+	userDAO   user.DAO
+	connGen   daosCommon.DynamoDBConnectionGen
 
-	strategyObjectivesCapabilityCommunityIndex  = "CapabilityCommunityIDsIndex"
-	strategyInitiativesInitiativeCommunityIndex = "InitiativeCommunityIDIndex"
+	dns       common.DynamoNamespace
+}
 
-	userFeedbackTable         = utils.NonEmptyEnv("USER_FEEDBACK_TABLE_NAME")
-	userFeedbackSourceQYIndex = utils.NonEmptyEnv("USER_FEEDBACK_SOURCE_QUARTER_YEAR_INDEX")
-	reportsBucket             = utils.NonEmptyEnv("REPORTS_BUCKET_NAME")
+func readEnvironment() environment {
+	namespace:=  utils.NonEmptyEnv("LOG_NAMESPACE")
+	region   :=  utils.NonEmptyEnv("AWS_REGION")
+	d        :=  awsutils.NewDynamo(region, "", namespace)
+	clientID :=  utils.NonEmptyEnv("CLIENT_ID")
+	schema   :=  models.SchemaForClientID(clientID)
 
-	DateFormat = core.ISODateLayout
-)
+	return environment{
+		// vision
+		visionTable:  utils.NonEmptyEnv("VISION_TABLE_NAME"),
 
-var (
-	namespace = utils.NonEmptyEnv("LOG_NAMESPACE")
-	region    = utils.NonEmptyEnv("AWS_REGION")
-	d         = awsutils.NewDynamo(region, "", namespace)
-	clientID  = utils.NonEmptyEnv("CLIENT_ID")
-	schema    = models.SchemaForClientID(clientID)
-	userDAO   = utilsUser.NewDAOFromSchema(d, namespace, schema)
-	connGen   = daosCommon.CreateConnectionGenFromEnv()
+		// IDOs
+		userObjectivesTable        :  utils.NonEmptyEnv("USER_OBJECTIVES_TABLE_NAME"),
+		userObjectivesUserIndex    :  utils.NonEmptyEnv("USER_OBJECTIVES_USER_ID_INDEX"),
+		userObjectivesProgressTable:  utils.NonEmptyEnv("USER_OBJECTIVES_PROGRESS_TABLE"),
+		userObjectivesTypeIndex    :  "UserIDTypeIndex",
 
-	dns                   = common.DynamoNamespace{Dynamo: d, Namespace: namespace}
-	// adHocHolidaysTableDao = eholidays.NewDAO(&dns, schema.Holidays.Name, schema.Holidays.PlatformDateIndex)
-)
+		// community
+		communityUsersTable             :  utils.NonEmptyEnv("COMMUNITY_USERS_TABLE_NAME"),
+		communityUsersUserCommunityIndex:  utils.NonEmptyEnv("COMMUNITY_USERS_USER_COMMUNITY_INDEX"),
+		communityUsersUserIndex         :  utils.NonEmptyEnv("COMMUNITY_USERS_USER_INDEX"),
+
+		// engagements
+		engagementsTable        :  utils.NonEmptyEnv("USER_ENGAGEMENTS_TABLE_NAME"),
+		engagementsAnsweredIndex:  "UserIDAnsweredIndex",
+
+		// strategy
+		initiativesTable                  :  utils.NonEmptyEnv("STRATEGY_INITIATIVES_TABLE_NAME"),
+		initiativesPlatformIndex          :  "PlatformIDIndex",
+		strategyObjectivesTableName       :  utils.NonEmptyEnv("STRATEGY_OBJECTIVES_TABLE_NAME"),
+		strategyObjectivesPlatformIndex   :  "PlatformIDIndex",
+		capabilityCommunitiesTable        :  utils.NonEmptyEnv("CAPABILITY_COMMUNITIES_TABLE_NAME"),
+		capabilityCommunitiesPlatformIndex:  "PlatformIDIndex",
+		initiativeCommunitiesTableName    :  utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_TABLE_NAME"),
+		initiativeCommunitiesPlatformIndex:  utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX"),
+		strategyCommunitiesTable          :  utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME"),
+
+		strategyObjectivesCapabilityCommunityIndex :  "CapabilityCommunityIDsIndex",
+		strategyInitiativesInitiativeCommunityIndex:  "InitiativeCommunityIDIndex",
+
+		userFeedbackTable        :  utils.NonEmptyEnv("USER_FEEDBACK_TABLE_NAME"),
+		userFeedbackSourceQYIndex:  utils.NonEmptyEnv("USER_FEEDBACK_SOURCE_QUARTER_YEAR_INDEX"),
+		reportsBucket            :  utils.NonEmptyEnv("REPORTS_BUCKET_NAME"),
+
+		namespace:  namespace,
+		region   :  region,
+		d        :  d,
+		clientID :  clientID,
+		schema   :  schema,
+		userDAO  :  user.NewDAO(d, namespace, clientID),
+		connGen  :  daosCommon.CreateConnectionGenFromEnv(),
+
+		dns                  :  common.DynamoNamespace{Dynamo: d, Namespace: namespace},
+		// adHocHolidaysTableDao = eholidays.NewDAO(&dns, schema.Holidays.Name, schema.Holidays.PlatformDateIndex)
+	}
+}
+
+var	DateFormat = core.ISODateLayout
 
 // UserIDToPlatformID converts userID to teamID using
 // globally available variables.

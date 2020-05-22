@@ -12,7 +12,9 @@ import (
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
@@ -25,7 +27,7 @@ func availableCommunities(teamID models.TeamID) []string {
 	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	// Get all used communities
 	comms, err := adaptiveCommunity.ReadByPlatformID(teamID.ToPlatformID())(conn)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not scan %s table", orgCommunitiesTable))
+	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not scan adaptiveCommunity table"))
 	var b []string
 	for _, each := range comms {
 		b = append(b, each.ID)
@@ -101,11 +103,6 @@ func StrategyCommunityByID(ID string) strategy.StrategyCommunity {
 	err := d.GetItemFromTable(strategyCommunitiesTable, params, &stratComm)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not find %s in %s table", ID, strategyCommunitiesTable))
 	return stratComm
-}
-
-func getCommUsers(channelID string) (commUsers []models.AdaptiveCommunityUser3, err error) {
-	commUsers, err = communityUserDAO.ReadCommunityUsers(channelID)
-	return
 }
 
 func unsetStrategyCommunities(channelID string) {
@@ -285,7 +282,7 @@ func removeChannel(userID, channelID string, conn daosCommon.DynamoDBConnection)
 	// We should delete this channel from users table and deactivate the community
 	for _, each := range comms {
 		// Delete users from community users table
-		communityUserDAO.DeleteAllCommunityMembersUnsafe(each.ChannelID)
+		communityUser.DeactivateAllCommunityMembersUnsafe(teamID, each.ChannelID)(conn)
 		// Delete entry from communities table
 		adaptiveCommunity.DeactivateUnsafe(each.PlatformID, each.ID)(conn)
 		// Deleting channel user
@@ -299,8 +296,8 @@ func removeChannel(userID, channelID string, conn daosCommon.DynamoDBConnection)
 
 // TODO: Update this to remove by community id instead of channel id
 // This is assuming that there is only one community per channel
-func deleteCommunityMembersByCommunityID(communityID string, channelID string) (err error) {
-	return communityUserDAO.DeleteAllCommunityMembers(channelID)
+func deleteCommunityMembersByCommunityID(teamID models.TeamID, communityID string, channelID string, conn daosCommon.DynamoDBConnection) (err error) {
+	return communityUser.DeactivateAllCommunityMembers(teamID, channelID)(conn)
 }
 
 // channelUnsubscribe removes the channel association with a community.
@@ -321,13 +318,12 @@ func channelUnsubscribe(channelID string,
 			err = daosUser.Deactivate(channelID)(conn)
 			if err == nil {
 				// Delete users from user communities table for the community
-				err = deleteCommunityMembersByCommunityID(eachComm.ID, eachComm.ChannelID)
+				err = deleteCommunityMembersByCommunityID(teamID, eachComm.ID, eachComm.ChannelID, conn)
 				if err == nil {
 					logger.Infof("Removed all community members in %s community for %s platform", eachComm.ID, teamID)
-					commParams := idAndPlatformIDParams(eachComm.ID, teamID)
 					// Delete entry from communities table
-					err = d.DeleteEntry(orgCommunitiesTable, commParams)
-					err = errors.Wrapf(err, "Could not delete from %s table in %s platform", orgCommunitiesTable, teamID)
+					err = adaptiveCommunity.Deactivate(conn.PlatformID, eachComm.ID)(conn)
+					err = errors.Wrapf(err, "Could not delete from adaptiveCommunity table in %s platform", teamID)
 					if err == nil {
 						logger.Infof("Removed %v community for %s platform", eachComm, teamID)
 					}

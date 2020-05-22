@@ -1,12 +1,12 @@
 package engagement_scheduling_models
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	bt "github.com/adaptiveteam/adaptive/business-time"
-	"github.com/adaptiveteam/adaptive/checks"
 	"github.com/adaptiveteam/adaptive/cron"
 )
 
-type ScheduleFunction func(resultMap checks.CheckResultMap, date bt.Date) (rv string)
+type ScheduleFunction func(resultMap adaptive_checks.TypedProfile, date bt.Date) (rv string)
 type EngagementFunction func(date bt.Date, target string)
 type ScheduledEngagementList []ScheduledEngagement
 type CrossWalkNameList []CrossWalkName
@@ -28,7 +28,7 @@ func NewCrossWalk(schedule ScheduleFunction, engagement EngagementFunction) Cros
 // CrontabLine constructs a CrossWalk from cron-like schedule
 func CrontabLine(schedule cron.Schedule, engagementName string, engagement EngagementFunction) CrossWalk {
 	return CrossWalk{
-		Schedule: func(resultMap checks.CheckResultMap, date bt.Date) (rv string){
+		Schedule: func(resultMap adaptive_checks.TypedProfile, date bt.Date) (rv string){
 			if schedule.IsOnSchedule(date.DateToTimeMidnight()) {
 				rv = engagementName
 			}

@@ -17,6 +17,8 @@ type DevelopmentObjectiveType string
 const (
 	IndividualDevelopmentObjective DevelopmentObjectiveType = "individual"
 	StrategyDevelopmentObjective DevelopmentObjectiveType = "strategy"
+	StrategyDevelopmentObjectiveIssue DevelopmentObjectiveType = "strategy_objective"
+	StrategyDevelopmentInitiative DevelopmentObjectiveType = "strategy_initiative"
 )
 
 type AlignedStrategyType string
@@ -105,24 +107,17 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create UserObjective.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
-	}
-}
-
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create UserObjective.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 // TableNameSuffixVar is a global variable that contains table name suffix.
@@ -140,7 +135,7 @@ func (d DAOImpl) Create(userObjective UserObjective) (err error) {
 	if ok {
 		userObjective.ModifiedAt = core.CurrentRFCTimestamp()
 	userObjective.CreatedAt = userObjective.ModifiedAt
-	err = d.Dynamo.PutTableEntry(userObjective, d.Name)
+	err = d.ConnGen.Dynamo.PutTableEntry(userObjective, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -151,7 +146,7 @@ func (d DAOImpl) Create(userObjective UserObjective) (err error) {
 // CreateUnsafe saves the UserObjective.
 func (d DAOImpl) CreateUnsafe(userObjective UserObjective) {
 	err2 := d.Create(userObjective)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", userObjective.ID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create id==%s in %s\n", userObjective.ID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -160,7 +155,7 @@ func (d DAOImpl) Read(id string) (out UserObjective, err error) {
 	var outs []UserObjective
 	outs, err = d.ReadOrEmpty(id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -172,7 +167,7 @@ func (d DAOImpl) Read(id string) (out UserObjective, err error) {
 // ReadUnsafe reads the UserObjective. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) UserObjective {
 	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -182,7 +177,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserObjective, err error) {
 	var outOrEmpty UserObjective
 	ids := idParams(id)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
@@ -190,7 +185,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserObjective, err error) {
 			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "UserObjective DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "UserObjective DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -198,7 +193,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserObjective, err error) {
 // ReadOrEmptyUnsafe reads the UserObjective. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []UserObjective {
 	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -214,7 +209,7 @@ func (d DAOImpl) CreateOrUpdate(userObjective UserObjective) (err error) {
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userObjective)
-			err = errors.Wrapf(err, "UserObjective DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "UserObjective DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := userObjective.CollectEmptyFields()
 			if ok {
@@ -225,18 +220,18 @@ func (d DAOImpl) CreateOrUpdate(userObjective UserObjective) (err error) {
 				expr, exprAttributes, names := updateExpression(userObjective, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "UserObjective DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "UserObjective DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -249,26 +244,26 @@ func (d DAOImpl) CreateOrUpdate(userObjective UserObjective) (err error) {
 // CreateOrUpdateUnsafe saves the UserObjective regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(userObjective UserObjective) {
 	err2 := d.CreateOrUpdate(userObjective)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userObjective, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", userObjective, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 // Delete removes UserObjective from db
 func (d DAOImpl)Delete(id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id))
+	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(id))
 }
 
 
 // DeleteUnsafe deletes UserObjective and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string) {
 	err2 := d.Delete(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 func (d DAOImpl)ReadByUserIDCompleted(userID string, completed int) (out []UserObjective, err error) {
 	var instances []UserObjective
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "UserIDCompletedIndex",
 		Condition: "user_id = :a0 and completed = :a1",
 		Attributes: map[string]interface{}{
@@ -283,14 +278,14 @@ func (d DAOImpl)ReadByUserIDCompleted(userID string, completed int) (out []UserO
 
 func (d DAOImpl)ReadByUserIDCompletedUnsafe(userID string, completed int) (out []UserObjective) {
 	out, err2 := d.ReadByUserIDCompleted(userID, completed)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query UserIDCompletedIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query UserIDCompletedIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByAccepted(accepted int) (out []UserObjective, err error) {
 	var instances []UserObjective
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "AcceptedIndex",
 		Condition: "accepted = :a0",
 		Attributes: map[string]interface{}{
@@ -304,14 +299,14 @@ func (d DAOImpl)ReadByAccepted(accepted int) (out []UserObjective, err error) {
 
 func (d DAOImpl)ReadByAcceptedUnsafe(accepted int) (out []UserObjective) {
 	out, err2 := d.ReadByAccepted(accepted)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query AcceptedIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query AcceptedIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByAccountabilityPartner(accountabilityPartner string) (out []UserObjective, err error) {
 	var instances []UserObjective
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "AccountabilityPartnerIndex",
 		Condition: "accountability_partner = :a0",
 		Attributes: map[string]interface{}{
@@ -325,14 +320,14 @@ func (d DAOImpl)ReadByAccountabilityPartner(accountabilityPartner string) (out [
 
 func (d DAOImpl)ReadByAccountabilityPartnerUnsafe(accountabilityPartner string) (out []UserObjective) {
 	out, err2 := d.ReadByAccountabilityPartner(accountabilityPartner)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query AccountabilityPartnerIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query AccountabilityPartnerIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByUserIDType(userID string, objectiveType DevelopmentObjectiveType) (out []UserObjective, err error) {
 	var instances []UserObjective
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "UserIDTypeIndex",
 		Condition: "user_id = :a0 and #type = :a1",
 		Attributes: map[string]interface{}{
@@ -347,7 +342,7 @@ func (d DAOImpl)ReadByUserIDType(userID string, objectiveType DevelopmentObjecti
 
 func (d DAOImpl)ReadByUserIDTypeUnsafe(userID string, objectiveType DevelopmentObjectiveType) (out []UserObjective) {
 	out, err2 := d.ReadByUserIDType(userID, objectiveType)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query UserIDTypeIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query UserIDTypeIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 

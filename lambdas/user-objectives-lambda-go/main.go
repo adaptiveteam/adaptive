@@ -30,14 +30,15 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	utilsIssues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/nlopes/slack"
-	"github.com/nlopes/slack/slackevents"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 	wfRoutes "github.com/adaptiveteam/adaptive/workflows"
 	
 )
@@ -588,12 +589,14 @@ func renderStrategyAssociations(prefix, field string, entities ...interface{}) s
 func objectiveType(teamID models.TeamID) func(uObj models.UserObjective) (typ string, alignment string) {
 	return func(uObj models.UserObjective) (typ string, alignment string) {
 		typ = "Not aligned with strategy"
-		if uObj.ObjectiveType == models.IndividualDevelopmentObjective {
+		alignment = "Not aligned with any strategy"
+		switch utilsIssues.DetectIssueType(uObj) {
+		case issues.IDO:
 			typ = Individual
 			switch uObj.StrategyAlignmentEntityType {
 			case models.ObjectiveStrategyObjectiveAlignment:
 				capObj := strategy.StrategyObjectiveByID(teamID, uObj.StrategyAlignmentEntityID, strategyObjectivesTableName)
-				alignment = renderStrategyAssociations("Capability Objective", "Name", capObj)
+				alignment = renderStrategyAssociations("Objective", "Name", capObj)
 			case models.ObjectiveStrategyInitiativeAlignment:
 				initiative := strategy.StrategyInitiativeByID(teamID, uObj.StrategyAlignmentEntityID, strategyInitiativesTableName)
 				alignment = renderStrategyAssociations("Initiative", "Name", initiative)
@@ -604,35 +607,32 @@ func objectiveType(teamID models.TeamID) func(uObj models.UserObjective) (typ st
 				for _, value := range values {
 					alignment = renderStrategyAssociations("Competency", "Name", value)
 				}
+			default:
+				log.Printf("WARN Unsupported uObj.StrategyAlignmentEntityType=%s\n", uObj.StrategyAlignmentEntityType)
 			}
-		} else if uObj.ObjectiveType == models.StrategyDevelopmentObjective {
-			switch uObj.StrategyAlignmentEntityType {
-			case models.ObjectiveStrategyObjectiveAlignment:
-				typ = CapabilityObjective
-				splits := strings.Split(uObj.ID, "_")
-				if len(splits) == 2 {
-					so := strategy.StrategyObjectiveByID(teamID, splits[0], strategyObjectivesTableName)
-					capComm := strategy.CapabilityCommunityByID(teamID, splits[1], capabilityCommunitiesTableName)
-					alignment = fmt.Sprintf("%s%s",
-						renderStrategyAssociations("Capability Communities", "Name", capComm),
-						renderStrategyAssociations("Capability Objectives", "Name", so))
-				} else {
-					so := strategy.StrategyObjectiveByID(teamID, uObj.ID, strategyObjectivesTableName)
-					alignment = fmt.Sprintf("`%s Objective` : `%s`\n", so.ObjectiveType, so.Name)
-				}
-			case models.ObjectiveStrategyInitiativeAlignment:
-				typ = StrategyInitiative
-				si := strategy.StrategyInitiativeByID(teamID, uObj.ID, strategyInitiativesTableName)
-				initCommID := si.InitiativeCommunityID
-				capObjID := si.CapabilityObjective
-				initComm := strategy.InitiativeCommunityByID(teamID, initCommID, strategyInitiativeCommunitiesTable)
-				capObj := strategy.StrategyObjectiveByID(teamID, capObjID, strategyObjectivesTableName)
+		case issues.SObjective:
+			typ = CapabilityObjective
+			splits := strings.Split(uObj.ID, "_")
+			if len(splits) == 2 {
+				so := strategy.StrategyObjectiveByID(teamID, splits[0], strategyObjectivesTableName)
+				capComm := strategy.CapabilityCommunityByID(teamID, splits[1], capabilityCommunitiesTableName)
 				alignment = fmt.Sprintf("%s%s",
-					renderStrategyAssociations("Initiative Communities", "Name", initComm),
-					renderStrategyAssociations("Capability Objectives", "Name", capObj))
-			case models.ObjectiveNoStrategyAlignment:
-				alignment = "Not aligned with any strategy"
+					renderStrategyAssociations("Capability Communities", "Name", capComm),
+					renderStrategyAssociations("Capability Objectives", "Name", so))
+			} else {
+				so := strategy.StrategyObjectiveByID(teamID, uObj.ID, strategyObjectivesTableName)
+				alignment = fmt.Sprintf("`%s Objective` : `%s`\n", so.ObjectiveType, so.Name)
 			}
+		case issues.Initiative:
+			typ = StrategyInitiative
+			si := strategy.StrategyInitiativeByID(teamID, uObj.ID, strategyInitiativesTableName)
+			initCommID := si.InitiativeCommunityID
+			capObjID := si.CapabilityObjective
+			initComm := strategy.InitiativeCommunityByID(teamID, initCommID, strategyInitiativeCommunitiesTable)
+			capObj := strategy.StrategyObjectiveByID(teamID, capObjID, strategyObjectivesTableName)
+			alignment = fmt.Sprintf("%s%s",
+				renderStrategyAssociations("Initiative Communities", "Name", initComm),
+				renderStrategyAssociations("Objectives", "Name", capObj))
 		}
 		return
 	}
@@ -1681,7 +1681,7 @@ func onDialogSubmission(request slack.InteractionCallback, teamID models.TeamID)
 }
 
 // Get the alignment type for the aligned objective
-func getAlignedStrategyTypeFromStrategyEntityID(strategyEntityID string) (alignment models.AlignedStrategyType, alignmentID string) {
+func getAlignedStrategyTypeFromAlignmentID(strategyEntityID string) (alignment models.AlignedStrategyType, alignmentID string) {
 	alignment = models.ObjectiveNoStrategyAlignment
 	// strategy entity id is of the form 'initiative:<id>' or 'capability:<id>'
 	splits := strings.Split(strategyEntityID, ":")
@@ -1711,7 +1711,7 @@ func convertDialogSubmissionToUserObjective(
 	endDate := form[objectives.ObjectiveEndDate]
 	strategyEntityID := form[objectives.ObjectiveStrategyAlignment]
 	// Get the alignment type for the aligned objective
-	alignment, alignmentID := getAlignedStrategyTypeFromStrategyEntityID(strategyEntityID)
+	alignment, alignmentID := getAlignedStrategyTypeFromAlignmentID(strategyEntityID)
 	year, quarter := core.CurrentYearQuarter()
 
 	userObj = models.UserObjective{
@@ -2464,62 +2464,35 @@ func closeoutAgreementContext(userObj models.UserObjective) (context string) {
 }
 
 func closeoutDisagreementContext(userObj models.UserObjective) (context string) {
-	typeLabel := objectiveTypeLabel(userObj)
-	switch typeLabel {
-	case Individual:
-		context = IDOCloseoutDisagreementContext
-	case CapabilityObjective:
-		context = CapabilityObjectiveCloseoutDisagreementContext
-	case StrategyInitiative:
-		context = InitiativeCloseoutDisagreementContext
-	}
+	issueType := utilsIssues.DetectIssueType(userObj)
+	context = issueType.FoldString(
+		IDOCloseoutDisagreementContext,
+		CapabilityObjectiveCloseoutDisagreementContext,
+		InitiativeCloseoutDisagreementContext,
+	)
 	return
 }
 
-func objectiveTypeLabel(userObj models.UserObjective) string {
-	var prefix string
-	switch userObj.ObjectiveType {
-	case models.IndividualDevelopmentObjective:
-		prefix = Individual
-	case models.StrategyDevelopmentObjective:
-		switch userObj.StrategyAlignmentEntityType {
-		case models.ObjectiveStrategyObjectiveAlignment:
-			prefix = CapabilityObjective
-		case models.ObjectiveStrategyInitiativeAlignment:
-			prefix = StrategyInitiative
-		}
-	}
-	return prefix
+func objectiveTypeLabel(userObj models.UserObjective) (prefix string) {
+	return string(utilsIssues.ObjectiveTypeLabel(userObj))
 }
 
 func progressUpdateContext(userObj models.UserObjective) (context string) {
-	switch userObj.ObjectiveType {
-	case models.IndividualDevelopmentObjective:
-		context = IDOProgressUpdateContext
-	case models.StrategyDevelopmentObjective:
-		switch userObj.StrategyAlignmentEntityType {
-		case models.ObjectiveStrategyObjectiveAlignment:
-			context = CapabilityObjectiveProgressUpdateContext
-		case models.ObjectiveStrategyInitiativeAlignment:
-			context = InitiativeProgressUpdateContext
-		}
-	}
-	return
+	return utilsIssues.DetectIssueType(userObj).
+		FoldString(
+			IDOProgressUpdateContext,
+			CapabilityObjectiveProgressUpdateContext,
+			InitiativeProgressUpdateContext,
+		)
 }
 
 func responseUpdateContext(userObj models.UserObjective) (context string) {
-	switch userObj.ObjectiveType {
-	case models.IndividualDevelopmentObjective:
-		context = IDOResponseObjectiveUpdateContext
-	case models.StrategyDevelopmentObjective:
-		switch userObj.StrategyAlignmentEntityType {
-		case models.ObjectiveStrategyObjectiveAlignment:
-			context = CapabilityObjectiveUpdateResponseContext
-		case models.ObjectiveStrategyInitiativeAlignment:
-			context = InitiativeUpdateResponseContext
-		}
-	}
-	return
+	return utilsIssues.DetectIssueType(userObj).
+		FoldString(
+			IDOResponseObjectiveUpdateContext,
+			CapabilityObjectiveUpdateResponseContext,
+			InitiativeUpdateResponseContext,
+		)
 }
 
 // onCoachConfirmAction handles the action when a coach is attempting to confirm a coaching request

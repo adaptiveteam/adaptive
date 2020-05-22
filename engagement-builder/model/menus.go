@@ -8,6 +8,7 @@ type MenuOption struct {
 	Text        string `json:"text"`
 	Value       string `json:"value"`
 	Description string `json:"description,omitempty"`
+	Active      bool   `json:"active"`
 }
 
 type MenuOptionGroup struct {

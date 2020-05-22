@@ -82,24 +82,17 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create User.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
-	}
-}
-
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create User.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 // TableNameSuffixVar is a global variable that contains table name suffix.
@@ -117,7 +110,7 @@ func (d DAOImpl) Create(user User) (err error) {
 	if ok {
 		user.ModifiedAt = core.CurrentRFCTimestamp()
 	user.CreatedAt = user.ModifiedAt
-	err = d.Dynamo.PutTableEntry(user, d.Name)
+	err = d.ConnGen.Dynamo.PutTableEntry(user, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -128,7 +121,7 @@ func (d DAOImpl) Create(user User) (err error) {
 // CreateUnsafe saves the User.
 func (d DAOImpl) CreateUnsafe(user User) {
 	err2 := d.Create(user)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", user.ID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create id==%s in %s\n", user.ID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -137,7 +130,7 @@ func (d DAOImpl) Read(id string) (out User, err error) {
 	var outs []User
 	outs, err = d.ReadOrEmpty(id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -149,7 +142,7 @@ func (d DAOImpl) Read(id string) (out User, err error) {
 // ReadUnsafe reads the User. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) User {
 	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -159,7 +152,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []User, err error) {
 	var outOrEmpty User
 	ids := idParams(id)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
@@ -167,7 +160,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []User, err error) {
 			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "User DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "User DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -175,7 +168,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []User, err error) {
 // ReadOrEmptyUnsafe reads the User. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []User {
 	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -191,7 +184,7 @@ func (d DAOImpl) CreateOrUpdate(user User) (err error) {
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(user)
-			err = errors.Wrapf(err, "User DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "User DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := user.CollectEmptyFields()
 			if ok {
@@ -202,18 +195,18 @@ func (d DAOImpl) CreateOrUpdate(user User) (err error) {
 				expr, exprAttributes, names := updateExpression(user, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "User DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "User DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -226,7 +219,7 @@ func (d DAOImpl) CreateOrUpdate(user User) (err error) {
 // CreateOrUpdateUnsafe saves the User regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(user User) {
 	err2 := d.CreateOrUpdate(user)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", user, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", user, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -246,13 +239,13 @@ func (d DAOImpl)Deactivate(id string) error {
 // DeactivateUnsafe "deletes" User and panics in case of errors.
 func (d DAOImpl)DeactivateUnsafe(id string) {
 	err2 := d.Deactivate(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []User, err error) {
 	var instances []User
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "PlatformIDIndex",
 		Condition: "platform_id = :a0",
 		Attributes: map[string]interface{}{
@@ -266,14 +259,14 @@ func (d DAOImpl)ReadByPlatformID(platformID common.PlatformID) (out []User, err 
 
 func (d DAOImpl)ReadByPlatformIDUnsafe(platformID common.PlatformID) (out []User) {
 	out, err2 := d.ReadByPlatformID(platformID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query PlatformIDIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByPlatformIDTimezoneOffset(platformID common.PlatformID, timezoneOffset int) (out []User, err error) {
 	var instances []User
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "PlatformIDTimezoneOffsetIndex",
 		Condition: "platform_id = :a0 and timezone_offset = :a1",
 		Attributes: map[string]interface{}{
@@ -288,14 +281,14 @@ func (d DAOImpl)ReadByPlatformIDTimezoneOffset(platformID common.PlatformID, tim
 
 func (d DAOImpl)ReadByPlatformIDTimezoneOffsetUnsafe(platformID common.PlatformID, timezoneOffset int) (out []User) {
 	out, err2 := d.ReadByPlatformIDTimezoneOffset(platformID, timezoneOffset)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDTimezoneOffsetIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query PlatformIDTimezoneOffsetIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByPlatformIDAdaptiveScheduledTimeInUTC(platformID common.PlatformID, adaptiveScheduledTimeInUTC string) (out []User, err error) {
 	var instances []User
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "PlatformIDAdaptiveScheduledTimeInUTCIndex",
 		Condition: "platform_id = :a0 and adaptive_scheduled_time_in_utc = :a1",
 		Attributes: map[string]interface{}{
@@ -310,7 +303,7 @@ func (d DAOImpl)ReadByPlatformIDAdaptiveScheduledTimeInUTC(platformID common.Pla
 
 func (d DAOImpl)ReadByPlatformIDAdaptiveScheduledTimeInUTCUnsafe(platformID common.PlatformID, adaptiveScheduledTimeInUTC string) (out []User) {
 	out, err2 := d.ReadByPlatformIDAdaptiveScheduledTimeInUTC(platformID, adaptiveScheduledTimeInUTC)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDAdaptiveScheduledTimeInUTCIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query PlatformIDAdaptiveScheduledTimeInUTCIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 

@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -13,13 +14,16 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
+
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/communityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
-	"github.com/nlopes/slack"
-	"github.com/nlopes/slack/slackevents"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 )
 
 // TODO: save engagements.
@@ -85,7 +89,7 @@ func onCommunitySubscribeCommunityClicked(
 			err2 = adaptiveCommunity.Create(comm)(conn)
 			if err2 != nil {
 				logger.WithField("namespace", namespace).WithField("error", err2).
-					Errorf("Could not add entry to %s table", orgCommunitiesTable)
+					Errorf("Could not add entry to adaptiveCommunity table")
 			} else {
 				// Once a channel/group is subscribed to a community, get all existing users from the channel and add as community users
 				// Adding existing channel members
@@ -116,7 +120,7 @@ func onCommunitySubscribeCommunityClicked(
 func setupCommunityUsers(channelID, communityID string, communityMemberIDs []string, 
 	conn common.DynamoDBConnection) {
 	teamID := models.ParseTeamID(conn.PlatformID)
-	hasBeenSubscribedMany := isUserSubscribedToAnyCommunityMany(communityMemberIDs)
+	hasBeenSubscribedMany := isUserSubscribedToAnyCommunityMany(communityMemberIDs)(conn)
 	userCommunities := addUsersToCommunity(teamID, channelID, communityID, communityMemberIDs)
 	logger.Infof("Added %s users from %s channel to %s community in team %v", communityMemberIDs, channelID, communityID, teamID)
 	welcomeAllUsers(userCommunities, conn)
@@ -284,7 +288,7 @@ func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent,
 				// If another user is added
 				// Get the subscribed communities
 				subComms := subscribedCommunities(slackMsg.Channel, conn)
-				hasBeenSubscribed := isUserSubscribedToAnyCommunity(slackMsg.User)
+				hasBeenSubscribed := isUserSubscribedToAnyCommunity(slackMsg.User)(conn)
 				userCommunityPairs := addUserToAllCommunities(slackMsg.User, subComms, conn)
 				logger.Infof("Welcoming newly added %s user", slackMsg.User)
 				welcomeAllUsers(userCommunityPairs, conn)
@@ -300,20 +304,24 @@ func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent,
 	}
 }
 
-func isUserSubscribedToAnyCommunity(userID string) bool {
-	comms, err2 := communityUserDAO.Read(userID)
-	if err2 != nil && strings.Contains(err2.Error(), "not found") {
-		logger.Infof("Not found community user %s", userID)
+func isUserSubscribedToAnyCommunity(userID string) func(conn common.DynamoDBConnection) bool {
+	return func(conn common.DynamoDBConnection) bool {
+		comms, err2 := adaptiveCommunityUser.ReadByUserID(userID)(conn)
+		if err2 != nil && strings.Contains(err2.Error(), "not found") {
+			logger.Infof("Not found community user %s", userID)
+		}
+		return err2 == nil && len(comms) > 0
 	}
-	return err2 == nil && len(comms) > 0
 }
 
-func isUserSubscribedToAnyCommunityMany(userIDs []string) (m map[string]bool) {
-	m = make(map[string]bool)
-	for _, u := range userIDs {
-		m[u] = isUserSubscribedToAnyCommunity(u)
+func isUserSubscribedToAnyCommunityMany(userIDs []string)func(conn common.DynamoDBConnection)  (m map[string]bool) {
+	return func(conn common.DynamoDBConnection)  (m map[string]bool) {
+		m = make(map[string]bool)
+		for _, u := range userIDs {
+			m[u] = isUserSubscribedToAnyCommunity(u)(conn)
+		}
+		return
 	}
-	return
 }
 
 // func getUserIDs(userCommunityPairs []models.AdaptiveCommunityUser3) (userIDs []string) {
@@ -379,12 +387,14 @@ func onAdaptiveJoinedChannel(channelID platform.ConversationID, teamID models.Te
 }
 
 // A regular user is removed from the channel
-func onMemberLeftChannel(slackMsg slack.MemberLeftChannelEvent) {
-	err := communityUserDAO.DeleteUserFromCommunity(slackMsg.Channel, slackMsg.User)
+func onMemberLeftChannel(teamID models.TeamID, slackMsg slack.MemberLeftChannelEvent) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+
+	err := communityUser.DeactivateUserFromCommunity(teamID, slackMsg.Channel, slackMsg.User)(conn)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not remove entry from %s table", communityUsersTable))
 }
 
-func onGroupLeftEvent(cbEvent slackevents.EventsAPICallbackEvent, 
+func onGroupLeftEvent(teamID models.TeamID, cbEvent slackevents.EventsAPICallbackEvent, 
 	conn daosCommon.DynamoDBConnection) {
 	logger.Infof("Handling onGroupLeftEvent %v", *cbEvent.InnerEvent)
 	var groupLeftEvent models.GroupLeftEvent
@@ -403,7 +413,7 @@ func onGroupLeftEvent(cbEvent slackevents.EventsAPICallbackEvent,
 			removeChannel(groupLeftEvent.ActorId, groupLeftEvent.Channel, conn)
 		} else {
 			logger.Warnf("Weird onGroupLeftEvent (1) - %s (%s) not IsAdaptiveBot", authedUser, us.ID)
-			err2 := communityUserDAO.DeleteUserFromCommunity(groupLeftEvent.Channel, authedUser)
+			err2 := communityUser.DeactivateUserFromCommunity(teamID, groupLeftEvent.Channel, authedUser)(conn)
 			core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not remove entry from %s table", communityUsersTable))
 		}
 	} else {
@@ -425,7 +435,7 @@ func getSubscribeMessage(channelID platform.ConversationID, teamID models.TeamID
 	availComms := liftStringToOption(simpleOptionStr)(availableCommunities(teamID))
 	availStrComms := liftKvPairToOption(kvPairToMenuOption)(availableStrategyCommunities(teamID, userID))
 	opts := append(availComms, availStrComms...)
-	logger.Infof("Available communities for Adaptive to join: %s", opts)
+	logger.Infof("Available communities for Adaptive to join: %v", opts)
 	if len(opts) > 0 {
 		message = selectOptionsMessage(mc,
 			PostSubscribeEngagementTitle,

@@ -4,6 +4,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"bytes"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -14,8 +15,10 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	// This import is needed for reports to work
+	// we import both drivers and choose at a different moment
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/nlopes/slack"
+	_ "github.com/jackc/pgx/v4"
+	"github.com/slack-go/slack"
 )
 
 func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf *bytes.Buffer, reportname string, err error) {
@@ -28,7 +31,9 @@ func onStrategyPerformanceReport(RDSConfig RDSConfig, teamID models.TeamID) (buf
 
 	// f, err = reports.StrategyPerformanceReport(db, customerID)
 
-	reportname = "Strategic Performance"
+	loc, _ := time.LoadLocation("America/Indianapolis")
+	timeString := time.Now().In(loc).Format(string(core_utils_go.ISODateLayout))
+	reportname = "Strategic Performance, "+timeString
 	file = excelize.NewFile()
 	properties := utilities2.CreateDocumentProperties(
 		"Strategy",

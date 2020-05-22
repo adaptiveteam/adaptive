@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"bytes"
 	"context"
@@ -17,14 +18,12 @@ import (
 	adm "github.com/adaptiveteam/adaptive/adaptive-dynamic-menu"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
-	"github.com/adaptiveteam/adaptive/checks"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 
 	"strconv"
 	"strings"
 
-	aesc "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
@@ -40,8 +39,8 @@ import (
 	eb "github.com/adaptiveteam/adaptive/engagement-builder"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/nlopes/slack"
-	"github.com/nlopes/slack/slackevents"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 )
 
 const (
@@ -55,20 +54,23 @@ const (
 // -- Direct Adaptive to create an engagement alerting team members of upcoming holidays
 // Enable users to request a list of all upcoming holidays
 
-func checkValues(userID string) checks.CheckResultMap {
-	dms := adm.AdaptiveDynamicMenu(aesc.ProductionProfile, bindings)
+func loadProfile(conn daosCommon.DynamoDBConnection, userID string) (profile adaptive_checks.TypedProfile) {
 	loc, _ := time.LoadLocation("UTC")
 	today := business_time.Today(loc)
-	return dms.StripOutFunctions().Evaluate(userID, today)
+	profile = adaptive_checks.EvalProfile(conn, userID, today)
+	profile.LoadAll()
+	return
 }
 
-func InitAction(callbackId, userID string) []ebm.Attachment {
+func InitAction(conn daosCommon.DynamoDBConnection, callbackId, userID string) []ebm.Attachment {
 	// TODO: Update the timezone here
-	loc, _ := time.LoadLocation("UTC")
-	today := business_time.Today(loc)
-	dms := adm.AdaptiveDynamicMenu(aesc.ProductionProfile, bindings)
-	mog := dms.Build(userID, today)
-	dms.StripOutFunctions().Evaluate(userID, business_time.Today(loc))
+	// loc, _ := time.LoadLocation("UTC")
+	// today := business_time.Today(loc)
+	profile := loadProfile(conn, userID)
+	mog := adm.AdaptiveDynamicMenu(profile, bindings).Build()
+	// dms := adm.AdaptiveDynamicMenu(profile, bindings)
+	// mog := dms.Build()//userID, today)
+	// dms.StripOutFunctions().Evaluate(userID, business_time.Today(loc))
 
 	logger.Infof("AdaptiveDynamicMenu contains %d groups\n", len(mog))
 	attachAction1, _ := eb.NewAttachmentActionBuilder().
@@ -124,8 +126,9 @@ func helloMessage(userID, channelID string, teamID models.TeamID) {
 		// api := slack.New(platformTokenDAO.GetPlatformTokenUnsafe(models.TeamID(teamID)))
 		// history, err2 := getChannelHistory(api, channelID)
 		// if err2 != nil || !isThereVeryRecentHiResponse(history) {
+		conn := connGen.ForPlatformID(teamID.ToPlatformID())
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
-			Attachments: InitAction("init_message", userID)})
+			Attachments: InitAction(conn, "init_message", userID)})
 		// }
 		// if err2 != nil {
 		// 	logger.WithError(err2).Errorf("Couldn't GetIMHistory from Slack")
@@ -212,7 +215,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	if request.HTTPMethod == "GET" {
 		err = HandleRedirectURLGetRequest(globalConnection(models.ParseTeamID("UNKNOWN-PLATFORM-ID")), request)
 		if err == nil {
-			response = responsePermanentRedirect("https://adaptiveteam.github.io/")
+			response = responsePermanentRedirect("https://www.adaptive.team/welcome-to-adaptive")
 		}
 	} else {
 		byt, _ := json.Marshal(request)
@@ -507,12 +510,9 @@ func routeMenuOption(
 	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	switch menuOption {
 	case user.AskForEngagements:
-		engage := models.UserEngageWithCheckValues{
-			UserEngage: models.UserEngage{
+		engage := models.UserEngage{
 				UserID: userID, IsNew: true, Update: true, OnDemand: true,
 				ThreadTs: message.MessageTs, TeamID: teamID,
-			},
-			CheckValues: checkValues(message.User.ID),
 		}
 		invokeLambdaUnsafe(engScriptingLambda, engage)
 		deleteMessage(message)
@@ -614,7 +614,7 @@ func getUserID(eventsAPIEvent slackevents.EventsAPIEvent) string {
 	return (eventsAPIEvent.Data.(slack.InteractionCallback)).User.ID
 }
 
-func invokeLambdaUnsafe(lambdaName string, userEngage models.UserEngageWithCheckValues) {
+func invokeLambdaUnsafe(lambdaName string, userEngage models.UserEngage) {
 	engageBytes, err2 := json.Marshal(userEngage)
 	core.ErrorHandler(err2, namespace, "Could not marshal UserEngage")
 	_, err2 = l.InvokeFunction(lambdaName, engageBytes, false)

@@ -12,7 +12,7 @@ import (
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 var allCrosswalks = concatAppend(

@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	// mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"sync"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/user"
@@ -19,24 +20,13 @@ import (
 func updateSlackUser(slackUser slack.User, event models.ClientPlatformRequest, 
 	teamID models.TeamID,
 	conn daosCommon.DynamoDBConnection) (err error) {
-	now := core.CurrentRFCTimestamp()
-	deactivatedAt := ""
-	if slackUser.Deleted {
-		deactivatedAt = now
+	var adaptiveBotID string
+	adaptiveBotID, err = platform.GetAdaptiveBotIDOptional(conn)
+
+	if err != nil {
+		return
 	}
-	item := models.User{
-		ID:             slackUser.ID,
-		DisplayName:    slackUser.RealName,
-		FirstName:      slackUser.Profile.FirstName,
-		LastName:       slackUser.Profile.LastName,
-		Timezone:       slackUser.TZ,
-		TimezoneOffset: slackUser.TZOffset,
-		PlatformID:     event.TeamID.ToPlatformID(), 
-		IsAdmin:        slackUser.IsAdmin,
-		DeactivatedAt:  deactivatedAt,
-		CreatedAt:      now,
-		IsShared:       false}
-	item.IsAdaptiveBot = slackUser.IsBot && slackUser.Profile.ApiAppID == teamID.ToString()
+	item := utilsUser.ConvertSlackUserToUser(slackUser, teamID, adaptiveBotID) 
 
 	// Check if the user already exists
 	var users []models.User
@@ -182,7 +172,7 @@ func createOrUpdateCommunityUser(comm models.AdaptiveCommunity, userID string) f
 
 func removeCommunityUser(comm models.AdaptiveCommunity, userID string) func (conn daosCommon.DynamoDBConnection) (err error) {
 	logger.Infof("Removing user %s from community channelID=%s", userID, comm.ChannelID)
-	return adaptiveCommunityUser.Delete(comm.ChannelID, userID)
+	return adaptiveCommunityUser.Deactivate(comm.ChannelID, userID)
 }
 
 func allUserIDs(conn daosCommon.DynamoDBConnection)(ids []string, err error) {

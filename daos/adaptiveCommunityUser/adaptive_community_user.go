@@ -20,6 +20,17 @@ type AdaptiveCommunityUser struct  {
 	UserID string `json:"user_id"`
 	PlatformID common.PlatformID `json:"platform_id"`
 	CommunityID string `json:"community_id"`
+	DeactivatedAt string `json:"deactivated_at,omitempty"`
+}
+
+// AdaptiveCommunityUserFilterActive removes deactivated values
+func AdaptiveCommunityUserFilterActive(in []AdaptiveCommunityUser) (res []AdaptiveCommunityUser) {
+	for _, i := range in {
+		if i.DeactivatedAt == "" {
+			res = append(res, i)
+		}
+	}
+	return
 }
 
 // CollectEmptyFields returns entity field names that are empty.
@@ -47,8 +58,8 @@ type DAO interface {
 	ReadOrEmptyUnsafe(channelID string, userID string) (adaptiveCommunityUser []AdaptiveCommunityUser)
 	CreateOrUpdate(adaptiveCommunityUser AdaptiveCommunityUser) error
 	CreateOrUpdateUnsafe(adaptiveCommunityUser AdaptiveCommunityUser)
-	Delete(channelID string, userID string) error
-	DeleteUnsafe(channelID string, userID string)
+	Deactivate(channelID string, userID string) error
+	DeactivateUnsafe(channelID string, userID string)
 	ReadByChannelID(channelID string) (adaptiveCommunityUser []AdaptiveCommunityUser, err error)
 	ReadByChannelIDUnsafe(channelID string) (adaptiveCommunityUser []AdaptiveCommunityUser)
 	ReadByUserIDCommunityID(userID string, communityID string) (adaptiveCommunityUser []AdaptiveCommunityUser, err error)
@@ -61,24 +72,17 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create AdaptiveCommunityUser.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
-	}
-}
-
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create AdaptiveCommunityUser.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 // TableNameSuffixVar is a global variable that contains table name suffix.
@@ -94,7 +98,7 @@ func TableName(prefix string) string {
 func (d DAOImpl) Create(adaptiveCommunityUser AdaptiveCommunityUser) (err error) {
 	emptyFields, ok := adaptiveCommunityUser.CollectEmptyFields()
 	if ok {
-		err = d.Dynamo.PutTableEntry(adaptiveCommunityUser, d.Name)
+		err = d.ConnGen.Dynamo.PutTableEntry(adaptiveCommunityUser, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -105,7 +109,7 @@ func (d DAOImpl) Create(adaptiveCommunityUser AdaptiveCommunityUser) (err error)
 // CreateUnsafe saves the AdaptiveCommunityUser.
 func (d DAOImpl) CreateUnsafe(adaptiveCommunityUser AdaptiveCommunityUser) {
 	err2 := d.Create(adaptiveCommunityUser)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create channelID==%s, userID==%s in %s\n", adaptiveCommunityUser.ChannelID, adaptiveCommunityUser.UserID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create channelID==%s, userID==%s in %s\n", adaptiveCommunityUser.ChannelID, adaptiveCommunityUser.UserID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -114,7 +118,7 @@ func (d DAOImpl) Read(channelID string, userID string) (out AdaptiveCommunityUse
 	var outs []AdaptiveCommunityUser
 	outs, err = d.ReadOrEmpty(channelID, userID)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found channelID==%s, userID==%s in %s\n", channelID, userID, d.Name)
+		err = fmt.Errorf("Not found channelID==%s, userID==%s in %s\n", channelID, userID, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -126,7 +130,7 @@ func (d DAOImpl) Read(channelID string, userID string) (out AdaptiveCommunityUse
 // ReadUnsafe reads the AdaptiveCommunityUser. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(channelID string, userID string) AdaptiveCommunityUser {
 	out, err2 := d.Read(channelID, userID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading channelID==%s, userID==%s in %s\n", channelID, userID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading channelID==%s, userID==%s in %s\n", channelID, userID, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -136,7 +140,7 @@ func (d DAOImpl) ReadOrEmpty(channelID string, userID string) (out []AdaptiveCom
 	var outOrEmpty AdaptiveCommunityUser
 	ids := idParams(channelID, userID)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.ChannelID == channelID && outOrEmpty.UserID == userID {
 			out = append(out, outOrEmpty)
@@ -144,7 +148,7 @@ func (d DAOImpl) ReadOrEmpty(channelID string, userID string) (out []AdaptiveCom
 			err = fmt.Errorf("Requested ids: channelID==%s, userID==%s are different from the found ones: channelID==%s, userID==%s", channelID, userID, outOrEmpty.ChannelID, outOrEmpty.UserID) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "AdaptiveCommunityUser DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "AdaptiveCommunityUser DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -152,7 +156,7 @@ func (d DAOImpl) ReadOrEmpty(channelID string, userID string) (out []AdaptiveCom
 // ReadOrEmptyUnsafe reads the AdaptiveCommunityUser. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(channelID string, userID string) []AdaptiveCommunityUser {
 	out, err2 := d.ReadOrEmpty(channelID, userID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading channelID==%s, userID==%s in %s\n", channelID, userID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading channelID==%s, userID==%s in %s\n", channelID, userID, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -166,7 +170,7 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunityUser AdaptiveCommunityUser) (er
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(adaptiveCommunityUser)
-			err = errors.Wrapf(err, "AdaptiveCommunityUser DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "AdaptiveCommunityUser DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := adaptiveCommunityUser.CollectEmptyFields()
 			if ok {
@@ -177,18 +181,18 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunityUser AdaptiveCommunityUser) (er
 				expr, exprAttributes, names := updateExpression(adaptiveCommunityUser, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "AdaptiveCommunityUser DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "AdaptiveCommunityUser DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -201,47 +205,54 @@ func (d DAOImpl) CreateOrUpdate(adaptiveCommunityUser AdaptiveCommunityUser) (er
 // CreateOrUpdateUnsafe saves the AdaptiveCommunityUser regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(adaptiveCommunityUser AdaptiveCommunityUser) {
 	err2 := d.CreateOrUpdate(adaptiveCommunityUser)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", adaptiveCommunityUser, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", adaptiveCommunityUser, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
-// Delete removes AdaptiveCommunityUser from db
-func (d DAOImpl)Delete(channelID string, userID string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(channelID, userID))
+// Deactivate "removes" AdaptiveCommunityUser. 
+// The mechanism is adding timestamp to `DeactivatedOn` field. 
+// Then, if this field is not empty, the instance is considered to be "active"
+func (d DAOImpl)Deactivate(channelID string, userID string) error {
+	instance, err2 := d.Read(channelID, userID)
+	if err2 == nil {
+		instance.DeactivatedAt = core.CurrentRFCTimestamp()
+		err2 = d.CreateOrUpdate(instance)
+	}
+	return err2
 }
 
 
-// DeleteUnsafe deletes AdaptiveCommunityUser and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(channelID string, userID string) {
-	err2 := d.Delete(channelID, userID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete channelID==%s, userID==%s in %s\n", channelID, userID, d.Name))
+// DeactivateUnsafe "deletes" AdaptiveCommunityUser and panics in case of errors.
+func (d DAOImpl)DeactivateUnsafe(channelID string, userID string) {
+	err2 := d.Deactivate(channelID, userID)
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not deactivate channelID==%s, userID==%s in %s\n", channelID, userID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 func (d DAOImpl)ReadByChannelID(channelID string) (out []AdaptiveCommunityUser, err error) {
 	var instances []AdaptiveCommunityUser
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "ChannelIDIndex",
 		Condition: "channel_id = :a0",
 		Attributes: map[string]interface{}{
 			":a0": channelID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = AdaptiveCommunityUserFilterActive(instances)
 	return
 }
 
 
 func (d DAOImpl)ReadByChannelIDUnsafe(channelID string) (out []AdaptiveCommunityUser) {
 	out, err2 := d.ReadByChannelID(channelID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query ChannelIDIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query ChannelIDIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByUserIDCommunityID(userID string, communityID string) (out []AdaptiveCommunityUser, err error) {
 	var instances []AdaptiveCommunityUser
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "UserIDCommunityIDIndex",
 		Condition: "user_id = :a0 and community_id = :a1",
 		Attributes: map[string]interface{}{
@@ -249,42 +260,42 @@ func (d DAOImpl)ReadByUserIDCommunityID(userID string, communityID string) (out 
 			":a1": communityID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = AdaptiveCommunityUserFilterActive(instances)
 	return
 }
 
 
 func (d DAOImpl)ReadByUserIDCommunityIDUnsafe(userID string, communityID string) (out []AdaptiveCommunityUser) {
 	out, err2 := d.ReadByUserIDCommunityID(userID, communityID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query UserIDCommunityIDIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query UserIDCommunityIDIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByUserID(userID string) (out []AdaptiveCommunityUser, err error) {
 	var instances []AdaptiveCommunityUser
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "UserIDIndex",
 		Condition: "user_id = :a0",
 		Attributes: map[string]interface{}{
 			":a0": userID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = AdaptiveCommunityUserFilterActive(instances)
 	return
 }
 
 
 func (d DAOImpl)ReadByUserIDUnsafe(userID string) (out []AdaptiveCommunityUser) {
 	out, err2 := d.ReadByUserID(userID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query UserIDIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query UserIDIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByPlatformIDCommunityID(platformID common.PlatformID, communityID string) (out []AdaptiveCommunityUser, err error) {
 	var instances []AdaptiveCommunityUser
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "PlatformIDCommunityIDIndex",
 		Condition: "platform_id = :a0 and community_id = :a1",
 		Attributes: map[string]interface{}{
@@ -292,14 +303,14 @@ func (d DAOImpl)ReadByPlatformIDCommunityID(platformID common.PlatformID, commun
 			":a1": communityID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = AdaptiveCommunityUserFilterActive(instances)
 	return
 }
 
 
 func (d DAOImpl)ReadByPlatformIDCommunityIDUnsafe(platformID common.PlatformID, communityID string) (out []AdaptiveCommunityUser) {
 	out, err2 := d.ReadByPlatformIDCommunityID(platformID, communityID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDCommunityIDIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query PlatformIDCommunityIDIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
@@ -316,6 +327,7 @@ func allParams(adaptiveCommunityUser AdaptiveCommunityUser, old AdaptiveCommunit
 	if adaptiveCommunityUser.UserID != old.UserID { params[":a1"] = common.DynS(adaptiveCommunityUser.UserID) }
 	if adaptiveCommunityUser.PlatformID != old.PlatformID { params[":a2"] = common.DynS(string(adaptiveCommunityUser.PlatformID)) }
 	if adaptiveCommunityUser.CommunityID != old.CommunityID { params[":a3"] = common.DynS(adaptiveCommunityUser.CommunityID) }
+	if adaptiveCommunityUser.DeactivatedAt != old.DeactivatedAt { params[":a4"] = common.DynS(adaptiveCommunityUser.DeactivatedAt) }
 	return
 }
 func updateExpression(adaptiveCommunityUser AdaptiveCommunityUser, old AdaptiveCommunityUser) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -326,6 +338,7 @@ func updateExpression(adaptiveCommunityUser AdaptiveCommunityUser, old AdaptiveC
 	if adaptiveCommunityUser.UserID != old.UserID { updateParts = append(updateParts, "user_id = :a1"); params[":a1"] = common.DynS(adaptiveCommunityUser.UserID);  }
 	if adaptiveCommunityUser.PlatformID != old.PlatformID { updateParts = append(updateParts, "platform_id = :a2"); params[":a2"] = common.DynS(string(adaptiveCommunityUser.PlatformID));  }
 	if adaptiveCommunityUser.CommunityID != old.CommunityID { updateParts = append(updateParts, "community_id = :a3"); params[":a3"] = common.DynS(adaptiveCommunityUser.CommunityID);  }
+	if adaptiveCommunityUser.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a4"); params[":a4"] = common.DynS(adaptiveCommunityUser.DeactivatedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return

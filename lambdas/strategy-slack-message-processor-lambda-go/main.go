@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -21,7 +22,7 @@ import (
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"reflect"
@@ -1793,10 +1794,17 @@ func onInitiativeSelectCommunityEventCreateOrUpdateDialogSubmission(
 		Message: text, Attachments: attachsWithNoActions})
 
 	// Accountability partner should be the advocate of the objective
-	uObj := &models.UserObjective{UserID: newSi.Advocate, Name: newSi.Name, ID: newSi.ID,
-		Description: newSi.Description, AccountabilityPartner: capObj.Advocate, Accepted: 1,
-		ObjectiveType: StrategyDevelopmentObjective, StrategyAlignmentEntityID: newSi.InitiativeCommunityID,
-		StrategyAlignmentEntityType: models.ObjectiveStrategyInitiativeAlignment, PlatformID: teamID.ToPlatformID(),
+	uObj := &models.UserObjective{
+		UserID: newSi.Advocate, 
+		Name: newSi.Name, 
+		ID: newSi.ID,
+		Description: newSi.Description, 
+		AccountabilityPartner: capObj.Advocate, 
+		Accepted: 1,
+		ObjectiveType: userObjective.StrategyDevelopmentInitiative, 
+		//StrategyAlignmentEntityID: newSi.InitiativeCommunityID,
+		StrategyAlignmentEntityType: models.ObjectiveNoStrategyAlignment, 
+		PlatformID: teamID.ToPlatformID(),
 		CreatedDate:     core.NormalizeDate(newSi.CreatedAt),
 		ExpectedEndDate: newSi.ExpectedEndDate}
 	err = d.PutTableEntry(uObj, userObjectivesTable)
@@ -1981,21 +1989,21 @@ func convertCapabilityCommunityToKvPair(comm strategy.CapabilityCommunity) model
 }
 
 func UserObjectiveFromStrategyObjective(newSo *models.StrategyObjective, commID string,
-	teamID models.TeamID) *models.UserObjective {
+	teamID models.TeamID) *userObjective.UserObjective {
 	logger.Infof("Adding strategy objective as a user objective with id: %s", newSo.ID)
 	vision := StrategyVision(teamID)
 	id := newSo.ID//core.IfThenElse(commID != core.EmptyString, fmt.Sprintf("%s_%s", newSo.ID, commID), newSo.ID).(string)
 	// We are using _ here because `:` will create issues with callback
 	createdDate := core.NormalizeDate(newSo.CreatedAt)
-	strategyAlignmentEntityID := ""
-	if len(newSo.CapabilityCommunityIDs) > 0 {
-		strategyAlignmentEntityID = newSo.CapabilityCommunityIDs[0]
-	}
-	uObj := models.UserObjective{UserID: newSo.Advocate, Name: newSo.Name, ID: id, Description: newSo.Description,
+	uObj := userObjective.UserObjective{
+		UserID: newSo.Advocate, 
+		Name: newSo.Name, 
+		ID: id, 
+		Description: newSo.Description,
 		AccountabilityPartner: vision.Advocate, Accepted: 1,
-		ObjectiveType: StrategyDevelopmentObjective, 
-		StrategyAlignmentEntityID: strategyAlignmentEntityID,
-		StrategyAlignmentEntityType: models.ObjectiveStrategyObjectiveAlignment, 
+		ObjectiveType: userObjective.StrategyDevelopmentObjectiveIssue, 
+		// StrategyAlignmentEntityID: strategyAlignmentEntityID,
+		StrategyAlignmentEntityType: models.ObjectiveNoStrategyAlignment, 
 		PlatformID: teamID.ToPlatformID(),
 		CreatedDate: createdDate,
 		ExpectedEndDate: newSo.ExpectedEndDate}

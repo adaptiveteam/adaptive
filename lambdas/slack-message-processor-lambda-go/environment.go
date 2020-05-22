@@ -1,15 +1,15 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/sql-connector"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
-	"github.com/adaptiveteam/adaptive/adaptive-reports/utilities"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/sirupsen/logrus"
 )
@@ -60,7 +60,7 @@ var (
 	}
 	schema   = models.SchemaForClientID(clientID)
 
-	userDAO = utilsUser.NewDAOFromSchema(d, namespace, schema)
+	userDAO  = daosUser.NewDAO(d, namespace, clientID)
 
 	usersTable           = utils.NonEmptyEnv("USERS_TABLE_NAME")
 	profileLambdaName    = utils.NonEmptyEnv("USER_PROFILE_LAMBDA_NAME")
@@ -71,9 +71,9 @@ var (
 	// platformAdapter  = mapper.SlackAdapter2(platformTokenDAO)
 )
 
-type RDSConfig = utilities.RDSConfig
+type RDSConfig = sqlconnector.RDSConfig
 
-var ReadRDSConfigFromEnv = utilities.ReadRDSConfigFromEnv
+var ReadRDSConfigFromEnv = sqlconnector.ReadRDSConfigFromEnv
 
 func globalConnection(teamID models.TeamID) daosCommon.DynamoDBConnection {
 	return connGen.ForPlatformID(teamID.ToPlatformID())

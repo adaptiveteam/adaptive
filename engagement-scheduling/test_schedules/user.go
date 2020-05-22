@@ -1,9 +1,8 @@
 package test_schedules
 
 import (
-	fcn "github.com/adaptiveteam/adaptive/adaptive-check-function-names"
+	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	bt "github.com/adaptiveteam/adaptive/business-time"
-	"github.com/adaptiveteam/adaptive/checks"
 	utils "github.com/adaptiveteam/adaptive/engagement-scheduling"
 )
 
@@ -16,14 +15,11 @@ IDO Creation reminders
 // CheckIDOCreateReminder is meant to trigger the engagements that
 // reminds the user to create personal improvement objects in the event that they have
 // not created any.
-func IDOCreateReminder(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func IDOCreateReminder(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder to create Individual Development Objectives",
-		).AddScheduleFunctionCheck(
-		fcn.IDOsExistForMe,
-		false,
-		).Message
+		!fc.IDOsExistForMe(),
+	)
 	return rv
 }
 
@@ -35,43 +31,34 @@ Update Reminders
 
 // IDOUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale individual improvement
-func IDOUpdateReminder(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func IDOUpdateReminder(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	// Starting the last business day of the second week of the first quarter with  a preference for earlier
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder to update Individual Development Objectives",
-	).AddScheduleFunctionCheck(
-		fcn.StaleIDOsExistForMe,
-		true,
-	).Message
+		fc.StaleIDOsExistForMe(),
+	)
 	return rv
 }
 
 // ObjectiveUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale objectives
-func ObjectiveUpdateReminder(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func ObjectiveUpdateReminder(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	// Starting the last business day of the second week of the first quarter with  a preference for earlier
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder to update Objectives",
-	).AddScheduleFunctionCheck(
-		fcn.StaleObjectivesExistForMe,
-		true,
-	).Message
+		fc.StaleObjectivesExistForMe(),
+	)
 	return rv
 }
 
 // InitiativeUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale initiatives
-func InitiativeUpdateReminder(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func InitiativeUpdateReminder(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	// Starting the last business day of the second week of the first quarter with  a preference for earlier
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder to update Initiatives",
-	).AddScheduleFunctionCheck(
-		fcn.StaleInitiativesExistForMe,
-		true,
-	).Message
+		fc.StaleInitiativesExistForMe(),
+	)
 	return rv
 }
 
@@ -83,40 +70,31 @@ Closeout reminders
 
 // IDOCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an IDO due in the coming week and to close it out
-func IDOCloseoutReminder(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func IDOCloseoutReminder(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder to closeout individual development objective",
-	).AddScheduleFunctionCheck(
-		fcn.IDOsDueWithinTheWeek,
-		true,
-	).Message
+		fc.IDOsDueWithinTheWeek(),
+	)
 	return rv
 }
 
 // InitiativeCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an Initiative due in the coming week and to close it out
-func InitiativeCloseoutReminder(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func InitiativeCloseoutReminder(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder to closeout Initiative",
-	).AddScheduleFunctionCheck(
-		fcn.InitiativesDueWithinTheWeek,
-		true,
-	).Message
+		fc.InitiativesDueWithinTheWeek(),
+	)
 	return rv
 }
 
 // ObjectiveCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an Objective due in the coming week and to close it out
-func ObjectiveCloseoutReminder(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func ObjectiveCloseoutReminder(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder to closeout Objective",
-	).AddScheduleFunctionCheck(
-		fcn.ObjectivesDueWithinTheWeek,
-		true,
-	).Message
+		fc.ObjectivesDueWithinTheWeek(),
+	)
 	return rv
 }
 
@@ -128,79 +106,61 @@ Due date reminders
 
 // IDOReminderOfDueDateInMonth is meant to trigger  engagements that reminds users
 // that they have an IDO due in the coming week
-func IDOReminderOfDueDateInMonth(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func IDOReminderOfDueDateInMonth(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder that an individual development objective is due within a month",
-	).AddScheduleFunctionCheck(
-		fcn.IDOsDueWithinTheMonth,
-		true,
-	).Message
+		fc.IDOsDueWithinTheMonth(),
+	)
 	return rv
 }
 
 // IDOReminderOfDueDateInQaurter is meant to trigger  engagements that reminds users
 // that they have an IDO due in the coming week, month, quarter
-func IDOReminderOfDueDateInQaurter(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func IDOReminderOfDueDateInQaurter(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder that an IDO is due within a qaurter",
-	).AddScheduleFunctionCheck(
-		fcn.IDOsDueWithinTheQuarter,
-		true,
-	).Message
+		fc.IDOsDueWithinTheQuarter(),
+	)
 	return rv
 }
 
 // InitiativeReminderOfDueDateInMonth is meant to trigger  engagements that reminds users
 // that they have an Initiative due in the coming week
-func InitiativeReminderOfDueDateInMonth(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func InitiativeReminderOfDueDateInMonth(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder that an individual development objective is due within a month",
-	).AddScheduleFunctionCheck(
-		fcn.InitiativesDueWithinTheMonth,
-		true,
-	).Message
+		fc.InitiativesDueWithinTheMonth(),
+	)
 	return rv
 }
 
 // InitiativeReminderOfDueDateInQaurter is meant to trigger  engagements that reminds users
 // that they have an Initiative due in the coming week, month, quarter
-func InitiativeReminderOfDueDateInQaurter(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func InitiativeReminderOfDueDateInQaurter(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder that an Initiative is due within a quarter",
-	).AddScheduleFunctionCheck(
-		fcn.InitiativesDueWithinTheQuarter,
-		true,
-	).Message
+		fc.InitiativesDueWithinTheQuarter(),
+	)
 	return rv
 }
 
 // ObjectiveReminderOfDueDateInMonth is meant to trigger  engagements that reminds users
 // that they have an Objective due in the coming week
-func ObjectiveReminderOfDueDateInMonth(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func ObjectiveReminderOfDueDateInMonth(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder that an individual development objective is due within a month",
-	).AddScheduleFunctionCheck(
-		fcn.ObjectivesDueWithinTheMonth,
-		true,
-	).Message
+		fc.ObjectivesDueWithinTheMonth(),
+	)
 	return rv
 }
 
 // ObjectiveReminderOfDueDateInQaurter is meant to trigger  engagements that reminds users
 // that they have an Objective due in the coming week, month, quarter
-func ObjectiveReminderOfDueDateInQaurter(fc checks.CheckResultMap, _ bt.Date) (rv string) {
+func ObjectiveReminderOfDueDateInQaurter(fc adaptive_checks.TypedProfile, _ bt.Date) (rv string) {
 	rv = utils.ScheduleEntry(
-		fc,
 		"Reminder that an Objective is due within a qaurter",
-	).AddScheduleFunctionCheck(
-		fcn.ObjectivesDueWithinTheQuarter,
-		true,
-	).Message
+		fc.ObjectivesDueWithinTheQuarter(),
+	)
 	return rv
 }
 
@@ -212,7 +172,7 @@ Coaching feedback reminders
 
 // ReminderToProvideCoachingFeedback is meant to trigger engagements at increasingly rates
 // until the end of the quarter to maximize the amount of feedback.
-func ReminderToProvideCoachingFeedback(fc checks.CheckResultMap, date bt.Date) (rv string) {
+func ReminderToProvideCoachingFeedback(fc adaptive_checks.TypedProfile, date bt.Date) (rv string) {
 	WeekOne := date.GetDayOfWeekInQuarter(-4, bt.Monday) == date
 	WeekTwo := date.GetDayOfWeekInQuarter(-3, bt.Monday) == date
 	WeekThree := date.GetDayOfWeekInQuarter(-2, bt.Monday) == date
@@ -223,12 +183,9 @@ func ReminderToProvideCoachingFeedback(fc checks.CheckResultMap, date bt.Date) (
 	feedbackCycle := Daily || WeekOne || WeekTwo || WeekThree
 	if feedbackCycle {
 		rv := utils.ScheduleEntry(
-			fc,
 			"Reminder to provide coaching feedback to colleagues",
-		).AddScheduleFunctionCheck(
-			fcn.FeedbackGivenThisQuarter,
-			true,
-		).Message
+			fc.FeedbackGivenThisQuarter(),
+		)
 
 		if len(rv) == 0 {
 			rv = "Reminder to provide coaching feedback to additional colleagues"
@@ -245,17 +202,12 @@ Report reminders
 
 // ProduceIndividualReports is meant to trigger the engagements that
 // sends out a the individual coaching reports to each users.
-func ProduceIndividualReports(fc checks.CheckResultMap, date bt.Date) (rv string) {
+func ProduceIndividualReports(fc adaptive_checks.TypedProfile, date bt.Date) (rv string) {
 	// Last business day of the first week of the first quarter
 	rv = utils.ScheduleEntry(
-		fc,
 		"Produce and deliver individual reports",
-	).AddScheduleBooleanCheck(
-		date.GetDayOfWeekInQuarter(1, bt.Friday) == date,
-		true,
-	).AddScheduleFunctionCheck(
-		fcn.CollaborationReportExists,
-		true,
-	).Message
+		date.GetDayOfWeekInQuarter(1, bt.Friday) == date &&
+		fc.CollaborationReportExists(),
+	)
 	return rv
 }

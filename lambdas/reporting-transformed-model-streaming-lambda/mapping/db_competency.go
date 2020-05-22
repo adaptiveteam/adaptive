@@ -14,7 +14,7 @@ type DBCompetency struct {
 	ID             string `gorm:"primary_key"`
 	Name           string `gorm:"type:TEXT"`
 	Description    string `gorm:"type:TEXT"`
-	PlatformID     common.PlatformID `gorm:"type:CHAR(9)"`
+	PlatformID     common.PlatformID `gorm:"type:TEXT"`
 	CompetencyType string `gorm:"type:TEXT"`
 	DeactivatedOn  string `json:"deactivated_on"`
 	model.DBModel

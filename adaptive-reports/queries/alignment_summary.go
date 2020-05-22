@@ -42,9 +42,11 @@ SELECT user_objective.id,
        user_objective.completed                                                                  as 'Complete'
 
 FROM user AS team_member,
-     user AS coach,
      user_objective
 
+         LEFT JOIN user AS coach ON
+         user_objective.accountability_partner = coach.id
+     
          LEFT JOIN objective ON
          user_objective.strategy_alignment_entity_id = objective.id
 
@@ -82,7 +84,6 @@ FROM user AS team_member,
 where user_objective.type = 'individual'
   and user_objective.platform_id = ?
   and user_objective.user_id = team_member.id
-  and user_objective.accountability_partner = coach.id
 
 ORDER BY completed, Advocate
 `

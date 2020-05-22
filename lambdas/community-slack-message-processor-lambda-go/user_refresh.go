@@ -8,21 +8,9 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	// core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"log"
 )
-
-func convertUserToProfile(user models.User) (profile models.UserProfile) {
-	profile = models.UserProfile{
-		Id:             user.ID,
-		DisplayName:    user.DisplayName,
-		FirstName:      user.FirstName,
-		LastName:       user.LastName,
-		Timezone:       user.Timezone,
-		TimezoneOffset: user.TimezoneOffset,
-	}
-	return
-}
 
 func readUserProfile(userID string, conn common.DynamoDBConnection) (profile models.UserProfile, teamID models.TeamID, err error) {
 	var users []models.User
@@ -34,7 +22,7 @@ func readUserProfile(userID string, conn common.DynamoDBConnection) (profile mod
 		} else {
 			logger.Infof("readUserProfile: Not found in users id=%s", userID)
 		}
-		profile = convertUserToProfile(user)
+		profile = models.ConvertUserToProfile(user)
 		teamID = models.ParseTeamID(user.PlatformID)
 	}
 	return
@@ -47,30 +35,35 @@ func refreshUserCache(userID string, conn common.DynamoDBConnection) (profile mo
 	} else {
 		conn := connGen.ForPlatformID(teamID.ToPlatformID())
 		token, err2 := platform.GetToken(teamID)(conn)
+
 		err = err2
 		if err == nil {
 			api := slack.New(token)
 			var sUser *slack.User
 			sUser, err = api.GetUserInfo(userID)
 			if err == nil {
-				mUser := utilsUser.ConvertSlackUserToUser(*sUser, teamID)
-				var previousUsers [] models.User
-				previousUsers, err = user.ReadOrEmpty(mUser.ID)(conn)
+				var adaptiveBotID string
+				adaptiveBotID, err = platform.GetAdaptiveBotIDOptional(conn)
 				if err == nil {
-					for _, u := range previousUsers {
-						mUser.CreatedAt = u.CreatedAt
-						mUser.PlatformOrg = u.PlatformOrg
-						mUser.IsAdmin = u.IsAdmin
-						mUser.IsAdaptiveBot = u.IsAdaptiveBot
-						mUser.AdaptiveScheduledTime = u.AdaptiveScheduledTime
-						mUser.AdaptiveScheduledTimeInUTC = u.AdaptiveScheduledTimeInUTC
-					}
-					err = user.CreateOrUpdate(mUser)(conn)
-					logger.Infof("refreshUserCache: Created/updated user id=%s", mUser.ID)
+					mUser := utilsUser.ConvertSlackUserToUser(*sUser, teamID, adaptiveBotID)
+					var previousUsers [] models.User
+					previousUsers, err = user.ReadOrEmpty(mUser.ID)(conn)
+					if err == nil {
+						for _, u := range previousUsers {
+							mUser.CreatedAt = u.CreatedAt
+							mUser.PlatformOrg = u.PlatformOrg
+							mUser.IsAdmin = u.IsAdmin
+							mUser.IsAdaptiveBot = u.IsAdaptiveBot
+							mUser.AdaptiveScheduledTime = u.AdaptiveScheduledTime
+							mUser.AdaptiveScheduledTimeInUTC = u.AdaptiveScheduledTimeInUTC
+						}
+						err = user.CreateOrUpdate(mUser)(conn)
+						logger.Infof("refreshUserCache: Created/updated user id=%s", mUser.ID)
 						
-					profile = convertUserToProfile(mUser)
+						profile = models.ConvertUserToProfile(mUser)
 					
-					isAdaptiveBot = false // because mUser.IsAdaptiveBot is never initialized
+						isAdaptiveBot = false // because mUser.IsAdaptiveBot is never initialized
+					}
 				}
 			}
 		}

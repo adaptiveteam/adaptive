@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	//eb "github.com/adaptiveteam/adaptive/engagement-builder"
 	"fmt"
@@ -12,15 +13,14 @@ import (
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 func onRequestCoachClicked(request slack.InteractionCallback, mc models.MessageCallback,
 	conn daosCommon.DynamoDBConnection,
 ) platform.Response {
-	teamID := models.ParseTeamID(conn.PlatformID)
 	// Get coaching community members
-	commMembers := communityUserDAO.ReadCommunityMembersUnsafe(string(community.Coaching), teamID)
+	commMembers := adaptiveCommunityUser.ReadByPlatformIDCommunityIDUnsafe(conn.PlatformID, string(community.Coaching))(conn)
 	var userIDs []string
 	for _, each := range commMembers {
 		// Self user checking

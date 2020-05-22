@@ -71,24 +71,17 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create UserFeedback.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
-	}
-}
-
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create UserFeedback.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 // TableNameSuffixVar is a global variable that contains table name suffix.
@@ -104,7 +97,7 @@ func TableName(prefix string) string {
 func (d DAOImpl) Create(userFeedback UserFeedback) (err error) {
 	emptyFields, ok := userFeedback.CollectEmptyFields()
 	if ok {
-		err = d.Dynamo.PutTableEntry(userFeedback, d.Name)
+		err = d.ConnGen.Dynamo.PutTableEntry(userFeedback, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -115,7 +108,7 @@ func (d DAOImpl) Create(userFeedback UserFeedback) (err error) {
 // CreateUnsafe saves the UserFeedback.
 func (d DAOImpl) CreateUnsafe(userFeedback UserFeedback) {
 	err2 := d.Create(userFeedback)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", userFeedback.ID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create id==%s in %s\n", userFeedback.ID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -124,7 +117,7 @@ func (d DAOImpl) Read(id string) (out UserFeedback, err error) {
 	var outs []UserFeedback
 	outs, err = d.ReadOrEmpty(id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -136,7 +129,7 @@ func (d DAOImpl) Read(id string) (out UserFeedback, err error) {
 // ReadUnsafe reads the UserFeedback. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) UserFeedback {
 	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -146,7 +139,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserFeedback, err error) {
 	var outOrEmpty UserFeedback
 	ids := idParams(id)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
@@ -154,7 +147,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserFeedback, err error) {
 			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "UserFeedback DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "UserFeedback DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -162,7 +155,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []UserFeedback, err error) {
 // ReadOrEmptyUnsafe reads the UserFeedback. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []UserFeedback {
 	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -176,7 +169,7 @@ func (d DAOImpl) CreateOrUpdate(userFeedback UserFeedback) (err error) {
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(userFeedback)
-			err = errors.Wrapf(err, "UserFeedback DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "UserFeedback DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := userFeedback.CollectEmptyFields()
 			if ok {
@@ -187,18 +180,18 @@ func (d DAOImpl) CreateOrUpdate(userFeedback UserFeedback) (err error) {
 				expr, exprAttributes, names := updateExpression(userFeedback, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "UserFeedback DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "UserFeedback DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -211,26 +204,26 @@ func (d DAOImpl) CreateOrUpdate(userFeedback UserFeedback) (err error) {
 // CreateOrUpdateUnsafe saves the UserFeedback regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(userFeedback UserFeedback) {
 	err2 := d.CreateOrUpdate(userFeedback)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", userFeedback, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", userFeedback, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 // Delete removes UserFeedback from db
 func (d DAOImpl)Delete(id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id))
+	return d.ConnGen.Dynamo.DeleteEntry(TableName(d.ConnGen.TableNamePrefix), idParams(id))
 }
 
 
 // DeleteUnsafe deletes UserFeedback and panics in case of errors.
 func (d DAOImpl)DeleteUnsafe(id string) {
 	err2 := d.Delete(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not delete id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 func (d DAOImpl)ReadByQuarterYearSource(quarterYear string, source string) (out []UserFeedback, err error) {
 	var instances []UserFeedback
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "QuarterYearSourceIndex",
 		Condition: "quarter_year = :a0 and #source = :a1",
 		Attributes: map[string]interface{}{
@@ -245,14 +238,14 @@ func (d DAOImpl)ReadByQuarterYearSource(quarterYear string, source string) (out 
 
 func (d DAOImpl)ReadByQuarterYearSourceUnsafe(quarterYear string, source string) (out []UserFeedback) {
 	out, err2 := d.ReadByQuarterYearSource(quarterYear, source)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query QuarterYearSourceIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query QuarterYearSourceIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByQuarterYearTarget(quarterYear string, target string) (out []UserFeedback, err error) {
 	var instances []UserFeedback
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "QuarterYearTargetIndex",
 		Condition: "quarter_year = :a0 and target = :a1",
 		Attributes: map[string]interface{}{
@@ -267,7 +260,7 @@ func (d DAOImpl)ReadByQuarterYearTarget(quarterYear string, target string) (out 
 
 func (d DAOImpl)ReadByQuarterYearTargetUnsafe(quarterYear string, target string) (out []UserFeedback) {
 	out, err2 := d.ReadByQuarterYearTarget(quarterYear, target)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query QuarterYearTargetIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query QuarterYearTargetIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 

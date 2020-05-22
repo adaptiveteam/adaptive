@@ -27,7 +27,7 @@ import (
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	feedbackReportPostingLambda "github.com/adaptiveteam/adaptive/lambdas/feedback-report-posting-lambda-go"
 	ls "github.com/aws/aws-lambda-go/lambda"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/sirupsen/logrus"
 )
 
@@ -174,7 +174,8 @@ func feedbackRequestEngagement(target string, mc models.MessageCallback, userId,
 func feedbackEngagementAttachment(value models.AdaptiveValue,
 	mc models.MessageCallback,
 	details bool,
-	conn daosCommon.DynamoDBConnection) *ebm.Attachment {
+	conn daosCommon.DynamoDBConnection,
+) *ebm.Attachment {
 	var existingFeedback string
 	op, err := existingFeedbackOnDimension(mc, value, conn)
 	if err == nil {

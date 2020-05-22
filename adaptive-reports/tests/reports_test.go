@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"github.com/pkg/errors"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/sql-connector"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
 	excel "github.com/360EntSecGroup-Skylar/excelize/v2"
@@ -11,6 +13,7 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	fetch_dialog "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v4"
 	"os"
 	"testing"
 )
@@ -65,26 +68,37 @@ func TestCreateWorkbooks(t *testing.T) {
 
 	// TODO: Reimplement test to be executable on travis
 	if true { return }
+/*
+	AWS_REGION=us-east-2;
+	DIALOG_TABLE=lexcorp_dialog_content;
+	driver=mysql;
+	end_point=lexcorp-reporting.chwrqdykifiq.us-east-2.rds.amazonaws.com;
+	user=user;
+	password=<this is in the AWS console for the reporting Lambda>;
+	database=test_report;
+	port=3306
+*/
 	dynamo := awsutils.NewDynamo(utils.NonEmptyEnv("AWS_REGION"), "", "dialog")
 	dialogTableName := utils.NonEmptyEnv("DIALOG_TABLE")
 	dialogDAO := fetch_dialog.NewDAO(dynamo, dialogTableName)
 
-	db := utilities.NewDatabase(
-		os.Getenv("driver"),
-		os.Getenv("end_point"),
-		os.Getenv("user"),
-		os.Getenv("password"),
-		os.Getenv("port"),
-		os.Getenv("database"),
-	)
-	teamID := common.PlatformID("ANT7U58AG")
+	conn, err2 := sqlconnector.ReadRDSConfigFromEnv().SQLOpen()
+	if err2 != nil {
+		panic(errors.Wrap(err2, "ReadRDSConfigFromEnv().SQLOpen()"))
+	}
+	db := utilities.WrapDB(conn)
+	teamID := common.PlatformID("AGEGG1U7J")
+	// teamID := common.PlatformID("ANT7U58AG")
 	userIDs := map[string]string {
+		"Ryan":"UFNLVKFT4",
+		/*
 		"April":"U38KRFVTQ",
 		"Morgan":"UMA5H21FZ",
 		"Erin":"UMAE07SR4",
 		"Courtney":"ULWS36GP5",
 		"Thomas":"ULTRB2D7F",
 		"Michael":"ULCRWKDPE",
+		*/
 	}
 	output := os.Getenv("output")
 	defer db.CloseDatabase()

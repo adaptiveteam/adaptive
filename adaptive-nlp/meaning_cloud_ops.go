@@ -109,6 +109,9 @@ func (m MeaningCloud) GetTextSentiment(key string, value string, l LanguageCode)
 				}
 			} else {
 				fmt.Printf("ERROR in MeaningCloud) GetTextSentiment: response=%v\nerr=\n%+v\n", response, err)
+				if err == nil {
+					err = errors.Errorf("Invalid response code from MeaningCloud: %d", response.statusCode)
+				}
 			}
 		} else {
 			rv = textSentiment{

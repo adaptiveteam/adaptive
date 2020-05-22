@@ -17,8 +17,8 @@ import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/nlopes/slack"
-	"github.com/nlopes/slack/slackevents"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 	"github.com/sirupsen/logrus"
 	"log"
 	"strings"
@@ -517,12 +517,12 @@ func adaptiveChannelNamespaceEventHandler(eventsAPIEvent slackevents.EventsAPIEv
 			onMemberJoinedChannel(slackMsg, conn)
 		case "member_left_channel":
 			slackMsg := *eventsAPIEvent.InnerEvent.Data.(*slack.MemberLeftChannelEvent)
-			onMemberLeftChannel(slackMsg)
+			onMemberLeftChannel(teamID, slackMsg)
 		case "group_left":
 			// This is when Adaptive leaves a private channel
 			cbEvent := *eventsAPIEvent.Data.(*slackevents.EventsAPICallbackEvent)
 			// slack.GroupLeftEvent doesn't populate user id. Do not use that field.
-			onGroupLeftEvent(cbEvent, conn)
+			onGroupLeftEvent(teamID, cbEvent, conn)
 		case "channel_deleted": // docs: https://api.slack.com/events/channel_deleted
 			channelDeletedEvent := *eventsAPIEvent.InnerEvent.Data.(*slack.ChannelDeletedEvent)
 			channelUnsubscribeUnsafe(channelDeletedEvent.Channel, conn)

@@ -1,9 +1,10 @@
 package engagement_scheduling
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	"log"
 	bt "github.com/adaptiveteam/adaptive/business-time"
-	"github.com/adaptiveteam/adaptive/checks"
 	models "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
 	"sort"
 	"sync"
@@ -14,14 +15,13 @@ import (
 // in full from one check to the next if the indicated check is the same as the expected value.
 // If the indicated check is not the same as the expected value then the Message will be zeroed out.
 type ScheduleCheck struct {
-	profile        checks.CheckResultMap
 	Message        string
 }
 
 // checkSchedule checks the schedule for a specific day and a specific
 // schedule function to determine if there is an engagement to activate.
 func checkSchedule(
-	checkResultMap checks.CheckResultMap,
+	checkResultMap adaptive_checks.TypedProfile,
 	date bt.Date,
 	cw models.CrossWalk,
 	group *sync.WaitGroup,
@@ -53,7 +53,7 @@ func gatherDays(
 }
 
 func runDay(
-	checkFunctionMap checks.CheckFunctionMap,
+	typedProfileConstructor adaptive_checks.TypedProfileConstructor,
 	date bt.Date,
 	endDate bt.Date,
 	scheduledEngagements func() []models.CrossWalk,
@@ -62,6 +62,7 @@ func runDay(
 	target string,
 	channel chan models.ScheduledEngagement,
 	wg *sync.WaitGroup,
+	conn common.DynamoDBConnection,
 ) {
 	defer wg.Done()
 	defer func(){
@@ -72,13 +73,14 @@ func runDay(
 	}()
 	// log.Printf("GenerateScheduleOfEngagements/runDay for date=%v\n", date)
 	day, ok := constructDay(
-		checkFunctionMap,
+		typedProfileConstructor,
 		date,
 		endDate,
 		scheduledEngagements,
 		holidays,
 		location,
 		target,
+		conn,
 	)
 	// log.Printf("GenerateScheduleOfEngagements/runDay for date=%v ok=%v\n", date, ok)
 	
@@ -88,16 +90,18 @@ func runDay(
 }
 
 func constructDay(
-	checkFunctionMap checks.CheckFunctionMap,
+	typedProfileConstructor adaptive_checks.TypedProfileConstructor,
 	date bt.Date,
 	endDate bt.Date,
 	scheduledEngagements func() []models.CrossWalk,
 	holidays bt.Holidays,
 	location *time.Location,
 	target string,
+	conn common.DynamoDBConnection,
 ) (rv models.ScheduledEngagement, ok bool){
 	// log.Printf("GenerateScheduleOfEngagements/constructDay 1 for date=%v \n", date)
-	checkResultMap := checkFunctionMap.Evaluate(target, date) // this function never returns
+	
+	checkResultMap := typedProfileConstructor(conn, target, date) 
 	// log.Printf("GenerateScheduleOfEngagements/constructDay 2 for date=%v \n", date)
 	engagementsOnDay := GetEngagementsOnDay(checkResultMap, date, scheduledEngagements)
 	ok = false

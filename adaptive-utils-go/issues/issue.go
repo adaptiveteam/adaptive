@@ -62,21 +62,52 @@ type IssuePredicate = func (issue Issue) bool
 
 // GetIssueType detects the issue type of the existing issue
 func (issue Issue) GetIssueType() (itype IssueType) {
-	switch issue.UserObjective.ObjectiveType {
+	return DetectIssueType(issue.UserObjective)
+}
+
+// DetectIssueType is the reference mechanism to detect issue type
+func DetectIssueType(uo userObjective.UserObjective) (itype IssueType) {
+	itype = IDO
+	switch uo.ObjectiveType {
 	case userObjective.IndividualDevelopmentObjective:
 		itype = IDO
-	case userObjective.StrategyDevelopmentObjective:
+	case userObjective.StrategyDevelopmentObjectiveIssue:
 		itype = SObjective
-		switch issue.StrategyAlignmentEntityType {
+	case userObjective.StrategyDevelopmentInitiative:
+		itype = Initiative
+	case userObjective.StrategyDevelopmentObjective:
+		log.Printf("WARN using old-style issue type detection")
+		itype = SObjective
+		switch uo.StrategyAlignmentEntityType {
 		case userObjective.ObjectiveStrategyObjectiveAlignment:
 			itype = SObjective
 		case userObjective.ObjectiveStrategyInitiativeAlignment:
 			itype = Initiative
+		default:
+			log.Printf("WARN (1) Couldn't determine issue type for %s. ObjectiveType=%s, StrategyAlignmentEntityType=%s\n", uo.ID, uo.ObjectiveType, uo.StrategyAlignmentEntityType)
 		}
 	default:
-		log.Printf("Couldn't determine issue type for %s. ObjectiveType=%s, StrategyAlignmentEntityType=%s\n", issue.UserObjective.ID, issue.UserObjective.ObjectiveType, issue.StrategyAlignmentEntityType)
+		log.Printf("WARN (2) Couldn't determine issue type for %s. ObjectiveType=%s, StrategyAlignmentEntityType=%s\n", uo.ID, uo.ObjectiveType, uo.StrategyAlignmentEntityType)
 	}
 	return
+}
+
+// GetObjectiveType -
+func (itype IssueType) GetObjectiveType() (otype userObjective.DevelopmentObjectiveType) {
+	switch itype {
+	case IDO:
+		otype = userObjective.IndividualDevelopmentObjective
+	case SObjective:
+		otype = userObjective.StrategyDevelopmentObjectiveIssue
+	case Initiative:
+		otype = userObjective.StrategyDevelopmentInitiative
+	}
+	return
+}
+
+// SetIssueType -
+func SetIssueType(uo *userObjective.UserObjective, itype IssueType) {
+	uo.ObjectiveType = itype.GetObjectiveType()
 }
 
 // GetIssueID returns issue.UserObjective.ID
@@ -85,12 +116,21 @@ func (issue Issue) GetIssueID() string {
 }
 
 func (itype IssueType)Template() (text ui.PlainText) {
+	return ui.PlainText(itype.FoldString("Individual Development Objective", "Strategy Objective", "Strategy Initiative"))
+}
+
+func (itype IssueType)FoldString(ido, sobjective, initiative string) (text string) {
 	switch itype {
-	case IDO: text = "Individual Development Objective"
-	case SObjective: text = "Strategy Objective"
-	case Initiative: text = "Strategy Initiative"
+	case IDO: text = ido
+	case SObjective: text = sobjective
+	case Initiative: text = initiative
 	}
 	return
+}
+
+// ObjectiveTypeLabel returns a user-friendly objective type label
+func ObjectiveTypeLabel(userObj models.UserObjective) ui.PlainText {
+	return DetectIssueType(userObj).Template()
 }
 
 type IssueProgressID struct {

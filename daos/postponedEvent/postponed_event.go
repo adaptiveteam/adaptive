@@ -27,6 +27,17 @@ type PostponedEvent struct  {
 	CreatedAt string `json:"created_at"`
 	// Automatically maintained field
 	ModifiedAt string `json:"modified_at,omitempty"`
+	DeactivatedAt string `json:"deactivated_at,omitempty"`
+}
+
+// PostponedEventFilterActive removes deactivated values
+func PostponedEventFilterActive(in []PostponedEvent) (res []PostponedEvent) {
+	for _, i := range in {
+		if i.DeactivatedAt == "" {
+			res = append(res, i)
+		}
+	}
+	return
 }
 
 // CollectEmptyFields returns entity field names that are empty.
@@ -55,8 +66,8 @@ type DAO interface {
 	ReadOrEmptyUnsafe(id string) (postponedEvent []PostponedEvent)
 	CreateOrUpdate(postponedEvent PostponedEvent) error
 	CreateOrUpdateUnsafe(postponedEvent PostponedEvent)
-	Delete(id string) error
-	DeleteUnsafe(id string)
+	Deactivate(id string) error
+	DeactivateUnsafe(id string)
 	ReadByPlatformIDUserID(platformID common.PlatformID, userID string) (postponedEvent []PostponedEvent, err error)
 	ReadByPlatformIDUserIDUnsafe(platformID common.PlatformID, userID string) (postponedEvent []PostponedEvent)
 	ReadByUserID(userID string) (postponedEvent []PostponedEvent, err error)
@@ -65,24 +76,17 @@ type DAO interface {
 
 // DAOImpl - a container for all information needed to access a DynamoDB table
 type DAOImpl struct {
-	Dynamo    *awsutils.DynamoRequest `json:"dynamo"`
-	Namespace string                  `json:"namespace"`
-	Name      string                  `json:"name"`
+	ConnGen   common.DynamoDBConnectionGen
 }
 
 // NewDAO creates an instance of DAO that will provide access to the table
 func NewDAO(dynamo *awsutils.DynamoRequest, namespace, clientID string) DAO {
 	if clientID == "" { panic(errors.New("Cannot create PostponedEvent.DAO without clientID")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: TableName(clientID),
-	}
-}
-
-// NewDAOByTableName creates an instance of DAO that will provide access to the table
-func NewDAOByTableName(dynamo *awsutils.DynamoRequest, namespace, tableName string) DAO {
-	if tableName == "" { panic(errors.New("Cannot create PostponedEvent.DAO without tableName")) }
-	return DAOImpl{Dynamo: dynamo, Namespace: namespace, 
-		Name: tableName,
+	return DAOImpl{
+		ConnGen:   common.DynamoDBConnectionGen{
+			Dynamo: dynamo, 
+			TableNamePrefix: clientID,
+		},
 	}
 }
 // TableNameSuffixVar is a global variable that contains table name suffix.
@@ -100,7 +104,7 @@ func (d DAOImpl) Create(postponedEvent PostponedEvent) (err error) {
 	if ok {
 		postponedEvent.ModifiedAt = core.CurrentRFCTimestamp()
 	postponedEvent.CreatedAt = postponedEvent.ModifiedAt
-	err = d.Dynamo.PutTableEntry(postponedEvent, d.Name)
+	err = d.ConnGen.Dynamo.PutTableEntry(postponedEvent, TableName(d.ConnGen.TableNamePrefix))
 	} else {
 		err = fmt.Errorf("Cannot create entity with empty fields: %v", emptyFields)
 	}
@@ -111,7 +115,7 @@ func (d DAOImpl) Create(postponedEvent PostponedEvent) (err error) {
 // CreateUnsafe saves the PostponedEvent.
 func (d DAOImpl) CreateUnsafe(postponedEvent PostponedEvent) {
 	err2 := d.Create(postponedEvent)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not create id==%s in %s\n", postponedEvent.ID, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not create id==%s in %s\n", postponedEvent.ID, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
@@ -120,7 +124,7 @@ func (d DAOImpl) Read(id string) (out PostponedEvent, err error) {
 	var outs []PostponedEvent
 	outs, err = d.ReadOrEmpty(id)
 	if err == nil && len(outs) == 0 {
-		err = fmt.Errorf("Not found id==%s in %s\n", id, d.Name)
+		err = fmt.Errorf("Not found id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix))
 	}
 	if len(outs) > 0 {
 		out = outs[0]
@@ -132,7 +136,7 @@ func (d DAOImpl) Read(id string) (out PostponedEvent, err error) {
 // ReadUnsafe reads the PostponedEvent. Panics in case of any errors
 func (d DAOImpl) ReadUnsafe(id string) PostponedEvent {
 	out, err2 := d.Read(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error reading id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error reading id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -142,7 +146,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []PostponedEvent, err error) {
 	var outOrEmpty PostponedEvent
 	ids := idParams(id)
 	var found bool
-	found, err = d.Dynamo.GetItemOrEmptyFromTable(d.Name, ids, &outOrEmpty)
+	found, err = d.ConnGen.Dynamo.GetItemOrEmptyFromTable(TableName(d.ConnGen.TableNamePrefix), ids, &outOrEmpty)
 	if found {
 		if outOrEmpty.ID == id {
 			out = append(out, outOrEmpty)
@@ -150,7 +154,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []PostponedEvent, err error) {
 			err = fmt.Errorf("Requested ids: id==%s are different from the found ones: id==%s", id, outOrEmpty.ID) // unexpected error: found ids != ids
 		}
 	}
-	err = errors.Wrapf(err, "PostponedEvent DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, d.Name)
+	err = errors.Wrapf(err, "PostponedEvent DAO.ReadOrEmpty(id = %v) couldn't GetItem in table %s", ids, TableName(d.ConnGen.TableNamePrefix))
 	return
 }
 
@@ -158,7 +162,7 @@ func (d DAOImpl) ReadOrEmpty(id string) (out []PostponedEvent, err error) {
 // ReadOrEmptyUnsafe reads the PostponedEvent. Panics in case of any errors
 func (d DAOImpl) ReadOrEmptyUnsafe(id string) []PostponedEvent {
 	out, err2 := d.ReadOrEmpty(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Error while reading id==%s in %s\n", id, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Error while reading id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 	return out
 }
 
@@ -174,7 +178,7 @@ func (d DAOImpl) CreateOrUpdate(postponedEvent PostponedEvent) (err error) {
 	if err == nil {
 		if len(olds) == 0 {
 			err = d.Create(postponedEvent)
-			err = errors.Wrapf(err, "PostponedEvent DAO.CreateOrUpdate couldn't Create in table %s", d.Name)
+			err = errors.Wrapf(err, "PostponedEvent DAO.CreateOrUpdate couldn't Create in table %s", TableName(d.ConnGen.TableNamePrefix))
 		} else {
 			emptyFields, ok := postponedEvent.CollectEmptyFields()
 			if ok {
@@ -185,18 +189,18 @@ func (d DAOImpl) CreateOrUpdate(postponedEvent PostponedEvent) (err error) {
 				expr, exprAttributes, names := updateExpression(postponedEvent, old)
 				input := dynamodb.UpdateItemInput{
 					ExpressionAttributeValues: exprAttributes,
-					TableName:                 aws.String(d.Name),
+					TableName:                 aws.String(TableName(d.ConnGen.TableNamePrefix)),
 					Key:                       key,
 					ReturnValues:              aws.String("UPDATED_NEW"),
 					UpdateExpression:          aws.String(expr),
 				}
 				if names != nil { input.ExpressionAttributeNames = *names } // workaround for a pointer to an empty slice
 				if  len(exprAttributes) > 0 { // if there some changes
-					err = d.Dynamo.UpdateItemInternal(input)
+					err = d.ConnGen.Dynamo.UpdateItemInternal(input)
 				} else {
 					// WARN: no changes.
 				}
-				err = errors.Wrapf(err, "PostponedEvent DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, d.Name, expr)
+				err = errors.Wrapf(err, "PostponedEvent DAO.CreateOrUpdate(id = %v) couldn't UpdateTableEntry in table %s, expression='%s'", key, TableName(d.ConnGen.TableNamePrefix), expr)
 			} else {
 				err = fmt.Errorf("Cannot update entity with empty required fields: %v", emptyFields)
 			}
@@ -209,26 +213,33 @@ func (d DAOImpl) CreateOrUpdate(postponedEvent PostponedEvent) (err error) {
 // CreateOrUpdateUnsafe saves the PostponedEvent regardless of if it exists.
 func (d DAOImpl) CreateOrUpdateUnsafe(postponedEvent PostponedEvent) {
 	err2 := d.CreateOrUpdate(postponedEvent)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("could not create or update %v in %s\n", postponedEvent, d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("could not create or update %v in %s\n", postponedEvent, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
-// Delete removes PostponedEvent from db
-func (d DAOImpl)Delete(id string) error {
-	return d.Dynamo.DeleteEntry(d.Name, idParams(id))
+// Deactivate "removes" PostponedEvent. 
+// The mechanism is adding timestamp to `DeactivatedOn` field. 
+// Then, if this field is not empty, the instance is considered to be "active"
+func (d DAOImpl)Deactivate(id string) error {
+	instance, err2 := d.Read(id)
+	if err2 == nil {
+		instance.DeactivatedAt = core.CurrentRFCTimestamp()
+		err2 = d.CreateOrUpdate(instance)
+	}
+	return err2
 }
 
 
-// DeleteUnsafe deletes PostponedEvent and panics in case of errors.
-func (d DAOImpl)DeleteUnsafe(id string) {
-	err2 := d.Delete(id)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not delete id==%s in %s\n", id, d.Name))
+// DeactivateUnsafe "deletes" PostponedEvent and panics in case of errors.
+func (d DAOImpl)DeactivateUnsafe(id string) {
+	err2 := d.Deactivate(id)
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not deactivate id==%s in %s\n", id, TableName(d.ConnGen.TableNamePrefix)))
 }
 
 
 func (d DAOImpl)ReadByPlatformIDUserID(platformID common.PlatformID, userID string) (out []PostponedEvent, err error) {
 	var instances []PostponedEvent
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "PlatformIDUserIDIndex",
 		Condition: "platform_id = :a0 and user_id = :a1",
 		Attributes: map[string]interface{}{
@@ -236,35 +247,35 @@ func (d DAOImpl)ReadByPlatformIDUserID(platformID common.PlatformID, userID stri
 			":a1": userID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = PostponedEventFilterActive(instances)
 	return
 }
 
 
 func (d DAOImpl)ReadByPlatformIDUserIDUnsafe(platformID common.PlatformID, userID string) (out []PostponedEvent) {
 	out, err2 := d.ReadByPlatformIDUserID(platformID, userID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query PlatformIDUserIDIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query PlatformIDUserIDIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
 
 func (d DAOImpl)ReadByUserID(userID string) (out []PostponedEvent, err error) {
 	var instances []PostponedEvent
-	err = d.Dynamo.QueryTableWithIndex(d.Name, awsutils.DynamoIndexExpression{
+	err = d.ConnGen.Dynamo.QueryTableWithIndex(TableName(d.ConnGen.TableNamePrefix), awsutils.DynamoIndexExpression{
 		IndexName: "UserIDIndex",
 		Condition: "user_id = :a0",
 		Attributes: map[string]interface{}{
 			":a0": userID,
 		},
 	}, map[string]string{}, true, -1, &instances)
-	out = instances
+	out = PostponedEventFilterActive(instances)
 	return
 }
 
 
 func (d DAOImpl)ReadByUserIDUnsafe(userID string) (out []PostponedEvent) {
 	out, err2 := d.ReadByUserID(userID)
-	core.ErrorHandler(err2, d.Namespace, fmt.Sprintf("Could not query UserIDIndex on %s table\n", d.Name))
+	core.ErrorHandler(err2, TableNameSuffixVar, fmt.Sprintf("Could not query UserIDIndex on %s table\n", TableName(d.ConnGen.TableNamePrefix)))
 	return
 }
 
@@ -283,6 +294,7 @@ func allParams(postponedEvent PostponedEvent, old PostponedEvent) (params map[st
 	if postponedEvent.ValidThrough != old.ValidThrough { params[":a4"] = common.DynS(postponedEvent.ValidThrough) }
 	if postponedEvent.CreatedAt != old.CreatedAt { params[":a5"] = common.DynS(postponedEvent.CreatedAt) }
 	if postponedEvent.ModifiedAt != old.ModifiedAt { params[":a6"] = common.DynS(postponedEvent.ModifiedAt) }
+	if postponedEvent.DeactivatedAt != old.DeactivatedAt { params[":a7"] = common.DynS(postponedEvent.DeactivatedAt) }
 	return
 }
 func updateExpression(postponedEvent PostponedEvent, old PostponedEvent) (expr string, params map[string]*dynamodb.AttributeValue, namesPtr *map[string]*string) {
@@ -296,6 +308,7 @@ func updateExpression(postponedEvent PostponedEvent, old PostponedEvent) (expr s
 	if postponedEvent.ValidThrough != old.ValidThrough { updateParts = append(updateParts, "valid_through = :a4"); params[":a4"] = common.DynS(postponedEvent.ValidThrough);  }
 	if postponedEvent.CreatedAt != old.CreatedAt { updateParts = append(updateParts, "created_at = :a5"); params[":a5"] = common.DynS(postponedEvent.CreatedAt);  }
 	if postponedEvent.ModifiedAt != old.ModifiedAt { updateParts = append(updateParts, "modified_at = :a6"); params[":a6"] = common.DynS(postponedEvent.ModifiedAt);  }
+	if postponedEvent.DeactivatedAt != old.DeactivatedAt { updateParts = append(updateParts, "deactivated_at = :a7"); params[":a7"] = common.DynS(postponedEvent.DeactivatedAt);  }
 	expr = "set " + strings.Join(updateParts, ", ")
 	if len(names) == 0 { namesPtr = nil } else { namesPtr = &names } // workaround for ValidationException: ExpressionAttributeNames must not be empty
 	return
