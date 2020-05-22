@@ -1,7 +1,6 @@
 package adaptive_checks
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/user"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -49,7 +48,7 @@ type environment struct {
 	clientID string
 	d         *awsutils.DynamoRequest
 	schema    models.Schema
-	userDAO   user.DAO
+	// userDAO   user.DAO
 	connGen   daosCommon.DynamoDBConnectionGen
 
 	dns       common.DynamoNamespace
@@ -104,7 +103,7 @@ func readEnvironment() environment {
 		d        :  d,
 		clientID :  clientID,
 		schema   :  schema,
-		userDAO  :  user.NewDAO(d, namespace, clientID),
+		// userDAO  :  user.NewDAO(d, namespace, clientID),
 		connGen  :  daosCommon.CreateConnectionGenFromEnv(),
 
 		dns                  :  common.DynamoNamespace{Dynamo: d, Namespace: namespace},
