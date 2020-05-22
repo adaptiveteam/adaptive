@@ -48,7 +48,6 @@ type environment struct {
 	clientID string
 	d         *awsutils.DynamoRequest
 	schema    models.Schema
-	// userDAO   user.DAO
 	connGen   daosCommon.DynamoDBConnectionGen
 
 	dns       common.DynamoNamespace
@@ -103,7 +102,6 @@ func readEnvironment() environment {
 		d        :  d,
 		clientID :  clientID,
 		schema   :  schema,
-		// userDAO  :  user.NewDAO(d, namespace, clientID),
 		connGen  :  daosCommon.CreateConnectionGenFromEnv(),
 
 		dns                  :  common.DynamoNamespace{Dynamo: d, Namespace: namespace},

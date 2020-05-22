@@ -14,7 +14,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -46,9 +45,8 @@ func readUser(userID string) (u models.User, err error) {
 // not created any.
 func IDOCreateReminder(teamID models.TeamID, date bt.Date, target string) {
 	log.Println(fmt.Sprintf("Checking IDOCreateReminder for user: %s", target))
-	user, err2 := readUser(target)
-	core.ErrorHandler(err2, "IDOCreateReminder", "readUser")
-	AddObjective(target, models.ParseTeamID(user.PlatformID), false, utilsUser.UserIDsToDisplayNamesUnsafe(UserDAO))
+	conn := globalConnectionGen().ForPlatformID(teamID.ToPlatformID())
+	AddObjective(target, models.ParseTeamID(conn.PlatformID), false, utilsUser.UserIDsToDisplayNamesConnUnsafe(conn))
 
 }
 
@@ -58,18 +56,19 @@ Update Reminders
 ------------------------------------------------------------------------------------
 */
 
-// slowlyCreateConnection - internally requests DB, reads user and retrieves PlatformID
-func slowlyCreateConnection(userID string) daosCommon.DynamoDBConnection {
+// slowlyCreateConnection - 
+// Deprecated: use connGen approach
+func slowlyCreateConnection(teamID models.TeamID, userID string) daosCommon.DynamoDBConnection {
 	return daosCommon.DynamoDBConnection {
 		Dynamo: common.DeprecatedGetGlobalDns().Dynamo,
 		ClientID: utils.NonEmptyEnv("CLIENT_ID"),
-		PlatformID: strategy.UserIDToPlatformID(UserDAO)(userID),
+		PlatformID: teamID.ToPlatformID(),
 	}
 }
 // IDOUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale individual improvement
 func IDOUpdateReminder(teamID models.TeamID, _ bt.Date, userID string) {
-	conn := slowlyCreateConnection(userID)
+	conn := slowlyCreateConnection(teamID, userID)
 	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(userID, issuesUtils.IDO, 7))(conn)
 	if err2 != nil {
 		log.Printf("ERROR IDOUpdateReminder: %+v", err2)
@@ -81,7 +80,7 @@ func IDOUpdateReminder(teamID models.TeamID, _ bt.Date, userID string) {
 // ObjectiveUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale objectives
 func ObjectiveUpdateReminder(teamID models.TeamID, date bt.Date, userID string) {
-	conn := slowlyCreateConnection(userID)
+	conn := slowlyCreateConnection(teamID,userID)
 	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(userID, issuesUtils.SObjective, 30))(conn)
 	if err2 != nil {
 		log.Printf("ERROR ObjectiveUpdateReminder: %+v", err2)
@@ -93,7 +92,7 @@ func ObjectiveUpdateReminder(teamID models.TeamID, date bt.Date, userID string) 
 // InitiativeUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale initiatives
 func InitiativeUpdateReminder(teamID models.TeamID, date bt.Date, userID string) {
-	conn := slowlyCreateConnection(userID)
+	conn := slowlyCreateConnection(teamID,userID)
 	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(userID, issuesUtils.Initiative, 7))(conn)
 	if err2 != nil {
 		log.Printf("ERROR InitiativeUpdateReminder: %+v", err2)
@@ -112,19 +111,19 @@ Closeout reminders
 // that they have an IDO due in the coming week and to close it out
 func IDOCloseoutReminder(teamID models.TeamID, date bt.Date, target string) {
 	// TODO: dont ask for update, ask for closeout
-	UserCloseObjectivesAsk(target, "You have IDOs that are due in a week. Would you like to close them out?")
+	UserCloseObjectivesAsk(teamID, target, "You have IDOs that are due in a week. Would you like to close them out?")
 }
 
 // InitiativeCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an Initiative due in the coming week and to close it out
 func InitiativeCloseoutReminder(teamID models.TeamID, date bt.Date, target string) {
-	UserCloseObjectivesAsk(target, "You have Initiatives that are due in a week. Would you like to close them out?")
+	UserCloseObjectivesAsk(teamID, target, "You have Initiatives that are due in a week. Would you like to close them out?")
 }
 
 // ObjectiveCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an Objective due in the coming week and to close it out
 func ObjectiveCloseoutReminder(teamID models.TeamID, date bt.Date, target string) {
-	UserCloseObjectivesAsk(target, "You have Capability Objectives that are due in a week. Would you like to close them out?")
+	UserCloseObjectivesAsk(teamID, target, "You have Capability Objectives that are due in a week. Would you like to close them out?")
 }
 
 /*
@@ -136,42 +135,42 @@ Due date reminders
 // IDOReminderOfDueDateInMonth is meant to trigger  engagements that reminds users
 // that they have an IDO due in the coming week
 func IDOReminderOfDueDateInMonth(teamID models.TeamID, date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.IDOUpdateDueWithinMonth,
+	ObjectiveProgressUpdateAsk(teamID, target, user.IDOUpdateDueWithinMonth,
 		"You have some Individual Development Objectives that are due in 30 days from now. Would you like to update them?")
 }
 
 // IDOReminderOfDueDateInQaurter is meant to trigger  engagements that reminds users
 // that they have an IDO due in the coming week, month, quarter
 func IDOReminderOfDueDateInQaurter(teamID models.TeamID, date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.IDOUpdateDueWithinQuarter,
+	ObjectiveProgressUpdateAsk(teamID, target, user.IDOUpdateDueWithinQuarter,
 		"You have some Individual Development Objectives that are due in 90 days from now. Would you like to update them?")
 }
 
 // InitiativeReminderOfDueDateInMonth is meant to trigger  engagements that reminds users
 // that they have an Initiative due in the coming week
 func InitiativeReminderOfDueDateInMonth(teamID models.TeamID, date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.InitiativeUpdateDueWithinMonth,
+	ObjectiveProgressUpdateAsk(teamID, target, user.InitiativeUpdateDueWithinMonth,
 		"You have some Initiatives that are due in 30 days from now. Would you like to update them?")
 }
 
 // InitiativeReminderOfDueDateInQaurter is meant to trigger  engagements that reminds users
 // that they have an Initiative due in the coming week, month, quarter
 func InitiativeReminderOfDueDateInQaurter(teamID models.TeamID, date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.InitiativeUpdateDueWithinQuarter,
+	ObjectiveProgressUpdateAsk(teamID, target, user.InitiativeUpdateDueWithinQuarter,
 		"You have some Initiatives that are due in 90 days from now. Would you like to update them?")
 }
 
 // ObjectiveReminderOfDueDateInMonth is meant to trigger  engagements that reminds users
 // that they have an Objective due in the coming week
 func ObjectiveReminderOfDueDateInMonth(teamID models.TeamID, date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.CapabilityObjectiveUpdateDueWithinMonth,
+	ObjectiveProgressUpdateAsk(teamID, target, user.CapabilityObjectiveUpdateDueWithinMonth,
 		"You have some Capability Objectives that are due within a month, but haven't been updated since last week. Would you like to update them?")
 }
 
 // ObjectiveReminderOfDueDateInQaurter is meant to trigger  engagements that reminds users
 // that they have an Objective due in the coming week, month, quarter
 func ObjectiveReminderOfDueDateInQaurter(teamID models.TeamID, date bt.Date, target string) {
-	ObjectiveProgressUpdateAsk(target, user.CapabilityObjectiveUpdateDueWithinQuarter,
+	ObjectiveProgressUpdateAsk(teamID, target, user.CapabilityObjectiveUpdateDueWithinQuarter,
 		"You have some Capability Objectives that are due in a quarter, but haven't been updated since last month. Would you like to update them?")
 }
 
@@ -248,14 +247,13 @@ func AddObjective(userID string, teamID models.TeamID, urgent bool, userIDsToDis
 			[]ebm.AttachmentActionElementOptionGroup{},
 			"You do not have any Individual Development Objectives defined. Do you want to add one?",
 			"Create Individual Development Objective", urgent, Dns, models.UserEngagementCheckWithValue{},
-			models.TeamID(teamID))
+			teamID)
 	}
 }
 
 // EngagePersonalImprovementObjectiveUpdate
-func ObjectiveProgressUpdateAsk(userID, action, message string) { // ViewObjectivesNoProgressThisWeek
+func ObjectiveProgressUpdateAsk(teamID models.TeamID, userID, action, message string) { // ViewObjectivesNoProgressThisWeek
 	// "There are objectives with no progress this week. Would you like to update them?"
-	teamID := strategy.UserIDToTeamID(UserDAO)(userID)
 	year, month := core.CurrentYearMonth()
 	mc := models.MessageCallback{Module: "objectives", Source: userID, Topic: "init", Action: action,
 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
@@ -345,9 +343,8 @@ func NotifyOnAbsentFeedback(teamID models.TeamID, date bt.Date, userID string) {
 	}
 }
 
-func UserCloseObjectivesAsk(userID, text string) {
+func UserCloseObjectivesAsk(teamID models.TeamID, userID, text string) {
 	if len(userOpenObjectives(userID)) > 0 {
-		teamID := strategy.UserIDToTeamID(UserDAO)(userID)
 		// Create an objective
 		year, month := core.CurrentYearMonth()
 		mc := models.MessageCallback{Module: "objectives", Source: userID, Topic: "init", Action: ViewOpenObjectives,
