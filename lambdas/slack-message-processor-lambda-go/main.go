@@ -342,6 +342,7 @@ func ensureTeamID(teamID, appID daosCommon.PlatformID) (res models.TeamID, err e
 			}
 		}
 	}
+	log.Printf("ensureTeamID: %v\n", teamID)
 	return
 }
 
