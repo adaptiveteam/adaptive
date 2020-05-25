@@ -4,6 +4,7 @@ package user
 
 type FieldName string
 const (
+	PlatformID FieldName = "platform_id"
 	ID FieldName = "id"
 	DisplayName FieldName = "display_name"
 	FirstName FieldName = "first_name"
@@ -13,7 +14,6 @@ const (
 	TimezoneOffset FieldName = "timezone_offset"
 	AdaptiveScheduledTime FieldName = "adaptive_scheduled_time"
 	AdaptiveScheduledTimeInUTC FieldName = "adaptive_scheduled_time_in_utc"
-	PlatformID FieldName = "platform_id"
 	PlatformOrg FieldName = "platform_org"
 	IsAdmin FieldName = "is_admin"
 	IsShared FieldName = "is_shared"
