@@ -150,6 +150,7 @@ sealed trait DaoOperation
 
 case object DaoCreateRow extends DaoOperation
 case object DaoReadRow extends DaoOperation
+case object DaoReadChildren extends DaoOperation
 case object DaoReadOrEmptyRow extends DaoOperation
 case object DaoUpdateRow extends DaoOperation
 case object DaoDeleteRow extends DaoOperation
@@ -160,10 +161,15 @@ case class Dao(table: Table) extends GoDefinition {
     def operations: List[DaoOperation] = List(
         DaoCreateRow,
         DaoReadRow,
+        DaoReadChildren,
         DaoReadOrEmptyRow,
         DaoUpdateRow,
-        DaoDeleteRow//,
+        DaoDeleteRow,
         // DaoQueryRow(table.defaultIndex)
+    ) ::: (
+      table.defaultIndex.rangeKey. // if there is a range key, then we should also add a method to read by only hash key
+        map(_ => DaoReadChildren).
+        toList
     ) ::: table.indices.map(DaoQueryRow)
 }
 

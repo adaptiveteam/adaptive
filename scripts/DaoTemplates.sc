@@ -67,6 +67,8 @@ def interfaceTemplate(dao: Dao): List[String] = {
 					s"ReadBy${indexName}($args) ($entityArgSliceValue, err error)",
 					s"ReadBy${indexName}Unsafe($args) ($entityArgSliceValue)",
 				)
+			case _ => 
+				List() // ignore other options
 		}
 	}
 
@@ -146,6 +148,9 @@ case class OperationImplementationTemplates(table: Table){
 			case DaoQueryRow(index: Index) => 
 				val templates = QueryTemplates(index)
 				templates.apply
+			case _ => 
+				List() // ignore other options
+
 		}
 	}
 
