@@ -38,7 +38,20 @@ var (
 	// &scope=calls%3Aread+calls%3Awrite+channels%3Aread+dnd%3Aread+files%3Aread+groups%3Ahistory+groups%3Aread+groups%3Awrite+im%3Ahistory+im%3Aread+im%3Awrite+incoming-webhook+links%3Awrite+mpim%3Ahistory+mpim%3Aread+mpim%3Awrite+pins%3Awrite+reactions%3Aread+reactions%3Awrite+remote_files%3Aread+remote_files%3Ashare+remote_files%3Awrite+team%3Aread+usergroups%3Aread+usergroups%3Awrite+users%3Aread+users%3Aread.email+users%3Awrite
 	// &user_scope=channels%3Aread+chat%3Awrite+files%3Awrite+groups%3Aread+groups%3Awrite+im%3Ahistory+users%3Aread&state=state
 	// incoming-webhook,
-	AdaptiveScopes = "app_mentions:read,calls:read,calls:write,channels:read,chat:write,chat:write.customize,dnd:read,files:read,files:write,groups:history,groups:read,groups:write,im:history,im:read,im:write,links:write,mpim:history,mpim:read,mpim:write,pins:write,reactions:read,reactions:write,team:read,usergroups:read,usergroups:write,users:read,users:read.email,users:write"
+	// AdaptiveScopes = "app_mentions:read,calls:read,calls:write,channels:read,chat:write,chat:write.customize,dnd:read,files:read,files:write,groups:history,groups:read,groups:write,im:history,im:read,im:write,links:write,mpim:history,mpim:read,mpim:write,pins:write,reactions:read,reactions:write,team:read,usergroups:read,usergroups:write,users:read,users:read.email,users:write"
+	AdaptiveScopes = []string{
+		"app_mentions:read",
+		"channels:read",
+		"chat:write",
+		"chat:write.customize",
+		"files:read",
+		"files:write",
+		"groups:read",
+		"groups:write",
+		"im:history",
+		"team:read",
+		"users:read",
+	}
 	// remote_files:read,remote_files:share,remote_files:write,
 	// incoming-webhook - this requires a channel where bot will be posting messages from outside
 	UserScopes = "" // "channels:read,chat:write,files:write,groups:read,groups:write,im:history,users:read"
@@ -50,7 +63,7 @@ func SlackOAuthConfig(clientID, clientSecret string) oauth2.Config {
 	return oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		Scopes:       strings.Split(AdaptiveScopes, ","),
+		Scopes:       AdaptiveScopes,
 
 		Endpoint:     oauth2.Endpoint{
 			AuthStyle:   oauth2.AuthStyle(endpoints.Slack.AuthStyle),
