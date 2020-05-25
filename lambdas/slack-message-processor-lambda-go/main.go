@@ -18,15 +18,12 @@ import (
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-
 	"strconv"
 	"strings"
-
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
 	holidaysLambda "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
-
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
@@ -347,6 +344,7 @@ func ensureTeamID(teamID, appID daosCommon.PlatformID) (res models.TeamID, err e
 			}
 		}
 	}
+	log.Printf("ensureTeamID: %v\n", teamID)
 	return
 }
 
