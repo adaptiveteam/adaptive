@@ -161,15 +161,10 @@ case class Dao(table: Table) extends GoDefinition {
     def operations: List[DaoOperation] = List(
         DaoCreateRow,
         DaoReadRow,
-        DaoReadChildren,
         DaoReadOrEmptyRow,
         DaoUpdateRow,
         DaoDeleteRow,
         // DaoQueryRow(table.defaultIndex)
-    ) ::: (
-      table.defaultIndex.rangeKey. // if there is a range key, then we should also add a method to read by only hash key
-        map(_ => DaoReadChildren).
-        toList
     ) ::: table.indices.map(DaoQueryRow)
 }
 
@@ -181,9 +176,14 @@ case class ConnectionBasedDao(table: Table) extends GoDefinition {
         DaoUpdateRow,
         DaoDeleteRow,
         // DaoQueryRow(table.defaultIndex)
+    ) ::: (
+      table.defaultIndex.rangeKey. // if there is a range key, then we should also add a method to read by only hash key
+        map(_ => DaoReadChildren).
+        toList
     ) ::: table.indices.map(DaoQueryRow) ::: (
       table.indices.
         filter(_.rangeKey.isDefined).
+        filterNot(_.hashKey == table.defaultIndex.hashKey). // because we already generate the query in ReadChildren
         groupBy(_.hashKey).
         map{ case (_, indices) => 
           DaoQueryRowByHashKey(indices.head) 

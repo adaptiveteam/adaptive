@@ -31,9 +31,13 @@ def daoFunctionsTemplate(dao: ConnectionBasedDao): List[String] = {
 case class DaoFunctionTemplates(table: Table){
 	val entity = table.entity
 	val idArgs = idArgList(table)
+	// val hashKey = table.defaultIndex.hashKey
+	// val hashIdArgs = fieldArg(hashKey)
 	val idVarNames = entity.primaryKeyFields.map(f => goPrivateName(f.name)).mkString(", ")
+	// val hashIdVarName = goPrivateName(hashKey.name)
 	val formatIds = entity.primaryKeyFields.map(f => goPrivateName(f.name) + "==%s").mkString(", ")
 	val idFieldNames = entity.primaryKeyFields.map(f => goPublicName(f.name))
+	// val hashIdFieldName = goPublicName(hashKey.name)
 	val idDbNames = entity.primaryKeyFields.map(f => dynamoName(f.dbName))
 	val entityArgValue = entityArg(table.entity)
 	val structVarName = goPrivateName(table.entity.name)
@@ -50,10 +54,10 @@ case class DaoFunctionTemplates(table: Table){
 				DaoOperationReadTemplate,
 				DaoOperationReadUnsafeTemplate
 			)
-			case DaoReadChildren => List(
-				DaoOperationReadChildrenTemplate,
-				DaoOperationReadChildrenUnsafeTemplate
-			)
+			case DaoReadChildren => QueryByHashKeyTemplates(
+				table.defaultIndex, 
+				isDefaultIndex = true,
+			).apply
 			case DaoReadOrEmptyRow => List(
 				DaoOperationReadOrEmptyTemplate,
 				DaoOperationReadOrEmptyUnsafeTemplate,
@@ -111,36 +115,6 @@ case class DaoFunctionTemplates(table: Table){
 		|	return func (conn common.DynamoDBConnection) {
 		|		err2 := Create($structVarName)(conn)
 		|		core.ErrorHandler(err2, "daos/$structName", fmt.Sprintf("Could not create $formatIds in %s\\n", ${idFieldNames.map{f => structVarName + "." + f}.mkString(", ")}, TableName(conn.ClientID)))
-		|	}
-		|}
-		|""".stripMargin
-
-	def DaoOperationReadChildrenTemplate : String =
-		s"""
-		|// ReadChildren reads $structName
-		|func ReadChildren($idArgs) func (conn common.DynamoDBConnection) (out $structName, err error) {
-		|	return func (conn common.DynamoDBConnection) (out $structName, err error) {
-		|		var outs []$structName
-		|		outs, err = ReadOrEmpty($idVarNames)(conn)
-		|		if err == nil && len(outs) == 0 {
-		|			err = fmt.Errorf("Not found $formatIds in %s\\n", $idVarNames, TableName(conn.ClientID))
-		|		}
-		|		if len(outs) > 0 {
-		|			out = outs[0]
-		|		}
-		|		return
-		|	}
-		|}
-		|""".stripMargin
-
-	def DaoOperationReadChildrenUnsafeTemplate: String =
-		s"""
-		|// ReadChildrenUnsafe reads the $structName. Panics in case of any errors
-		|func ReadChildrenUnsafe($idArgs) func (conn common.DynamoDBConnection) $structName {
-		|	return func (conn common.DynamoDBConnection) $structName {
-		|		out, err2 := ReadChildren($idVarNames)(conn)
-		|		core.ErrorHandler(err2, "daos/$structName", fmt.Sprintf("Error reading $formatIds in %s\\n", $idVarNames, TableName(conn.ClientID)))
-		|		return out
 		|	}
 		|}
 		|""".stripMargin
@@ -349,7 +323,7 @@ case class DaoFunctionTemplates(table: Table){
 		|""".stripMargin
 
 
-	case class QueryTemplates(index: Index) {
+	case class QueryTemplates(index: Index, isDefaultIndex: Boolean = false) {
 		val indexShortName = goPublicName(index.name.init)
 		val indexFullName = indexName(index)
 		val args = indexArgList(index)
@@ -394,7 +368,7 @@ case class DaoFunctionTemplates(table: Table){
 			|""".stripMargin
 		}
 	}
-	case class QueryByHashKeyTemplates(index: Index) {
+	case class QueryByHashKeyTemplates(index: Index, isDefaultIndex: Boolean = false) {
 		val indexHashKeyName = goPublicName(index.hashKey.name)
 		val fields = List(index.hashKey)
 		val indexFullName = indexName(index)
@@ -410,7 +384,7 @@ case class DaoFunctionTemplates(table: Table){
 			|	return func (conn common.DynamoDBConnection) (out []$structName, err error) {
 			|		var instances []$structName
 			|		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
-			|			IndexName: "$indexFullName",
+			|			${if(isDefaultIndex) "" else "IndexName: string(" + indexFullName + "),"}
 			|			Condition: "${dbExprParam(index.hashKey) + " = :a" }",
 			|			Attributes: map[string]interface{}{
 			|				":a" : ${varName(index.hashKey)},
