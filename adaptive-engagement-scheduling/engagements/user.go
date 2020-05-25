@@ -1,7 +1,6 @@
 package engagements
 
 import (
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/workflows"
 	"github.com/adaptiveteam/adaptive/workflows/exchange"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -15,7 +14,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
-	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -35,11 +33,6 @@ IDO Creation reminders
 
 var globalConnectionGen = daosCommon.CreateConnectionGenFromEnv
 
-func readUser(userID string) (u models.User, err error) {
-	var conn daosCommon.DynamoDBConnection
-	conn, err = platform.GetConnectionForUserFromEnv(userID)
-	return daosUser.Read(userID)(conn)
-}
 // IDOCreateReminder is meant to trigger the engagements that
 // reminds the user to create personal improvement objects in the event that they have
 // not created any.
