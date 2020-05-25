@@ -50,8 +50,8 @@ def goField(decl: String): Field = goFieldParser(goTypes)(decl)
 //     ))
 
 val user = Entity(
-        spacedName("user"),
-        List(idField),
+        "User".camel,
+        List(platformIdField, idField),
         List(
             underscoredName("display_name") :: string,
             underscoredName("first_name") :: optionString,
@@ -61,7 +61,6 @@ val user = Entity(
             timezoneOffsetField,
             (underscoredName("adaptive_scheduled_time") :: optionTimestamp) \\ "in 24 hr format, localtime",
             adaptiveScheduledTimeInUtcField,
-            platformIdField,
             "PlatformOrg".camel :: optionString,
             spacedName("is admin") :: boolean,
             // spacedName("deleted") :: boolean,
@@ -70,7 +69,9 @@ val user = Entity(
         Nil, List(DeactivationTrait, CreatedModifiedTimesTrait)
 )
 
-val userTableDefaultIndex = Index(idField, None)
+val userTableDefaultIndex = 
+    Index(idField, Some(platformIdField))
+    
 val userTable = Table(user, userTableDefaultIndex, List(
     Index(platformIdField, None),
     Index(platformIdField, Some(timezoneOffsetField)),
