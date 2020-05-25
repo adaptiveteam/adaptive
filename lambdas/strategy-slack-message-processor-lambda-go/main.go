@@ -96,7 +96,7 @@ func communityMembers(commID string, teamID models.TeamID, conn daosCommon.Dynam
 	var users []models.KvPair
 	for _, each := range commMembers {
 		// Self user checking
-		us := daosUser.ReadOrEmptyUnsafe(each.UserId)(conn)
+		us := daosUser.ReadOrEmptyUnsafe(conn.PlatformID, each.UserId)(conn)
 		for _, u := range us { 
 			if u.DisplayName != "" && !u.IsAdaptiveBot {
 				users = append(users, models.KvPair{Key: u.DisplayName, Value: each.UserId})

@@ -100,7 +100,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (coachings []C
 	msg := ""
 	if len(coachings) > 0 {
 		filepath := fmt.Sprintf("/tmp/%s.pdf", reportFor)
-		user := daosUser.ReadUnsafe(reportFor)(conn)
+		user := daosUser.ReadUnsafe(conn.PlatformID, reportFor)(conn)
 		_, err = apr.BuildReportWithCustomValuesTyped(
 			coachings, user.DisplayName, quarter, year,
 			filepath,

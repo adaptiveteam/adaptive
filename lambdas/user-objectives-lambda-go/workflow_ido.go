@@ -135,7 +135,7 @@ func readUserDisplayName(conn daosCommon.DynamoDBConnection, userID string) (dis
 	if userID == "none" { 
 		displayName = "Not needed" 
 	} else {
-		accountabilityPartners, err2 := daosUser.ReadOrEmpty(userID)(conn)
+		accountabilityPartners, err2 := daosUser.ReadOrEmpty(conn.PlatformID, userID)(conn)
 
 		if err2 == nil && len(accountabilityPartners) > 0{
 			displayName = ui.PlainText(accountabilityPartners[0].DisplayName)
@@ -269,7 +269,7 @@ func onUserObjectivePartnerSelection(conn daosCommon.DynamoDBConnection, item mo
 				DescriptionLabel, core.TextWrap(item.Description, core.Underscore)), "", "", false)
 
 		var coachUts [] models.User
-		coachUts, err = daosUser.ReadOrEmpty(item.AccountabilityPartner)(conn)
+		coachUts, err = daosUser.ReadOrEmpty(conn.PlatformID, item.AccountabilityPartner)(conn)
 		if err == nil {
 			if len(coachUts) > 0 {
 				publish(models.PlatformSimpleNotification{UserId: ctx.Request.User.ID, Channel: ctx.Request.Channel.ID,

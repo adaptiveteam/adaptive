@@ -212,7 +212,7 @@ func createCommunityFromCreatorUser(creatorUserID string,
 	// Let's add this channel as a new user
 	// the information about the user who initiated this
 	var creators []models.User
-	creators, err = daosUser.ReadOrEmpty(creatorUserID)(conn)
+	creators, err = daosUser.ReadOrEmpty(conn.PlatformID, creatorUserID)(conn)
 	var creator models.User
 	if len(creators) > 0 {
 		creator = creators[0]
@@ -286,7 +286,7 @@ func removeChannel(userID, channelID string, conn daosCommon.DynamoDBConnection)
 		// Delete entry from communities table
 		adaptiveCommunity.DeactivateUnsafe(each.PlatformID, each.ID)(conn)
 		// Deleting channel user
-		daosUser.DeactivateUnsafe(channelID)(conn)
+		daosUser.DeactivateUnsafe(conn.PlatformID, channelID)(conn)
 		// Unset channel for strategy communities
 		unsetStrategyCommunities(channelID)
 		// Post confirmation to Admin about the removal
@@ -315,7 +315,7 @@ func channelUnsubscribe(channelID string,
 
 		for _, eachComm := range subComms {
 			// Delete entry from user table
-			err = daosUser.Deactivate(channelID)(conn)
+			err = daosUser.Deactivate(conn.PlatformID, channelID)(conn)
 			if err == nil {
 				// Delete users from user communities table for the community
 				err = deleteCommunityMembersByCommunityID(teamID, eachComm.ID, eachComm.ChannelID, conn)

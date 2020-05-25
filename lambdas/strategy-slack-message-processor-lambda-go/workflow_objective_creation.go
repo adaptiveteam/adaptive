@@ -254,7 +254,7 @@ func getLatestComments(item models.UserObjective) (status ui.PlainText) {
 }
 
 func readUserDisplayName(userID string, conn daosCommon.DynamoDBConnection) (displayName ui.PlainText) {
-	user, err2 := daosUser.Read(userID)(conn)
+	user, err2 := daosUser.Read(conn.PlatformID, userID)(conn)
 
 	if err2 == nil {
 		displayName = ui.PlainText(user.DisplayName)
