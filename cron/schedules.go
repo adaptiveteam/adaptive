@@ -84,6 +84,7 @@ func (s Schedule)Every(period Period) Schedule {
 
 // InRange makes a schedule that is valid for periods within the given range.
 // start and/or end might be negative. In this case they are calculated from the end of the previous period.
+// if period is WeekDay, then start and end are incremented.
 func (s Schedule)InRange(period Period, start, end int) (res Schedule) {
 	res = Schedule{
 		Parent: &s,
@@ -97,6 +98,29 @@ func (s Schedule)InRange(period Period, start, end int) (res Schedule) {
 	default:
 		res.RangeStart = start
 		res.RangeEnd = end
+	}
+	return
+}
+
+// InRange0 makes a schedule that is valid for periods within the given range.
+// start0 and/or end0 might be negative. In this case they are calculated from the end of the previous period.
+func (s Schedule)InRange0(period Period, start0, end0 int) (res Schedule) {
+	res = Schedule{
+		Parent: &s,
+		Period: period,
+	}
+	switch period {
+	default:
+		if start0 >= 0 {
+			res.RangeStart = start0 + 1
+		} else {
+			res.RangeStart = start0
+		}
+		if end0 >= 0 {
+			res.RangeEnd = end0 + 1
+		} else {
+			res.RangeEnd = end0
+		}
 	}
 	return
 }
@@ -242,6 +266,33 @@ func GetPosition(t time.Time, period, parent Period) (position, max int) {
 				max = 7
 			default:
 				invalidInput()
+			}
+		case Day:
+			switch period {
+			case Hour:
+				position = t.Hour() + 1
+				max = 24
+			case QuarterHour:
+				position = t.Hour() * 4 + t.Minute() / 15  + 1
+				max = 24 * 4
+			case Minute:
+				position = t.Hour() * 60 + t.Minute() + 1
+				max = 60
+			case Second:
+				position = (t.Hour() * 60 + t.Minute()) * 60 + t.Second() + 1
+				max = 60 * 60
+			}
+		case Hour:
+			switch period {
+			case QuarterHour:
+				position = t.Minute() / 15 + 1
+				max = 4
+			case Minute:
+				position = t.Minute() + 1
+				max = 60
+			case Second:
+				position = t.Minute() * 60 + t.Second() + 1
+				max = 60 * 60
 			}
 		default:
 			invalidInput()
