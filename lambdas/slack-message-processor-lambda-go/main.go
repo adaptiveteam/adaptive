@@ -429,9 +429,13 @@ func routeByCallbackID(
 	fmt.Printf("routeByCallbackID(userID=%s,callbackID=%s)\n", userID, callbackID)
 
 	slackRequest := models.EventsAPIEvent(requestPayload)
-	u := userDAO.ReadUnsafe(userID)
-	apiAppID := u.PlatformID
-	teamID := models.ParseTeamID(apiAppID)
+	teamID, err2 := ensureTeamID(daosCommon.PlatformID(eventsAPIEvent.TeamID), daosCommon.PlatformID(eventsAPIEvent.APIAppID))
+	if err2 != nil {
+		log.Printf("ensureTeamID error: %+v", err2)
+		u := userDAO.ReadUnsafe(userID)
+		apiAppID := u.PlatformID
+		teamID = models.ParseTeamID(apiAppID)
+	}
 	np := models.NamespacePayload4{
 		ID:        core.Uuid(),
 		Namespace: namespace,
