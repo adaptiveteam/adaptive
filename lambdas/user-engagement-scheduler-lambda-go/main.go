@@ -3,7 +3,6 @@ package lambda
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	"github.com/adaptiveteam/adaptive/daos/common"
-	"github.com/adaptiveteam/adaptive/daos/user"
 	"context"
 	"fmt"
 	"github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/crosswalks"
@@ -13,14 +12,12 @@ import (
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	es "github.com/adaptiveteam/adaptive/engagement-scheduling"
-	// esmodels "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
 	"time"
 )
 
 var (
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
 	schema   = models.SchemaForClientID(clientID)
-	userDao  = user.NewDAO(d, namespace, clientID)
 )
 
 // HandleRequest -
@@ -40,7 +37,7 @@ func HandleRequest(ctx context.Context, event models.UserEngage) (err error) {
 	// TODO: Take date from eng
 	location, _ := time.LoadLocation("UTC")
 	holidaysList := schedules.LoadHolidays(time.Date(y, m, d, 0, 0, 0, 0, location),
-		models.ParseTeamID(userDao.ReadUnsafe(event.UserID).PlatformID),
+		event.TeamID,
 		adHocHolidaysTable, adHocHolidaysPlatformDateIndex)
 	// allCrosswalks := func() []esmodels.CrossWalk {
 	// 	return concatAppend([][]esmodels.CrossWalk{crosswalks.UserCrosswalk()})
@@ -54,6 +51,7 @@ func HandleRequest(ctx context.Context, event models.UserEngage) (err error) {
 		crosswalks.UserCrosswalk,
 		holidaysList,
 		location,
+		event.TeamID, 
 		event.UserID,
 		conn,
 	)

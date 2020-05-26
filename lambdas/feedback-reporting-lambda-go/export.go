@@ -15,15 +15,15 @@ import (
 // After generation this lambda will post a notification that the report is ready.
 // Probably it shouldn't.
 func GeneratePerformanceReportAndPostToUserAsync(
-	// teamID models.TeamID,
+	teamID models.TeamID,
 	reportFor string,
 	date time.Time,
 ) (err error) {
 	defer core.RecoverToErrorVar("GeneratePerformanceReportAndPostToUserAsync", &err)
 	engage := models.UserEngage{
+		TeamID: teamID,
 		UserID: reportFor,
 		Date:   core.ISODateLayout.Format(date), // Date: date.Format(time.RFC3339)
-		// TeamID: teamID,
 		// Update: true, not used!
 	}
 	var userEngageBytes []byte

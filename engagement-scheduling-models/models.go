@@ -2,12 +2,13 @@ package engagement_scheduling_models
 
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-checks"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	bt "github.com/adaptiveteam/adaptive/business-time"
 	"github.com/adaptiveteam/adaptive/cron"
 )
 
 type ScheduleFunction func(resultMap adaptive_checks.TypedProfile, date bt.Date) (rv string)
-type EngagementFunction func(date bt.Date, target string)
+type EngagementFunction func(teamID models.TeamID, date bt.Date, target string)
 type ScheduledEngagementList []ScheduledEngagement
 type CrossWalkNameList []CrossWalkName
 

@@ -6,7 +6,8 @@ import (
 	"errors"
 	"fmt"
 	common2 "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
-	// daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"log"
@@ -86,7 +87,8 @@ func CreateIDOWorkflow_ShowDialog(item models.UserObjective) func(ctx wf.EventHa
 
 // CreateIDODialog returns interaction for displaying the dialog box.
 func CreateIDODialog(ctx wf.EventHandlingContext, item models.UserObjective) wf.Interaction {
-	coaches, dates, initiativesAndObjectives := LoadObjectiveDialogDictionaries(ctx.Request.User.ID, ctx.TeamID, item)
+	conn := connGen.ForPlatformID(ctx.TeamID.ToPlatformID())
+	coaches, dates, initiativesAndObjectives := LoadObjectiveDialogDictionaries(ctx.Request.User.ID, ctx.TeamID, item, conn)
 	return wf.OpenSurvey(ObjectiveSurvey(item, coaches, dates, initiativesAndObjectives))
 }
 
@@ -104,8 +106,10 @@ func getCommentsFromProgress(objectiveProgress []models.UserObjectiveProgress) (
 	return
 }
 
-func getAccountabilityPartner(item models.UserObjective) ui.PlainText {
-	return readUserDisplayName(item.AccountabilityPartner)
+func getAccountabilityPartner(conn daosCommon.DynamoDBConnection) func (item models.UserObjective) ui.PlainText {
+	return func (item models.UserObjective) ui.PlainText {
+		return readUserDisplayName(conn, item.AccountabilityPartner)
+	}
 }
 
 func getStatus(item models.UserObjective) (status ui.PlainText) {
@@ -127,11 +131,11 @@ func getLatestComments(item models.UserObjective) (status ui.PlainText) {
 	return ui.PlainText(JoinRichText(comments, "\n"))
 }
 
-func readUserDisplayName(userID string) (displayName ui.PlainText) {
+func readUserDisplayName(conn daosCommon.DynamoDBConnection, userID string) (displayName ui.PlainText) {
 	if userID == "none" { 
 		displayName = "Not needed" 
 	} else {
-		accountabilityPartners, err2 := userDAO.ReadOrEmpty(userID)
+		accountabilityPartners, err2 := daosUser.ReadOrEmpty(userID)(conn)
 
 		if err2 == nil && len(accountabilityPartners) > 0{
 			displayName = ui.PlainText(accountabilityPartners[0].DisplayName)
@@ -165,10 +169,12 @@ func objectiveToFields(newItem, oldItem models.UserObjective, teamID models.Team
 	return
 }
 
-func objectiveToFieldsDetails(newItem, oldItem models.UserObjective, teamID models.TeamID) (fields []ebm.AttachmentField) {
+func objectiveToFieldsDetails(newItem, oldItem models.UserObjective, teamID models.TeamID, 
+	conn daosCommon.DynamoDBConnection,
+) (fields []ebm.AttachmentField) {
 	// For ViewMore action, we only need the latest comment
 	fields = []ebm.AttachmentField{
-		attachmentFieldNewOld(AccountabilityPartnerLabel, getAccountabilityPartner, newItem, oldItem),
+		attachmentFieldNewOld(AccountabilityPartnerLabel, getAccountabilityPartner(conn), newItem, oldItem),
 		attachmentFieldNewOld(StatusLabel, getStatus, newItem, oldItem),
 		attachmentField(LastReportedProgressLabel, getLatestComments(newItem)),
 	}
@@ -196,10 +202,11 @@ func CreateIDOWorkflow_OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Ev
 		}
 	}
 
+	conn := connGen.ForPlatformID(ctx.TeamID.ToPlatformID())
 	err = d.PutTableEntry(item, userObjectivesTable)
 
 	if err == nil {
-		view := viewObjectiveWritable(ctx, item, oldItem)
+		view := viewObjectiveWritable(ctx, item, oldItem, conn)
 		view.OverrideOriginal = updated
 		out.Interaction = wf.Interaction{
 			Messages: []wf.InteractiveMessage{view},
@@ -221,10 +228,10 @@ func CreateIDOWorkflow_OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Ev
 
 	// Coach notifications
 	if !updated {
-		err = onUserObjectivePartnerSelection(item, ctx)
+		err = onUserObjectivePartnerSelection(conn, item, ctx)
 	} else if item.AccountabilityPartner != oldItem.AccountabilityPartner {
 		// There is a change in the coach
-		err = onUserObjectivePartnerSelection(item, ctx)
+		err = onUserObjectivePartnerSelection(conn, item, ctx)
 		if err == nil {
 			// Send a notification to the old coach
 			publish(models.PlatformSimpleNotification{UserId: oldItem.AccountabilityPartner, Channel: ctx.Request.Channel.ID,
@@ -235,7 +242,7 @@ func CreateIDOWorkflow_OnDialogSubmitted(ctx wf.EventHandlingContext) (out wf.Ev
 	return
 }
 
-func onUserObjectivePartnerSelection(item models.UserObjective, ctx wf.EventHandlingContext) (err error) {
+func onUserObjectivePartnerSelection(conn daosCommon.DynamoDBConnection, item models.UserObjective, ctx wf.EventHandlingContext) (err error) {
 	mc := models.MessageCallback{
 		Module: "objectives",
 		Source: ctx.Request.User.ID,
@@ -262,7 +269,7 @@ func onUserObjectivePartnerSelection(item models.UserObjective, ctx wf.EventHand
 				DescriptionLabel, core.TextWrap(item.Description, core.Underscore)), "", "", false)
 
 		var coachUts [] models.User
-		coachUts, err = userDAO.ReadOrEmpty(item.AccountabilityPartner)
+		coachUts, err = daosUser.ReadOrEmpty(item.AccountabilityPartner)(conn)
 		if err == nil {
 			if len(coachUts) > 0 {
 				publish(models.PlatformSimpleNotification{UserId: ctx.Request.User.ID, Channel: ctx.Request.Channel.ID,
@@ -303,12 +310,12 @@ func objectiveWritableOperations(isShowingDetails bool, isShowingProgress bool, 
 	return
 }
 
-func viewObjectiveWritable(ctx wf.EventHandlingContext, newItem models.UserObjective, oldItem models.UserObjective) wf.InteractiveMessage {
+func viewObjectiveWritable(ctx wf.EventHandlingContext, newItem models.UserObjective, oldItem models.UserObjective, conn daosCommon.DynamoDBConnection) wf.InteractiveMessage {
 	isShowingDetails := ctx.GetFlag(isShowingDetailsKey)
 	isShowingProgress := ctx.GetFlag(isShowingProgressKey)
 	fields := objectiveToFields(newItem, oldItem, ctx.TeamID)
 	if isShowingDetails {
-		fields = append(fields, objectiveToFieldsDetails(newItem, oldItem, ctx.TeamID)...)
+		fields = append(fields, objectiveToFieldsDetails(newItem, oldItem, ctx.TeamID, conn)...)
 	}
 	if isShowingProgress {
 		fields = append(fields, userObjectiveProgressField(newItem))
@@ -357,9 +364,11 @@ func CreateIDOWorkflow_OnFieldsShown(ctx wf.EventHandlingContext) (out wf.EventO
 	} else {
 		logger.Infof("runtime data is empty")
 	}
+	conn := connGen.ForPlatformID(ctx.TeamID.ToPlatformID())
+
 	// item, err2 := UserObjectiveDAO.Read(itemID)
 	if err == nil {
-		viewItem := viewObjectiveWritable(ctx, item, oldItem)
+		viewItem := viewObjectiveWritable(ctx, item, oldItem, conn)
 		var resp wf.InteractiveMessage
 		resp, err = wf.AnalyseMessage(dialogFetcherDAO, ctx.Request, messageID, utils.TextAnalysisInput{
 			Text:                       item.Description,
@@ -422,12 +431,19 @@ func CreateIDOWorkflow_OnDialogCancelled(ctx wf.EventHandlingContext) (out wf.Ev
 }
 
 // LoadObjectiveDialogDictionaries loads dictionaries that are needed for objective dialog
-func LoadObjectiveDialogDictionaries(userID string, teamID models.TeamID, item models.UserObjective) (coaches, dates []ebm.AttachmentActionElementPlainTextOption, initiativesAndObjectives []ebm.AttachmentActionElementOptionGroup) {
+func LoadObjectiveDialogDictionaries(
+	userID string, teamID models.TeamID, 
+	item models.UserObjective, conn daosCommon.DynamoDBConnection,
+) (
+	coaches, 
+	dates []ebm.AttachmentActionElementPlainTextOption, 
+	initiativesAndObjectives []ebm.AttachmentActionElementOptionGroup,
+) {
 	pValues := platformValues(teamID)
 	logger.Infof("Retrieved values for %s platform: %v", teamID, pValues)
 	initiativesAndObjectives = append(InitsAndObjectives(userID, teamID),
 		pValues...)
-	allMembers := IDOCoaches(userID, teamID)
+	allMembers := IDOCoaches(userID, teamID, conn)
 	allDates := objectives.DevelopmentObjectiveDates(namespace, item.ExpectedEndDate)
 	coaches = convertKvPairToPlainTextOption(allMembers)
 	dates = convertKvPairToPlainTextOption(allDates)
@@ -469,7 +485,9 @@ func CreateIDOWorkflow_OnEdit(ctx wf.EventHandlingContext) (out wf.EventOutput, 
 }
 
 func standardView(ctx wf.EventHandlingContext, item models.UserObjective) (out wf.EventOutput, err error) {
-	view := viewObjectiveWritable(ctx, item, item)
+	conn := connGen.ForPlatformID(ctx.TeamID.ToPlatformID())
+
+	view := viewObjectiveWritable(ctx, item, item, conn)
 	view.OverrideOriginal = true
 	out.Interaction = wf.Interaction{
 		Messages: wf.InteractiveMessages(view),
@@ -716,6 +734,7 @@ func CreateIDOWorkflow_OnProgressCloseout(ctx wf.EventHandlingContext) (out wf.E
 }
 
 func CreateIDOWorkflow_OnViewIDOs(ctx wf.EventHandlingContext) (out wf.EventOutput, err error) {
+	conn := connGen.ForPlatformID(ctx.TeamID.ToPlatformID())
 	userID := ctx.Request.User.ID
 	typ := models.IndividualDevelopmentObjective
 	out.KeepOriginal = true // we want to override it, so, not to delete
@@ -723,7 +742,7 @@ func CreateIDOWorkflow_OnViewIDOs(ctx wf.EventHandlingContext) (out wf.EventOutp
 	allObjs := objectives.AllUserObjectives(userID, userObjectivesTable, string(userObjective.UserIDTypeIndex), typ, 0)
 	threadMessages := wf.InteractiveMessages()
 	for _, obj := range allObjs {
-		view := viewObjectiveWritable(ctx, obj, obj)
+		view := viewObjectiveWritable(ctx, obj, obj, conn)
 		view.DataOverride = wf.Data{itemIDKey: obj.ID}
 		threadMessages = append(threadMessages, view)
 	}
