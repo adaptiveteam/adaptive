@@ -217,7 +217,7 @@ func dispatchCommunityInteractionCallback(request slack.InteractionCallback,
 				if strings.HasPrefix(mc.Action, GenerateReportHR) {
 					// generate report actions: now and cancel
 					suffixAction := strings.TrimPrefix(action.Name, GenerateReportHR+"_")
-					communityNamespaceReportsGenerateReportCallback(request, suffixAction, action, *mc)
+					communityNamespaceReportsGenerateReportCallback(request, teamID, suffixAction, action, *mc)
 				} else if strings.HasPrefix(mc.Action, FetchReportHR) {
 					// fetch report actions: now and cancel
 					suffixAction := strings.TrimPrefix(action.Name, FetchReportHR+"_")
@@ -278,13 +278,13 @@ func dispatchCommunityDialogSubmission(dialog slack.InteractionCallback, teamID 
 	// 	communityNamespaceCoachingDialogSubmissionHandler(dialog, msgState, *mc, dialog.Submission)
 	// } else 
 	if mc.Topic == "init" {
-		dispatchCommunitySimulateDialogSubmission(dialog, msgState, *mc, dialog.Submission)
+		dispatchCommunitySimulateDialogSubmission(dialog, msgState, *mc, dialog.Submission, teamID)
 	} else {
 		logger.Errorf("Unhandled mc.Topic=%s", mc.Topic)
 	}
 }
 
-func communityNamespaceReportsGenerateReportCallback(request slack.InteractionCallback, suffixAction string, action slack.AttachmentAction, mc models.MessageCallback) {
+func communityNamespaceReportsGenerateReportCallback(request slack.InteractionCallback, teamID models.TeamID, suffixAction string, action slack.AttachmentAction, mc models.MessageCallback) {
 	userID := request.User.ID
 	channelID := request.Channel.ID
 	switch suffixAction {
@@ -294,7 +294,7 @@ func communityNamespaceReportsGenerateReportCallback(request slack.InteractionCa
 		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID,
 			Message: string(GeneratingReportForUserNotification(target)),
 			Ts:      request.MessageTs, Attachments: models.EmptyAttachs(), AsUser: true})
-		err2 := feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(userID, time.Now())
+		err2 := feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(teamID, userID, time.Now())
 
 		core.ErrorHandler(err2, namespace, "Could not invoke GeneratePerformanceReportAndPostToUserAsync")
 	case string(models.Cancel):
@@ -479,7 +479,9 @@ const (
 	StrategyDevelopmentObjective models.DevelopmentObjectiveType = "strategy"
 )
 
-func dispatchCommunitySimulateDialogSubmission(dialog slack.InteractionCallback, msgState MsgState, mc models.MessageCallback, form map[string]string) {
+func dispatchCommunitySimulateDialogSubmission(dialog slack.InteractionCallback, 
+	msgState MsgState, mc models.MessageCallback, form map[string]string,
+	teamID models.TeamID) {
 	switch mc.Action {
 	case SimulateNextQuarterAction, SimulateCurrentQuarterAction:
 		emulUser := form[SimulateUserFieldID]
@@ -497,6 +499,7 @@ func dispatchCommunitySimulateDialogSubmission(dialog slack.InteractionCallback,
 		engage := models.UserEngage{
 			UserID: emulUser,
 			Date: parsedDate,
+			TeamID: teamID,
 		}
 		engScheduleBytes, _ := json.Marshal(engage)
 		_, _ = lambdaAPI.InvokeFunction(engagementSchedulerLambda, engScheduleBytes, true)

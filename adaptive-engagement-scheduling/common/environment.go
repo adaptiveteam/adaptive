@@ -1,7 +1,6 @@
 package common
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -50,7 +49,6 @@ var (
 
 	ClientID = utils.NonEmptyEnv("CLIENT_ID")
 	Schema   = models.SchemaForClientID(ClientID)
-	UserDAO  = user.NewDAO(D, Namespace, ClientID)
 )
 
 var (

@@ -35,8 +35,6 @@ var (
 	connGen = daosCommon.CreateConnectionGenFromEnv()
 
 	schema  = models.SchemaForClientID(clientID)
-	// userDao = utilsUser.NewDAOFromSchema(d, namespace, schema)
-
 	logger = alog.LambdaLogger(logrus.InfoLevel)
 )
 

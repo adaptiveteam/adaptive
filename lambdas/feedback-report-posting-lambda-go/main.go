@@ -38,13 +38,13 @@ func postTo(engage models.UserEngage) (postTo string) {
 	return
 }
 
-func generateReportIfNecessary(reportForUserID string, t time.Time) (contents []byte, err error) {
+func generateReportIfNecessary(teamID models.TeamID, reportForUserID string, t time.Time) (contents []byte, err error) {
 	key := coaching.UserReportIDForPreviousQuarter(t, reportForUserID)
 	logger.Infof("Report id for %s user: %s", reportForUserID, key)
 	// Check if the report exists
 	if !common.DeprecatedGetGlobalS3().ObjectExists(reportsBucket, key) {
 		logger.Infof("Report doesn't exist for %s user, generating now", reportForUserID)
-		err = feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(reportForUserID, t)
+		err = feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(teamID, reportForUserID, t)
 		err = errors.Wrapf(err, "Could not invoke %s lambda", FeedbackReportingLambdaName)
 	}
 	return
@@ -111,7 +111,7 @@ func DeliverReportToUserImpl(
 	// Check if the report exists
 	if !common.DeprecatedGetGlobalS3().ObjectExists(reportsBucket, reportS3Key) {
 		logger.Infof("Report doesn't exist for %s user, generating now", reportForUserID)
-		err = feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(reportForUserID, date)
+		err = feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(teamID, reportForUserID, date)
 		err = errors.Wrapf(err, "Could not invoke %s lambda", FeedbackReportingLambdaName)
 	} else { // report generation is asyncronous, so we cannot download it immediately.
 		var contents []byte

@@ -2,11 +2,14 @@ package lambda
 
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/pkg/errors"
 	"context"
 	"encoding/json"
@@ -108,10 +111,11 @@ const (
 	CustomerObjective   = "Customer Objective"
 )
 
-func IDOCoaches(userID string, teamID models.TeamID) []models.KvPair {
+func IDOCoaches(userID string, teamID models.TeamID, conn daosCommon.DynamoDBConnection) []models.KvPair {
 	var filteredCoaches []models.KvPair
 	coaches := objectives.IDOCoaches(userID, teamID,
-		communityUsersTable, string(adaptiveCommunityUser.PlatformIDCommunityIDIndex), UserIDsToDisplayNames)
+		communityUsersTable, string(adaptiveCommunityUser.PlatformIDCommunityIDIndex), 
+		utilsUser.UserIDsToDisplayNamesConnUnsafe(conn))
 	for _, each := range coaches {
 		if each.Value != userID {
 			// Filtering out the self-user
@@ -146,8 +150,10 @@ func TimeStamp(request slack.InteractionCallback) string {
 	return ts
 }
 
-func createObjectiveNow(message slack.InteractionCallback, userID string,
-	teamID models.TeamID, actionValue string, mc *models.MessageCallback) {
+func createObjectiveNow(conn daosCommon.DynamoDBConnection, message slack.InteractionCallback, userID string,
+	actionValue string, mc *models.MessageCallback,
+) {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	id := actionValue // callbackId
 	mc.Set("Target", "")
 	pValues := platformValues(teamID)
@@ -155,7 +161,7 @@ func createObjectiveNow(message slack.InteractionCallback, userID string,
 	initsObjsValues := append(InitsAndObjectives(userID, teamID),
 		pValues...)
 	survey := utils.AttachmentSurvey(string(ObjectiveAddAnotherDialogTitle),
-		objectives.EditObjectiveSurveyElems2(nil, IDOCoaches(userID, teamID),
+		objectives.EditObjectiveSurveyElems2(nil, IDOCoaches(userID, teamID, conn),
 			objectives.DevelopmentObjectiveDates(namespace, ""), initsObjsValues))
 	api := getSlackClient(message)
 	// Open a survey associated with the engagement
@@ -165,13 +171,15 @@ func createObjectiveNow(message slack.InteractionCallback, userID string,
 	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not open dialog from %s survey", id+":"+message.CallbackID))
 }
 
-func PartnerSelectingUserEngagement(teamID models.TeamID, mc models.MessageCallback, userID string, text ui.RichText, users []string) {
+func PartnerSelectingUserEngagement(conn daosCommon.DynamoDBConnection, 
+	mc models.MessageCallback, userID string, text ui.RichText, users []string) {
 	var userOpts []ebm.MenuOption
 
+	teamID := models.ParseTeamID(conn.PlatformID)
 	for _, each := range users {
 		var users1 []models.User
 		var err2 error
-		users1, err2 = userDAO.ReadOrEmpty(each)
+		users1, err2 = daosUser.ReadOrEmpty(each)(conn)
 		core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query for %s user", userID))
 		for _, user := range users1 {
 			userOpts = append(userOpts, ebm.Option(each, ui.PlainText(user.DisplayName)))
@@ -186,16 +194,16 @@ func PartnerSelectingUserEngagement(teamID models.TeamID, mc models.MessageCallb
 		time.Now().Unix(), common2.EngagementEmptyCheck)
 }
 
-func PartnerSelectingUserForProgress(teamID models.TeamID, mc *models.MessageCallback, userID string, users []string) {
+func PartnerSelectingUserForProgress(conn daosCommon.DynamoDBConnection, mc *models.MessageCallback, userID string, users []string) {
 	// Post an engagement to the partner to select a user to review progress
-	PartnerSelectingUserEngagement(teamID, *mc.WithTopic("coaching").WithAction(ReviewUserProgressSelect), userID,
+	PartnerSelectingUserEngagement(conn, *mc.WithTopic("coaching").WithAction(ReviewUserProgressSelect), userID,
 		CoacheeProgressSelectionPrompt,
 		users)
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-func detailedViewFields(u *models.UserObjective, typ, alignment string) []ebm.AttachmentField {
+func detailedViewFields(conn daosCommon.DynamoDBConnection, u *models.UserObjective, typ, alignment string) []ebm.AttachmentField {
 	fields := compactViewFields(u, typ, alignment)
 	// For ViewMore action, we only need the latest comment
 	ops := LatestProgressUpdateByObjectiveID(u.ID)
@@ -215,7 +223,7 @@ func detailedViewFields(u *models.UserObjective, typ, alignment string) []ebm.At
 	} else if u.Completed == 1 && !u.PartnerVerifiedCompletion {
 		status = StatusCompletedAndNotPartnerVerifiedCompletion
 	}
-	user, err2 := userDAO.Read(u.AccountabilityPartner)
+	user, err2 := daosUser.Read(u.AccountabilityPartner)(conn)
 	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not read %s user", u.AccountabilityPartner))
 
 	fields = append(fields, models.AttachmentFields([]models.KvPair{
@@ -442,7 +450,10 @@ func updateProgressAttachmentActions(mc models.MessageCallback, actionName model
 }
 
 // An attachment that displays information about objectives
-func updateObjAttachment(mc models.MessageCallback, teamID models.TeamID, title, text, fallback ui.PlainText, uObj *models.UserObjective, showMore, showProgress, strategyFlag bool) []ebm.Attachment {
+func updateObjAttachment(conn daosCommon.DynamoDBConnection, 
+	mc models.MessageCallback, title, text, fallback ui.PlainText, 
+	uObj *models.UserObjective, showMore, showProgress, strategyFlag bool) []ebm.Attachment {
+	teamID := models.ParseTeamID(conn.PlatformID)
 	var fields []ebm.AttachmentField
 	typeLabel, alignment := objectiveType(teamID)(*uObj)
 	fmt.Println(fmt.Sprintf("Objective type for %s: %s", uObj.Name, typeLabel))
@@ -454,7 +465,7 @@ func updateObjAttachment(mc models.MessageCallback, teamID models.TeamID, title,
 	} else {
 		fields = compactViewFields(uObj, typeLabel, alignment)
 		if showMore {
-			fields = detailedViewFields(uObj, typeLabel, alignment)
+			fields = detailedViewFields(conn, uObj, typeLabel, alignment)
 		}
 	}
 	attach := utils.ChatAttachment(string(title), string(text), string(fallback), mc.ToCallbackID(),
@@ -661,11 +672,11 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 			var np models.NamespacePayload4
 			err = json.Unmarshal([]byte(message), &np)
 			core.ErrorHandler(err, namespace, fmt.Sprintf("Could not unmarshal sns record to NamespacePayload4"))
+			teamID := np.TeamID
+			conn := connGen.ForPlatformID(teamID.ToPlatformID())
 			if strings.HasPrefix(np.InteractionCallback.CallbackID, "/") {
-				conn := connGen.ForPlatformID(np.TeamID.ToPlatformID())
 				err = wfRoutes.InvokeWorkflow(np, conn)
 			} else {
-				teamID := np.TeamID
 				if np.Namespace == "objectives" {
 					switch np.SlackRequest.Type {
 					case models.InteractionSlackRequestType:
@@ -703,7 +714,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 						} else if strings.HasPrefix(action.Name, ReviewCoachComments) {
 							onReviewCoachComments(request, teamID)
 						} else if strings.HasPrefix(action.Name, UberCoach) {
-							onUberCoach(request, teamID)
+							onUberCoach(conn, request, teamID)
 						} else if strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinWeek) ||
 							strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinMonth) ||
 							strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinQuarter) ||
@@ -737,7 +748,6 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 
 func onMenuList(np models.NamespacePayload4) (err error) {
 	request := np.SlackRequest.InteractionCallback
-	teamID := np.TeamID
 	userID := request.User.ID
 	channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
@@ -954,7 +964,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		usersForPartner := UsersForPartner(userID)
 
 		if len(usersForPartner) > 0 {
-			PartnerSelectingUserForProgress(teamID, &mc, userID, usersForPartner)
+			PartnerSelectingUserForProgress(conn, &mc, userID, usersForPartner)
 		} else {
 			// Do not publish this message to the channel, but send to user
 			publish(models.PlatformSimpleNotification{UserId: userID, Message: core.TextWrap(fmt.Sprintf("Thanks for asking me. You did not partner with anyone on their development objectives"), core.Underscore), AsUser: true})
@@ -1001,6 +1011,7 @@ func onConfirm(request slack.InteractionCallback, teamID models.TeamID) {
 }
 
 func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	userID := request.User.ID
 	channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
@@ -1055,7 +1066,7 @@ func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
 	} else if mc.Topic == "init" {
 		switch act {
 		case string(models.Now):
-			createObjectiveNow(message, userID, teamID, action.Value, mc)
+			createObjectiveNow(conn, message, userID, action.Value, mc)
 		case string(models.Update):
 			// We should write this an engagement for update
 			id := message.CallbackID // callbackId
@@ -1063,7 +1074,8 @@ func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
 			mc.Set("Target", "")
 			initsObjsValues := append(InitsAndObjectives(userID, teamID), platformValues(models.TeamID(teamID))...)
 			uObj := userObjectiveByID(target)
-			val := utils.AttachmentSurvey(string(ObjectiveModifyDialogTitle), objectives.EditObjectiveSurveyElems2(&uObj, IDOCoaches(userID, teamID),
+			val := utils.AttachmentSurvey(string(ObjectiveModifyDialogTitle), 
+				objectives.EditObjectiveSurveyElems2(&uObj, IDOCoaches(userID, teamID, conn),
 				objectives.DevelopmentObjectiveDates(namespace, ""), initsObjsValues))
 
 			// Is the AttachmentActionSurvey non-empty
@@ -1077,21 +1089,21 @@ func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
 			// Set target for message callback as the id for the engagement
 			mc.Set("Target", mc.Target)
 			strategyFlag := core.IfThenElse(uObj.ObjectiveType == models.StrategyDevelopmentObjective, true, false).(bool)
-			attachs := updateObjAttachment(*mc, teamID, "", "", "", &uObj, true, false, strategyFlag)
+			attachs := updateObjAttachment(conn, *mc, "", "", "", &uObj, true, false, strategyFlag)
 			publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID, Attachments: attachs, Ts: message.MessageTs})
 		case string(ViewLess):
 			uObj := userObjectiveByID(mc.Target)
 			// Set target for message callback as the id for the engagement
 			mc.Set("Target", mc.Target)
 			strategyFlag := core.IfThenElse(uObj.ObjectiveType == models.StrategyDevelopmentObjective, true, false).(bool)
-			attachs := updateObjAttachment(*mc, teamID, "", "", "", &uObj, false, false, strategyFlag)
+			attachs := updateObjAttachment(conn, *mc, "", "", "", &uObj, false, false, strategyFlag)
 			publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID, Message: "", Attachments: attachs, Ts: message.MessageTs})
 		case string(ViewProgress):
 			uObj := userObjectiveByID(mc.Target)
 			// Set target for message callback as the id for the engagement
 			mc.Set("Target", mc.Target)
 			strategyFlag := core.IfThenElse(uObj.ObjectiveType == models.StrategyDevelopmentObjective, true, false).(bool)
-			attachs := updateObjAttachment(*mc, teamID, "", "", "", &uObj, false, true, strategyFlag)
+			attachs := updateObjAttachment(conn, *mc, "", "", "", &uObj, false, true, strategyFlag)
 			publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID, Message: "", Attachments: attachs, Ts: message.MessageTs})
 		case string(models.Ok):
 			DeleteOriginalEng(message.User.ID, message.Channel.ID, message.MessageTs)
@@ -1172,7 +1184,7 @@ func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
 			// Set target for message callback as the id for the engagement
 			mc.Set("Target", mc.Target)
 			strategyFlag := core.IfThenElse(uObj.ObjectiveType == models.StrategyDevelopmentObjective, true, false).(bool)
-			attachs := updateObjAttachment(*mc.WithTopic("init"), teamID, "", "", "", &uObj, false, false, strategyFlag)
+			attachs := updateObjAttachment(conn, *mc.WithTopic("init"), "", "", "", &uObj, false, false, strategyFlag)
 			publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID, Message: "", Attachments: attachs, Ts: message.MessageTs})
 		case string(MoreOptions):
 			// Show more options
@@ -1287,6 +1299,7 @@ func onViewStaleIDOs(request slack.InteractionCallback, teamID models.TeamID) {
 }
 
 func onViewOpenObjectives(request slack.InteractionCallback, teamID models.TeamID) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	userID := request.User.ID
 	channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
@@ -1302,7 +1315,7 @@ func onViewOpenObjectives(request slack.InteractionCallback, teamID models.TeamI
 		}, func(mc models.MessageCallback, objective models.UserObjective) []ebm.Attachment {
 			strategyFlag := core.IfThenElse(objective.ObjectiveType == models.StrategyDevelopmentObjective,
 				true, false).(bool)
-			return updateObjAttachment(mc, teamID, "", "", "", &objective,
+			return updateObjAttachment(conn, mc, "", "", "", &objective,
 				false, false, strategyFlag)
 		}, models.IndividualDevelopmentObjective, TimeStamp(message))
 		// Update engagement as answered and remove the original engagement
@@ -1395,6 +1408,8 @@ func onPartnerObjective(request slack.InteractionCallback, teamID models.TeamID)
 }
 
 func onReviewUserProgressSelect(request slack.InteractionCallback, teamID models.TeamID) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+
 	userID := request.User.ID
 	channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
@@ -1435,7 +1450,7 @@ func onReviewUserProgressSelect(request slack.InteractionCallback, teamID models
 	case string(models.Back):
 		usersForPartner := UsersForPartner(userID)
 		// Show the original engagement and delete current engagement
-		PartnerSelectingUserForProgress(teamID, mc, userID, core.Distinct(usersForPartner))
+		PartnerSelectingUserForProgress(conn, mc, userID, core.Distinct(usersForPartner))
 		DeleteOriginalEng(userID, channelID, message.MessageTs)
 	}
 }
@@ -1551,7 +1566,7 @@ func onReviewCoachComments(request slack.InteractionCallback, teamID models.Team
 	}
 }
 
-func onUberCoach(request slack.InteractionCallback, teamID models.TeamID) {
+func onUberCoach(conn daosCommon.DynamoDBConnection, request slack.InteractionCallback, teamID models.TeamID) {
 	userID := request.User.ID
 	channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
@@ -1560,8 +1575,8 @@ func onUberCoach(request slack.InteractionCallback, teamID models.TeamID) {
 	mc, err1 := utils.ParseToCallback(action.Value)
 	core.ErrorHandler(err1, namespace, fmt.Sprintf("Could not parse to callback"))
 
-	objectiveId := mc.Target
-	obj := userObjectiveByID(objectiveId)
+	objectiveID := mc.Target
+	obj := userObjectiveByID(objectiveID)
 	switch act {
 	case string(models.Now):
 		coach := userID
@@ -1576,7 +1591,7 @@ func onUberCoach(request slack.InteractionCallback, teamID models.TeamID) {
 			}
 			key := map[string]*dynamodb.AttributeValue{
 				"user_id": dynString(mc.Source),
-				"id":      dynString(objectiveId),
+				"id":      dynString(objectiveID),
 			}
 			updateExpression := "set accountability_partner = :ap, accepted = :a"
 			err3 := d.UpdateTableEntry(exprAttributes, key, updateExpression, userObjectivesTable)
@@ -1588,7 +1603,7 @@ func onUberCoach(request slack.InteractionCallback, teamID models.TeamID) {
 			publish(models.PlatformSimpleNotification{UserId: obj.UserID,
 				Message: msg, AsUser: true})
 		} else {
-			users, err2 := userDAO.ReadOrEmpty(obj.AccountabilityPartner)
+			users, err2 := daosUser.ReadOrEmpty(obj.AccountabilityPartner)(conn)
 			core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query for %s user", userID))
 			if len(users) > 0{
 				// Send notification to coaching community
@@ -1603,6 +1618,8 @@ func onUberCoach(request slack.InteractionCallback, teamID models.TeamID) {
 }
 
 func onCapabilityObjectiveUpdateDueWithinWeek(request slack.InteractionCallback, teamID models.TeamID) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+
 	userID := request.User.ID
 	channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
@@ -1636,7 +1653,7 @@ func onCapabilityObjectiveUpdateDueWithinWeek(request slack.InteractionCallback,
 				Message: text})
 			ListObjectives(userID, channelID, objs,
 				func(mc models.MessageCallback, objective models.UserObjective) []ebm.Attachment {
-					return updateObjAttachment(mc, teamID, "", "", "", &objective,
+					return updateObjAttachment(conn, mc, "", "", "", &objective,
 						false, false, true)
 				}, TimeStamp(message))
 		} else {
@@ -1656,9 +1673,10 @@ func onDialogSubmission(request slack.InteractionCallback, teamID models.TeamID)
 	mc, err := utils.ParseToCallback(dialog.CallbackID)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
 	fmt.Println("### callback in submission: " + dialog.CallbackID)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 
 	if mc.Topic == "init" && mc.Action == "ask" {
-		onUserObjectiveSubmitted(dialog, teamID, *mc)
+		onUserObjectiveSubmitted(conn, dialog, teamID, *mc)
 	} else if mc.Topic == "init" && mc.Action == string(Closeout) {
 		onCloseout(dialog, teamID, *mc)
 	} else if mc.Topic == CommentsName {
@@ -1735,7 +1753,7 @@ func convertDialogSubmissionToUserObjective(
 
 // This is engagement is to handle creating a user objective
 // TODO: split update and create logic
-func onUserObjectiveSubmitted(request slack.InteractionCallback, teamID models.TeamID, mc models.MessageCallback) {
+func onUserObjectiveSubmitted(conn daosCommon.DynamoDBConnection, request slack.InteractionCallback, teamID models.TeamID, mc models.MessageCallback) {
 	dialog := request
 	msgState := GetMsgStateUnsafe(request)
 	userID := dialog.User.ID
@@ -1756,7 +1774,7 @@ func onUserObjectiveSubmitted(request slack.InteractionCallback, teamID models.T
 		userObj = convertDialogSubmissionToUserObjective(core.Uuid(), dialog.User.ID, teamID, dialog.Submission)
 	}
 
-	user, err4 := userDAO.Read(userObj.UserID)
+	user, err4 := daosUser.Read(userObj.UserID)(conn)
 	// ut, err := utils.UserToken(userObj.UserID, userProfileLambda, region, namespace)
 	core.ErrorHandler(err4, namespace, fmt.Sprintf("Could not query for %s user", userObj.UserID))
 	CreateUserObjective(userObj, &mc, dialog.Channel.ID, teamID, msgState.ThreadTs, msgState.Update)
@@ -1775,7 +1793,7 @@ func onUserObjectiveSubmitted(request slack.InteractionCallback, teamID models.T
 				"<@%s> is requesting your coaching for the below Individual Development Objective. Are you available to partner with and guide your colleague with this effort?", userObj.UserID),
 				fmt.Sprintf("*%s*: %s\n*%s*: %s", NameLabel, userObj.Name, DescriptionLabel, core.TextWrap(userObj.Description, core.Underscore)), "", "", false)
 
-			coaches, err5 := userDAO.ReadOrEmpty(userObj.AccountabilityPartner)
+			coaches, err5 := daosUser.ReadOrEmpty(userObj.AccountabilityPartner)(conn)
 			core.ErrorHandler(err5, namespace, fmt.Sprintf("Could not query for user token"))
 			if len(coaches) > 0 {
 				publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: core.TextWrap(fmt.Sprintf(
@@ -2109,6 +2127,7 @@ func updateCommentsAttachmentActions(mc models.MessageCallback) []ebm.Attachment
 
 func CreateUserObjective(userObj models.UserObjective, mc *models.MessageCallback, channelID string,
 	teamID models.TeamID, threadTs string, update bool) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	userID := userObj.UserID
 	editStatus := core.IfThenElse(update, "updated", "created").(string)
 
@@ -2116,7 +2135,7 @@ func CreateUserObjective(userObj models.UserObjective, mc *models.MessageCallbac
 	err := d.PutTableEntry(userObj, userObjectivesTable)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not add entry to %s table", userObjectivesTable))
 	strategyFlag := core.IfThenElse(userObj.ObjectiveType == models.StrategyDevelopmentObjective, true, false).(bool)
-	attachs := updateObjAttachment(*mc, teamID,
+	attachs := updateObjAttachment(conn, *mc,
 		ui.PlainText(ui.Sprintf("Here is the objective that you %s", editStatus)),
 		"", "", &userObj, false, false, strategyFlag)
 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: "", Attachments: attachs, Ts: threadTs})
