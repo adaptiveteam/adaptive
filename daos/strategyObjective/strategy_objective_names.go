@@ -20,5 +20,4 @@ const (
 type IndexName string
 const (
 	PlatformIDIndex IndexName = "PlatformIDIndex"
-	CapabilityCommunityIDsIndex IndexName = "CapabilityCommunityIDsIndex"
 )
