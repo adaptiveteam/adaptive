@@ -452,7 +452,6 @@ val StrategyObjectiveTable = Table(StrategyObjective,
     Index(idField, Some(platformIdField)),
     List(
         Index(platformIdField, None),
-        Index(capabilityCommunityIDsField, None)
     )
 )
 
