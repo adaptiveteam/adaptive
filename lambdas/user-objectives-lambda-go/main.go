@@ -34,7 +34,6 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsIssues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
-	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/aws/aws-lambda-go/events"
@@ -93,7 +92,6 @@ const (
 	Enable       models.AttachActionName = "enable"
 	Confirm      models.AttachActionName = "confirm"
 
-	PartnerSelectUser        = "partner_select_user"
 	SelectPartnerObjective   = "select_partner_objective"
 	PartnerObjective         = "partner_objective"
 	UserOpenObjectives       = "user_open_objectives"
@@ -101,9 +99,9 @@ const (
 	ReviewCoachComments      = "review_coach_comments"
 
 	// ViewObjectivesNoProgressThisWeek = user.ViewObjectivesNoProgressThisWeek
-
-	ViewOpenObjectives = "view_open_objectives"
-
+)
+var	ViewOpenObjectives = common2.ViewOpenObjectives
+const(
 	Individual          = "Individual Objective"
 	CapabilityObjective = "Capability Objective"
 	StrategyInitiative  = "Initiative"
@@ -701,8 +699,6 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							onViewStaleIDOs(request, teamID)
 						} else if strings.HasPrefix(action.Name, ViewOpenObjectives) {
 							onViewOpenObjectives(request, teamID)
-						} else if strings.HasPrefix(action.Name, PartnerSelectUser) {
-							onPartnerSelectUser(request, teamID)
 						} else if strings.HasPrefix(action.Name, SelectPartnerObjective) {
 							onSelectPartnerObjective(request, teamID)
 						} else if strings.HasPrefix(action.Name, PartnerObjective) {
@@ -931,34 +927,6 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 		// 		Message: "There are no Strategy Objectives assigned to you"})
 		// }
-	case PartnerSelectUser:
-		mc := callback(userID, "coaching", UserOpenObjectives)
-		var users []string
-		// Query all the objectives for which no partner is assigned
-		var uaObjs []models.UserObjective
-		err := d.QueryTableWithIndex(userObjectivesTable, awsutils.DynamoIndexExpression{
-			IndexName: string(userObjective.AcceptedIndex),
-			Condition: "accepted = :a",
-			Attributes: map[string]interface{}{
-				":a": aws.Int(0),
-			},
-		}, map[string]string{}, true, -1, &uaObjs)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s index on %s table", userObjective.AcceptedIndex, userObjectivesTable))
-		for _, each := range uaObjs {
-			users = append(users, each.UserID)
-		}
-		// If there are objectives that doesn't have a partner for
-		if len(core.Distinct(users)) > 0 {
-			// Posting user select engagement to the user. User id here should be channel since we are posting into a channel
-			user.UserSelectEng(userID, engagementTable, conn,
-				*mc.WithTopic("coaching").WithAction(PartnerSelectUser), core.Distinct(users), []string{},
-				"Hello! Below are the users who doesn't have a partner assigned for some of their objectives.",
-				"coaching", common2.EngagementEmptyCheck)
-		} else {
-			publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: core.TextWrap(fmt.Sprintf("All users have partners assigned for all their individual objectives."), core.Underscore), AsUser: true})
-		}
-		// Delete the original engagement
-		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: "", AsUser: true, Ts: message.MessageTs})
 	case ReviewUserProgressSelect:
 		mc := callback(userID, "init", "select")
 		usersForPartner := UsersForPartner(userID)
@@ -1327,38 +1295,6 @@ func onViewOpenObjectives(request slack.InteractionCallback, teamID models.TeamI
 		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
 	}
 }
-
-func onPartnerSelectUser(request slack.InteractionCallback, teamID models.TeamID) {
-	userID := request.User.ID
-	channelID := request.Channel.ID
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	mc, err := utils.ParseToCallback(message.CallbackID)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", PartnerSelectUser, core.Underscore))
-	switch act {
-	case string(models.Now):
-		// Listing not accepted objectives for a user
-		typ := models.IndividualDevelopmentObjective
-		allObjs := objectives.AllUserObjectives(userID, userObjectivesTable, string(userObjective.UserIDTypeIndex), typ, 0)
-		openObjs := filterObjectives(allObjs, func(objective models.UserObjective) bool {
-			return objective.Accepted != 1
-		})
-		if len(openObjs) > 0 {
-			ListObjectives(userID, channelID, openObjs, func(mc models.MessageCallback, objective models.UserObjective) []ebm.Attachment {
-				return partnerObjViewAttachment(mc,
-					ui.PlainText(objective.Name),
-					ui.PlainText(objective.Description), "", &objective)
-			}, TimeStamp(message))
-		}
-		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	case string(models.Cancel):
-		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	}
-}
-
 func onSelectPartnerObjective(request slack.InteractionCallback, teamID models.TeamID) {
 	userID := request.User.ID
 	channelID := request.Channel.ID
