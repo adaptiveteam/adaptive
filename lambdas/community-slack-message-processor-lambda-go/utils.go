@@ -50,12 +50,6 @@ func ParseAsAppMentionEvent(apiEvent slackevents.EventsAPIEvent) *slackevents.Ap
 	panic(errors.New("ParseAsAppMentionEvent: Couldn't cast to slackevents.AppMentionEvent"))
 }
 
-func DeleteOriginalEng(userId, channel, ts string) {
-	utils.DeleteOriginalEng(userId, channel, ts, func(notification models.PlatformSimpleNotification) {
-		publish(notification)
-	})
-}
-
 func concatAppend(slices ...[]esmodels.CrossWalk) []esmodels.CrossWalk {
 	var tmp []esmodels.CrossWalk
 	for _, s := range slices {
