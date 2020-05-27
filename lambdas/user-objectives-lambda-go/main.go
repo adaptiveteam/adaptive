@@ -89,8 +89,6 @@ const (
 	Cancel       models.AttachActionName = "cancel"
 	Enable       models.AttachActionName = "enable"
 	Confirm      models.AttachActionName = "confirm"
-
-	PartnerObjective         = "partner_objective"
 )
 var	ViewOpenObjectives = common2.ViewOpenObjectives
 const(
@@ -673,8 +671,6 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							onViewStaleIDOs(request, teamID)
 						} else if strings.HasPrefix(action.Name, ViewOpenObjectives) {
 							onViewOpenObjectives(request, teamID)
-						} else if strings.HasPrefix(action.Name, PartnerObjective) {
-							onPartnerObjective(request, teamID)
 						} else if strings.HasPrefix(action.Name, UberCoach) {
 							onUberCoach(conn, request, teamID)
 						} else if strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinWeek) ||
@@ -1242,32 +1238,6 @@ func onViewOpenObjectives(request slack.InteractionCallback, teamID models.TeamI
 		// Update engagement as ignored and remove the original engagement
 		utils.UpdateEngAsIgnored(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
 		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	}
-}
-
-func onPartnerObjective(request slack.InteractionCallback, teamID models.TeamID) {
-	userID := request.User.ID
-	channelID := request.Channel.ID
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	mc, err := utils.ParseToCallback(message.CallbackID)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", PartnerObjective, core.Underscore))
-	switch act {
-	case "confirm":
-		uObj := userObjectiveByID(mc.Target)
-		partner := mc.Source
-		SetObjectiveField(uObj, "accepted", 1)
-		SetObjectiveField(uObj, "accountability_partner", partner)
-		publish(models.PlatformSimpleNotification{UserId: userID, Message: core.TextWrap(fmt.Sprintf(
-			"<@%s> will be your accountability partner for the objective: %s", partner, uObj.Name), core.Underscore), AsUser: true})
-		publish(models.PlatformSimpleNotification{UserId: partner, Message: core.TextWrap(fmt.Sprintf(
-			"You are now accountable for <@%s>'s objective: %s", userID, uObj.Name), core.Underscore), AsUser: true})
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-		utils.UpdateEngAsAnswered(userID, mc.ToCallbackID(), engagementTable, d, namespace)
-	case string(models.No):
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-		utils.UpdateEngAsIgnored(userID, mc.ToCallbackID(), engagementTable, d, namespace)
 	}
 }
 
