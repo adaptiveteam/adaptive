@@ -15,10 +15,6 @@ resource "aws_dynamodb_table" "strategy_objectives" {
     name = "platform_id"
     type = "S"
   }
-  attribute {
-    name = "capability_community_ids"
-    type = "S"
-  }
 
   stream_enabled   = true
   stream_view_type = var.dynamo_stream_view_type
@@ -26,13 +22,6 @@ resource "aws_dynamodb_table" "strategy_objectives" {
   global_secondary_index {
     name            = var.dynamo_strategy_objectives_platform_index
     hash_key        = "platform_id"
-    projection_type = "ALL"
-    write_capacity  = var.dynamo_ondemand_write_capacity
-    read_capacity  = var.dynamo_ondemand_read_capacity
-  }
-  global_secondary_index {
-    name            = var.dynamo_strategy_objectives_capability_community_index
-    hash_key        = "capability_community_ids"
     projection_type = "ALL"
     write_capacity  = var.dynamo_ondemand_write_capacity
     read_capacity  = var.dynamo_ondemand_read_capacity

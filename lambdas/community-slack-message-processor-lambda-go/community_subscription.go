@@ -127,7 +127,7 @@ func setupCommunityUsers(channelID, communityID string, communityMemberIDs []str
 	// If the user has already subscribed to other channels,  we don't show adaptive scheduled time engagement
 	for userID, hasBeenSubscribed := range hasBeenSubscribedMany {
 		if !hasBeenSubscribed {
-			setupUser(userID)
+			setupUser(teamID, userID)
 		}
 	}
 }
@@ -293,7 +293,7 @@ func onMemberJoinedChannel(slackMsg slackevents.MemberJoinedChannelEvent,
 				logger.Infof("Welcoming newly added %s user", slackMsg.User)
 				welcomeAllUsers(userCommunityPairs, conn)
 				if !hasBeenSubscribed {
-					setupUser(slackMsg.User)
+					setupUser(teamID, slackMsg.User)
 				}
 			}
 		} else {
@@ -350,8 +350,10 @@ func welcomeAllUsers(userCommunityPairs []models.AdaptiveCommunityUser3, conn co
 	}
 }
 
-func setupUser(userID string) {
-	userEngage := models.UserEngage{UserID: userID,
+func setupUser(teamID models.TeamID,userID string) {
+	userEngage := models.UserEngage{
+		TeamID: teamID,
+		UserID: userID,
 		IsNew: true, Update: false}
 	invokeUserSetupLambdaUnsafe(userEngage)
 }

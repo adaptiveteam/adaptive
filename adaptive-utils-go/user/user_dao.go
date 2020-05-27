@@ -1,6 +1,7 @@
 package user
 
 import (
+	"github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
 
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
@@ -21,6 +22,21 @@ func UserIDsToDisplayNamesUnsafe(dao DAO) func(userIDs []string) (res []models.K
 		}
 		for _, userID := range userIDs {
 			user := dao.ReadUnsafe(userID)
+			res = append(res, models.KvPair{Key: user.DisplayName, Value: userID})
+		}
+		return
+	}
+}
+
+// UserIDsToDisplayNamesUnsafe converts a bunch of user ids to their names
+// NB! O(n)! TODO: implement a query that returns many users at once.
+func UserIDsToDisplayNamesConnUnsafe(conn common.DynamoDBConnection) func(userIDs []string) (res []models.KvPair) {
+	return func(userIDs []string) (res []models.KvPair) {
+		if len(userIDs) > 10 {
+			fmt.Println("WARN: Very slow user data fetching")
+		}
+		for _, userID := range userIDs {
+			user := daosUser.ReadUnsafe(userID)(conn)
 			res = append(res, models.KvPair{Key: user.DisplayName, Value: userID})
 		}
 		return

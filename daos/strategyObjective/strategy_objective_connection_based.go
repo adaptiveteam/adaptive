@@ -210,28 +210,3 @@ func ReadByPlatformIDUnsafe(platformID common.PlatformID) func (conn common.Dyna
 	}
 }
 
-
-func ReadByCapabilityCommunityIDs(capabilityCommunityIDs []string) func (conn common.DynamoDBConnection) (out []StrategyObjective, err error) {
-	return func (conn common.DynamoDBConnection) (out []StrategyObjective, err error) {
-		var instances []StrategyObjective
-		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
-			IndexName: "CapabilityCommunityIDsIndex",
-			Condition: "capability_community_ids = :a0",
-			Attributes: map[string]interface{}{
-				":a0": capabilityCommunityIDs,
-			},
-		}, map[string]string{}, true, -1, &instances)
-		out = instances
-		return
-	}
-}
-
-
-func ReadByCapabilityCommunityIDsUnsafe(capabilityCommunityIDs []string) func (conn common.DynamoDBConnection) (out []StrategyObjective) {
-	return func (conn common.DynamoDBConnection) (out []StrategyObjective) {
-		out, err2 := ReadByCapabilityCommunityIDs(capabilityCommunityIDs)(conn)
-		core.ErrorHandler(err2, "daos/StrategyObjective", fmt.Sprintf("Could not query CapabilityCommunityIDsIndex on %s table\n", TableName(conn.ClientID)))
-		return
-	}
-}
-

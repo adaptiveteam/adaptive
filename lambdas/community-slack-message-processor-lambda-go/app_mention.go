@@ -73,7 +73,7 @@ func userMentionFetchReportHandler(slackMsg slackevents.AppMentionEvent, teamID 
 func userMentionGenerateReportHandler(slackMsg slackevents.AppMentionEvent, teamID models.TeamID, targetUserID string) {
 	// Posting message to the channel in which user requested this
 	replyInThread(slackMsg, teamID, simpleMessage(GeneratingReportNotification))
-	err2 := feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(targetUserID, time.Now())
+	err2 := feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(teamID, targetUserID, time.Now())
 	core.ErrorHandler(err2, namespace, "Could not invoke GeneratePerformanceReportAndPostToUserAsync from app-mention")
 }
 
