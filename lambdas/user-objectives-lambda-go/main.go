@@ -91,9 +91,6 @@ const (
 	Confirm      models.AttachActionName = "confirm"
 
 	PartnerObjective         = "partner_objective"
-	ReviewCoachComments      = "review_coach_comments"
-
-	// ViewObjectivesNoProgressThisWeek = user.ViewObjectivesNoProgressThisWeek
 )
 var	ViewOpenObjectives = common2.ViewOpenObjectives
 const(
@@ -678,8 +675,6 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							onViewOpenObjectives(request, teamID)
 						} else if strings.HasPrefix(action.Name, PartnerObjective) {
 							onPartnerObjective(request, teamID)
-						} else if strings.HasPrefix(action.Name, ReviewCoachComments) {
-							onReviewCoachComments(request, teamID)
 						} else if strings.HasPrefix(action.Name, UberCoach) {
 							onUberCoach(conn, request, teamID)
 						} else if strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinWeek) ||
@@ -1286,21 +1281,6 @@ func objectiveProgressOnDate(objID string, date string) (uop models.UserObjectiv
 	return
 }
 
-func onReviewCoachComments(request slack.InteractionCallback, teamID models.TeamID) {
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	suffixAction := strings.TrimPrefix(action.Name, ReviewCoachComments+"_")
-	mc, err := utils.ParseToCallback(action.Value)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	switch suffixAction {
-	case string(models.Ignore):
-		// uObj := userObjectiveByID(mc.Target)
-		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID,
-			Ts: message.MessageTs})
-	}
-}
-
 func onUberCoach(conn daosCommon.DynamoDBConnection, request slack.InteractionCallback, teamID models.TeamID) {
 	userID := request.User.ID
 	channelID := request.Channel.ID
@@ -1664,16 +1644,6 @@ func splitObjectiveWithDateUnsafe(str string) (objID string, date string) {
 	return
 }
 
-func ReviewCoachCommentsEngagement(mc models.MessageCallback, userID, title string, obj models.UserObjective, objComments, notes string) {
-	objDescFields := models.AttachmentFields([]models.KvPair{{Key: "Name", Value: obj.Name}, {Key: "Description", Value: obj.Description}})
-	allFields := append(objDescFields,
-		objCommentsProgressFields(objComments, "", notes)...)
-	actions := []ebm.AttachmentAction{*models.SimpleAttachAction(mc, models.Ignore, "Mark as read")}
-	utils.AddChatEngagement(mc, title, "", "Adaptive at your service",
-		userID, actions, allFields, models.ParseTeamID(obj.PlatformID), false, engagementTable, d, namespace, time.Now().Unix(),
-		common2.EngagementEmptyCheck)
-}
-
 func viewCommentsProgressAttachment(mc models.MessageCallback, title, comments string, status models.ObjectiveStatusColor, notes string) []ebm.Attachment {
 	attach := utils.ChatAttachment(title, "", "", mc.ToCallbackID(), updateCommentsAttachmentActions(mc),
 		objCommentsProgressFields(comments, status, notes), time.Now().Unix())
@@ -1747,16 +1717,6 @@ func AskForPartnershipEngagement(teamID models.TeamID, mc models.MessageCallback
 	)
 	utils.AddChatEngagement(mc, title, text, fallback, partner, actions, []ebm.AttachmentField{}, teamID, urgent,
 		engagementTable, d, namespace, time.Now().Unix(), common2.EngagementEmptyCheck)
-}
-
-func ReviewCommentsEngagement(teamID models.TeamID, mc models.MessageCallback, userID string,
-	title ui.PlainText, text string, urgent bool) {
-	mc = *mc.WithAction(ReviewCoachComments).WithModule("objectives").WithTopic("coaching")
-	utils.AddChatEngagement(mc, string(title), text, "Adaptive at your service", userID,
-		[]ebm.AttachmentAction{
-			*models.SimpleAttachAction(mc, models.Ignore, "Mark as read"),
-		},
-		[]ebm.AttachmentField{}, teamID, urgent, engagementTable, d, namespace, time.Now().Unix(), common2.EngagementEmptyCheck)
 }
 
 func ObjectiveProgressAskEngagement(teamID models.TeamID, mc models.MessageCallback, userID, text string) {
