@@ -301,16 +301,17 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 			slack.InteractionTypeDialogCancellation: 
 			slackInteractionCallback = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
 			data, _ := json.Marshal(slackInteractionCallback)
-			fmt.Printf("Parsed slackInteractionCallback:\n%+v", string(data))
-			userID := slackInteractionCallback.User.ID
-			callbackID := slackInteractionCallback.CallbackID
+			fmt.Printf("Parsed slackInteractionCallback:\n%+v\n", string(data))
 
 			var teamID models.TeamID
 			teamID, err = ensureTeamID(
 				daosCommon.PlatformID(slackInteractionCallback.Team.ID), 
 				daosCommon.PlatformID(slackInteractionCallback.APIAppID),
+				requestPayload,
 			)
 			if err == nil {
+				userID := slackInteractionCallback.User.ID
+				callbackID := slackInteractionCallback.CallbackID
 				err = routeByCallbackID(slackInteractionCallback, requestPayload, teamID, userID, callbackID)
 			}
 		default:
@@ -322,7 +323,9 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 
 // ensureTeamID reads tokens and returns correct team id.
 // If we have teamID token, then we use it. Otherwise we use appID
-func ensureTeamID(teamID, appID daosCommon.PlatformID) (res models.TeamID, err error) {
+func ensureTeamID(teamID, appID daosCommon.PlatformID, requestPayload string) (res models.TeamID, err error) {
+	log.Printf("ensureTeamID(teamID=%s, appID=%s)", teamID, appID)
+
 	var teams []slackTeam.SlackTeam
 	if teamID == "" {
 		fmt.Printf("TeamID is empty")
@@ -334,7 +337,11 @@ func ensureTeamID(teamID, appID daosCommon.PlatformID) (res models.TeamID, err e
 			res = models.TeamID{TeamID: teams[0].TeamID}
 		} else {
 			var clientConfigs []clientPlatformToken.ClientPlatformToken
-			if teamID == "" {
+			if appID == "" {
+				log.Println("WARN appID is empty. Trying to extract from bot_profile")
+				appID = daosCommon.PlatformID(tryExtractAppID(requestPayload))
+			}
+			if appID == "" {
 				err = errors.Errorf("AppID is empty: teamID=%s or appID=%s", teamID, appID)
 			} else {
 				clientConfigs, err = clientPlatformToken.ReadOrEmpty(appID)(connGen.ForPlatformID(appID))
@@ -348,7 +355,31 @@ func ensureTeamID(teamID, appID daosCommon.PlatformID) (res models.TeamID, err e
 			}
 		}
 	}
-	log.Printf("ensureTeamID: %v\n", teamID)
+	log.Printf("res: %v\n", res)
+	return
+}
+
+func tryExtractAppID(requestPayload string) (appID string) {
+	top := parseMapUnsafe(requestPayload)
+	originalMessageRaw, ok := top["original_message"]
+	if ok {
+		originalMessage := parseMapUnsafe(string(*originalMessageRaw))
+		botProfileRaw, ok := originalMessage["bot_profile"]
+		if ok {
+			botProfile := parseMapUnsafe(string(*botProfileRaw))
+			appIDRaw, ok := botProfile["app_id"]
+			if ok {
+				appID = string(*appIDRaw)
+				log.Println("Found app_id")
+			} else {
+				log.Println("ERROR No app_id in bot_profile")
+			}
+		} else {
+			log.Println("ERROR No bot_profile in original_message")
+		}
+	} else {
+		log.Println("ERROR No original_message in request payload")
+	}
 	return
 }
 
@@ -361,6 +392,7 @@ func routeCallbackEvent(
 	teamID, err = ensureTeamID(
 		daosCommon.PlatformID(callbackEvent.TeamID),
 		daosCommon.PlatformID(callbackEvent.APIAppID),
+		requestPayload,
 	)
 	if err == nil {
 		forwardToNamespace := forwardToNamespaceWithAppID(teamID, requestPayload)
