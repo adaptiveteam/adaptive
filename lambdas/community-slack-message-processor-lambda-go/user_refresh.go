@@ -14,7 +14,7 @@ import (
 
 func readUserProfile(userID string, conn common.DynamoDBConnection) (profile models.UserProfile, teamID models.TeamID, err error) {
 	var users []models.User
-	users, err = user.ReadOrEmpty(userID)(conn)
+	users, err = user.ReadOrEmpty(conn.PlatformID, userID)(conn)
 	if err == nil {
 		user := models.User{}
 		if len(users) > 0 {
@@ -47,7 +47,7 @@ func refreshUserCache(userID string, conn common.DynamoDBConnection) (profile mo
 				if err == nil {
 					mUser := utilsUser.ConvertSlackUserToUser(*sUser, teamID, adaptiveBotID)
 					var previousUsers [] models.User
-					previousUsers, err = user.ReadOrEmpty(mUser.ID)(conn)
+					previousUsers, err = user.ReadOrEmpty(conn.PlatformID, mUser.ID)(conn)
 					if err == nil {
 						for _, u := range previousUsers {
 							mUser.CreatedAt = u.CreatedAt

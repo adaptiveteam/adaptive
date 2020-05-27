@@ -568,7 +568,7 @@ func PrefetchIssueWithoutProgress(issueRef *Issue) func(DynamoDBConnection) (err
 		if !utilsUser.IsSpecialOrEmptyUserID(issueRef.UserObjective.AccountabilityPartner) {
 			issueRef.PrefetchedData.AccountabilityPartner, err =
 				user.
-					Read(issueRef.UserObjective.AccountabilityPartner)(conn)
+					Read(conn.PlatformID, issueRef.UserObjective.AccountabilityPartner)(conn)
 			if err != nil {
 				return
 			}

@@ -5,13 +5,9 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/feedback"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	// utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/userFeedback"
-	"github.com/slack-go/slack"
 )
 
 var (
@@ -44,14 +40,3 @@ var (
 		TableNamePrefix: clientID,
 	}
 )
-
-func userTokenSyncUnsafe(userID string) string {
-	token, err2 := utilsPlatform.GetTokenForUser(d, clientID, userID)
-	core.ErrorHandler(err2, "userTokenSyncUnsafe", "GetTokenForUser")
-	return token
-}
-
-func getSlackClient(userID string) *slack.Client {
-	ut := userTokenSyncUnsafe(userID)
-	return slack.New(ut)
-}

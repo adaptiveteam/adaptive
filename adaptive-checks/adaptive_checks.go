@@ -12,7 +12,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	// "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -158,12 +158,14 @@ func StaleObjectivesExistForMe(env environment, teamID models.TeamID, userID str
 // ObjectivesExistInMyCapabilityCommunities checks
 //   if the user belong to any capability communities that have
 // Capability Objectives allocated to them?
-func ObjectivesExistInMyCapabilityCommunities(env environment, teamID models.TeamID, userID string, date business_time.Date) (res bool) {
+func ObjectivesExistInMyCapabilityCommunities(env environment, 
+	teamID models.TeamID, userID string, date business_time.Date,
+) (res bool) {
 	defer RecoverToLog("ObjectivesExistInMyCapabilityCommunities")
 	if logEnabled {
 		log.Printf("Checking ObjectivesExistInMyCapabilityCommunities for userID=%s, date=%v\n", userID, date)
 	}
-	conn := platform.GetConnectionForUserFromEnvUnsafe(userID)
+	conn := env.connGen.ForPlatformID(teamID.ToPlatformID())
 	objs := strategy.UserCommunityObjectives(userID,
 		env.strategyObjectivesTableName, env.strategyObjectivesPlatformIndex,
 		env.userObjectivesTable,
@@ -277,7 +279,7 @@ func InitiativesExistInMyCapabilityCommunities(env environment, teamID models.Te
 		inits = strategy.AllOpenStrategyInitiatives(teamID, env.initiativesTable, env.initiativesPlatformIndex,
 			env.userObjectivesTable)
 	} else {
-		conn := platform.GetConnectionForUserFromEnvUnsafe(userID)
+		conn := env.connGen.ForPlatformID(teamID.ToPlatformID())
 		inits = strategy.UserCapabilityCommunityInitiatives(userID, 
 			env.strategyObjectivesTableName, env.strategyObjectivesPlatformIndex,
 			env.initiativesTable, env.strategyInitiativesInitiativeCommunityIndex, 
@@ -456,16 +458,18 @@ func FeedbackGivenForTheQuarter(env environment, teamID models.TeamID,userID str
 }
 
 // FeedbackForThePreviousQuarterExists -
-func FeedbackForThePreviousQuarterExists(env environment, teamID models.TeamID,userID string, date business_time.Date) (res bool) {
+func FeedbackForThePreviousQuarterExists(env environment, 
+	teamID models.TeamID, userID string, 
+	date business_time.Date,
+) (res bool) {
 	defer core.RecoverAsLogErrorf("FeedbackForThePreviousQuarterExists(userID=%s)", userID)
-	conn, err2 := platform.GetConnectionForUserFromEnv(userID)
-	if err2 == nil {
-		q := date.GetPreviousQuarter()
-		y := date.GetPreviousQuarterYear()
-		var feedbacks []models.UserFeedback
-		feedbacks, err2 = coaching.FeedbackReceivedForTheQuarter(userID, q, y)(conn)
-		res = len(feedbacks) > 0
-	}
+	conn := daosCommon.CreateConnectionGenFromEnv().ForPlatformID(teamID.ToPlatformID())
+	q := date.GetPreviousQuarter()
+	y := date.GetPreviousQuarterYear()
+	var feedbacks []models.UserFeedback
+	var err2 error
+	feedbacks, err2 = coaching.FeedbackReceivedForTheQuarter(userID, q, y)(conn)
+	res = len(feedbacks) > 0
 	if err2 != nil {
 		log.Printf("Error with querying feedback received by the user %s: %+v\n", userID, err2)
 	}

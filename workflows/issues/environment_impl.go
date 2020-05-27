@@ -228,7 +228,7 @@ func UserRead(userID string) func(conn DynamoDBConnection) (users []models.User,
 		if utilsUser.IsSpecialOrEmptyUserID(userID) {
 			err = errors.Errorf("Cannot read nonexisting userID %s", userID)
 		} else {
-			users, err = user.ReadOrEmpty(userID)(conn)
+			users, err = user.ReadOrEmpty(conn.PlatformID, userID)(conn)
 		}
 		err = errors.Wrapf(err, "UserDynamoDBConnection) Read(userID=%s)", userID)
 		return
@@ -272,7 +272,7 @@ func IDOCoaches(userID string, oldCoachIDOptional string) func(conn DynamoDBConn
 		}
 		for _, id := range userIDs {
 			var users [] models.User
-			users, err = user.ReadOrEmpty(id)(conn)
+			users, err = user.ReadOrEmpty(conn.PlatformID, id)(conn)
 			err = errors.Wrapf(err, "UserDynamoDBConnection) IDOCoaches(userID=%s)", userID)
 			if err == nil {
 				for _, user := range users {
@@ -437,7 +437,7 @@ func SelectKvPairsFromCommunityJoinUsers(communityID community.AdaptiveCommunity
 		log.Printf("Found %d in community %s", len(commMembers), communityID)
 		for _, each := range commMembers {
 			// Self user checking
-			us := user.ReadOrEmptyUnsafe(each.UserId)(conn)
+			us := user.ReadOrEmptyUnsafe(conn.PlatformID, each.UserId)(conn)
 			if len(us) == 0 {
 				log.Printf("Not found user %s", each.UserId)
 			}

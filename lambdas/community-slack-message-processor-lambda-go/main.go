@@ -448,7 +448,7 @@ func communityNamespaceAdminAccessCallback(request slack.InteractionCallback, su
 		publish(models.PlatformSimpleNotification{UserId: request.User.ID, Channel: request.Channel.ID,
 			Message: string(AdminRequestSentAcknowledgement)})
 		userID := request.User.ID
-		user, err2 := daosUser.Read(userID)(conn)
+		user, err2 := daosUser.Read(conn.PlatformID, userID)(conn)
 		core.ErrorHandler(err2, "communityNamespaceAdminAccessCallback", "userDAO.Read")
 		teamID := models.ParseTeamID(user.PlatformID)
 		// ut := userTokenSyncUnsafe(request.User.ID)

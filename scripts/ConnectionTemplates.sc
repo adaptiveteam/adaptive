@@ -31,9 +31,13 @@ def daoFunctionsTemplate(dao: ConnectionBasedDao): List[String] = {
 case class DaoFunctionTemplates(table: Table){
 	val entity = table.entity
 	val idArgs = idArgList(table)
+	// val hashKey = table.defaultIndex.hashKey
+	// val hashIdArgs = fieldArg(hashKey)
 	val idVarNames = entity.primaryKeyFields.map(f => goPrivateName(f.name)).mkString(", ")
+	// val hashIdVarName = goPrivateName(hashKey.name)
 	val formatIds = entity.primaryKeyFields.map(f => goPrivateName(f.name) + "==%s").mkString(", ")
 	val idFieldNames = entity.primaryKeyFields.map(f => goPublicName(f.name))
+	// val hashIdFieldName = goPublicName(hashKey.name)
 	val idDbNames = entity.primaryKeyFields.map(f => dynamoName(f.dbName))
 	val entityArgValue = entityArg(table.entity)
 	val structVarName = goPrivateName(table.entity.name)
@@ -50,6 +54,10 @@ case class DaoFunctionTemplates(table: Table){
 				DaoOperationReadTemplate,
 				DaoOperationReadUnsafeTemplate
 			)
+			case DaoReadChildren => QueryByHashKeyTemplates(
+				table.defaultIndex, 
+				isDefaultIndex = true,
+			).apply
 			case DaoReadOrEmptyRow => List(
 				DaoOperationReadOrEmptyTemplate,
 				DaoOperationReadOrEmptyUnsafeTemplate,
@@ -315,7 +323,7 @@ case class DaoFunctionTemplates(table: Table){
 		|""".stripMargin
 
 
-	case class QueryTemplates(index: Index) {
+	case class QueryTemplates(index: Index, isDefaultIndex: Boolean = false) {
 		val indexShortName = goPublicName(index.name.init)
 		val indexFullName = indexName(index)
 		val args = indexArgList(index)
@@ -360,7 +368,7 @@ case class DaoFunctionTemplates(table: Table){
 			|""".stripMargin
 		}
 	}
-	case class QueryByHashKeyTemplates(index: Index) {
+	case class QueryByHashKeyTemplates(index: Index, isDefaultIndex: Boolean = false) {
 		val indexHashKeyName = goPublicName(index.hashKey.name)
 		val fields = List(index.hashKey)
 		val indexFullName = indexName(index)
@@ -376,7 +384,7 @@ case class DaoFunctionTemplates(table: Table){
 			|	return func (conn common.DynamoDBConnection) (out []$structName, err error) {
 			|		var instances []$structName
 			|		err = conn.Dynamo.QueryTableWithIndex(TableName(conn.ClientID), awsutils.DynamoIndexExpression{
-			|			IndexName: "$indexFullName",
+			|			${if(isDefaultIndex) "" else "IndexName: string(" + indexFullName + "),"}
 			|			Condition: "${dbExprParam(index.hashKey) + " = :a" }",
 			|			Attributes: map[string]interface{}{
 			|				":a" : ${varName(index.hashKey)},
