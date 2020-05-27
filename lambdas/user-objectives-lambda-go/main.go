@@ -1363,7 +1363,7 @@ func onDialogSubmission(request slack.InteractionCallback, teamID models.TeamID)
 	if mc.Topic == "init" && mc.Action == "ask" {
 		onUserObjectiveSubmitted(conn, dialog, teamID, *mc)
 	} else if mc.Topic == "init" && mc.Action == string(Closeout) {
-		onCloseout(dialog, teamID, *mc)
+		fmt.Println("ERROR: Invocation of the old Closeout implementation which has been removed")
 	} else if mc.Topic == "coaching" {
 		switch mc.Action {
 		case "ask":
@@ -1477,86 +1477,6 @@ func onUserObjectiveSubmitted(conn daosCommon.DynamoDBConnection, request slack.
 	}
 }
 
-func onCloseout(request slack.InteractionCallback, teamID models.TeamID, mc models.MessageCallback) {
-	dialog := request
-	msgState := GetMsgStateUnsafe(request)
-	userID := dialog.User.ID
-	channelID := dialog.Channel.ID
-
-	uObj := userObjectiveByID(msgState.ObjectiveId)
-	typLabel := objectiveTypeLabel(uObj)
-
-	// Capture closeout comments
-	// On of these should exist in dialog submission
-	comments := ui.PlainText(dialog.Submission[ObjectiveCloseoutComment])
-	noCloseComments1, ok := dialog.Submission[ObjectiveNoCloseoutComment]
-	noCloseComments := ui.PlainText(noCloseComments1)
-	var textToAnalyze ui.PlainText
-	var coacheeMsg ui.PlainText
-
-	// No close comments exists
-	if ok {
-		// Notify partner that objective is not closed
-		attachs := viewProgressAttachment(mc,
-			ui.PlainText(ui.Sprintf(
-				"I will notify <@%s> that you disagree on closing out the %s %s.", uObj.UserID, uObj.Name, typLabel)),
-			"",
-			ui.PlainText(noCloseComments), "", uObj, No)
-		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: msgState.ThreadTs, Attachments: attachs})
-		textToAnalyze = noCloseComments
-		coacheeMsg = ui.PlainText(fmt.Sprintf("%s disagreed with your view of closing out the %s %s. It's still open.",
-			common.TaggedUser(uObj.AccountabilityPartner), uObj.Name, typLabel))
-
-		utils.ECAnalysis(string(textToAnalyze), closeoutDisagreementContext(uObj),
-			"Closeout comments",
-			dialogTableName, mc.ToCallbackID(), dialog.User.ID, dialog.Channel.ID, msgState.Ts, msgState.ThreadTs,
-			attachs, s, platformNotificationTopic, namespace)
-		// Also, unset completed flag that was set by coachee
-		SetObjectiveField(uObj, "completed", 0)
-		// TODO: Write this data to a table
-	} else {
-		// Mark the objective as closed for the coachee
-		exprAttributes := map[string]*dynamodb.AttributeValue{
-			":f": {
-				BOOL: aws.Bool(true),
-			},
-			":c":    dynString(string(comments)),
-			":pvcd": dynString(core.ISODateLayout.Format(time.Now())),
-		}
-		key := map[string]*dynamodb.AttributeValue{
-			"user_id": dynString(uObj.UserID),
-			"id":      dynString(uObj.ID),
-		}
-		updateExpression := "set partner_verified_completion = :f, comments = :c, partner_verified_completion_date = :pvcd"
-		err := d.UpdateTableEntry(exprAttributes, key, updateExpression, userObjectivesTable)
-		if err == nil {
-			// Notify partner that objective is closed
-			attachs := viewProgressAttachment(mc,
-				ui.PlainText(ui.Sprintf(
-					"Awesome! %s %s of %s has been closed", uObj.Name, typLabel, common.TaggedUser(uObj.UserID))),
-				"",
-				ui.PlainText(comments), "", uObj, models.Update)
-			publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: msgState.ThreadTs, Attachments: attachs})
-			textToAnalyze = comments
-			coacheeMsg = ui.PlainText(fmt.Sprintf("Good job! <@%s> agreed to close out %s %s", uObj.AccountabilityPartner, uObj.Name, typLabel))
-
-			// Do analysis on this feedback
-			// Once we receive the analysis from Meaning Cloud on the user's feedback, we post that result to the original message's thread
-			utils.ECAnalysis(string(textToAnalyze),
-				closeoutAgreementContext(uObj), "Closeout comments",
-				dialogTableName, mc.ToCallbackID(), dialog.User.ID,
-				dialog.Channel.ID, msgState.Ts, msgState.ThreadTs,
-				attachs, s, platformNotificationTopic, namespace)
-		} else {
-			logger.WithError(err).Errorf("Could not update data in %s table", userObjectivesTable)
-		}
-	}
-
-	utils.UpdateEngAsAnswered(userID, mc.ToCallbackID(), engagementTable, d, namespace)
-	// Send a message to coachee that the objective has been closed
-	ReviewCommentsEngagement(teamID, *mc.WithTarget(uObj.ID), uObj.UserID, coacheeMsg,
-		fmt.Sprintf("*Comments*:\n%s", textToAnalyze), false)
-}
 // This is to handle the case when a partner not accepts coaching
 func onCoachingRequestRejected(request slack.InteractionCallback, mc models.MessageCallback) {
 	dialog := request
