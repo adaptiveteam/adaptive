@@ -294,31 +294,27 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 		}
 	default:
 		// workaround for slackevents.ParseEvent
+		var slackInteractionCallback slack.InteractionCallback
 		switch slack.InteractionType(eventsAPIEvent.Type) {
 		case slack.InteractionTypeInteractionMessage, // "interactive_message"
 			slack.InteractionTypeDialogSubmission,
 			slack.InteractionTypeDialogCancellation: 
-			eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
-		default:
-			panic(errors.New("Unknown type of Slack message: " + eventsAPIEvent.Type))
-		}
-		data, _ := json.Marshal(eventsAPIEvent.Data)
-		fmt.Printf("Parsed eventsAPIEvent.Data:\n%+v", data)
+			slackInteractionCallback = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
+			data, _ := json.Marshal(slackInteractionCallback)
+			fmt.Printf("Parsed slackInteractionCallback:\n%+v", string(data))
+			userID := slackInteractionCallback.User.ID
+			callbackID := slackInteractionCallback.CallbackID
 
-		objMap := parseMapUnsafe(requestPayload)
-		if _, ok := objMap["callback_id"]; ok {
-			userID := getUserID(eventsAPIEvent)
-			callbackID := getCallbackID(eventsAPIEvent)
 			var teamID models.TeamID
 			teamID, err = ensureTeamID(
-				daosCommon.PlatformID(eventsAPIEvent.TeamID), 
-				daosCommon.PlatformID(eventsAPIEvent.APIAppID),
+				daosCommon.PlatformID(slackInteractionCallback.Team.ID), 
+				daosCommon.PlatformID(slackInteractionCallback.APIAppID),
 			)
 			if err == nil {
-				err = routeByCallbackID(eventsAPIEvent, requestPayload, teamID, userID, callbackID)
+				err = routeByCallbackID(slackInteractionCallback, requestPayload, teamID, userID, callbackID)
 			}
-		} else {
-			fmt.Printf("Couldn't find callback_id in map: %+v", objMap)
+		default:
+			panic(errors.New("Unknown type of Slack message: " + eventsAPIEvent.Type))
 		}
 	}
 	return
@@ -328,13 +324,21 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 // If we have teamID token, then we use it. Otherwise we use appID
 func ensureTeamID(teamID, appID daosCommon.PlatformID) (res models.TeamID, err error) {
 	var teams []slackTeam.SlackTeam
-	teams, err = slackTeam.ReadOrEmpty(teamID)(connGen.ForPlatformID(teamID))
+	if teamID == "" {
+		fmt.Printf("TeamID is empty")
+	} else {
+		teams, err = slackTeam.ReadOrEmpty(teamID)(connGen.ForPlatformID(teamID))
+	}
 	if err == nil {
 		if len(teams) > 0 {
 			res = models.TeamID{TeamID: teams[0].TeamID}
 		} else {
 			var clientConfigs []clientPlatformToken.ClientPlatformToken
-			clientConfigs, err = clientPlatformToken.ReadOrEmpty(appID)(connGen.ForPlatformID(appID))
+			if teamID == "" {
+				err = errors.Errorf("AppID is empty: teamID=%s or appID=%s", teamID, appID)
+			} else {
+				clientConfigs, err = clientPlatformToken.ReadOrEmpty(appID)(connGen.ForPlatformID(appID))
+			}
 			if err == nil {
 				if len(clientConfigs) > 0 {
 					res = models.TeamID{AppID: clientConfigs[0].PlatformID}
@@ -424,7 +428,7 @@ func routeCallbackEvent(
 }
 
 func routeByCallbackID(
-	eventsAPIEvent slackevents.EventsAPIEvent,
+	slackInteractionCallback slack.InteractionCallback,
 	requestPayload string,
 	teamID models.TeamID,
 	userID, callbackID string,
@@ -444,24 +448,25 @@ func routeByCallbackID(
 	invokeLambdaWithNamespace := invokeLambdaWithAppID(teamID, requestPayload)
 
 	if strings.Contains(callbackID, "init_message") {
-		if eventsAPIEvent.Type == string(slack.InteractionTypeInteractionMessage) {
-			var message slack.InteractionCallback
-			message, err = utils.ParseAsInteractionMsg(requestPayload)
-			err = errors.Wrap(err, "Could not parse to interaction type message")
-			logger.Infof("init_message parsed: %v", message)
-			if err != nil {
-				return
-			}
+		// if eventsAPIEvent.Type == string(slack.InteractionTypeInteractionMessage) {
+			// var message slack.InteractionCallback
+			// message, err = utils.ParseAsInteractionMsg(requestPayload)
+			// err = errors.Wrap(err, "Could not parse to interaction type message")
+			// logger.Infof("init_message parsed: %v", message)
+			// if err != nil {
+			// 	return
+			// }
+			message := slackInteractionCallback
 			action := message.ActionCallback.AttachmentActions[0]
 			if action.Name == "menu_list" {
 				selected := action.SelectedOptions[0]
 				menuOption := selected.Value
-				err = routeMenuOption(eventsAPIEvent, requestPayload, message, teamID,
+				err = routeMenuOption(slackInteractionCallback.User.ID, requestPayload, message, teamID,
 					menuOption)
 			} else if action.Name == "cancel" {
 				deleteMessage(message)
 			}
-		}
+		// }
 	} else if strings.Contains(callbackID, "feedback") {
 		invokeLambdaWithNamespace("feedback")
 	} else if strings.Contains(callbackID, "user_settings") {
@@ -484,7 +489,7 @@ func routeByCallbackID(
 }
 
 func routeMenuOption(
-	eventsAPIEvent slackevents.EventsAPIEvent,
+	userID string,
 	requestPayload string,
 	message slack.InteractionCallback,
 	teamID models.TeamID,
@@ -492,12 +497,6 @@ func routeMenuOption(
 ) (err error) {
 	logger.WithField("menuOption", menuOption).Infof("Routing menu option")
 	slackRequest := models.EventsAPIEvent(requestPayload)
-	userID := getUserID(eventsAPIEvent)
-	// callbackID := getCallbackID(eventsAPIEvent)
-	// fmt.Printf("userID=%v,callbackID=%v\n", userID, callbackID)
-	// u := userDAO.ReadUnsafe(userID)
-	// apiAppID := u.PlatformID
-	// teamID := u.PlatformID
 	np := models.NamespacePayload4{
 		ID:        core.Uuid(),
 		Namespace: namespace,
