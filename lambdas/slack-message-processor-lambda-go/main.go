@@ -369,8 +369,12 @@ func tryExtractAppID(requestPayload string) (appID string) {
 			botProfile := parseMapUnsafe(string(*botProfileRaw))
 			appIDRaw, ok := botProfile["app_id"]
 			if ok {
-				appID = string(*appIDRaw)
-				log.Println("Found app_id")
+				err2 := json.Unmarshal([]byte(*appIDRaw), &appID)
+				if err2 == nil {
+					log.Println("Found app_id")
+				} else {
+					log.Printf("ERROR Couldn't unmarshall simple string app_id\n%+v\n", err2)
+				}
 			} else {
 				log.Println("ERROR No app_id in bot_profile")
 			}
