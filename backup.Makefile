@@ -21,6 +21,9 @@ restore-table-user-objective: ./dynamodump/dynamodump.py
 	./rename-backup.sh
 	python dynamodump/dynamodump.py --skipThroughputUpdate -m restore -r ${AWS_REGION} --dataOnly -s ${ADAPTIVE_CLIENT_ID}_user_objective
 
+restore-table-strategy-objectives: ./dynamodump/dynamodump.py
+	python dynamodump/dynamodump.py --skipThroughputUpdate -m restore -r ${AWS_REGION} --dataOnly -s ${ADAPTIVE_CLIENT_ID}_strategy_objectives
+
 rename-resource-user-objective:
 	cd terraform;\
 	terraform state mv 'aws_dynamodb_table.user_objectives' 'aws_dynamodb_table.user_objective_dynamodb_table'
