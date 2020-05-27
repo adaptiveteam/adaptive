@@ -92,7 +92,6 @@ const (
 	Enable       models.AttachActionName = "enable"
 	Confirm      models.AttachActionName = "confirm"
 
-	SelectPartnerObjective   = "select_partner_objective"
 	PartnerObjective         = "partner_objective"
 	UserOpenObjectives       = "user_open_objectives"
 	ReviewCoacheeProgressAsk = "review_coachee_progress_ask"
@@ -471,17 +470,6 @@ func updateObjAttachment(conn daosCommon.DynamoDBConnection,
 	return []ebm.Attachment{*attach}
 }
 
-func partnerObjViewAttachment(mc models.MessageCallback, title, text, fallback ui.PlainText, uObj *models.UserObjective) []ebm.Attachment {
-	mcUpdated := mc.WithAction(SelectPartnerObjective).WithTarget(uObj.ID)
-	actions := []ebm.AttachmentAction{
-		*models.SimpleAttachAction(*mcUpdated, models.Now, ObjectivePartnerSelectActionLabel),
-		*models.SimpleAttachAction(*mcUpdated, models.Ignore, ObjectivePartnerSelectionSkipActionLabel),
-	}
-	attach := utils.ChatAttachment(string(title), string(text),
-		string(fallback), mcUpdated.ToCallbackID(), actions, []ebm.AttachmentField{}, time.Now().Unix())
-	return []ebm.Attachment{*attach}
-}
-
 func moreOptionsAttachment(mc models.MessageCallback, title, fallback ui.PlainText, userObj *models.UserObjective,
 	teamID models.TeamID) []ebm.Attachment {
 	attach := utils.ChatAttachment(string(title), core.EmptyString, string(fallback), mc.ToCallbackID(),
@@ -699,8 +687,6 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							onViewStaleIDOs(request, teamID)
 						} else if strings.HasPrefix(action.Name, ViewOpenObjectives) {
 							onViewOpenObjectives(request, teamID)
-						} else if strings.HasPrefix(action.Name, SelectPartnerObjective) {
-							onSelectPartnerObjective(request, teamID)
 						} else if strings.HasPrefix(action.Name, PartnerObjective) {
 							onPartnerObjective(request, teamID)
 						} else if strings.HasPrefix(action.Name, ReviewUserProgressSelect) {
@@ -1292,27 +1278,6 @@ func onViewOpenObjectives(request slack.InteractionCallback, teamID models.TeamI
 	case string(models.Ignore):
 		// Update engagement as ignored and remove the original engagement
 		utils.UpdateEngAsIgnored(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	}
-}
-func onSelectPartnerObjective(request slack.InteractionCallback, teamID models.TeamID) {
-	userID := request.User.ID
-	channelID := request.Channel.ID
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	mc, err := utils.ParseToCallback(message.CallbackID)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", SelectPartnerObjective, core.Underscore))
-	switch act {
-	case string(models.Now):
-		// Partner wants to partner up
-		uObj := userObjectiveByID(mc.Target)
-		publish(models.PlatformSimpleNotification{UserId: userID, Message: core.TextWrap(fmt.Sprintf(
-			"Ok. I have sent a notification to <@%s> saying that you want to partner up on the objective: `%s`", mc.Source, uObj.Name), core.Underscore), AsUser: true})
-		AskForPartnershipEngagement(teamID, *mc.WithTopic("coaching").WithTarget(uObj.ID).WithAction(PartnerObjective).WithSource(userID), uObj.UserID, fmt.Sprintf(
-			"<@%s> wants to be your accountability partner for the below objective. Are you okay with that?", userID), fmt.Sprintf("_`%s`_\n%s", uObj.Name, core.TextWrap(uObj.Description, core.Underscore)), "", "", true)
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	case string(models.Ignore):
 		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
 	}
 }
