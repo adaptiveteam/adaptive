@@ -30,11 +30,5 @@ var (
 		Namespace:                 namespace,
 		IsInteractiveDebugEnabled: false,
 	}
-	//userAttributeSchema = userAttribute.TableConfig{
-	//	Name: attribsTable,
-	//	//UserIDIndexName: attribsUserIDIndexName,
-	//}
-	//userAttributeDao  = userAttribute.NewDAO(dns, userAttributeSchema)
 	userEngagementDao = userEngagement.NewDAO(dns, engTable)
-	//userDao           = user.NewDAO(dns.Dynamo, dns.Namespace, usersTable)
 )

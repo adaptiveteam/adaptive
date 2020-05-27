@@ -85,7 +85,7 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 						publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID,
 							Message: string(msg), Attachments: []model.Attachment{}, Ts: message.MessageTs})
 					} else if text == user.GenerateReport {
-						err = feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(message.User.ID, time.Now())
+						err = feedbackReportingLambda.GeneratePerformanceReportAndPostToUserAsync(teamID, message.User.ID, time.Now())
 						if err != nil {
 							logger.WithField("error", err).
 								Error("Could not GeneratePerformanceReportAndPostToUserAsync from feedback-slack-message-processor")

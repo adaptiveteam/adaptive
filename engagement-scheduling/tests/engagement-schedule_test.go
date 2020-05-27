@@ -13,6 +13,7 @@ import (
 
 	bt "github.com/adaptiveteam/adaptive/business-time"
 	models "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
+	utilsModels "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 )
 
 func getTestHolidays() bt.Holidays {
@@ -122,8 +123,9 @@ func TestActivateEngagements(t *testing.T) {
 
 	daysInQuarter := bt.NewDateFromQuarter(1, 2019).GetFirstDayOfQuarter().DaysBetween(bt.NewDateFromQuarter(4, 2019).GetLastDayOfQuarter())
 	date := bt.NewDateFromQuarter(1, 2019)
+	teamID := utilsModels.TeamID{ TeamID: "TEST-PLATFORM-ID" }
 	conn := common.DynamoDBConnection{
-		PlatformID: "TEST-PLATFORM-ID",
+		PlatformID: teamID.TeamID,
 	}
 	for i := 0; i < daysInQuarter; i++ {
 		if date.IsBusinessDay(holidays,time.UTC) {
@@ -176,6 +178,7 @@ func TestActivateEngagements(t *testing.T) {
 				test_crosswalks.UserCrosswalk,
 				tt.args.holidays,
 				time.UTC,
+				teamID,
 				tt.args.target,
 				conn,
 			)

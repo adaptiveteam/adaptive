@@ -1,9 +1,7 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
-	"fmt"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
@@ -48,8 +46,7 @@ var (
 
 	clientID = utils.NonEmptyEnv("CLIENT_ID")
 	schema   = models.SchemaForClientID(clientID)
-	userDAO  = user.NewDAO(d, namespace, clientID)
-
+	
 	sns                   = awsutils.NewSNS(region, "", namespace)
 	valueDao              = adaptiveValue.NewDAO(d, namespace, clientID)
 
@@ -69,20 +66,20 @@ var (
 	}
 )
 
-// UserIDsToDisplayNames converts a bunch of user ids to their names
-// NB! O(n)! TODO: implement a query that returns many users at once.
-func UserIDsToDisplayNames(userIDs []string) (res []models.KvPair) {
-	if len(userIDs) > 10 {
-		fmt.Println("WARN: Very slow user data fetching")
-	}
-	for _, userID := range userIDs {
-		user := userDAO.ReadUnsafe(userID)
-		if !user.IsAdaptiveBot {
-			res = append(res, models.KvPair{Key: user.DisplayName, Value: userID})
-		}
-	}
-	return
-}
+// // UserIDsToDisplayNames converts a bunch of user ids to their names
+// // NB! O(n)! TODO: implement a query that returns many users at once.
+// func UserIDsToDisplayNames(userIDs []string) (res []models.KvPair) {
+// 	if len(userIDs) > 10 {
+// 		fmt.Println("WARN: Very slow user data fetching")
+// 	}
+// 	for _, userID := range userIDs {
+// 		user := userDAO.ReadUnsafe(userID)
+// 		if !user.IsAdaptiveBot {
+// 			res = append(res, models.KvPair{Key: user.DisplayName, Value: userID})
+// 		}
+// 	}
+// 	return
+// }
 
 func userTokenSyncUnsafe(userID string) string {
 	token, err2 := utilsPlatform.GetTokenForUser(d, clientID, userID)

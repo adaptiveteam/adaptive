@@ -9,7 +9,6 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/sirupsen/logrus"
 )
@@ -59,8 +58,6 @@ var (
 		TableNamePrefix:   clientID,
 	}
 	schema   = models.SchemaForClientID(clientID)
-
-	userDAO  = daosUser.NewDAO(d, namespace, clientID)
 
 	usersTable           = utils.NonEmptyEnv("USERS_TABLE_NAME")
 	profileLambdaName    = utils.NonEmptyEnv("USER_PROFILE_LAMBDA_NAME")

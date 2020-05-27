@@ -1,17 +1,17 @@
 package engagement_scheduling
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/common"
-	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	"fmt"
 	"sort"
 	"sync"
 	"time"
 
+	adaptive_checks "github.com/adaptiveteam/adaptive/adaptive-checks"
+	utilsModels "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	bt "github.com/adaptiveteam/adaptive/business-time"
-	models "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
-
 	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/common"
+	models "github.com/adaptiveteam/adaptive/engagement-scheduling-models"
 )
 
 // ActivateEngagementsOnDay will run through the provided crosswalk to determine
@@ -28,6 +28,7 @@ func ActivateEngagementsOnDay(
 	holidays bt.Holidays,
 	// The location of the user
 	location *time.Location,
+	teamID utilsModels.TeamID,
 	// Ths specific user or channel name to send the test_engagements to
 	target string,
 	conn common.DynamoDBConnection,
@@ -56,7 +57,7 @@ func ActivateEngagementsOnDay(
 			e2 := e // this creates a new variable to be used in closure. e itself is reused in iterations!
 			core_utils_go.Go("Engagement: "+e2.Name, func() {
 				defer wg.Done()
-				e2.Functions.Engagement(date, target)
+				e2.Functions.Engagement(teamID, date, target)
 			})
 		}
 

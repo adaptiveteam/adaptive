@@ -12,23 +12,18 @@ import (
 	"log"
 	"net/url"
 	"time"
-
 	"github.com/pkg/errors"
-
 	adm "github.com/adaptiveteam/adaptive/adaptive-dynamic-menu"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-
 	"strconv"
 	"strings"
-
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
 	holidaysLambda "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
-
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
@@ -299,24 +294,28 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 		}
 	default:
 		// workaround for slackevents.ParseEvent
+		var slackInteractionCallback slack.InteractionCallback
 		switch slack.InteractionType(eventsAPIEvent.Type) {
 		case slack.InteractionTypeInteractionMessage, // "interactive_message"
 			slack.InteractionTypeDialogSubmission,
 			slack.InteractionTypeDialogCancellation: 
-			eventsAPIEvent.Data = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
+			slackInteractionCallback = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
+			data, _ := json.Marshal(slackInteractionCallback)
+			fmt.Printf("Parsed slackInteractionCallback:\n%+v\n", string(data))
+
+			var teamID models.TeamID
+			teamID, err = ensureTeamID(
+				daosCommon.PlatformID(slackInteractionCallback.Team.ID), 
+				daosCommon.PlatformID(slackInteractionCallback.APIAppID),
+				requestPayload,
+			)
+			if err == nil {
+				userID := slackInteractionCallback.User.ID
+				callbackID := slackInteractionCallback.CallbackID
+				err = routeByCallbackID(slackInteractionCallback, requestPayload, teamID, userID, callbackID)
+			}
 		default:
 			panic(errors.New("Unknown type of Slack message: " + eventsAPIEvent.Type))
-		}
-		data, _ := json.Marshal(eventsAPIEvent.Data)
-		fmt.Printf("Parsed eventsAPIEvent.Data:\n%+v", data)
-
-		objMap := parseMapUnsafe(requestPayload)
-		if _, ok := objMap["callback_id"]; ok {
-			userID := getUserID(eventsAPIEvent)
-			callbackID := getCallbackID(eventsAPIEvent)
-			err = routeByCallbackID(eventsAPIEvent, requestPayload, userID, callbackID)
-		} else {
-			fmt.Printf("Couldn't find callback_id in map: %+v", objMap)
 		}
 	}
 	return
@@ -324,15 +323,29 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 
 // ensureTeamID reads tokens and returns correct team id.
 // If we have teamID token, then we use it. Otherwise we use appID
-func ensureTeamID(teamID, appID daosCommon.PlatformID) (res models.TeamID, err error) {
+func ensureTeamID(teamID, appID daosCommon.PlatformID, requestPayload string) (res models.TeamID, err error) {
+	log.Printf("ensureTeamID(teamID=%s, appID=%s)", teamID, appID)
+
 	var teams []slackTeam.SlackTeam
-	teams, err = slackTeam.ReadOrEmpty(teamID)(connGen.ForPlatformID(teamID))
+	if teamID == "" {
+		fmt.Printf("TeamID is empty")
+	} else {
+		teams, err = slackTeam.ReadOrEmpty(teamID)(connGen.ForPlatformID(teamID))
+	}
 	if err == nil {
 		if len(teams) > 0 {
 			res = models.TeamID{TeamID: teams[0].TeamID}
 		} else {
 			var clientConfigs []clientPlatformToken.ClientPlatformToken
-			clientConfigs, err = clientPlatformToken.ReadOrEmpty(appID)(connGen.ForPlatformID(appID))
+			if appID == "" {
+				log.Println("WARN appID is empty. Trying to extract from bot_profile")
+				appID = daosCommon.PlatformID(tryExtractAppID(requestPayload))
+			}
+			if appID == "" {
+				err = errors.Errorf("AppID is empty: teamID=%s or appID=%s", teamID, appID)
+			} else {
+				clientConfigs, err = clientPlatformToken.ReadOrEmpty(appID)(connGen.ForPlatformID(appID))
+			}
 			if err == nil {
 				if len(clientConfigs) > 0 {
 					res = models.TeamID{AppID: clientConfigs[0].PlatformID}
@@ -341,6 +354,31 @@ func ensureTeamID(teamID, appID daosCommon.PlatformID) (res models.TeamID, err e
 				}
 			}
 		}
+	}
+	log.Printf("res: %v\n", res)
+	return
+}
+
+func tryExtractAppID(requestPayload string) (appID string) {
+	top := parseMapUnsafe(requestPayload)
+	originalMessageRaw, ok := top["original_message"]
+	if ok {
+		originalMessage := parseMapUnsafe(string(*originalMessageRaw))
+		botProfileRaw, ok := originalMessage["bot_profile"]
+		if ok {
+			botProfile := parseMapUnsafe(string(*botProfileRaw))
+			appIDRaw, ok := botProfile["app_id"]
+			if ok {
+				appID = string(*appIDRaw)
+				log.Println("Found app_id")
+			} else {
+				log.Println("ERROR No app_id in bot_profile")
+			}
+		} else {
+			log.Println("ERROR No bot_profile in original_message")
+		}
+	} else {
+		log.Println("ERROR No original_message in request payload")
 	}
 	return
 }
@@ -354,6 +392,7 @@ func routeCallbackEvent(
 	teamID, err = ensureTeamID(
 		daosCommon.PlatformID(callbackEvent.TeamID),
 		daosCommon.PlatformID(callbackEvent.APIAppID),
+		requestPayload,
 	)
 	if err == nil {
 		forwardToNamespace := forwardToNamespaceWithAppID(teamID, requestPayload)
@@ -421,16 +460,14 @@ func routeCallbackEvent(
 }
 
 func routeByCallbackID(
-	eventsAPIEvent slackevents.EventsAPIEvent,
+	slackInteractionCallback slack.InteractionCallback,
 	requestPayload string,
+	teamID models.TeamID,
 	userID, callbackID string,
 ) (err error) {
 	fmt.Printf("routeByCallbackID(userID=%s,callbackID=%s)\n", userID, callbackID)
 
 	slackRequest := models.EventsAPIEvent(requestPayload)
-	u := userDAO.ReadUnsafe(userID)
-	apiAppID := u.PlatformID
-	teamID := models.ParseTeamID(apiAppID)
 	np := models.NamespacePayload4{
 		ID:        core.Uuid(),
 		Namespace: namespace,
@@ -443,24 +480,25 @@ func routeByCallbackID(
 	invokeLambdaWithNamespace := invokeLambdaWithAppID(teamID, requestPayload)
 
 	if strings.Contains(callbackID, "init_message") {
-		if eventsAPIEvent.Type == string(slack.InteractionTypeInteractionMessage) {
-			var message slack.InteractionCallback
-			message, err = utils.ParseAsInteractionMsg(requestPayload)
-			err = errors.Wrap(err, "Could not parse to interaction type message")
-			logger.Infof("init_message parsed: %v", message)
-			if err != nil {
-				return
-			}
+		// if eventsAPIEvent.Type == string(slack.InteractionTypeInteractionMessage) {
+			// var message slack.InteractionCallback
+			// message, err = utils.ParseAsInteractionMsg(requestPayload)
+			// err = errors.Wrap(err, "Could not parse to interaction type message")
+			// logger.Infof("init_message parsed: %v", message)
+			// if err != nil {
+			// 	return
+			// }
+			message := slackInteractionCallback
 			action := message.ActionCallback.AttachmentActions[0]
 			if action.Name == "menu_list" {
 				selected := action.SelectedOptions[0]
 				menuOption := selected.Value
-				err = routeMenuOption(eventsAPIEvent, requestPayload, message, teamID,
+				err = routeMenuOption(slackInteractionCallback.User.ID, requestPayload, message, teamID,
 					menuOption)
 			} else if action.Name == "cancel" {
 				deleteMessage(message)
 			}
-		}
+		// }
 	} else if strings.Contains(callbackID, "feedback") {
 		invokeLambdaWithNamespace("feedback")
 	} else if strings.Contains(callbackID, "user_settings") {
@@ -483,7 +521,7 @@ func routeByCallbackID(
 }
 
 func routeMenuOption(
-	eventsAPIEvent slackevents.EventsAPIEvent,
+	userID string,
 	requestPayload string,
 	message slack.InteractionCallback,
 	teamID models.TeamID,
@@ -491,12 +529,6 @@ func routeMenuOption(
 ) (err error) {
 	logger.WithField("menuOption", menuOption).Infof("Routing menu option")
 	slackRequest := models.EventsAPIEvent(requestPayload)
-	userID := getUserID(eventsAPIEvent)
-	// callbackID := getCallbackID(eventsAPIEvent)
-	// fmt.Printf("userID=%v,callbackID=%v\n", userID, callbackID)
-	// u := userDAO.ReadUnsafe(userID)
-	// apiAppID := u.PlatformID
-	// teamID := u.PlatformID
 	np := models.NamespacePayload4{
 		ID:        core.Uuid(),
 		Namespace: namespace,

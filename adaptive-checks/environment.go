@@ -1,12 +1,10 @@
 package adaptive_checks
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/user"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 )
@@ -49,7 +47,6 @@ type environment struct {
 	clientID string
 	d         *awsutils.DynamoRequest
 	schema    models.Schema
-	userDAO   user.DAO
 	connGen   daosCommon.DynamoDBConnectionGen
 
 	dns       common.DynamoNamespace
@@ -92,7 +89,6 @@ func readEnvironment() environment {
 		initiativeCommunitiesPlatformIndex:  utils.NonEmptyEnv("INITIATIVE_COMMUNITIES_PLATFORM_INDEX"),
 		strategyCommunitiesTable          :  utils.NonEmptyEnv("STRATEGY_COMMUNITIES_TABLE_NAME"),
 
-		strategyObjectivesCapabilityCommunityIndex :  "CapabilityCommunityIDsIndex",
 		strategyInitiativesInitiativeCommunityIndex:  "InitiativeCommunityIDIndex",
 
 		userFeedbackTable        :  utils.NonEmptyEnv("USER_FEEDBACK_TABLE_NAME"),
@@ -104,7 +100,6 @@ func readEnvironment() environment {
 		d        :  d,
 		clientID :  clientID,
 		schema   :  schema,
-		userDAO  :  user.NewDAO(d, namespace, clientID),
 		connGen  :  daosCommon.CreateConnectionGenFromEnv(),
 
 		dns                  :  common.DynamoNamespace{Dynamo: d, Namespace: namespace},
@@ -113,19 +108,3 @@ func readEnvironment() environment {
 }
 
 var	DateFormat = core.ISODateLayout
-
-// UserIDToPlatformID converts userID to teamID using
-// globally available variables.
-func UserIDToPlatformID(userDAO utilsUser.DAO) func(string) daosCommon.PlatformID {
-	return func(userID string) (daosCommon.PlatformID) {
-		return userDAO.ReadUnsafe(userID).PlatformID
-	}
-}
-
-// UserIDToTeamID converts userID to teamID using
-// globally available variables.
-func UserIDToTeamID(userDAO utilsUser.DAO) func(string) models.TeamID {
-	return func(userID string) (teamID models.TeamID) {
-		return models.ParseTeamID(userDAO.ReadUnsafe(userID).PlatformID)
-	}
-}

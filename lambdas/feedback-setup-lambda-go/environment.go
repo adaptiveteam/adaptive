@@ -39,7 +39,6 @@ var (
 		IsInteractiveDebugEnabled: false,
 	}
 	feedbackDAO = feedback.NewDAOFromSchema(d, namespace, schema)
-	// userDao     = utilsUser.NewDAOFromSchema(d, namespace, schema)
 	connGen     = daosCommon.DynamoDBConnectionGen{
 		Dynamo:          d,
 		TableNamePrefix: clientID,
