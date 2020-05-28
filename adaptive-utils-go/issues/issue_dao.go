@@ -149,20 +149,6 @@ func selectFromIssuesWhereTypeAndUserIDSObjective(userID string, completed int) 
 			}
 		}
 
-		// itemsl := strategy.AllOpenStrategyObjectives(
-		// 	conn.PlatformID,
-		// 	strategyObjectivesTableName(conn.ClientID), strategyObjectivesPlatformIndex,
-		// 	userObjectivesTableName(conn.ClientID), userObjectivesIDIndex)
-		// for _, so := range items {
-		// 	log.Printf("found strategy objective: so.ID=%s\n",so.ID)
-		// 	issue := Issue{StrategyObjective: so}
-		// 	issue.UserObjective, err = common.DynamoDBConnection(conn).UserObjectiveFromStrategyObjective(so, conn.PlatformID)
-		// 	if err != nil {
-		// 		err = errors.Wrapf(err, "selectFromIssuesWhereTypeAndUserIDSObjective(userID=%s)", userID)
-		// 		return
-		// 	}
-		// 	res = append(res, issue)
-		// }
 		return
 	}
 }
