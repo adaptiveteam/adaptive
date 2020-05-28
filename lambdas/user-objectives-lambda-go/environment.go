@@ -7,12 +7,10 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/sirupsen/logrus"
-	"github.com/slack-go/slack"
 )
 
 var (
@@ -64,9 +62,3 @@ var (
 		TableNamePrefix: clientID,
 	}
 )
-
-func getSlackClient(request slack.InteractionCallback, teamID models.TeamID) *slack.Client {
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
-	api := utilsPlatform.GetSlackClientUnsafe(conn)
-	return api
-}
