@@ -91,7 +91,13 @@ func UserInitiativeCommunityInitiatives(userID string, initiativesTableName, ini
 		}, map[string]string{}, true, -1, &inits)
 		core.ErrorHandler(err, common.DeprecatedGetGlobalDns().Namespace, fmt.Sprintf("Could not query %s index on %s table",
 			initiativesInitiativeCommunityIDIndex, initiativesTableName))
-		op = append(op, inits...)
+		uniqueIDs := make(map[string]struct{})
+		for _, init := range inits {
+			if _, ok := uniqueIDs[init.ID]; !ok {
+				uniqueIDs[init.ID] = struct{}{}
+				op = append(op, init)
+			}
+		}
 	}
 	return op
 }
