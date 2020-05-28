@@ -12,6 +12,11 @@ import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/slack-go/slack"
 )
+// MessageID identifies message that has been posted.
+type MessageID struct {
+	ConversationID platform.ConversationID
+	Ts string
+}
 
 // // PlatformAdapter2 is the main interface to communicate with Slack
 // type PlatformAdapter2 interface {
