@@ -123,7 +123,7 @@ func AllOpenStrategyObjectives(strategyObjectivesTable, strategyObjectivesPlatfo
 				res = append(res, each)
 			}
 		} else {
-			log.Printf("AllOpenStrategyObjectives, error for userObj(id=%s) %+v", id, err2)
+			log.Printf("AllOpenStrategyObjectives, error for userObj(id=%s) %+v\n", id, err2)
 		}
 	}
 	return res
