@@ -7,7 +7,19 @@ import (
 
 func AdaptiveDynamicMenu(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindings) (adm menu.DynamicMenuSpecification) {
 	adm = menu.NewAdaptiveDynamicMenu(
-		menu.NewGroupSpecification(
+		UrgentResponsibilitiesGroup(profile, bindings),
+		ResponsibilitiesGroup(profile, bindings),
+		ViewGroup(profile, bindings),
+		CreateGroup(profile, bindings),
+		AssignGroup(profile, bindings),
+		SettingsGroup(profile, bindings),
+		ReportsGroup(profile, bindings),
+	)
+	return adm
+}
+
+	func UrgentResponsibilitiesGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindings) menu.GroupSpecification {
+		return menu.NewGroupSpecification(
 			"Urgent Responsibilities",
 			// Enables the user to create the company vision
 			menu.NewAdaptiveDynamicMenuSpecification(
@@ -70,8 +82,11 @@ func AdaptiveDynamicMenu(profile adaptive_checks.TypedProfile, bindings menu.Fun
 				profile.InLastMonthOfQuarter() &&
 					profile.TeamValuesExist(),
 			),
-		),
-		menu.NewGroupSpecification(
+		)
+	}
+
+	func ResponsibilitiesGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindings) menu.GroupSpecification {
+		return menu.NewGroupSpecification(
 			"Responsibilities",
 			// This fetches all IDO's
 			menu.NewAdaptiveDynamicMenuSpecification(
@@ -110,8 +125,12 @@ func AdaptiveDynamicMenu(profile adaptive_checks.TypedProfile, bindings menu.Fun
 				!profile.InLastMonthOfQuarter() &&
 					profile.TeamValuesExist(),
 			),
-		),
-		menu.NewGroupSpecification("View",
+		)
+	}
+
+	func ViewGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindings) menu.GroupSpecification {
+		return menu.NewGroupSpecification(
+			"View",
 			// Presents the company vision
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewVision"],
@@ -230,8 +249,12 @@ func AdaptiveDynamicMenu(profile adaptive_checks.TypedProfile, bindings menu.Fun
 				"",
 				profile.AdvocatesExist(),
 			),
-		),
-		menu.NewGroupSpecification("Create",
+		)
+	}
+
+	func CreateGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindings) menu.GroupSpecification {
+		return menu.NewGroupSpecification(
+			"Create",
 			// Enables a user to create an IDO
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["CreateIDO"],
@@ -326,8 +349,12 @@ func AdaptiveDynamicMenu(profile adaptive_checks.TypedProfile, bindings menu.Fun
 				"",
 				profile.InHRCommunity(),
 			),
-		),
-		menu.NewGroupSpecification("Assign",
+		)
+	}
+
+	func AssignGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindings) menu.GroupSpecification {
+		return menu.NewGroupSpecification(
+			"Assign",
 			// Enables a user to assign an Objective to an Objective Community
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["AssignCapabilityObjective"],
@@ -337,16 +364,23 @@ func AdaptiveDynamicMenu(profile adaptive_checks.TypedProfile, bindings menu.Fun
 					profile.ObjectivesExist() &&
 					profile.InStrategyCommunity(),
 			),
-		),
-		menu.NewGroupSpecification("Settings",
+		)
+	}
+
+	func SettingsGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindings) menu.GroupSpecification {
+		return menu.NewGroupSpecification(
+			"Settings",
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["UserSettings"],
 				"Update",
 				"",
 				true,
 			),
-		),
-		menu.NewGroupSpecification("Reports",
+		)
+	}
+
+	func ReportsGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindings) menu.GroupSpecification {
+		return menu.NewGroupSpecification("Reports",
 			// Enables the user to see their last collaboration report
 			menu.NewAdaptiveDynamicMenuSpecification(
 				bindings["ViewCollaborationReport"],
@@ -367,7 +401,5 @@ func AdaptiveDynamicMenu(profile adaptive_checks.TypedProfile, bindings menu.Fun
 				"",
 				profile.IDOsExistForMe(),
 			),
-		),
-	)
-	return adm
-}
+		)
+	}
