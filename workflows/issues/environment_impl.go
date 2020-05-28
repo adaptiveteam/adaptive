@@ -388,45 +388,22 @@ func SelectFromInitiativesJoinUserCommunityWhereUserID(userID string) func(conn 
 func SelectFromStrategyObjectivesWhenUserIsInStrategyUnionSelectFromStrategyObjectivesJoinCapabilityCommunitiesWhereUserID(userID string) func(conn DynamoDBConnection) (res []models.StrategyObjective, err error) {
 	return func(conn DynamoDBConnection) (res []models.StrategyObjective, err error) {
 		defer core.RecoverToErrorVar("SelectFromStrategyObjectivesWhenUserIsInStrategyUnionSelectFromStrategyObjectivesJoinCapabilityCommunitiesWhereUserID", &err)
-		res = strategy.UserStrategyObjectives(userID, strategyObjectivesTableName(conn.ClientID),
+		objs := strategy.UserStrategyObjectives(userID, strategyObjectivesTableName(conn.ClientID),
 			strategyObjectivesPlatformIndex, userObjectivesTableName(conn.ClientID),
 			communityUsersTableName(conn.ClientID), communityUsersUserCommunityIndex,
 			conn,
 		)
+		uniqueIDs := make(map[string]struct{})
+		for _, obj := range objs {
+			if _, ok := uniqueIDs[obj.ID]; !ok {
+				uniqueIDs[obj.ID] = struct{}{}
+				res = append(res, obj)
+			}
+		}
 		return
 	}
 }
 
-/*
-	func communityMembersIncludingStrategyMembers(commID string, ) []models.KvPair {
-		// Strategy Community members
-		strategyCommMembers := communityMembers(string(community.Strategy), conn.PlatformID)
-		commMembers := communityMembers(commID, conn.PlatformID)
-		return models.DistinctKvPairs(append(strategyCommMembers, commMembers...))
-	}
-*/
-// SelectKvPairsFromCommunityUnionSelectAllFromStrategy(communityID string) (members []models.KvPair, err error)
-
-// SelectKvPairsFromCommunityJoinUsers loads members from community, then
-// for each member id loads UserToken and extracts display name
-/*
-func communityMembers(commID string, ) []models.KvPair {
-	// Get coaching community members
-	commMembers := community.CommunityMembers(communityUsersTableName(conn.ClientID), commID, string(conn.PlatformID), communityUsersCommunityIndex)
-	logger.Infof("Members in %s Community for %s platform: %s", commID, conn.PlatformID, commMembers)
-	var users []models.KvPair
-	for _, each := range commMembers {
-		// Self user checking
-		ut := userTokenUnsafe(each.UserId)
-		if ut.DisplayName != "" && ut.DisplayName != adaptiveBotRealName {
-			users = append(users, models.KvPair{Key: ut.DisplayName, Value: each.UserId})
-		}
-	}
-	logger.Infof("KvPairs from communities for %s community for %s platform: %s", commID, conn.PlatformID, users)
-	return users
-}
-
-*/
 func SelectKvPairsFromCommunityJoinUsers(communityID community.AdaptiveCommunity) func(DynamoDBConnection) ([]models.KvPair, error) {
 	return func(conn DynamoDBConnection) (members []models.KvPair, err error) {
 		defer core.RecoverToErrorVar("SelectKvPairsFromCommunityJoinUsers", &err)
