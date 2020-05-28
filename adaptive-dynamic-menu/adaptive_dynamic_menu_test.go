@@ -1,9 +1,12 @@
 package adaptive_dynamic_menu
 
 import (
-	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	"fmt"
 	"testing"
+
+	"github.com/adaptiveteam/adaptive/adaptive-checks"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 
 	// acfn "github.com/adaptiveteam/adaptive/adaptive-check-function-names"
 	// bt "github.com/adaptiveteam/adaptive/business-time"
@@ -23,10 +26,6 @@ var bindings = menu.FunctionBindings{
 	"AllInitiativesForMe":        "all_initiatives_for_me",
 	"ProvideFeedback":            "provide_feedback",
 	"RequestFeedback":            "request_feedback",
-	"ViewEditObjectives":         "view_edit_objectives",
-	"ViewCommunityObjectives":    "view_community_objectives",
-	"ViewEditInitiatives":        "view_edit_initiatives",
-	"ViewCommunityInitiatives":   "view_community_initiatives",
 	"ViewValues":                 "view_values",
 	"ViewEditValues":             "view_edit_values",
 	"ViewCollaborationReport":    "view_collaboration_report",
@@ -36,13 +35,10 @@ var bindings = menu.FunctionBindings{
 	"ViewScheduleCurrentQuarter": "view_current_quarter_schedule",
 	"ViewVision":                 "view_vision",
 	"ViewEditVision":             "view_edit_vision",
-	"CreateIDO":                  "create_ido",
 	"CreateVision":               "create_vision",
 	"CreateFinancialObjectives":  "create_financial_objective",
 	"CreateCustomerObjectives":   "create_customer_objective",
-	"CreateCapabilityObjectives": "create_capability_objective",
 	"CreateCapabilityCommunity":  "createcapability_community",
-	"CreateInitiatives":          "create_initiative",
 	"CreateInitiativeCommunity":  "create_initiative_community",
 	"CreateValues":               "create_value",
 	"CreateHolidays":             "create_holidays",
@@ -87,8 +83,8 @@ func Test_AllTrue(t *testing.T) {
 			// User is in initiative community so can edit
 			// User is in HR community so can edit
 			bindings["ViewEditVision"],
-			bindings["ViewEditObjectives"],
-			bindings["ViewEditInitiatives"],
+			strategy.ViewStrategyObjectives,
+			strategy.ViewCapabilityCommunityInitiatives,
 			bindings["ViewEditValues"],
 			bindings["ViewEditHolidays"],
 			bindings["ViewScheduleCurrentQuarter"],
@@ -100,10 +96,10 @@ func Test_AllTrue(t *testing.T) {
 			// User is in strategy community so can create objectives
 			// User is in objective community so create initiatives
 			// User is in HR community so can create holidays
-			bindings["CreateIDO"],
-			bindings["CreateCapabilityObjectives"],
+			objectives.CreateIDONow,
+			strategy.CreateStrategyObjective,
 			bindings["CreateCapabilityCommunity"],
-			bindings["CreateInitiatives"],
+			strategy.CreateInitiative,
 			bindings["CreateInitiativeCommunity"],
 			bindings["CreateValues"],
 			bindings["CreateHolidays"],
@@ -164,7 +160,7 @@ func Test_IndividualContributor(t *testing.T) {
 
 	desiredOptions := map[string][]string{
 		desiredGroups[0]: {
-			bindings["CreateIDO"],
+			objectives.CreateIDONow,
 		},
 		desiredGroups[1]: {
 			bindings["ProvideFeedback"],
@@ -176,8 +172,8 @@ func Test_IndividualContributor(t *testing.T) {
 			// User is in initiative community so can edit
 			// User is in HR community so can edit
 			bindings["ViewVision"],
-			bindings["ViewCommunityObjectives"],
-			bindings["ViewCommunityInitiatives"],
+			strategy.ViewCapabilityCommunityObjectives,
+			strategy.ViewInitiativeCommunityInitiatives,
 			bindings["ViewValues"],
 			bindings["ViewHolidays"],
 			bindings["ViewScheduleCurrentQuarter"],
@@ -186,7 +182,7 @@ func Test_IndividualContributor(t *testing.T) {
 			bindings["ViewAdvocates"],
 		},
 		desiredGroups[3]: {
-			bindings["CreateInitiatives"],
+			strategy.CreateInitiative,
 		},
 		desiredGroups[4]: {
 			bindings["UserSettings"],
