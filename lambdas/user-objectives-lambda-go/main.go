@@ -6,7 +6,6 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
-	"github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
@@ -34,11 +33,9 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsIssues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
-	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -79,8 +76,6 @@ const (
 	ObjectiveStatusColor       = "objective_status_color"
 	ObjectiveCloseoutComment   = "objective_closeout_comment"
 	ObjectiveNoCloseoutComment = "objective_no_closeout_comment"
-	ReviewUserProgressSelect   = "review_user_progress_select"
-	UberCoach                  = "uber_coach"
 
 	ViewMore     models.AttachActionName = "view more"
 	ViewLess     models.AttachActionName = "view less"
@@ -92,18 +87,9 @@ const (
 	Cancel       models.AttachActionName = "cancel"
 	Enable       models.AttachActionName = "enable"
 	Confirm      models.AttachActionName = "confirm"
-
-	PartnerSelectUser        = "partner_select_user"
-	SelectPartnerObjective   = "select_partner_objective"
-	PartnerObjective         = "partner_objective"
-	UserOpenObjectives       = "user_open_objectives"
-	ReviewCoacheeProgressAsk = "review_coachee_progress_ask"
-	ReviewCoachComments      = "review_coach_comments"
-
-	// ViewObjectivesNoProgressThisWeek = user.ViewObjectivesNoProgressThisWeek
-
-	ViewOpenObjectives = "view_open_objectives"
-
+)
+var	ViewOpenObjectives = common2.ViewOpenObjectives
+const(
 	Individual          = "Individual Objective"
 	CapabilityObjective = "Capability Objective"
 	StrategyInitiative  = "Initiative"
@@ -192,13 +178,6 @@ func PartnerSelectingUserEngagement(conn daosCommon.DynamoDBConnection,
 			models.EmptyActionMenuOptionGroups())},
 		[]ebm.AttachmentField{}, teamID, true, engagementTable, d, namespace,
 		time.Now().Unix(), common2.EngagementEmptyCheck)
-}
-
-func PartnerSelectingUserForProgress(conn daosCommon.DynamoDBConnection, mc *models.MessageCallback, userID string, users []string) {
-	// Post an engagement to the partner to select a user to review progress
-	PartnerSelectingUserEngagement(conn, *mc.WithTopic("coaching").WithAction(ReviewUserProgressSelect), userID,
-		CoacheeProgressSelectionPrompt,
-		users)
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -473,17 +452,6 @@ func updateObjAttachment(conn daosCommon.DynamoDBConnection,
 	return []ebm.Attachment{*attach}
 }
 
-func partnerObjViewAttachment(mc models.MessageCallback, title, text, fallback ui.PlainText, uObj *models.UserObjective) []ebm.Attachment {
-	mcUpdated := mc.WithAction(SelectPartnerObjective).WithTarget(uObj.ID)
-	actions := []ebm.AttachmentAction{
-		*models.SimpleAttachAction(*mcUpdated, models.Now, ObjectivePartnerSelectActionLabel),
-		*models.SimpleAttachAction(*mcUpdated, models.Ignore, ObjectivePartnerSelectionSkipActionLabel),
-	}
-	attach := utils.ChatAttachment(string(title), string(text),
-		string(fallback), mcUpdated.ToCallbackID(), actions, []ebm.AttachmentField{}, time.Now().Unix())
-	return []ebm.Attachment{*attach}
-}
-
 func moreOptionsAttachment(mc models.MessageCallback, title, fallback ui.PlainText, userObj *models.UserObjective,
 	teamID models.TeamID) []ebm.Attachment {
 	attach := utils.ChatAttachment(string(title), core.EmptyString, string(fallback), mc.ToCallbackID(),
@@ -701,20 +669,6 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							onViewStaleIDOs(request, teamID)
 						} else if strings.HasPrefix(action.Name, ViewOpenObjectives) {
 							onViewOpenObjectives(request, teamID)
-						} else if strings.HasPrefix(action.Name, PartnerSelectUser) {
-							onPartnerSelectUser(request, teamID)
-						} else if strings.HasPrefix(action.Name, SelectPartnerObjective) {
-							onSelectPartnerObjective(request, teamID)
-						} else if strings.HasPrefix(action.Name, PartnerObjective) {
-							onPartnerObjective(request, teamID)
-						} else if strings.HasPrefix(action.Name, ReviewUserProgressSelect) {
-							onReviewUserProgressSelect(request, teamID)
-						} else if strings.HasPrefix(action.Name, ReviewCoacheeProgressAsk) {
-							onReviewCoacheeProgressAsk(request, teamID)
-						} else if strings.HasPrefix(action.Name, ReviewCoachComments) {
-							onReviewCoachComments(request, teamID)
-						} else if strings.HasPrefix(action.Name, UberCoach) {
-							onUberCoach(conn, request, teamID)
 						} else if strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinWeek) ||
 							strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinMonth) ||
 							strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinQuarter) ||
@@ -748,12 +702,8 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 
 func onMenuList(np models.NamespacePayload4) (err error) {
 	request := np.SlackRequest.InteractionCallback
-	userID := request.User.ID
-	channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	// year, month := core.CurrentYearMonth()
-
+	
 	selected := action.SelectedOptions[0]
 	if clientID == "" {
 		err = errors.New("onMenuList: clientID == ''")
@@ -930,47 +880,6 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// } else {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 		// 		Message: "There are no Strategy Objectives assigned to you"})
-		// }
-	case PartnerSelectUser:
-		mc := callback(userID, "coaching", UserOpenObjectives)
-		var users []string
-		// Query all the objectives for which no partner is assigned
-		var uaObjs []models.UserObjective
-		err := d.QueryTableWithIndex(userObjectivesTable, awsutils.DynamoIndexExpression{
-			IndexName: string(userObjective.AcceptedIndex),
-			Condition: "accepted = :a",
-			Attributes: map[string]interface{}{
-				":a": aws.Int(0),
-			},
-		}, map[string]string{}, true, -1, &uaObjs)
-		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s index on %s table", userObjective.AcceptedIndex, userObjectivesTable))
-		for _, each := range uaObjs {
-			users = append(users, each.UserID)
-		}
-		// If there are objectives that doesn't have a partner for
-		if len(core.Distinct(users)) > 0 {
-			// Posting user select engagement to the user. User id here should be channel since we are posting into a channel
-			user.UserSelectEng(userID, engagementTable, conn,
-				*mc.WithTopic("coaching").WithAction(PartnerSelectUser), core.Distinct(users), []string{},
-				"Hello! Below are the users who doesn't have a partner assigned for some of their objectives.",
-				"coaching", common2.EngagementEmptyCheck)
-		} else {
-			publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: core.TextWrap(fmt.Sprintf("All users have partners assigned for all their individual objectives."), core.Underscore), AsUser: true})
-		}
-		// Delete the original engagement
-		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: "", AsUser: true, Ts: message.MessageTs})
-	case ReviewUserProgressSelect:
-		mc := callback(userID, "init", "select")
-		usersForPartner := UsersForPartner(userID)
-
-		if len(usersForPartner) > 0 {
-			PartnerSelectingUserForProgress(conn, &mc, userID, usersForPartner)
-		} else {
-			// Do not publish this message to the channel, but send to user
-			publish(models.PlatformSimpleNotification{UserId: userID, Message: core.TextWrap(fmt.Sprintf("Thanks for asking me. You did not partner with anyone on their development objectives"), core.Underscore), AsUser: true})
-		}
-		// Delete original message
-		DeleteOriginalEng(userID, channelID, message.MessageTs)
 	}
 	return
 }
@@ -1328,133 +1237,6 @@ func onViewOpenObjectives(request slack.InteractionCallback, teamID models.TeamI
 	}
 }
 
-func onPartnerSelectUser(request slack.InteractionCallback, teamID models.TeamID) {
-	userID := request.User.ID
-	channelID := request.Channel.ID
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	mc, err := utils.ParseToCallback(message.CallbackID)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", PartnerSelectUser, core.Underscore))
-	switch act {
-	case string(models.Now):
-		// Listing not accepted objectives for a user
-		typ := models.IndividualDevelopmentObjective
-		allObjs := objectives.AllUserObjectives(userID, userObjectivesTable, string(userObjective.UserIDTypeIndex), typ, 0)
-		openObjs := filterObjectives(allObjs, func(objective models.UserObjective) bool {
-			return objective.Accepted != 1
-		})
-		if len(openObjs) > 0 {
-			ListObjectives(userID, channelID, openObjs, func(mc models.MessageCallback, objective models.UserObjective) []ebm.Attachment {
-				return partnerObjViewAttachment(mc,
-					ui.PlainText(objective.Name),
-					ui.PlainText(objective.Description), "", &objective)
-			}, TimeStamp(message))
-		}
-		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	case string(models.Cancel):
-		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	}
-}
-
-func onSelectPartnerObjective(request slack.InteractionCallback, teamID models.TeamID) {
-	userID := request.User.ID
-	channelID := request.Channel.ID
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	mc, err := utils.ParseToCallback(message.CallbackID)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", SelectPartnerObjective, core.Underscore))
-	switch act {
-	case string(models.Now):
-		// Partner wants to partner up
-		uObj := userObjectiveByID(mc.Target)
-		publish(models.PlatformSimpleNotification{UserId: userID, Message: core.TextWrap(fmt.Sprintf(
-			"Ok. I have sent a notification to <@%s> saying that you want to partner up on the objective: `%s`", mc.Source, uObj.Name), core.Underscore), AsUser: true})
-		AskForPartnershipEngagement(teamID, *mc.WithTopic("coaching").WithTarget(uObj.ID).WithAction(PartnerObjective).WithSource(userID), uObj.UserID, fmt.Sprintf(
-			"<@%s> wants to be your accountability partner for the below objective. Are you okay with that?", userID), fmt.Sprintf("_`%s`_\n%s", uObj.Name, core.TextWrap(uObj.Description, core.Underscore)), "", "", true)
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	case string(models.Ignore):
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	}
-}
-
-func onPartnerObjective(request slack.InteractionCallback, teamID models.TeamID) {
-	userID := request.User.ID
-	channelID := request.Channel.ID
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	mc, err := utils.ParseToCallback(message.CallbackID)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", PartnerObjective, core.Underscore))
-	switch act {
-	case "confirm":
-		uObj := userObjectiveByID(mc.Target)
-		partner := mc.Source
-		SetObjectiveField(uObj, "accepted", 1)
-		SetObjectiveField(uObj, "accountability_partner", partner)
-		publish(models.PlatformSimpleNotification{UserId: userID, Message: core.TextWrap(fmt.Sprintf(
-			"<@%s> will be your accountability partner for the objective: %s", partner, uObj.Name), core.Underscore), AsUser: true})
-		publish(models.PlatformSimpleNotification{UserId: partner, Message: core.TextWrap(fmt.Sprintf(
-			"You are now accountable for <@%s>'s objective: %s", userID, uObj.Name), core.Underscore), AsUser: true})
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-		utils.UpdateEngAsAnswered(userID, mc.ToCallbackID(), engagementTable, d, namespace)
-	case string(models.No):
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-		utils.UpdateEngAsIgnored(userID, mc.ToCallbackID(), engagementTable, d, namespace)
-	}
-}
-
-func onReviewUserProgressSelect(request slack.InteractionCallback, teamID models.TeamID) {
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
-
-	userID := request.User.ID
-	channelID := request.Channel.ID
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	mc, err := utils.ParseToCallback(message.CallbackID)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	act := strings.TrimPrefix(action.Name, ReviewUserProgressSelect+core.Underscore)
-	switch act {
-	case string(models.Select):
-		coachee := action.SelectedOptions[0].Value
-		// Update engagement as answered and delete it from chat space
-		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(userID, channelID, message.MessageTs)
-
-		// Set Target to coachee and post engagement to user to review progress for the specific Target
-		mc.Set("Target", coachee)
-		ObjectiveProgressAskEngagement(teamID, *mc, userID, fmt.Sprintf(
-			"I see that you want to review progress of <@%s>", coachee))
-	case string(models.Now):
-		// Update current engagement as answered because we are changing mc in next line
-		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		// Engage with the partner right away showing coachee's latest progress and asking for partner's review
-		done, nonEmpty := engageCoacheeReviewAsk(teamID, mc, userID, true)
-
-		if !done {
-			publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID,
-				Message: core.TextWrap("Selected coachee doesn't have any objectives defined", core.Underscore, "*"), AsUser: true})
-		} else if nonEmpty == 0 {
-			publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID,
-				Message: core.TextWrap("There is no progress for any of the objectives for the coachee", core.Underscore, "*"), AsUser: true})
-		}
-		// Delete original engagement
-		DeleteOriginalEng(userID, channelID, message.MessageTs)
-	case string(models.Ignore):
-		// Update engagement as ignored and delete it from chat space
-		utils.UpdateEngAsIgnored(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(userID, channelID, message.MessageTs)
-	case string(models.Back):
-		usersForPartner := UsersForPartner(userID)
-		// Show the original engagement and delete current engagement
-		PartnerSelectingUserForProgress(conn, mc, userID, core.Distinct(usersForPartner))
-		DeleteOriginalEng(userID, channelID, message.MessageTs)
-	}
-}
-
 func objectiveProgressOnDate(objID string, date string) (uop models.UserObjectiveProgress, found bool, err error) {
 	params := map[string]*dynamodb.AttributeValue{
 		"id":         dynString(objID),
@@ -1463,158 +1245,6 @@ func objectiveProgressOnDate(objID string, date string) (uop models.UserObjectiv
 
 	found, err = d.GetItemOrEmptyFromTable(userObjectivesProgressTable, params, &uop)
 	return
-}
-
-func onReviewCoacheeProgressAsk(request slack.InteractionCallback, teamID models.TeamID) {
-	userID := request.User.ID
-	channelID := request.Channel.ID
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	suffixAction := strings.TrimPrefix(action.Name, ReviewCoacheeProgressAsk+"_")
-	mc, err2 := utils.ParseToCallback(message.CallbackID)
-	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not parse to callback"))
-	switch suffixAction {
-	case string(models.Now):
-		// Post a survey to the user asking for partner's feedback on coachee's progress and analyze it
-		id := action.Value // callbackId
-		objID, date := splitObjectiveWithDateUnsafe(mc.Target)
-		if objID != "" {
-			objProgress, found, err3 := objectiveProgressOnDate(objID, date)
-			if err3 == nil {
-				if !found {
-					objProgress = models.UserObjectiveProgress{}
-					logger.Infof("Progress not found %s, %s", objID, date)
-				}
-				logger.WithField("progress", &objProgress).Infof("Got objective progress on the date")
-				val := models.FillSurvey(CommentsProgressSurvey(
-					progressLabel(mc.Target), PerceptionOfStatusLabel, PerceptionOfStatusName, ProgressCommentsLabel, CommentsName, objProgress.StatusColor),
-					map[string]string{
-						PerceptionOfStatusName: string(objProgress.StatusColor)})
-				api := getSlackClient(message)
-
-				surState := func() string {
-					return surveyState(message, mc.Target)
-				}
-				// Open a survey associated with the engagement
-				err5 := utils.SlackSurvey(api, message, val, id, surState)
-				if err5 != nil {
-					logger.WithField("error", err5).Errorf("Could not open dialog from %s survey",
-						id+":"+message.CallbackID)
-				}
-				// } else {
-				// 	logger.WithField("error", &err4).Errorf("Could not query for user token for %s", message.User.ID)
-				// }
-			} else {
-				logger.WithField("error", err3).Errorf("Could not progress update for %s objective on %s date", objID, date)
-			}
-		} else {
-			logger.Errorf("Objective ID is empty")
-		}
-	case string(models.Ignore):
-		// Mark as ignored and delete the engagement
-		utils.UpdateEngAsIgnored(userID, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(userID, channelID, message.MessageTs)
-	case string(models.Update):
-		id := action.Value // callbackId
-
-		// User chose to update the text enter through earlier dialog interaction
-		objID, date := splitObjectiveWithDateUnsafe(mc.Target)
-		if objID != "" {
-			objProgress, found, err6 := objectiveProgressOnDate(objID, date)
-			if err6 == nil {
-				if !found {
-					objProgress = models.UserObjectiveProgress{}
-					logger.Infof("Progress not found %s, %s", objID, date)
-				}
-				val := models.FillSurvey(CommentsProgressSurvey(
-					progressLabel(mc.Target), PerceptionOfStatusLabel,
-					PerceptionOfStatusName, ProgressCommentsLabel, CommentsName, objProgress.StatusColor),
-					map[string]string{
-						CommentsName:           objProgress.PartnerComments,
-						PerceptionOfStatusName: objProgress.PartnerReportedProgress})
-				api := getSlackClient(message)
-
-				// Open a survey associated with the engagement
-				surState := func() string {
-					return surveyState(message, mc.Target)
-				}
-				err8 := utils.SlackSurvey(api, message, val, id, surState)
-				core.ErrorHandler(err8, namespace, fmt.Sprintf("Could not open dialog from %s survey",
-					id+":"+message.CallbackID))
-
-			} else {
-				logger.WithField("error", err6).Errorf("Could not progress update for %s objective on %s date", objID, date)
-			}
-		} else {
-			logger.Errorf("Objective ID is empty")
-		}
-	}
-}
-
-func onReviewCoachComments(request slack.InteractionCallback, teamID models.TeamID) {
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	suffixAction := strings.TrimPrefix(action.Name, ReviewCoachComments+"_")
-	mc, err := utils.ParseToCallback(action.Value)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	switch suffixAction {
-	case string(models.Ignore):
-		// uObj := userObjectiveByID(mc.Target)
-		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		publish(models.PlatformSimpleNotification{UserId: message.User.ID, Channel: message.Channel.ID,
-			Ts: message.MessageTs})
-	}
-}
-
-func onUberCoach(conn daosCommon.DynamoDBConnection, request slack.InteractionCallback, teamID models.TeamID) {
-	userID := request.User.ID
-	channelID := request.Channel.ID
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	act := strings.TrimPrefix(action.Name, UberCoach+"_")
-	mc, err1 := utils.ParseToCallback(action.Value)
-	core.ErrorHandler(err1, namespace, fmt.Sprintf("Could not parse to callback"))
-
-	objectiveID := mc.Target
-	obj := userObjectiveByID(objectiveID)
-	switch act {
-	case string(models.Now):
-		coach := userID
-
-		// check that the objective still has no coach
-		if obj.AccountabilityPartner == "requested" {
-			exprAttributes := map[string]*dynamodb.AttributeValue{
-				":a": {
-					N: aws.String("1"),
-				},
-				":ap": dynString(coach),
-			}
-			key := map[string]*dynamodb.AttributeValue{
-				"user_id": dynString(mc.Source),
-				"id":      dynString(objectiveID),
-			}
-			updateExpression := "set accountability_partner = :ap, accepted = :a"
-			err3 := d.UpdateTableEntry(exprAttributes, key, updateExpression, userObjectivesTable)
-			core.ErrorHandler(err3, namespace, fmt.Sprintf("Could not update accountability_partner flag in %s table", userObjectivesTable))
-			msg := fmt.Sprintf("<@%s> has accepted to coach <@%s> on the objective: `%s`", userID, obj.UserID, obj.Name)
-			// Send notification to coaching community
-			publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs, Message: msg})
-			// Send notification to coachee
-			publish(models.PlatformSimpleNotification{UserId: obj.UserID,
-				Message: msg, AsUser: true})
-		} else {
-			users, err2 := daosUser.ReadOrEmpty(obj.AccountabilityPartner)(conn)
-			core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query for %s user", userID))
-			if len(users) > 0{
-				// Send notification to coaching community
-				msg := fmt.Sprintf("<@%s> is already a coach of <@%s> on the objective: `%s`", userID, obj.UserID, obj.Name)
-				publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs, Message: msg})
-			} else {
-				msg := fmt.Sprintf("<@%s> has decided not to have a coach for the objective: `%s`", obj.UserID, obj.Name)
-				publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs, Message: msg})
-			}
-		}
-	}
 }
 
 func onCapabilityObjectiveUpdateDueWithinWeek(request slack.InteractionCallback, teamID models.TeamID) {
@@ -1673,27 +1303,16 @@ func onDialogSubmission(request slack.InteractionCallback, teamID models.TeamID)
 	mc, err := utils.ParseToCallback(dialog.CallbackID)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
 	fmt.Println("### callback in submission: " + dialog.CallbackID)
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	// conn := connGen.ForPlatformID(teamID.ToPlatformID())
 
 	if mc.Topic == "init" && mc.Action == "ask" {
-		onUserObjectiveSubmitted(conn, dialog, teamID, *mc)
+		fmt.Println("ERROR: Invocation of the old onUserObjectiveSubmitted implementation which has been removed")
 	} else if mc.Topic == "init" && mc.Action == string(Closeout) {
-		onCloseout(dialog, teamID, *mc)
-	} else if mc.Topic == CommentsName {
-		// uObj := userObjectiveByID(msgState.ObjectiveId)
-		// typLabel := objectiveTypeLabel(uObj)
-		switch mc.Action {
-		case "ask":
-			onAddProgressMenuSelect(dialog, teamID, *mc)
-		case "confirm":
-			onAddedProgressEdit(dialog, teamID, *mc)
-		}
+		fmt.Println("ERROR: Invocation of the old Closeout implementation which has been removed")
 	} else if mc.Topic == "coaching" {
 		switch mc.Action {
 		case "ask":
 			onCoachingRequestRejected(dialog, *mc)
-		case ReviewCoacheeProgressAsk:
-			onCoachingReviewCoacheeProgressAsk(dialog, *mc)
 		}
 	}
 }
@@ -1751,215 +1370,6 @@ func convertDialogSubmissionToUserObjective(
 	return
 }
 
-// This is engagement is to handle creating a user objective
-// TODO: split update and create logic
-func onUserObjectiveSubmitted(conn daosCommon.DynamoDBConnection, request slack.InteractionCallback, teamID models.TeamID, mc models.MessageCallback) {
-	dialog := request
-	msgState := GetMsgStateUnsafe(request)
-	userID := dialog.User.ID
-	channelID := dialog.Channel.ID
-	var userObj models.UserObjective
-	if msgState.ObjectiveId != core.EmptyString {
-		// updating existing objective
-		existingObj := userObjectiveByID(msgState.ObjectiveId)
-		userObj = convertDialogSubmissionToUserObjective(
-			msgState.ObjectiveId,
-			dialog.User.ID,
-			teamID,
-			dialog.Submission)
-		userObj.Quarter = existingObj.Quarter
-		userObj.Year = existingObj.Year
-		userObj.CreatedDate = existingObj.CreatedDate
-	} else {
-		userObj = convertDialogSubmissionToUserObjective(core.Uuid(), dialog.User.ID, teamID, dialog.Submission)
-	}
-
-	user, err4 := daosUser.Read(userObj.UserID)(conn)
-	// ut, err := utils.UserToken(userObj.UserID, userProfileLambda, region, namespace)
-	core.ErrorHandler(err4, namespace, fmt.Sprintf("Could not query for %s user", userObj.UserID))
-	CreateUserObjective(userObj, &mc, dialog.Channel.ID, teamID, msgState.ThreadTs, msgState.Update)
-
-	if !msgState.Update {
-		if userObj.AccountabilityPartner == "requested" {
-			// A user requested a coach. Post an engagement to coaching community.
-			comm := community.CommunityById("coaching", models.ParseTeamID(user.PlatformID), communitiesTable)
-			publish(models.PlatformSimpleNotification{UserId: userID, Channel: comm.ChannelID,
-				Attachments: coachingCommAttachs(mc, userObj)})
-			publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: core.TextWrap(fmt.Sprintf(
-				"I have sent a notification to the coaching community about your request for a coach for the objective: `%s`", userObj.Name), core.Underscore)})
-		} else if userObj.AccountabilityPartner != core.EmptyString {
-			// Send a notification to accountability partner if that person is willing to partner with you
-			AskForPartnershipEngagement(teamID, *mc.WithTopic("coaching").WithTarget(userObj.ID), userObj.AccountabilityPartner, fmt.Sprintf(
-				"<@%s> is requesting your coaching for the below Individual Development Objective. Are you available to partner with and guide your colleague with this effort?", userObj.UserID),
-				fmt.Sprintf("*%s*: %s\n*%s*: %s", NameLabel, userObj.Name, DescriptionLabel, core.TextWrap(userObj.Description, core.Underscore)), "", "", false)
-
-			coaches, err5 := daosUser.ReadOrEmpty(userObj.AccountabilityPartner)(conn)
-			core.ErrorHandler(err5, namespace, fmt.Sprintf("Could not query for user token"))
-			if len(coaches) > 0 {
-				publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Message: core.TextWrap(fmt.Sprintf(
-					"I have also sent a notification to your selected coach, <@%s>, for confirmation", userObj.AccountabilityPartner), core.Underscore)})
-			}
-		}
-	}
-}
-
-func onCloseout(request slack.InteractionCallback, teamID models.TeamID, mc models.MessageCallback) {
-	dialog := request
-	msgState := GetMsgStateUnsafe(request)
-	userID := dialog.User.ID
-	channelID := dialog.Channel.ID
-
-	uObj := userObjectiveByID(msgState.ObjectiveId)
-	typLabel := objectiveTypeLabel(uObj)
-
-	// Capture closeout comments
-	// On of these should exist in dialog submission
-	comments := ui.PlainText(dialog.Submission[ObjectiveCloseoutComment])
-	noCloseComments1, ok := dialog.Submission[ObjectiveNoCloseoutComment]
-	noCloseComments := ui.PlainText(noCloseComments1)
-	var textToAnalyze ui.PlainText
-	var coacheeMsg ui.PlainText
-
-	// No close comments exists
-	if ok {
-		// Notify partner that objective is not closed
-		attachs := viewProgressAttachment(mc,
-			ui.PlainText(ui.Sprintf(
-				"I will notify <@%s> that you disagree on closing out the %s %s.", uObj.UserID, uObj.Name, typLabel)),
-			"",
-			ui.PlainText(noCloseComments), "", uObj, No)
-		publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: msgState.ThreadTs, Attachments: attachs})
-		textToAnalyze = noCloseComments
-		coacheeMsg = ui.PlainText(fmt.Sprintf("%s disagreed with your view of closing out the %s %s. It's still open.",
-			common.TaggedUser(uObj.AccountabilityPartner), uObj.Name, typLabel))
-
-		utils.ECAnalysis(string(textToAnalyze), closeoutDisagreementContext(uObj),
-			"Closeout comments",
-			dialogTableName, mc.ToCallbackID(), dialog.User.ID, dialog.Channel.ID, msgState.Ts, msgState.ThreadTs,
-			attachs, s, platformNotificationTopic, namespace)
-		// Also, unset completed flag that was set by coachee
-		SetObjectiveField(uObj, "completed", 0)
-		// TODO: Write this data to a table
-	} else {
-		// Mark the objective as closed for the coachee
-		exprAttributes := map[string]*dynamodb.AttributeValue{
-			":f": {
-				BOOL: aws.Bool(true),
-			},
-			":c":    dynString(string(comments)),
-			":pvcd": dynString(core.ISODateLayout.Format(time.Now())),
-		}
-		key := map[string]*dynamodb.AttributeValue{
-			"user_id": dynString(uObj.UserID),
-			"id":      dynString(uObj.ID),
-		}
-		updateExpression := "set partner_verified_completion = :f, comments = :c, partner_verified_completion_date = :pvcd"
-		err := d.UpdateTableEntry(exprAttributes, key, updateExpression, userObjectivesTable)
-		if err == nil {
-			// Notify partner that objective is closed
-			attachs := viewProgressAttachment(mc,
-				ui.PlainText(ui.Sprintf(
-					"Awesome! %s %s of %s has been closed", uObj.Name, typLabel, common.TaggedUser(uObj.UserID))),
-				"",
-				ui.PlainText(comments), "", uObj, models.Update)
-			publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: msgState.ThreadTs, Attachments: attachs})
-			textToAnalyze = comments
-			coacheeMsg = ui.PlainText(fmt.Sprintf("Good job! <@%s> agreed to close out %s %s", uObj.AccountabilityPartner, uObj.Name, typLabel))
-
-			// Do analysis on this feedback
-			// Once we receive the analysis from Meaning Cloud on the user's feedback, we post that result to the original message's thread
-			utils.ECAnalysis(string(textToAnalyze),
-				closeoutAgreementContext(uObj), "Closeout comments",
-				dialogTableName, mc.ToCallbackID(), dialog.User.ID,
-				dialog.Channel.ID, msgState.Ts, msgState.ThreadTs,
-				attachs, s, platformNotificationTopic, namespace)
-		} else {
-			logger.WithError(err).Errorf("Could not update data in %s table", userObjectivesTable)
-		}
-	}
-
-	utils.UpdateEngAsAnswered(userID, mc.ToCallbackID(), engagementTable, d, namespace)
-	// Send a message to coachee that the objective has been closed
-	ReviewCommentsEngagement(teamID, *mc.WithTarget(uObj.ID), uObj.UserID, coacheeMsg,
-		fmt.Sprintf("*Comments*:\n%s", textToAnalyze), false)
-}
-
-func onAddProgressMenuSelect(request slack.InteractionCallback, teamID models.TeamID, mc models.MessageCallback) {
-	dialog := request
-	msgState := GetMsgStateUnsafe(request)
-
-	uObj := userObjectiveByID(msgState.ObjectiveId)
-	typLabel := objectiveTypeLabel(uObj)
-
-	currentDate := time.Now().Format(DateFormat)
-
-	mc.Set("Action", "confirm")
-	mc.Set("Target", msgState.ObjectiveId)
-	// Collecting responses from dialog submission
-	comments := ui.PlainText(dialog.Submission[ObjectiveProgressComments])
-	statusColor := models.ObjectiveStatusColor(dialog.Submission[ObjectiveStatusColor])
-	attachs := viewProgressAttachment(mc,
-		ui.PlainText(ui.Sprintf("This is your reported progress for the below %s", typLabel)),
-		"",
-		comments,
-		statusColor, uObj, models.Update)
-	publish(models.PlatformSimpleNotification{UserId: dialog.User.ID, Channel: dialog.Channel.ID,
-		Ts: msgState.ThreadTs, Attachments: attachs})
-
-	// Write entry to the table
-	uoPro := models.UserObjectiveProgress{
-		ID: mc.Target, CreatedOn: currentDate, UserID: dialog.User.ID,
-		Comments: string(comments), 
-		PlatformID: teamID.ToPlatformID(), 
-		PartnerID: uObj.AccountabilityPartner,
-		PercentTimeLapsed: IntToString(percentTimeLapsed(currentDate, uObj.CreatedDate, uObj.ExpectedEndDate)),
-		StatusColor:       statusColor}
-	err := d.PutTableEntry(uoPro, userObjectivesProgressTable)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not add entry to %s table", userObjectivesProgressTable))
-
-	// Add an engagement for partner to review the progress. Coach is retrieved directly from objective
-	PartnerReviewUserObjectiveProgressEngagement(teamID, mc, uObj.AccountabilityPartner,
-		currentDate, comments, statusColor, uObj, false)
-	utils.ECAnalysis(string(comments), progressUpdateContext(uObj), "Progress update",
-		dialogTableName, mc.ToCallbackID(), dialog.User.ID, dialog.Channel.ID, msgState.Ts,
-		msgState.ThreadTs, attachs, s, platformNotificationTopic, namespace)
-}
-
-func onAddedProgressEdit(request slack.InteractionCallback, teamID models.TeamID, mc models.MessageCallback) {
-	dialog := request
-	msgState := GetMsgStateUnsafe(request)
-
-	uObj := userObjectiveByID(msgState.ObjectiveId)
-	typLabel := objectiveTypeLabel(uObj)
-
-	currentDate := time.Now().Format(DateFormat)
-
-	// Collecting responses from dialog submission
-	comments := ui.PlainText(dialog.Submission[ObjectiveProgressComments])
-	// percentTimeLapsed := dialog.Submission[ObjectiveTimeLapsedPercent]
-	statusColor := models.ObjectiveStatusColor(dialog.Submission[ObjectiveStatusColor])
-	attachs := viewProgressAttachment(mc,
-		ui.PlainText(ui.Sprintf("This is your updated progress for the below %s", typLabel)),
-		"",
-		comments,
-		statusColor, uObj, models.Update)
-	uoPro := models.UserObjectiveProgress{ID: mc.Target, CreatedOn: time.Now().Format(DateFormat), UserID: dialog.User.ID,
-		Comments: string(comments), 
-		PlatformID: teamID.ToPlatformID(),
-		PartnerID: uObj.AccountabilityPartner,
-		PercentTimeLapsed: IntToString(percentTimeLapsed(currentDate, uObj.CreatedDate, uObj.ExpectedEndDate)),
-		StatusColor:       models.ObjectiveStatusColor(statusColor)}
-	err := d.PutTableEntry(uoPro, userObjectivesProgressTable)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not add entry to %s table", userObjectivesProgressTable))
-	publish(models.PlatformSimpleNotification{UserId: dialog.User.ID, Channel: dialog.Channel.ID, Ts: msgState.ThreadTs, Attachments: attachs})
-
-	// Add an engagement for partner to review the progress
-	PartnerReviewUserObjectiveProgressEngagement(teamID, mc, uObj.AccountabilityPartner,
-		currentDate, comments, statusColor, uObj, false)
-	utils.ECAnalysis(string(comments), IDOProgressUpdateContext, "Progress update", dialogTableName,
-		mc.ToCallbackID(), dialog.User.ID, dialog.Channel.ID, msgState.Ts, msgState.ThreadTs, attachs, s, platformNotificationTopic, namespace)
-}
-
 // This is to handle the case when a partner not accepts coaching
 func onCoachingRequestRejected(request slack.InteractionCallback, mc models.MessageCallback) {
 	dialog := request
@@ -2015,82 +1425,6 @@ func splitObjectiveWithDateUnsafe(str string) (objID string, date string) {
 		logger.Errorf("Expected 3 or 2 elements elements after split")
 	}
 	return
-}
-
-func onCoachingReviewCoacheeProgressAsk(request slack.InteractionCallback, mc models.MessageCallback) {
-	dialog := request
-	userID := request.User.ID
-	coachComments := dialog.Submission[CommentsName]
-	perceptionOfStatus := models.ObjectiveStatusColor(dialog.Submission[PerceptionOfStatusName])
-	// TODO: Write partner comments to a table
-	// set action to confirm
-	// latestProgress := objectives.ObjectiveLatestProgress(userObjectivesProgressTable, mc.Target, userObjectivesProgressIdIndex)
-
-	objID, date := splitObjectiveWithDateUnsafe(mc.Target)
-
-	params := map[string]*dynamodb.AttributeValue{
-		"id":         dynString(objID),
-		"created_on": dynString(date),
-	}
-	var uop models.UserObjectiveProgress
-	err2 := d.GetItemFromTable(userObjectivesProgressTable, params, &uop)
-
-	if err2 == nil {
-		var coachNotes, coacheeNotes = core.EmptyString, core.EmptyString
-		coacheeReportedStatus := uop.StatusColor
-
-		coachRef := common.TaggedUser(userID)
-		coacheeRef := common.TaggedUser(mc.Source)
-		if perceptionOfStatus != coacheeReportedStatus {
-			coachNotes = fmt.Sprintf("%s reported %s status. You reported %s status.",
-				coacheeRef, statusLabel(coacheeReportedStatus), statusLabel(perceptionOfStatus))
-			coacheeNotes = fmt.Sprintf("%s perceives status to be %s whereas your reported status was %s",
-				coachRef, statusLabel(perceptionOfStatus), statusLabel(coacheeReportedStatus))
-		}
-
-		// Set Target back to objective id
-		// mc.Set("Target", objID)
-
-		attachs := viewCommentsProgressAttachment(mc,
-			"I've sent your response to "+coacheeRef,
-			coachComments, perceptionOfStatus, coachNotes)
-		msgState := GetMsgStateUnsafe(request)
-		publish(models.PlatformSimpleNotification{UserId: dialog.User.ID,
-			Channel: dialog.Channel.ID, Ts: msgState.ThreadTs, Attachments: attachs})
-		// Update progress as reviewed by partner. Mark objective as closed by coachee
-		exprAttributes := map[string]*dynamodb.AttributeValue{
-			":f":   dynBool(true),
-			":cc":  dynString(coachComments),
-			":crp": dynString(string(perceptionOfStatus)),
-		}
-
-		updateExpression := "set reviewed_by_partner = :f, partner_comments = :cc, partner_reported_progress = :crp"
-		err3 := d.UpdateTableEntry(exprAttributes, params, updateExpression, userObjectivesProgressTable)
-		core.ErrorHandler(err3, namespace, fmt.Sprintf("Could not update partner completed flag in %s table", userObjectivesTable))
-
-		utils.UpdateEngAsAnswered(dialog.User.ID, mc.ToCallbackID(), engagementTable, d, namespace)
-		// TODO: Move this to a different lambda
-		utils.ECAnalysis(coachComments, IDOResponseObjectiveUpdateContext, "Comments", dialogTableName,
-			mc.ToCallbackID(), dialog.User.ID, dialog.Channel.ID, msgState.ThreadTs, msgState.ThreadTs, attachs, s, platformNotificationTopic, namespace)
-
-		// After partner adds comments on coachee's progress, send a notification to the coachee
-		obj := userObjectiveByID(objID)
-		typLabel := objectiveTypeLabel(obj)
-		// Instead of publishing as a message, send as a non-urgent engagement
-		mc.Set("Action", ReviewCoachComments)
-		ReviewCoachCommentsEngagement(mc, obj.UserID,
-			fmt.Sprintf("%s commented on your %s progress", coachRef, typLabel),
-			obj, coachComments, coacheeNotes)
-	}
-}
-func ReviewCoachCommentsEngagement(mc models.MessageCallback, userID, title string, obj models.UserObjective, objComments, notes string) {
-	objDescFields := models.AttachmentFields([]models.KvPair{{Key: "Name", Value: obj.Name}, {Key: "Description", Value: obj.Description}})
-	allFields := append(objDescFields,
-		objCommentsProgressFields(objComments, "", notes)...)
-	actions := []ebm.AttachmentAction{*models.SimpleAttachAction(mc, models.Ignore, "Mark as read")}
-	utils.AddChatEngagement(mc, title, "", "Adaptive at your service",
-		userID, actions, allFields, models.ParseTeamID(obj.PlatformID), false, engagementTable, d, namespace, time.Now().Unix(),
-		common2.EngagementEmptyCheck)
 }
 
 func viewCommentsProgressAttachment(mc models.MessageCallback, title, comments string, status models.ObjectiveStatusColor, notes string) []ebm.Attachment {
@@ -2168,40 +1502,6 @@ func AskForPartnershipEngagement(teamID models.TeamID, mc models.MessageCallback
 		engagementTable, d, namespace, time.Now().Unix(), common2.EngagementEmptyCheck)
 }
 
-func ReviewCommentsEngagement(teamID models.TeamID, mc models.MessageCallback, userID string,
-	title ui.PlainText, text string, urgent bool) {
-	mc = *mc.WithAction(ReviewCoachComments).WithModule("objectives").WithTopic("coaching")
-	utils.AddChatEngagement(mc, string(title), text, "Adaptive at your service", userID,
-		[]ebm.AttachmentAction{
-			*models.SimpleAttachAction(mc, models.Ignore, "Mark as read"),
-		},
-		[]ebm.AttachmentField{}, teamID, urgent, engagementTable, d, namespace, time.Now().Unix(), common2.EngagementEmptyCheck)
-}
-
-func PartnerReviewUserObjectiveProgressEngagement(teamID models.TeamID, mc models.MessageCallback, partner string,
-	date string, objComments ui.PlainText, statusColor models.ObjectiveStatusColor, uObj models.UserObjective, urgent bool) {
-	mc = *mc.WithModule("objectives").WithTopic("coaching").WithAction(ReviewCoacheeProgressAsk).
-		WithTarget(fmt.Sprintf("%s_%s", uObj.ID, date)) // .WithTarget(uObj.ID)
-	typLabel := objectiveTypeLabel(uObj)
-	text := fmt.Sprintf("Here is the progress from %s on the below %s", common.TaggedUser(uObj.UserID), typLabel)
-
-	emptyComments := objComments == ""
-	titleString := core.IfThenElse(emptyComments, fmt.Sprintf("No progress reported for the below %s", typLabel), text)
-
-	var actions []ebm.AttachmentAction
-	if !emptyComments {
-		actions = append(actions,
-			*models.SimpleAttachAction(mc, models.Now, "Add my response"),
-		)
-	}
-	actions = append(actions,
-		*models.SimpleAttachAction(mc, models.Ignore, "Skip this"))
-
-	utils.AddChatEngagement(mc, titleString.(string), core.EmptyString, "Adaptive at your service", partner, actions,
-		progressFields(objComments, statusColor, uObj), teamID, urgent, engagementTable, d, namespace,
-		time.Now().Unix(), common2.EngagementEmptyCheck)
-}
-
 func ObjectiveProgressAskEngagement(teamID models.TeamID, mc models.MessageCallback, userID, text string) {
 	actions := []ebm.AttachmentAction{
 		*models.SimpleAttachAction(mc, models.Now, "Yes"),
@@ -2210,43 +1510,6 @@ func ObjectiveProgressAskEngagement(teamID models.TeamID, mc models.MessageCallb
 	}
 	utils.AddChatEngagement(mc, "", text, "Adaptive at your service", userID, actions, []ebm.AttachmentField{},
 		teamID, true, engagementTable, d, namespace, time.Now().Unix(), common2.EngagementEmptyCheck)
-}
-
-func engageCoacheeReviewAsk(teamID models.TeamID, mc *models.MessageCallback, userID string, urgent bool) (bool, int) {
-	var done bool
-	var nonEmpty int
-	mc.Set("Topic", CoachingName)
-	mc.Set("Action", ReviewCoacheeProgressAsk)
-
-	// Post an engagement to the user asking to review coachee's progress
-	objs := objectives.AllUserObjectivesWithProgress(mc.Target, userObjectivesTable, string(userObjective.UserIDTypeIndex),
-		userObjectivesProgressTable, string(userObjectiveProgress.IDIndex), models.IndividualDevelopmentObjective, 0)
-
-	var percentDone string
-	if len(objs) > 0 {
-		for _, each := range objs {
-			var comments []string
-			for _, ieach := range each.Progress {
-				if !ieach.ReviewedByPartner {
-					comments = append(comments, ieach.Comments)
-					percentDone = ieach.PercentTimeLapsed
-				}
-			}
-			mc.Set("Target", each.Objective.ID)
-			commentsJoined := strings.Join(comments, "\n")
-			emptyComments := commentsJoined == core.EmptyString
-			titleString := core.IfThenElse(emptyComments, "No progress reported for the below objective", fmt.Sprintf(
-				"Here is the progress of <@%s> since your last review", mc.Target))
-			if !emptyComments {
-				nonEmpty += 1
-				CoachCoacheeProgressReviewAskEngagement(teamID, *mc, userID, titleString.(string),
-					each.Objective.Name, each.Objective.Description, strings.Join(comments, "\n"),
-					percentDone, urgent, emptyComments)
-			}
-		}
-		done = true
-	}
-	return done, nonEmpty
 }
 
 func CoachCoacheeProgressReviewAskEngagement(teamID models.TeamID, mc models.MessageCallback, userID, title,
@@ -2294,21 +1557,6 @@ func CommentsProgressSurvey(title, statusLabel ui.PlainText, statusName string,
 		ebm.NewTextArea(commentsName, commentsLabel, ebm.EmptyPlaceholder, ""),
 	}
 	return utils.AttachmentSurvey(string(title), surveyElems)
-}
-
-func coachingCommAttachs(mc models.MessageCallback, userObj models.UserObjective) []ebm.Attachment {
-	mc2 := mc.WithAction(UberCoach).WithTarget(userObj.ID)
-	actions := []ebm.AttachmentAction{
-		*models.ConfirmAttachAction(*mc2,
-			models.Now,
-			"I would like to coach",
-			confirm),
-	}
-	fallback := ""
-	attach := utils.ChatAttachment("Coaching Request",
-		fmt.Sprintf("<@%s> is looking for coaching for the below objective", userObj.UserID),
-		fallback, mc2.ToCallbackID(), actions, compactViewFields(&userObj, core.EmptyString, core.EmptyString), time.Now().Unix())
-	return []ebm.Attachment{*attach}
 }
 
 // COMMON FUNCTIONS //

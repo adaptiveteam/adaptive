@@ -327,8 +327,6 @@ const (
 	ObjectiveStatusColor       = "objective_status_color"
 	ObjectiveCloseoutComment   = "objective_closeout_comment"
 	ObjectiveNoCloseoutComment = "objective_no_closeout_comment"
-	ReviewUserProgressSelect   = "review_user_progress_select"
-	UberCoach                  = "uber_coach"
 )
 // OnFeedbackOnUpdates - handler when coach has provided feedback on the issue.
 func (w workflowImpl) OnFeedbackOnUpdates()wf.Handler {

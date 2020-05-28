@@ -1147,10 +1147,6 @@ func HandleRequest(ctx context.Context, np models.NamespacePayload4) (err error)
 		logger.WithField("warmup", true).Info()
 	} else {
 		logger.WithField("CallbackID", np.InteractionCallback.CallbackID).Info()
-		if strings.HasPrefix(np.InteractionCallback.CallbackID, StrategyPath.Encode()) {
-			logger.WithField("CallbackID", np.InteractionCallback.CallbackID).Error("Invocation of the old workflow")
-			// err = invokeWorkflow(np)
-		} else
 		if np.Namespace == "strategy" {
 			conn := connGen.ForPlatformID(np.TeamID.ToPlatformID())
 			switch np.SlackRequest.Type {
