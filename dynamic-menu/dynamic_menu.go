@@ -6,16 +6,17 @@ import (
 	"log"
 )
 
-func NewAdaptiveDynamicMenu() (rv DynamicMenuSpecification) {
-	rv = make(DynamicMenuSpecification, 0)
+func NewAdaptiveDynamicMenu(groups ... GroupSpecification) (rv DynamicMenuSpecification) {
+	rv = make(DynamicMenuSpecification, 0).AddGroups(groups...)
 	return rv
 }
 
-func NewGroupSpecification(groupName string) (rv GroupSpecification) {
+func NewGroupSpecification(groupName string, options ... OptionSpecification) (rv GroupSpecification) {
 	rv = GroupSpecification{
 		Group: ebm.MenuOptionGroup{
 			Text: groupName,
 		},
+		Options: options,
 	}
 	return rv
 }
