@@ -11,6 +11,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
+	core_utils_go "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	mapper "github.com/adaptiveteam/adaptive/engagement-slack-mapper"
@@ -111,12 +112,8 @@ func HandleRequest(ctx context.Context) (err error) {
 			}
 
 			// get strategy objectives
-			stratObjs := strategy.AllOpenStrategyObjectives(
-				config.strategyObjectivesTable,
-				config.strategyObjectivesPlatformIndex,
-				config.userObjectivesTable,
-				conn,
-			)
+			stratObjs, err2 := strategy.SelectFromStrategyObjectiveJoinUserObjectiveWhereNotCompleted()(conn)
+			core_utils_go.ErrorHandler(err2, "HandleRequest", "SelectFromStrategyObjectiveJoinUserObjectiveWhereNotCompleted")
 			if len(stratObjs) == 0 {
 				slackAdapter.PostAsync(plat.Post(plat.ConversationID(HRChannel), plat.MessageContent{
 					Message:     ui.RichText(fmt.Sprintf("No strategy objectives are defined for the org")),
