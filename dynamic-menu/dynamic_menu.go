@@ -43,13 +43,13 @@ func NewAdaptiveDynamicMenuSpecification(
 	return rv
 }
 
-func (gs GroupSpecification) AddGroupOption(option OptionSpecification) GroupSpecification {
-	gs.Options = append(gs.Options, option)
+func (gs GroupSpecification) AddGroupOptions(options ... OptionSpecification) GroupSpecification {
+	gs.Options = append(gs.Options, options...)
 	return gs
 }
 
-func (adm DynamicMenuSpecification) AddGroup(group GroupSpecification) (rv DynamicMenuSpecification) {
-	rv = append(adm, group)
+func (adm DynamicMenuSpecification) AddGroups(groups ... GroupSpecification) (rv DynamicMenuSpecification) {
+	rv = append(adm, groups...)
 	return rv
 }
 

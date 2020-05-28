@@ -9,50 +9,44 @@ import (
 
 func MenuForTesting() (menu DynamicMenuSpecification) {
 	menu = NewAdaptiveDynamicMenu()
-	menu = menu.AddGroup(
+	menu = menu.AddGroups(
 		NewGroupSpecification("Test Group #1").
-			AddGroupOption(
+			AddGroupOptions(
 				NewAdaptiveDynamicMenuSpecification(
 					"test ID #1.1",
 					"test text #1.1",
 					"text description #1.1", true),
-			).AddGroupOption(
 				NewAdaptiveDynamicMenuSpecification(
 					"test ID #1.2",
 					"test text #1.2",
 					"text description #1.2", true),
 		),
-	).AddGroup(
 		NewGroupSpecification("Test Group #2").
-			AddGroupOption(
+			AddGroupOptions(
 				NewAdaptiveDynamicMenuSpecification(
 					"test ID #2.1",
 					"test text #2.1",
 					"text description #2.1",
 					 true),
-			).AddGroupOption(
 				NewAdaptiveDynamicMenuSpecification(
 					"test ID #2.2",
 					"test text #2.2",
 					"text description #2.2", 
 					true),
 		),
-	).AddGroup(
 		NewGroupSpecification("Test Group #3").
-			AddGroupOption(
+			AddGroupOptions(
 				NewAdaptiveDynamicMenuSpecification(
 					"test ID #3.1",
 					"test text #3.1",
 					"text description #3.1", true),
-			).AddGroupOption(
-			NewAdaptiveDynamicMenuSpecification(
-				"test ID #3.2",
-				"test text #3.2",
-				"text description #3.2", false),
-		),
-	).AddGroup(
+				NewAdaptiveDynamicMenuSpecification(
+					"test ID #3.2",
+					"test text #3.2",
+					"text description #3.2", false),
+			),
 		NewGroupSpecification("Test Group #4").
-			AddGroupOption(
+			AddGroupOptions(
 				NewAdaptiveDynamicMenuSpecification(
 					"test ID #4.1",
 					"test text #4.1",
