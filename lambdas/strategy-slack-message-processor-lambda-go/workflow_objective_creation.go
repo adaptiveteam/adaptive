@@ -631,8 +631,8 @@ func CreateObjectiveWorkflow_OnViewObjectives(objectivesFilter ObjectivePredicat
 		conn := connGen.ForPlatformID(ctx.TeamID.ToPlatformID())
 		out.KeepOriginal = true // we want to override it, so, not to delete
 		// Times in AWS are in UTC
-		items := strategy.AllOpenStrategyObjectives(strategyObjectivesTable, strategyObjectivesPlatformIndex,
-			userObjectivesTable, conn)
+		items, err2 := strategy.SelectFromStrategyObjectiveJoinUserObjectiveWhereNotCompleted()(conn)
+		core.ErrorHandler(err2, "CreateObjectiveWorkflow_OnViewObjectives", "SelectFromStrategyObjectiveJoinUserObjectiveWhereNotCompleted")
 		logger.Infof("CreateObjectiveWorkflow_OnViewObjectives items.len %d", len(items))
 		filteredItems := funk.Filter(items, objectivesFilter(ctx)).([]models.StrategyObjective)
 		logger.Infof("CreateObjectiveWorkflow_OnViewObjectives filteredItems.len %d", len(filteredItems))
