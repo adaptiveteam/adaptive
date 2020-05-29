@@ -89,8 +89,6 @@ const (
 	Confirm      models.AttachActionName = "confirm"
 )
 
-var ViewOpenObjectives = common2.ViewOpenObjectives
-
 const (
 	Individual          = "Individual Objective"
 	CapabilityObjective = "Capability Objective"
@@ -669,8 +667,8 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							onCloseoutRequest(request, teamID)
 						} else if strings.HasPrefix(action.Name, user.StaleIDOsForMe) {
 							onViewStaleIDOs(request, teamID)
-						} else if strings.HasPrefix(action.Name, ViewOpenObjectives) {
-							onViewOpenObjectives(request, teamID)
+						// } else if strings.HasPrefix(action.Name, ViewOpenObjectives) {
+						// 	onViewOpenObjectives(request, teamID)
 						} else if strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinWeek) ||
 							strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinMonth) ||
 							strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinQuarter) ||
@@ -1200,35 +1198,35 @@ func onViewStaleIDOs(request slack.InteractionCallback, teamID models.TeamID) {
 	}
 }
 
-func onViewOpenObjectives(request slack.InteractionCallback, teamID models.TeamID) {
-	conn := connGen.ForPlatformID(teamID.ToPlatformID())
-	userID := request.User.ID
-	channelID := request.Channel.ID
-	action := request.ActionCallback.AttachmentActions[0]
-	message := request
-	mc, err := utils.ParseToCallback(action.Value)
-	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", ViewOpenObjectives, core.Underscore))
-	switch act {
-	case string(models.Now):
-		// List the objectives with no progress
-		ListObjectivesWithEvaluation(userID, channelID, func(objective models.UserObjective) bool {
-			return objective.Completed == 0
-		}, func(mc models.MessageCallback, objective models.UserObjective) []ebm.Attachment {
-			strategyFlag := core.IfThenElse(objective.ObjectiveType == models.StrategyDevelopmentObjective,
-				true, false).(bool)
-			return updateObjAttachment(conn, mc, "", "", "", &objective,
-				false, false, strategyFlag)
-		}, models.IndividualDevelopmentObjective, TimeStamp(message))
-		// Update engagement as answered and remove the original engagement
-		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	case string(models.Ignore):
-		// Update engagement as ignored and remove the original engagement
-		utils.UpdateEngAsIgnored(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
-	}
-}
+// func onViewOpenObjectives(request slack.InteractionCallback, teamID models.TeamID) {
+// 	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+// 	userID := request.User.ID
+// 	channelID := request.Channel.ID
+// 	action := request.ActionCallback.AttachmentActions[0]
+// 	message := request
+// 	mc, err := utils.ParseToCallback(action.Value)
+// 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
+// 	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", ViewOpenObjectives, core.Underscore))
+// 	switch act {
+// 	case string(models.Now):
+// 		// List the objectives with no progress
+// 		ListObjectivesWithEvaluation(userID, channelID, func(objective models.UserObjective) bool {
+// 			return objective.Completed == 0
+// 		}, func(mc models.MessageCallback, objective models.UserObjective) []ebm.Attachment {
+// 			strategyFlag := core.IfThenElse(objective.ObjectiveType == models.StrategyDevelopmentObjective,
+// 				true, false).(bool)
+// 			return updateObjAttachment(conn, mc, "", "", "", &objective,
+// 				false, false, strategyFlag)
+// 		}, models.IndividualDevelopmentObjective, TimeStamp(message))
+// 		// Update engagement as answered and remove the original engagement
+// 		utils.UpdateEngAsAnswered(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
+// 		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
+// 	case string(models.Ignore):
+// 		// Update engagement as ignored and remove the original engagement
+// 		utils.UpdateEngAsIgnored(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
+// 		DeleteOriginalEng(userID, channelID, message.OriginalMessage.Timestamp)
+// 	}
+// }
 
 func objectiveProgressOnDate(objID string, date string) (uop models.UserObjectiveProgress, found bool, err error) {
 	params := map[string]*dynamodb.AttributeValue{
