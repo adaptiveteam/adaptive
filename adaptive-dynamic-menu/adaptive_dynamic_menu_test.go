@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/adaptiveteam/adaptive/adaptive-checks"
+	adaptive_checks "github.com/adaptiveteam/adaptive/adaptive-checks"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
@@ -77,7 +77,7 @@ func Test_AllTrue(t *testing.T) {
 			// User is in HR community so can edit
 			bindings["ViewEditVision"],
 			strategy.ViewStrategyObjectives,
-			strategy.ViewCapabilityCommunityInitiatives,
+			strategy.ViewInitiatives,
 			bindings["ViewEditValues"],
 			bindings["ViewEditHolidays"],
 			bindings["ViewScheduleCurrentQuarter"],

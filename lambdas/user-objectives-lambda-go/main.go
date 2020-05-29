@@ -88,8 +88,10 @@ const (
 	Enable       models.AttachActionName = "enable"
 	Confirm      models.AttachActionName = "confirm"
 )
-var	ViewOpenObjectives = common2.ViewOpenObjectives
-const(
+
+var ViewOpenObjectives = common2.ViewOpenObjectives
+
+const (
 	Individual          = "Individual Objective"
 	CapabilityObjective = "Capability Objective"
 	StrategyInitiative  = "Initiative"
@@ -100,7 +102,7 @@ const(
 func IDOCoaches(userID string, teamID models.TeamID, conn daosCommon.DynamoDBConnection) []models.KvPair {
 	var filteredCoaches []models.KvPair
 	coaches := objectives.IDOCoaches(userID, teamID,
-		communityUsersTable, string(adaptiveCommunityUser.PlatformIDCommunityIDIndex), 
+		communityUsersTable, string(adaptiveCommunityUser.PlatformIDCommunityIDIndex),
 		utilsUser.UserIDsToDisplayNamesConnUnsafe(conn))
 	for _, each := range coaches {
 		if each.Value != userID {
@@ -157,7 +159,7 @@ func createObjectiveNow(conn daosCommon.DynamoDBConnection, message slack.Intera
 	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not open dialog from %s survey", id+":"+message.CallbackID))
 }
 
-func PartnerSelectingUserEngagement(conn daosCommon.DynamoDBConnection, 
+func PartnerSelectingUserEngagement(conn daosCommon.DynamoDBConnection,
 	mc models.MessageCallback, userID string, text ui.RichText, users []string) {
 	var userOpts []ebm.MenuOption
 
@@ -429,8 +431,8 @@ func updateProgressAttachmentActions(mc models.MessageCallback, actionName model
 }
 
 // An attachment that displays information about objectives
-func updateObjAttachment(conn daosCommon.DynamoDBConnection, 
-	mc models.MessageCallback, title, text, fallback ui.PlainText, 
+func updateObjAttachment(conn daosCommon.DynamoDBConnection,
+	mc models.MessageCallback, title, text, fallback ui.PlainText,
 	uObj *models.UserObjective, showMore, showProgress, strategyFlag bool) []ebm.Attachment {
 	teamID := models.ParseTeamID(conn.PlatformID)
 	var fields []ebm.AttachmentField
@@ -703,7 +705,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 func onMenuList(np models.NamespacePayload4) (err error) {
 	request := np.SlackRequest.InteractionCallback
 	action := request.ActionCallback.AttachmentActions[0]
-	
+
 	selected := action.SelectedOptions[0]
 	if clientID == "" {
 		err = errors.New("onMenuList: clientID == ''")
@@ -817,8 +819,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// 		Message: "All of your Individual Development Objectives have been updated"})
 		// }
 	case
-		strategy.ViewInitiativeCommunityInitiatives,
-		strategy.ViewCapabilityCommunityInitiatives:
+		strategy.ViewInitiatives:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfIssuesByTypeEvent(issues.Initiative))
 	case strategy.ViewAdvocacyObjectives:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewMyListOfIssuesByTypeEvent(issues.SObjective))
@@ -859,8 +860,8 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 		// 		Message: "There are no Initiatives assigned to you"})
 		// }
-	// case strategy.ViewCommunityAdvocateObjectives:
-	// 	err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfAdvocacyIssuesByTypeEvent(issues.SObjective))
+		// case strategy.ViewCommunityAdvocateObjectives:
+		// 	err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfAdvocacyIssuesByTypeEvent(issues.SObjective))
 
 		// // List objectives for which the user is an advocate for
 		// stratObjs := objectives.AllUserObjectives(userID, userObjectivesTable, string(userObjective.UserIDTypeIndex),
@@ -982,9 +983,9 @@ func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
 			mc.Set("Target", "")
 			initsObjsValues := append(InitsAndObjectives(userID, teamID), platformValues(models.TeamID(teamID))...)
 			uObj := userObjectiveByID(target)
-			val := utils.AttachmentSurvey(string(ObjectiveModifyDialogTitle), 
+			val := utils.AttachmentSurvey(string(ObjectiveModifyDialogTitle),
 				objectives.EditObjectiveSurveyElems2(&uObj, IDOCoaches(userID, teamID, conn),
-				objectives.DevelopmentObjectiveDates(namespace, ""), initsObjsValues))
+					objectives.DevelopmentObjectiveDates(namespace, ""), initsObjsValues))
 
 			// Is the AttachmentActionSurvey non-empty
 			// Open a survey associated with the engagement
@@ -1183,7 +1184,7 @@ func onViewStaleIDOs(request slack.InteractionCallback, teamID models.TeamID) {
 	message := request
 	mc, err := utils.ParseToCallback(action.Value)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not parse to callback"))
-	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", user.StaleIDOsForMe, core.Underscore))	
+	act := strings.TrimPrefix(action.Name, fmt.Sprintf("%s%s", user.StaleIDOsForMe, core.Underscore))
 	switch act {
 	case string(models.Now):
 		// List the objectives with no progress
@@ -1374,12 +1375,12 @@ func onCoachingRequestRejected(request slack.InteractionCallback, mc models.Mess
 	// 	AccountabilityPartnerID: dialog.User.ID, Comments: rejectionComments}
 	// err := d.PutTableEntry(apr, partnershipRejectionsTable)
 	// if err == nil {
-		notes, coachAttachs := coachingRejectionRequestNotifications(mc, userID, rejectionComments, msgState.ThreadTs)
-		platformInstance.PublishAll(notes)
+	notes, coachAttachs := coachingRejectionRequestNotifications(mc, userID, rejectionComments, msgState.ThreadTs)
+	platformInstance.PublishAll(notes)
 
-		utils.ECAnalysis(rejectionComments, IDOCoachingRejectionContext, "Non-acceptance comments",
-			dialogTableName, mc.ToCallbackID(), dialog.User.ID, dialog.Channel.ID, msgState.Ts,
-			msgState.ThreadTs, coachAttachs, s, platformNotificationTopic, namespace)
+	utils.ECAnalysis(rejectionComments, IDOCoachingRejectionContext, "Non-acceptance comments",
+		dialogTableName, mc.ToCallbackID(), dialog.User.ID, dialog.Channel.ID, msgState.Ts,
+		msgState.ThreadTs, coachAttachs, s, platformNotificationTopic, namespace)
 	// } else {
 	// 	logger.WithField("error", err).Errorf("Could not write partner rejection entry in %s table", partnershipRejectionsTable)
 	// }
@@ -1617,7 +1618,7 @@ func objectivesGroup(userID string, teamID models.TeamID, initiatives []models.S
 
 	capabilityObjectives := strategy.UserStrategyObjectives(userID, strategyObjectivesTableName,
 		string(strategyObjective.PlatformIDIndex), userObjectivesTable,
-		communityUsersTable, string(adaptiveCommunityUser.UserIDCommunityIDIndex), 
+		communityUsersTable, string(adaptiveCommunityUser.UserIDCommunityIDIndex),
 		conn,
 	)
 

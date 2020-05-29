@@ -1,39 +1,40 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/adaptive-checks"
-	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
-	"github.com/adaptiveteam/adaptive/daos/slackTeam"
 	"log"
 	"net/url"
-	"time"
-	"github.com/pkg/errors"
-	adm "github.com/adaptiveteam/adaptive/adaptive-dynamic-menu"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
-	business_time "github.com/adaptiveteam/adaptive/business-time"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"strconv"
 	"strings"
+	"time"
+
+	adaptive_checks "github.com/adaptiveteam/adaptive/adaptive-checks"
+	adm "github.com/adaptiveteam/adaptive/adaptive-dynamic-menu"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
-	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
-	holidaysLambda "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
+	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/slackTeam"
 	eb "github.com/adaptiveteam/adaptive/engagement-builder"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
+	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
+	holidaysLambda "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/pkg/errors"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
 )
@@ -266,7 +267,7 @@ func getRequestPayload(requestBody string) (requestPayload string, err error) {
 	if strings.HasPrefix(requestBody, "payload=%7B%22") {
 		requestBody, err = url.QueryUnescape(requestBody)
 		err = errors.Wrap(err, "Could not unescape gateway request")
-	} 
+	}
 	requestPayload = strings.Replace(requestBody, "payload=", "", -1)
 	return
 }
@@ -298,7 +299,7 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 		switch slack.InteractionType(eventsAPIEvent.Type) {
 		case slack.InteractionTypeInteractionMessage, // "interactive_message"
 			slack.InteractionTypeDialogSubmission,
-			slack.InteractionTypeDialogCancellation: 
+			slack.InteractionTypeDialogCancellation:
 			slackInteractionCallback = utils.UnmarshallSlackInteractionCallbackUnsafe(requestPayload, namespace)
 			data, _ := json.Marshal(slackInteractionCallback)
 			fmt.Printf("Parsed slackInteractionCallback:\n%+v", string(data))
@@ -307,7 +308,7 @@ func routeEventsAPIEvent(eventsAPIEvent slackevents.EventsAPIEvent,
 
 			var teamID models.TeamID
 			teamID, err = ensureTeamID(
-				daosCommon.PlatformID(slackInteractionCallback.Team.ID), 
+				daosCommon.PlatformID(slackInteractionCallback.Team.ID),
 				daosCommon.PlatformID(slackInteractionCallback.APIAppID),
 			)
 			if err == nil {
@@ -449,23 +450,23 @@ func routeByCallbackID(
 
 	if strings.Contains(callbackID, "init_message") {
 		// if eventsAPIEvent.Type == string(slack.InteractionTypeInteractionMessage) {
-			// var message slack.InteractionCallback
-			// message, err = utils.ParseAsInteractionMsg(requestPayload)
-			// err = errors.Wrap(err, "Could not parse to interaction type message")
-			// logger.Infof("init_message parsed: %v", message)
-			// if err != nil {
-			// 	return
-			// }
-			message := slackInteractionCallback
-			action := message.ActionCallback.AttachmentActions[0]
-			if action.Name == "menu_list" {
-				selected := action.SelectedOptions[0]
-				menuOption := selected.Value
-				err = routeMenuOption(slackInteractionCallback.User.ID, requestPayload, message, teamID,
-					menuOption)
-			} else if action.Name == "cancel" {
-				deleteMessage(message)
-			}
+		// var message slack.InteractionCallback
+		// message, err = utils.ParseAsInteractionMsg(requestPayload)
+		// err = errors.Wrap(err, "Could not parse to interaction type message")
+		// logger.Infof("init_message parsed: %v", message)
+		// if err != nil {
+		// 	return
+		// }
+		message := slackInteractionCallback
+		action := message.ActionCallback.AttachmentActions[0]
+		if action.Name == "menu_list" {
+			selected := action.SelectedOptions[0]
+			menuOption := selected.Value
+			err = routeMenuOption(slackInteractionCallback.User.ID, requestPayload, message, teamID,
+				menuOption)
+		} else if action.Name == "cancel" {
+			deleteMessage(message)
+		}
 		// }
 	} else if strings.Contains(callbackID, "feedback") {
 		invokeLambdaWithNamespace("feedback")
@@ -511,8 +512,8 @@ func routeMenuOption(
 	switch menuOption {
 	case user.AskForEngagements:
 		engage := models.UserEngage{
-				UserID: userID, IsNew: true, Update: true, OnDemand: true,
-				ThreadTs: message.MessageTs, TeamID: teamID,
+			UserID: userID, IsNew: true, Update: true, OnDemand: true,
+			ThreadTs: message.MessageTs, TeamID: teamID,
 		}
 		invokeLambdaUnsafe(engScriptingLambda, engage)
 		deleteMessage(message)
@@ -523,22 +524,22 @@ func routeMenuOption(
 		invokeLambdaWithNamespace("feedback")
 	case // workflows that are handled in user-objectives-lambda
 		objectives.CreateIDONow,
-		strategy.CreateStrategyObjective, 
-		strategy.CreateInitiative,
 
-		strategy.ViewCapabilityCommunityInitiatives,
+		strategy.CreateStrategyObjective,
+		strategy.CreateInitiative,
+		strategy.ViewInitiatives,
 		strategy.ViewAdvocacyInitiatives,
-		strategy.ViewInitiativeCommunityInitiatives,
 		strategy.ViewStrategyObjectives,
 		strategy.ViewAdvocacyObjectives,
-		
+
 		user.ViewObjectives,
 		user.StaleIDOsForMe,
 		user.StaleObjectivesForMe,
 		user.StaleInitiativesForMe:
+
 		forwardToNamespace("objectives")
-	case coaching.RequestCoach, 
-		user.CurrentQuarterSchedule, 
+	case coaching.RequestCoach,
+		user.CurrentQuarterSchedule,
 		user.NextQuarterSchedule,
 		coaching.GenerateReportHR, coaching.FetchReportHR:
 		forwardToNamespace("community")
@@ -593,7 +594,7 @@ func deleteMessage(request slack.InteractionCallback) {
 	publish(models.PlatformSimpleNotification{
 		UserId:  request.User.ID,
 		Channel: request.Channel.ID,
-		Message: "", Ts: request.MessageTs, 
+		Message: "", Ts: request.MessageTs,
 	})
 }
 func parseMapUnsafe(input string) (objMap map[string]*json.RawMessage) {
