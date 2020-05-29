@@ -859,8 +859,8 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: channelID, Ts: message.MessageTs,
 		// 		Message: "There are no Initiatives assigned to you"})
 		// }
-	case strategy.ViewCommunityAdvocateObjectives:
-		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfAdvocacyIssuesByTypeEvent(issues.SObjective))
+	// case strategy.ViewCommunityAdvocateObjectives:
+	// 	err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfAdvocacyIssuesByTypeEvent(issues.SObjective))
 
 		// // List objectives for which the user is an advocate for
 		// stratObjs := objectives.AllUserObjectives(userID, userObjectivesTable, string(userObjective.UserIDTypeIndex),

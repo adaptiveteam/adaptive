@@ -14,7 +14,6 @@ var bindings = map[string]string{
 	"StaleInitiativesExistForMe": user.StaleInitiativesForMe,
 	"AllIDOsForCoachees":         "all_idos_for_coachees",
 	"AllObjectivesForMe":         strategy.ViewAdvocacyObjectives,
-	"AllInitiativesForMe":        strategy.ViewAdvocacyInitiatives,
 	"ProvideFeedback":            coaching.GiveFeedback,
 	"RequestFeedback":            coaching.RequestFeedback,
 	// values

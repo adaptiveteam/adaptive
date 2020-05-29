@@ -526,12 +526,9 @@ func routeMenuOption(
 		strategy.CreateStrategyObjective, 
 		strategy.CreateInitiative,
 
-		coaching.SelectCoachee,
-		coaching.ReviewCoacheeProgressSelect,
 		strategy.ViewCapabilityCommunityInitiatives,
 		strategy.ViewAdvocacyInitiatives,
 		strategy.ViewInitiativeCommunityInitiatives,
-		strategy.ViewCommunityAdvocateObjectives,
 		strategy.ViewStrategyObjectives,
 		strategy.ViewAdvocacyObjectives,
 		user.ViewObjectives,

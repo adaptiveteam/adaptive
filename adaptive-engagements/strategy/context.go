@@ -16,7 +16,6 @@ const (
 	CreateInitiative          = "create_initiative"
 	CreateInitiativeCommunity = "create_initiative_community"
 
-	ViewCommunityAdvocateObjectives   = "view_community_advocate_objectives"
 	ViewCapabilityCommunityObjectives = "view_capability_community_objectives"
 	ViewAdvocacyObjectives            = "view_advocacy_objectives"
 	ViewAdvocacyInitiatives           = "view_advocacy_initiatives"

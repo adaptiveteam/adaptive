@@ -107,7 +107,7 @@ func ResponsibilitiesGroup(profile adaptive_checks.TypedProfile, bindings menu.F
 		),
 		// This fetches all Initiatives
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["AllInitiativesForMe"],
+			strategy.ViewAdvocacyInitiatives,
 			"All Initiatives",
 			"",
 			profile.InitiativesExistForMe(),

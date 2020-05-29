@@ -7,8 +7,6 @@ const (
 	FetchReportHR    = "fetch_report"
 
 	RequestCoach                = "request_coach"
-	SelectCoachee               = "select_coachee"
-	ReviewCoacheeProgressSelect = "review_coachee_progress_select"
 
 	ViewCoachees  = "view_coachees"
 	ViewAdvocates = "view_advocates"
