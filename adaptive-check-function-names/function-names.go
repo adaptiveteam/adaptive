@@ -51,10 +51,6 @@ const (
 	ObjectivesExistForMe  = "ObjectivesExistForMe"
 	InitiativesExistForMe = "InitiativesExistForMe"
 
-	// Stale components exist for a specfc individual
-	StaleInitiativesExistForMe = "StaleInitiativesExistForMe"
-	StaleObjectivesExistForMe  = "StaleObjectivesExistForMe"
-
 	// Community existence tests
 	CapabilityCommunityExists           = "CapabilityCommunityExists"
 	MultipleCapabilityCommunitiesExists = "MultipleCapabilityCommunitiesExists"

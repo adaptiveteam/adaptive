@@ -48,14 +48,14 @@ func UrgentResponsibilitiesGroup(profile adaptive_checks.TypedProfile, bindings 
 		),
 		// This fetches any Objectives not updated in the last 7 days
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["StaleObjectivesExistForMe"],
+			user.StaleObjectivesForMe,
 			"Update Objectives",
 			"",
 			profile.StaleObjectivesExistForMe(),
 		),
 		// This fetches any Initiatives not updated in the last 7 days
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["StaleInitiativesExistForMe"],
+			user.StaleInitiativesForMe,
 			"Update Initiatives",
 			"",
 			profile.StaleInitiativesExistForMe(),

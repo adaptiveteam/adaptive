@@ -10,8 +10,6 @@ import (
 
 var bindings = map[string]string{
 	"FetchEngagementsForMe":      user.AskForEngagements,
-	"StaleObjectivesExistForMe":  user.StaleObjectivesForMe,
-	"StaleInitiativesExistForMe": user.StaleInitiativesForMe,
 	"AllIDOsForCoachees":         "all_idos_for_coachees",
 	"ProvideFeedback":            coaching.GiveFeedback,
 	"RequestFeedback":            coaching.RequestFeedback,

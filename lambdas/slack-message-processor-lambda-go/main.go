@@ -531,6 +531,7 @@ func routeMenuOption(
 		strategy.ViewInitiativeCommunityInitiatives,
 		strategy.ViewStrategyObjectives,
 		strategy.ViewAdvocacyObjectives,
+		
 		user.ViewObjectives,
 		user.StaleIDOsForMe,
 		user.StaleObjectivesForMe,
