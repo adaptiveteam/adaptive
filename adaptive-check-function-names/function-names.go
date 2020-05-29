@@ -52,7 +52,6 @@ const (
 	InitiativesExistForMe = "InitiativesExistForMe"
 
 	// Stale components exist for a specfc individual
-	StaleIDOsExistForMe        = "StaleIDOsExistForMe"
 	StaleInitiativesExistForMe = "StaleInitiativesExistForMe"
 	StaleObjectivesExistForMe  = "StaleObjectivesExistForMe"
 

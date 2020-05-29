@@ -18,7 +18,6 @@ import (
 
 var bindings = menu.FunctionBindings{
 	"FetchEngagementsForMe":      "fetch_engagements_for_me",
-	"StaleIDOsExistForMe":        "stale_idos_for_me",
 	"StaleObjectivesExistForMe":  "stale_objectives_for_me",
 	"StaleInitiativesExistForMe": "stale_initiatives_for_me",
 	"AllIDOsForCoachees":         "all_idos_for_coachees",
@@ -64,7 +63,7 @@ func Test_AllTrue(t *testing.T) {
 	desiredOptions := map[string][]string{
 		desiredGroups[0]: {
 			bindings["FetchEngagementsForMe"],
-			bindings["StaleIDOsExistForMe"],
+			user.StaleIDOsForMe,
 			bindings["StaleObjectivesExistForMe"],
 			bindings["StaleInitiativesExistForMe"],
 			bindings["ProvideFeedback"],

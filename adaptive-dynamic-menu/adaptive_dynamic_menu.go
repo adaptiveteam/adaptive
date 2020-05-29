@@ -41,7 +41,7 @@ func UrgentResponsibilitiesGroup(profile adaptive_checks.TypedProfile, bindings 
 		),
 		// This fetches any IDO's not updated in the last 7 days
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["StaleIDOsExistForMe"],
+			user.StaleIDOsForMe,
 			"Update IDO's",
 			"",
 			profile.StaleIDOsExistForMe(),
