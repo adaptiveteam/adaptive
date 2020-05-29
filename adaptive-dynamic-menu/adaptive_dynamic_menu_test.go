@@ -166,7 +166,7 @@ func Test_IndividualContributor(t *testing.T) {
 			// User is in HR community so can edit
 			bindings["ViewVision"],
 			strategy.ViewCapabilityCommunityObjectives,
-			strategy.ViewInitiativeCommunityInitiatives,
+			strategy.ViewInitiatives,
 			bindings["ViewValues"],
 			bindings["ViewHolidays"],
 			bindings["ViewScheduleCurrentQuarter"],
