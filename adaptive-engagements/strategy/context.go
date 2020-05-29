@@ -9,8 +9,8 @@ const (
 	CreateCustomerObjective            = "create_customer_objective"
 	CreateFinancialObjective           = "create_financial_objective"
 	ViewStrategyObjectives             = "view_strategy_objectives"
-	ViewCapabilityCommunityInitiatives = "view_capability_community_initiatives"
-	ViewInitiativeCommunityInitiatives = "view_initiative_community_initiatives"
+	ViewCapabilityCommunityInitiatives = "view_capability_community_initiatives" // ReadOnly
+	ViewInitiativeCommunityInitiatives = "view_initiative_community_initiatives" // Edit
 
 	CreateCapabilityCommunity = "create_capability_community"
 	ViewCapabilityCommunities = "view_capability_communities"

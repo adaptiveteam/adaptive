@@ -4,6 +4,7 @@ import (
 	adaptive_checks "github.com/adaptiveteam/adaptive/adaptive-checks"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	menu "github.com/adaptiveteam/adaptive/dynamic-menu"
 )
 
@@ -92,7 +93,7 @@ func ResponsibilitiesGroup(profile adaptive_checks.TypedProfile, bindings menu.F
 		"Responsibilities",
 		// This fetches all IDO's
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["AllIDOsForMe"],
+			user.ViewObjectives,
 			"All IDO's",
 			"",
 			profile.IDOsExistForMe(),

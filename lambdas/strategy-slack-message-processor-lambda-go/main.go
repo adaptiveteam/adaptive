@@ -57,8 +57,6 @@ var (
 	ViewCapabilityCommunityObjectives          = strategy.ViewCapabilityCommunityObjectives
 	CreateCapabilityCommunity                  = strategy.CreateCapabilityCommunity // "create_capability_community"
 	ViewCapabilityCommunities                  = strategy.ViewCapabilityCommunities // "view_capability_communities"
-	ViewCapabilityCommunityInitiatives         = strategy.ViewCapabilityCommunityInitiatives
-	ViewInitiativeCommunityInitiatives         = strategy.ViewInitiativeCommunityInitiatives
 	CreateInitiative                           = strategy.CreateInitiative                                // "create_initiative"
 	CreateInitiativeCommunity                  = strategy.CreateInitiativeCommunity                       // "create_initiative_community"
 	AssociateInitiativeWithInitiativeCommunity = strategy.AssociateInitiativeWithInitiativeCommunityEvent // "associate_initiative_with_initiative_community"
@@ -1225,19 +1223,19 @@ func onSlackInteraction(np models.NamespacePayload4, conn daosCommon.DynamoDBCon
 			// onViewObjectives(request, teamID, AllStrategyObjectives(userID))
 		case ViewCapabilityCommunityObjectives:
 			onViewObjectives(request, teamID, UserCommunityObjectives(userID, conn))
-		case ViewCapabilityCommunityInitiatives, ViewInitiativeCommunityInitiatives:
-			var inits []models.StrategyInitiative
-			inStrategyCommunity := community.IsUserInCommunity(userID, communityUsersTable,
-				communityUsersUserCommunityIndex, community.Strategy)
-			if inStrategyCommunity {
-				// User is in Strategy community, show all Initiatives
-				inits = AllStrategyInitiatives(teamID)
-			} else if selected.Value == ViewCapabilityCommunityInitiatives {
-				inits = CapabilityCommunityInitiatives(userID, conn)
-			} else if selected.Value == ViewInitiativeCommunityInitiatives {
-				inits = InitiativeCommunityInitiatives(userID)
-			}
-			onViewInitiatives(request, inits, conn)
+		// case ViewCapabilityCommunityInitiatives, ViewInitiativeCommunityInitiatives:
+		// 	var inits []models.StrategyInitiative
+		// 	inStrategyCommunity := community.IsUserInCommunity(userID, communityUsersTable,
+		// 		communityUsersUserCommunityIndex, community.Strategy)
+		// 	if inStrategyCommunity {
+		// 		// User is in Strategy community, show all Initiatives
+		// 		inits = AllStrategyInitiatives(teamID)
+		// 	} else if selected.Value == ViewCapabilityCommunityInitiatives {
+		// 		inits = CapabilityCommunityInitiatives(userID, conn)
+		// 	} else if selected.Value == ViewInitiativeCommunityInitiatives {
+		// 		inits = InitiativeCommunityInitiatives(userID)
+		// 	}
+		// 	onViewInitiatives(request, inits, conn)
 		default:
 			logger.Infof("Unhandled option %s", selected.Value)
 		}

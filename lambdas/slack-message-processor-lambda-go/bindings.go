@@ -3,7 +3,6 @@ package lambda
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/values"
@@ -14,7 +13,6 @@ var bindings = map[string]string{
 	"StaleIDOsExistForMe":        user.StaleIDOsForMe,
 	"StaleObjectivesExistForMe":  user.StaleObjectivesForMe,
 	"StaleInitiativesExistForMe": user.StaleInitiativesForMe,
-	"AllIDOsForMe":               user.ViewObjectives,
 	"AllIDOsForCoachees":         "all_idos_for_coachees",
 	"AllObjectivesForMe":         strategy.ViewAdvocacyObjectives,
 	"AllInitiativesForMe":        strategy.ViewAdvocacyInitiatives,

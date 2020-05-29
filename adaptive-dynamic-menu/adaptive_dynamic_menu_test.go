@@ -7,6 +7,7 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-checks"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 
 	// acfn "github.com/adaptiveteam/adaptive/adaptive-check-function-names"
 	// bt "github.com/adaptiveteam/adaptive/business-time"
@@ -20,7 +21,6 @@ var bindings = menu.FunctionBindings{
 	"StaleIDOsExistForMe":        "stale_idos_for_me",
 	"StaleObjectivesExistForMe":  "stale_objectives_for_me",
 	"StaleInitiativesExistForMe": "stale_initiatives_for_me",
-	"AllIDOsForMe":               "all_idos_for_me",
 	"AllIDOsForCoachees":         "all_idos_for_coachees",
 	"AllObjectivesForMe":         "all_objectives_for_me",
 	"AllInitiativesForMe":        "all_initiatives_for_me",
@@ -71,7 +71,7 @@ func Test_AllTrue(t *testing.T) {
 			bindings["RequestFeedback"],
 		},
 		desiredGroups[1]: {
-			bindings["AllIDOsForMe"],
+			user.ViewObjectives,
 			bindings["AllObjectivesForMe"],
 			bindings["AllInitiativesForMe"],
 
