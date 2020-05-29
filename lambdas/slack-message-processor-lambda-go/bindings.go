@@ -31,8 +31,6 @@ var bindings = map[string]string{
 	"ViewCoachees":               coaching.ViewCoachees,
 	"ViewAdvocates":              coaching.ViewAdvocates,
 	"CreateVision":               strategy.CreateVision,
-	"CreateFinancialObjectives":  strategy.CreateFinancialObjective,
-	"CreateCustomerObjectives":   strategy.CreateCustomerObjective,
 	"CreateCapabilityCommunity":  strategy.CreateCapabilityCommunity,
 	"CreateInitiativeCommunity":  strategy.CreateInitiativeCommunity,
 	"CreateValues":               values.AdaptiveValuesCreateNewMenuItem,

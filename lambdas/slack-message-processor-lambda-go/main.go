@@ -522,11 +522,8 @@ func routeMenuOption(
 		user.FetchReport, coaching.ViewCoachees, coaching.ViewAdvocates:
 		invokeLambdaWithNamespace("feedback")
 	case // workflows that are handled in user-objectives-lambda
-		objectives.CreateIDO,
 		objectives.CreateIDONow,
 		strategy.CreateStrategyObjective, 
-		strategy.CreateFinancialObjective,
-		strategy.CreateCustomerObjective, 
 		strategy.CreateInitiative,
 
 		coaching.SelectCoachee,

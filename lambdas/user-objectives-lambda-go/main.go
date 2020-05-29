@@ -725,7 +725,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 	// 		"Development objectives", true, dns, common2.IDOCreateCheck, teamID)
 	// 	DeleteOriginalEng(userID, channelID, message.MessageTs)
 	// 	// }
-	case objectives.CreateIDO, objectives.CreateIDONow:
+	case objectives.CreateIDONow:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, "") //onCreateIDONow(np)
 		// if err != nil { // temporary fallback to the old mechanism TODO: remove
 		// 	fmt.Printf("Handling %s event", objectives.CreateIDONow)
@@ -733,9 +733,7 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 		// 		Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
 		// 	createObjectiveNow(message, userID, teamID, mc.ToCallbackID(), &mc)
 		// }
-	case strategy.CreateStrategyObjective, 
-		strategy.CreateFinancialObjective, 
-		strategy.CreateCustomerObjective:
+	case strategy.CreateStrategyObjective:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.CreateIssueByTypeEvent(issues.SObjective))
 	case strategy.ViewStrategyObjectives:
 		err = wfRoutes.EnterWorkflow(wfRoutes.IssuesWorkflow, np, conn, issues.ViewListOfIssuesByTypeEvent(issues.SObjective))

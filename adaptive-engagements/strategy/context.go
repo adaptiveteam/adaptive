@@ -6,8 +6,6 @@ const (
 	ViewEditVision = "view_edit_vision"
 
 	CreateStrategyObjective            = "create_strategy_objective"
-	CreateCustomerObjective            = "create_customer_objective"
-	CreateFinancialObjective           = "create_financial_objective"
 	ViewStrategyObjectives             = "view_strategy_objectives"
 	ViewCapabilityCommunityInitiatives = "view_capability_community_initiatives" // ReadOnly
 	ViewInitiativeCommunityInitiatives = "view_initiative_community_initiatives" // Edit

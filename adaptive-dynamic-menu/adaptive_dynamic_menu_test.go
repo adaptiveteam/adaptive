@@ -35,8 +35,6 @@ var bindings = menu.FunctionBindings{
 	"ViewVision":                 "view_vision",
 	"ViewEditVision":             "view_edit_vision",
 	"CreateVision":               "create_vision",
-	"CreateFinancialObjectives":  "create_financial_objective",
-	"CreateCustomerObjectives":   "create_customer_objective",
 	"CreateCapabilityCommunity":  "createcapability_community",
 	"CreateInitiativeCommunity":  "create_initiative_community",
 	"CreateValues":               "create_value",

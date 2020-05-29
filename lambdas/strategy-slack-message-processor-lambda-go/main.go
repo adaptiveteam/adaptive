@@ -43,15 +43,10 @@ var (
 	InitiativeSelectCommunityEvent               = "initiative_select_community"
 	ObjectiveSelectCommunityEvent                = "objective_select_community"
 	ObjectiveCommunityAssociationSelectObjective = "objective_community_association_select_objective"
-	// ObjectiveCommunityAssociationSelectObjectiveAndCommunity = "objective_community_association_select_objective_community"
 
 	InitiativeCommunityEvent                       = "initiative_community"
 	AssociateObjectiveWithCapabilityCommunityEvent = "associate_objective_capability_community"
 
-	CreateStrategyObjective = strategy.CreateStrategyObjective // "create_strategy_objective"
-	// CreateStrategyCommunityAssociation         = "create_strategy_community_association"
-	CreateCustomerObjective                    = strategy.CreateCustomerObjective  // "create_customer_objective"
-	CreateFinancialObjective                   = strategy.CreateFinancialObjective // "create_financial_objective"
 	ViewAdvocacyObjectives                     = strategy.ViewAdvocacyObjectives   // "view_strategy_objectives"
 	ViewStrategyObjectives                     = strategy.ViewStrategyObjectives   // "view_strategy_objectives"
 	ViewCapabilityCommunityObjectives          = strategy.ViewCapabilityCommunityObjectives
@@ -1180,23 +1175,8 @@ func onSlackInteraction(np models.NamespacePayload4, conn daosCommon.DynamoDBCon
 			WithField("selected.Value", selected.Value).
 			Info("In menu_list")
 		switch selected.Value {
-		case CreateStrategyObjective:
-			// Create a strategy objective
-			logger.Error("Not entering Old CreateObjectiveWorkflow")
-			// err = enterWorkflow(CreateObjectiveWorkflow, np, "")
 		case AssociateInitiativeWithInitiativeCommunity:
 			handleMenuObjectiveAssociationCreate(userID, channelID, message, true, conn)
-		// // case AssociateInitiativeWithInitiativeCommunity:
-		// 	handleCreateEvent(strategy.AssociateInitiativeWithInitiativeCommunityEvent, "I see you want to associate an initiative with an initiative community.",
-		// 		userID, channelID, teamID, message, true)
-		case CreateFinancialObjective:
-			// np.InteractionCallback.CallbackID = FirstWorkflowPath.Encode()
-			// invokeWorkflow(np) // TODO: This is a temporary invocation of workflow from menu. Just to make sure everything is working.
-			handleCreateEvent(FinancialObjectiveEvent, "Would you like to create a financial objective?",
-				userID, channelID, message, true, conn)
-		case CreateCustomerObjective:
-			handleCreateEvent(CustomerObjectiveEvent, "Would you like to create a customer objective?",
-				userID, channelID, message, true, conn)
 		case strategy.CreateVision:
 			// Create a strategy objective
 			handleCreateEvent(VisionEvent, "Would you like to add vision?", userID, channelID,
