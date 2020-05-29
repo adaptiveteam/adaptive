@@ -405,7 +405,7 @@ func onGroupLeftEvent(teamID models.TeamID, cbEvent slackevents.EventsAPICallbac
 
 	if len(cbEvent.AuthedUsers) > 0 {
 		authedUser := cbEvent.AuthedUsers[0]
-		us, err2 := daosUser.Read(authedUser)(conn)
+		us, err2 := daosUser.Read(conn.PlatformID, authedUser)(conn)
 		if err2 != nil && strings.Contains(err2.Error(), "not found") {
 			logger.Infof("Not found user %s", authedUser)
 			err2 = nil

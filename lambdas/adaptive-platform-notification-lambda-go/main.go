@@ -82,7 +82,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) {
 				logger.Warnf("Couldn't parse TeamResponse (%s): %v\n", sns.Message, err2)
 			}
 		} else {
-			fmt.Printf("Parsed as PlatformSimpleNotification: %v\n", psn)
+			fmt.Printf("WARN: Parsed as deprecated PlatformSimpleNotification: %v\n", psn)
 			var token string
 			var err3 error
 			token, err3 = plat.GetTokenForUser(d, clientID, psn.UserId)

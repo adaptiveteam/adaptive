@@ -30,7 +30,7 @@ func updateSlackUser(slackUser slack.User, event models.ClientPlatformRequest,
 
 	// Check if the user already exists
 	var users []models.User
-	users, err = user.ReadOrEmpty(slackUser.ID)(conn)
+	users, err = user.ReadOrEmpty(conn.PlatformID, slackUser.ID)(conn)
 	if err == nil {
 		// Id not-empty meaning user exists
 		for _, existingUser := range users {
@@ -102,7 +102,7 @@ func deactivateUserAsync(userID string, wg *sync.WaitGroup, ec chan error,
 	conn daosCommon.DynamoDBConnection) {
 	defer wg.Done()
 	logger.Infof("Deactivating user %s", userID)
-	err := user.Deactivate(userID)(conn)
+	err := user.Deactivate(conn.PlatformID, userID)(conn)
 	if err != nil {
 		logger.WithField("error", err).Errorf("Error deactivating %s user", userID)
 		ec <- err

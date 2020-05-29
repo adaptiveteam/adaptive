@@ -1,12 +1,10 @@
 package feedbackReportPostingLambda
 
 import (
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	core "github.com/adaptiveteam/adaptive/core-utils-go"
-	"github.com/slack-go/slack"
+	"github.com/adaptiveteam/adaptive/daos/common"
 )
 
 var (
@@ -24,15 +22,5 @@ var (
 	schema    = models.SchemaForClientID(clientID)
 
 	reportName = "performance_report.pdf"
+	connGen = common.CreateConnectionGenFromEnv()
 )
-
-func userTokenSyncUnsafe(userID string) string {
-	token, err2 := utilsPlatform.GetTokenForUser(D, clientID, userID)
-	core.ErrorHandler(err2, "userTokenSyncUnsafe", "GetTokenForUser")
-	return token
-}
-
-func getSlackClient(userID string) *slack.Client {
-	ut := userTokenSyncUnsafe(userID)
-	return slack.New(ut)
-}

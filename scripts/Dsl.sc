@@ -52,14 +52,15 @@ implicit class EntityOps(entity: Entity) {
 
 }
 
-def defaultPackage(table: Table, imports: Imports): Package = 
+def defaultPackage(table: Table, imports: Imports): Package = {
   Package(table.entity.name, 
     List(
       daoModule(table, imports),
-      daoConnectionModule(table, imports),
-      fieldNamesModule(table, imports)
+      daoConnectionModule(table, removeUnusedImportForConnection(table, imports)),
+      fieldNamesModule(table)
     )
   )
+}
 
 def daoModule(table: Table, imports: Imports): Module = 
   Module(Filename(table.entity.name, ".go"), 
@@ -77,7 +78,7 @@ def fieldToStringBasedEnumItem(field: Field): StringBasedEnumItem =
 def indexToStringBasedEnumItem(index: Index): StringBasedEnumItem = 
   StringBasedEnumItem(index.name, goPublicName(index.name))
 
-def fieldNamesModule(table: Table, imports: Imports): Module = 
+def fieldNamesModule(table: Table): Module = 
   Module(Filename(table.entity.name ++ "Names".camel, ".go"), 
     List(GoModulePart(
       List(),// no imports are needed for string constants
@@ -90,15 +91,26 @@ def fieldNamesModule(table: Table, imports: Imports): Module =
     ))
   )
 
+lazy val awsUtilsUrl = "github.com/adaptiveteam/adaptive/aws-utils-go"
 
-def daoConnectionModule(table: Table, imports: Imports): Module = {
-  val unusedImports = List("encoding/json", "strings", 
-    "github.com/adaptiveteam/adaptive/engagement-builder/model")
+@deprecated("Create valid imports from the very beginning", "2020-05-25")
+def removeUnusedImportForConnection(table: Table, imports: Imports): Imports = {
+  val unusedImports = List(
+    "encoding/json", 
+    "strings", 
+    "github.com/adaptiveteam/adaptive/engagement-builder/model",
+  )
   val importClauses = imports.importClauses.filterNot(ic => unusedImports.contains(ic.url))
-  val importClauses2 = if(table.indices.isEmpty) importClauses.filterNot(_.url == "github.com/adaptiveteam/adaptive/aws-utils-go") else importClauses
+  val importClauses2 = if(table.indices.isEmpty) 
+    importClauses.filterNot(_.url == awsUtilsUrl) 
+  else
+    importClauses
+  Imports(importClauses2)
+}
+def daoConnectionModule(table: Table, imports: Imports): Module = {
   Module(Filename(table.entity.name ++ "ConnectionBased".camel, ".go"), 
     List(GoModulePart(
-      importClauses2,
+      imports.importClauses,
       List(
         ConnectionBasedDao(table)
       )

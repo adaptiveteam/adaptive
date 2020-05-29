@@ -1,15 +1,6 @@
 package lambda
 
 import (
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
-	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
-	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
-	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
-	"github.com/adaptiveteam/adaptive/daos/userObjective"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	daosUser "github.com/adaptiveteam/adaptive/daos/user"
-	"github.com/pkg/errors"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -20,10 +11,20 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	issues "github.com/adaptiveteam/adaptive/workflows/issues"
+
 	common2 "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/values"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiative"
+	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
+	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
+	issues "github.com/adaptiveteam/adaptive/workflows/issues"
+	"github.com/pkg/errors"
 
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
@@ -31,16 +32,15 @@ import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsIssues "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
+	wfRoutes "github.com/adaptiveteam/adaptive/workflows"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
-	wfRoutes "github.com/adaptiveteam/adaptive/workflows"
-	
 )
 
 const (
@@ -149,7 +149,7 @@ func createObjectiveNow(conn daosCommon.DynamoDBConnection, message slack.Intera
 	survey := utils.AttachmentSurvey(string(ObjectiveAddAnotherDialogTitle),
 		objectives.EditObjectiveSurveyElems2(nil, IDOCoaches(userID, teamID, conn),
 			objectives.DevelopmentObjectiveDates(namespace, ""), initsObjsValues))
-	api := getSlackClient(message)
+	api := platform.GetSlackClientUnsafe(conn)
 	// Open a survey associated with the engagement
 	marshaledSurvey, _ := json.Marshal(survey)
 	logger.Infof("Survey for ObjectiveCreate with %s id: %s", id, string(marshaledSurvey))
@@ -165,7 +165,7 @@ func PartnerSelectingUserEngagement(conn daosCommon.DynamoDBConnection,
 	for _, each := range users {
 		var users1 []models.User
 		var err2 error
-		users1, err2 = daosUser.ReadOrEmpty(each)(conn)
+		users1, err2 = daosUser.ReadOrEmpty(conn.PlatformID, each)(conn)
 		core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query for %s user", userID))
 		for _, user := range users1 {
 			userOpts = append(userOpts, ebm.Option(each, ui.PlainText(user.DisplayName)))
@@ -202,7 +202,7 @@ func detailedViewFields(conn daosCommon.DynamoDBConnection, u *models.UserObject
 	} else if u.Completed == 1 && !u.PartnerVerifiedCompletion {
 		status = StatusCompletedAndNotPartnerVerifiedCompletion
 	}
-	user, err2 := daosUser.Read(u.AccountabilityPartner)(conn)
+	user, err2 := daosUser.Read(conn.PlatformID, u.AccountabilityPartner)(conn)
 	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not read %s user", u.AccountabilityPartner))
 
 	fields = append(fields, models.AttachmentFields([]models.KvPair{
@@ -885,6 +885,8 @@ func onMenuList(np models.NamespacePayload4) (err error) {
 }
 
 func onConfirm(request slack.InteractionCallback, teamID models.TeamID) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+
 	// userID := request.User.ID
 	// channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
@@ -910,7 +912,7 @@ func onConfirm(request slack.InteractionCallback, teamID models.TeamID) {
 			survey := utils.AttachmentSurvey(string(label),
 				progressCommentSurveyElements(ui.PlainText(uObj.Name), uObj.CreatedDate))
 			val := fillCommentsSurveyValues(survey, comments, status)
-			api := getSlackClient(message)
+			api := platform.GetSlackClientUnsafe(conn)
 			// Open a survey associated with the engagement
 			err = dialogFromSurvey(api, message, val, id, false, mc.Target)
 			core.ErrorHandler(err, namespace, fmt.Sprintf("Could not open dialog from %s survey", id+":"+message.CallbackID))
@@ -921,6 +923,7 @@ func onConfirm(request slack.InteractionCallback, teamID models.TeamID) {
 
 func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
 	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	api := platform.GetSlackClientUnsafe(conn)
 	userID := request.User.ID
 	channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
@@ -935,8 +938,6 @@ func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
 		case CommentsName, string(models.Now):
 			// Ask for comments
 			id := action.Value // callbackId
-			api := getSlackClient(message)
-
 			comments := ""
 			var status models.ObjectiveStatusColor
 			objsByID := LatestProgressUpdateByObjectiveID(mc.Target)
@@ -988,8 +989,6 @@ func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
 				objectives.DevelopmentObjectiveDates(namespace, ""), initsObjsValues))
 
 			// Is the AttachmentActionSurvey non-empty
-			api := getSlackClient(message)
-
 			// Open a survey associated with the engagement
 			err = dialogFromSurvey(api, message, val, id, true, target)
 			core.ErrorHandler(err, namespace, fmt.Sprintf("Could not open dialog from %s survey", id+":"+message.CallbackID))
@@ -1109,7 +1108,6 @@ func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
 			onCoachConfirmAction(userID, channelID, message.MessageTs, *mc)
 		case string(models.No), string(models.Update):
 			id := mc.ToCallbackID()
-			api := getSlackClient(message)
 			// Open a survey associated with the engagement
 			comments := utils.SlackFieldValue(message.OriginalMessage.Attachments[0], CommentsName)
 			survey := CommentsSurvey(CoachingLabel, CoacheeRejectionReasonLabel, CommentsName, ui.PlainText(comments))
@@ -1120,6 +1118,8 @@ func onAsk(request slack.InteractionCallback, teamID models.TeamID) {
 }
 
 func onCloseoutRequest(request slack.InteractionCallback, teamID models.TeamID) {
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	api := platform.GetSlackClientUnsafe(conn)
 	// userID := request.User.ID
 	// channelID := request.Channel.ID
 	action := request.ActionCallback.AttachmentActions[0]
@@ -1140,8 +1140,6 @@ func onCloseoutRequest(request slack.InteractionCallback, teamID models.TeamID) 
 				ebm.NewTextArea(ObjectiveCloseoutComment, "Closeout Comments", ebm.EmptyPlaceholder, ""),
 			},
 		}
-		api := getSlackClient(message)
-
 		// Open a survey associated with the engagement
 		err = dialogFromSurvey(api, message, val, id, true, uObj.ID)
 		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not open dialog from %s survey", id+":"+message.CallbackID))
@@ -1157,8 +1155,6 @@ func onCloseoutRequest(request slack.InteractionCallback, teamID models.TeamID) 
 				ebm.NewTextArea(ObjectiveCloseoutComment, "Closeout Comments", ebm.EmptyPlaceholder, ui.PlainText(comments)),
 			},
 		}
-		api := getSlackClient(message)
-
 		// Open a survey associated with the engagement
 		err = dialogFromSurvey(api, message, val, id, true, mc.Target)
 		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not open dialog from %s survey", id+":"+message.CallbackID))
@@ -1175,8 +1171,6 @@ func onCloseoutRequest(request slack.InteractionCallback, teamID models.TeamID) 
 				ebm.NewTextArea(ObjectiveNoCloseoutComment, objectives.ObjectiveCloseoutWhyDisagreeSurveyLabel, ebm.EmptyPlaceholder, ui.PlainText(value)),
 			},
 		}
-		api := getSlackClient(message)
-
 		// Open a survey associated with the engagement
 		err = dialogFromSurvey(api, message, val, id, true, uObj.ID)
 		core.ErrorHandler(err, namespace, fmt.Sprintf("Could not open dialog from %s survey", id+":"+message.CallbackID))
@@ -1621,7 +1615,7 @@ func (a MenuOptionLabelSorter) Less(i, j int) bool { return a[i].Label < a[j].La
 
 // objectives formats one option group with objectives
 func objectivesGroup(userID string, teamID models.TeamID, initiatives []models.StrategyInitiative) (res []ebm.AttachmentActionElementOptionGroup) {
-	conn := platform.GetConnectionForUserFromEnvUnsafe(userID)
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 
 	capabilityObjectives := strategy.UserStrategyObjectives(userID, strategyObjectivesTableName,
 		string(strategyObjective.PlatformIDIndex), userObjectivesTable,

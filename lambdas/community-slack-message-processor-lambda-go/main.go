@@ -344,7 +344,7 @@ func communityNamespaceCoachingCoachConfirmCallback(request slack.InteractionCal
 		utils.UpdateEngAsAnswered(mc.Target, mc.ToCallbackID(), engagementTable, d, namespace)
 
 		// Delete the original engagement from coachee's chat
-		DeleteOriginalEng(userId, channelId, request.MessageTs)
+		utils.DeleteOriginalEng(userId, channelId, request.MessageTs, publish)
 	case string(models.Ignore):
 		// Coachee decided not to accept the current coach
 		id := action.Value // callbackId
@@ -394,7 +394,7 @@ func communityNamespaceCoachingRequestCoachCallback(request slack.InteractionCal
 			Message: string(CoachingRequestSentNotificationToCoacheeTitle(requestedCoach)),
 			AsUser:  true})
 		// Delete original engagement
-		DeleteOriginalEng(request.User.ID, request.Channel.ID, request.MessageTs)
+		utils.DeleteOriginalEng(request.User.ID, request.Channel.ID, request.MessageTs, publish)
 		// Mark engagement as answered
 		utils.UpdateEngAsAnswered(request.User.ID, mc.WithTarget("").ToCallbackID(), engagementTable, d, namespace)
 	case string(Confirm):
@@ -416,9 +416,9 @@ func communityNamespaceCoachingRequestCoachCallback(request slack.InteractionCal
 			AsUser:  true})
 		// Update engagement as answered
 		utils.UpdateEngAsAnswered(mc.Target, mc.ToCallbackID(), engagementTable, d, namespace)
-		DeleteOriginalEng(request.User.ID, request.Channel.ID, request.MessageTs)
+		utils.DeleteOriginalEng(request.User.ID, request.Channel.ID, request.MessageTs, publish)
 	case string(models.Cancel):
-		DeleteOriginalEng(request.User.ID, request.Channel.ID, request.MessageTs)
+		utils.DeleteOriginalEng(request.User.ID, request.Channel.ID, request.MessageTs, publish)
 		// Update engagement as ignored
 		utils.UpdateEngAsIgnored(mc.Source, mc.ToCallbackID(), engagementTable, d, namespace)
 	case string(No):
@@ -448,7 +448,7 @@ func communityNamespaceAdminAccessCallback(request slack.InteractionCallback, su
 		publish(models.PlatformSimpleNotification{UserId: request.User.ID, Channel: request.Channel.ID,
 			Message: string(AdminRequestSentAcknowledgement)})
 		userID := request.User.ID
-		user, err2 := daosUser.Read(userID)(conn)
+		user, err2 := daosUser.Read(conn.PlatformID, userID)(conn)
 		core.ErrorHandler(err2, "communityNamespaceAdminAccessCallback", "userDAO.Read")
 		teamID := models.ParseTeamID(user.PlatformID)
 		// ut := userTokenSyncUnsafe(request.User.ID)

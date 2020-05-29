@@ -67,6 +67,8 @@ def interfaceTemplate(dao: Dao): List[String] = {
 					s"ReadBy${indexName}($args) ($entityArgSliceValue, err error)",
 					s"ReadBy${indexName}Unsafe($args) ($entityArgSliceValue)",
 				)
+			case _ => 
+				List() // ignore other options
 		}
 	}
 
@@ -146,6 +148,9 @@ case class OperationImplementationTemplates(table: Table){
 			case DaoQueryRow(index: Index) => 
 				val templates = QueryTemplates(index)
 				templates.apply
+			case _ => 
+				List() // ignore other options
+
 		}
 	}
 
@@ -368,8 +373,10 @@ func (d DAOImpl)ReadBy${indexShortName}Unsafe($args) (out []$structName) {
 """
 		}
 				}
-
 	def utilitiesTemplate: List[String] = {
+		idParamsTemplate
+	}
+	def idParamsTemplate: List[String] = {
 		blockNamed(s"func idParams($idArgs) map[string]*dynamodb.AttributeValue", 
 			blockNamed("params := map[string]*dynamodb.AttributeValue",
 				entity.primaryKeyFields.map(fld => 
@@ -384,6 +391,7 @@ func (d DAOImpl)ReadBy${indexShortName}Unsafe($args) (out []$structName) {
 			lines("return params")
 		)
 	}
+
 	def isFieldChangedTemplate(fld: Field, newName: String, oldName: String): String = {
 		val accessField = newName + "." + fieldName(fld)
 		val accessOldField = oldName + "." + fieldName(fld)

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 
 	acfn "github.com/adaptiveteam/adaptive/adaptive-check-function-names"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
@@ -25,9 +24,9 @@ var (
 	}
 )
 
-func PostToCommunity(community community.AdaptiveCommunity, userId, message string) {
-	commChannel := communityChannel(userId, community)
-	Publish(aug.PlatformSimpleNotification{UserId: userId, Channel: commChannel, Message: core.TextWrap(message, core.Underscore)})
+func PostToCommunity(community community.AdaptiveCommunity, teamID models.TeamID, userID, message string) {
+	commChannel := communityChannel(teamID, userID, community)
+	Publish(aug.PlatformSimpleNotification{UserId: userID, Channel: commChannel, Message: core.TextWrap(message, core.Underscore)})
 }
 
 func PostToUser(userId string, attachs []ebm.Attachment) {
@@ -53,9 +52,7 @@ func globalConnection(teamID models.TeamID) daosCommon.DynamoDBConnection {
 	}
 }
 
-func communityChannel(userID string, community community.AdaptiveCommunity) string {
-	teamID, err2 := platform.GetTeamIDForUser(D, ClientID, userID)
-	core.ErrorHandler(err2, Namespace, fmt.Sprintf("Could not get TeamID for userID %s", userID))
+func communityChannel(teamID models.TeamID, userID string, community community.AdaptiveCommunity) string {
 	// Querying for admin community
 	params := map[string]*dynamodb.AttributeValue{
 		"id":          daosCommon.DynS(string(community)),

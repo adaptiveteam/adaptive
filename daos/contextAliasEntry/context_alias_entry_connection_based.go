@@ -3,8 +3,8 @@ package contextAliasEntry
 // The changes will be overridden by the next automatic generation.
 import (
 	"github.com/aws/aws-sdk-go/aws"
-	common "github.com/adaptiveteam/adaptive/daos/common"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	common "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/pkg/errors"
 	"fmt"

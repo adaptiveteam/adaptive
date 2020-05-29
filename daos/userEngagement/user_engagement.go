@@ -3,15 +3,15 @@ package userEngagement
 // The changes will be overridden by the next automatic generation.
 import (
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
-	"github.com/aws/aws-sdk-go/aws"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	common "github.com/adaptiveteam/adaptive/daos/common"
+	"encoding/json"
+	"strings"
+	"github.com/aws/aws-sdk-go/aws"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	common "github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/pkg/errors"
 	"fmt"
-	"encoding/json"
-	"strings"
 )
 
 // UserEngagement encapsulates an engagement we want to provide to a user

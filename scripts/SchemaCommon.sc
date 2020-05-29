@@ -40,22 +40,27 @@ val CommunityKindDef = StringBasedEnum("CommunityKind".camel, List(
 	"InitiativeCommunity".camel ^^ "initiative" // many
 ))
 
-val commonImport = ImportClause(Some("common"), "github.com/adaptiveteam/adaptive/daos/common")
+lazy val commonImport = ImportClause(Some("common"), "github.com/adaptiveteam/adaptive/daos/common")
 
-val coreImport = ImportClause(Some("core"), "github.com/adaptiveteam/adaptive/core-utils-go")
+lazy val coreImport = ImportClause(Some("core"), "github.com/adaptiveteam/adaptive/core-utils-go")
 
-val imports = Imports(List(
+lazy val awsutilsImport = ImportClause(Some("awsutils"), awsUtilsUrl)
+
+lazy val basicImportsForConnections = Imports(List(
     ImportClause(None, "github.com/aws/aws-sdk-go/aws"),
-    ImportClause(Some("awsutils"), "github.com/adaptiveteam/adaptive/aws-utils-go"),
-    commonImport,
     coreImport,
+    commonImport,
     ImportClause(None, "github.com/aws/aws-sdk-go/service/dynamodb"),
     ImportClause(None, "github.com/pkg/errors"),
     ImportClause(None, "fmt"),
-    ImportClause(None, "encoding/json"),
-    ImportClause(None, "strings")
     // ImportClause(None, "strconv")
 ))
+
+val imports = List(
+    awsutilsImport,
+    ImportClause(None, "encoding/json"),
+    ImportClause(None, "strings"),
+) ::: basicImportsForConnections
 
 val timeImport = ImportClause(None, "time")
 
