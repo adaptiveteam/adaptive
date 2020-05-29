@@ -13,7 +13,6 @@ var bindings = map[string]string{
 	"StaleObjectivesExistForMe":  user.StaleObjectivesForMe,
 	"StaleInitiativesExistForMe": user.StaleInitiativesForMe,
 	"AllIDOsForCoachees":         "all_idos_for_coachees",
-	"AllObjectivesForMe":         strategy.ViewAdvocacyObjectives,
 	"ProvideFeedback":            coaching.GiveFeedback,
 	"RequestFeedback":            coaching.RequestFeedback,
 	// values

@@ -100,7 +100,7 @@ func ResponsibilitiesGroup(profile adaptive_checks.TypedProfile, bindings menu.F
 		),
 		// This fetches all Objectives
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["AllObjectivesForMe"],
+			strategy.ViewAdvocacyObjectives,
 			"All Objectives",
 			"",
 			profile.ObjectivesExistForMe(),

@@ -21,7 +21,6 @@ var bindings = menu.FunctionBindings{
 	"StaleObjectivesExistForMe":  "stale_objectives_for_me",
 	"StaleInitiativesExistForMe": "stale_initiatives_for_me",
 	"AllIDOsForCoachees":         "all_idos_for_coachees",
-	"AllObjectivesForMe":         "all_objectives_for_me",
 	"ProvideFeedback":            "provide_feedback",
 	"RequestFeedback":            "request_feedback",
 	"ViewValues":                 "view_values",
@@ -68,7 +67,7 @@ func Test_AllTrue(t *testing.T) {
 		},
 		desiredGroups[1]: {
 			user.ViewObjectives,
-			bindings["AllObjectivesForMe"],
+			strategy.ViewAdvocacyObjectives,
 			strategy.ViewAdvocacyInitiatives,
 
 			// No feedback here because we set the quarter check to true

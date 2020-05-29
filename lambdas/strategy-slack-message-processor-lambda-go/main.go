@@ -48,7 +48,6 @@ var (
 	AssociateObjectiveWithCapabilityCommunityEvent = "associate_objective_capability_community"
 
 	ViewAdvocacyObjectives                     = strategy.ViewAdvocacyObjectives   // "view_strategy_objectives"
-	ViewStrategyObjectives                     = strategy.ViewStrategyObjectives   // "view_strategy_objectives"
 	ViewCapabilityCommunityObjectives          = strategy.ViewCapabilityCommunityObjectives
 	CreateCapabilityCommunity                  = strategy.CreateCapabilityCommunity // "create_capability_community"
 	ViewCapabilityCommunities                  = strategy.ViewCapabilityCommunities // "view_capability_communities"
@@ -1197,10 +1196,6 @@ func onSlackInteraction(np models.NamespacePayload4, conn daosCommon.DynamoDBCon
 		case ViewAdvocacyObjectives:
 			logger.Error("Not entering Old CreateObjectiveWorkflow/ViewMyObjectivesEvent")
 			// err = enterWorkflow(CreateObjectiveWorkflow, np, ViewMyObjectivesEvent)
-		case ViewStrategyObjectives:
-			logger.Error("Not entering Old CreateObjectiveWorkflow/ViewObjectivesEvent")
-			// err = enterWorkflow(CreateObjectiveWorkflow, np, ViewObjectivesEvent)
-			// onViewObjectives(request, teamID, AllStrategyObjectives(userID))
 		case ViewCapabilityCommunityObjectives:
 			onViewObjectives(request, teamID, UserCommunityObjectives(userID, conn))
 		// case ViewCapabilityCommunityInitiatives, ViewInitiativeCommunityInitiatives:
