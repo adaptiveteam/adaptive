@@ -3,61 +3,51 @@ package dynamic_menu
 import (
 	// business_time "github.com/adaptiveteam/adaptive/business-time"
 	// "github.com/adaptiveteam/adaptive/checks"
-	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"testing"
+
+	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 )
 
 func MenuForTesting() (menu DynamicMenuSpecification) {
-	menu = NewAdaptiveDynamicMenu()
-	menu = menu.AddGroup(
-		NewGroupSpecification("Test Group #1").
-			AddGroupOption(
-				NewAdaptiveDynamicMenuSpecification(
-					"test ID #1.1",
-					"test text #1.1",
-					"text description #1.1", true),
-			).AddGroupOption(
-				NewAdaptiveDynamicMenuSpecification(
-					"test ID #1.2",
-					"test text #1.2",
-					"text description #1.2", true),
+	menu = NewAdaptiveDynamicMenu(
+		NewGroupSpecification("Test Group #1",
+			NewAdaptiveDynamicMenuSpecification(
+				"test ID #1.1",
+				"test text #1.1",
+				"text description #1.1", true),
+			NewAdaptiveDynamicMenuSpecification(
+				"test ID #1.2",
+				"test text #1.2",
+				"text description #1.2", true),
 		),
-	).AddGroup(
-		NewGroupSpecification("Test Group #2").
-			AddGroupOption(
-				NewAdaptiveDynamicMenuSpecification(
-					"test ID #2.1",
-					"test text #2.1",
-					"text description #2.1",
-					 true),
-			).AddGroupOption(
-				NewAdaptiveDynamicMenuSpecification(
-					"test ID #2.2",
-					"test text #2.2",
-					"text description #2.2", 
-					true),
+		NewGroupSpecification("Test Group #2",
+			NewAdaptiveDynamicMenuSpecification(
+				"test ID #2.1",
+				"test text #2.1",
+				"text description #2.1",
+				true),
+			NewAdaptiveDynamicMenuSpecification(
+				"test ID #2.2",
+				"test text #2.2",
+				"text description #2.2",
+				true),
 		),
-	).AddGroup(
-		NewGroupSpecification("Test Group #3").
-			AddGroupOption(
-				NewAdaptiveDynamicMenuSpecification(
-					"test ID #3.1",
-					"test text #3.1",
-					"text description #3.1", true),
-			).AddGroupOption(
+		NewGroupSpecification("Test Group #3",
+			NewAdaptiveDynamicMenuSpecification(
+				"test ID #3.1",
+				"test text #3.1",
+				"text description #3.1", true),
 			NewAdaptiveDynamicMenuSpecification(
 				"test ID #3.2",
 				"test text #3.2",
 				"text description #3.2", false),
 		),
-	).AddGroup(
-		NewGroupSpecification("Test Group #4").
-			AddGroupOption(
-				NewAdaptiveDynamicMenuSpecification(
-					"test ID #4.1",
-					"test text #4.1",
-					"text description #4.1", false),
-			),
+		NewGroupSpecification("Test Group #4",
+			NewAdaptiveDynamicMenuSpecification(
+				"test ID #4.1",
+				"test text #4.1",
+				"text description #4.1", false),
+		),
 	)
 	return menu
 }
