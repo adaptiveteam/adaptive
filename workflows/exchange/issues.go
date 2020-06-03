@@ -2,7 +2,9 @@ package exchange
 
 import (
 	"strconv"
+
 	wf "github.com/adaptiveteam/adaptive/adaptive-engagements/workflow"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 )
 
 const IssuesNamespace = "issues"
@@ -19,7 +21,7 @@ func EventByType(name string, itype IssueType) wf.Event {
 var PromptStaleIssuesEvent = func (issueType IssueType) wf.Event { return EventByType("prompt_stale_issues", issueType) }
 // PromptStaleIssues shows a prompt if user wants to see the list of stale 
 // issues of the given type
-func PromptStaleIssues(userID string, issueType IssueType, days int) wf.TriggerImmediateEventForAnotherUser {
+func PromptStaleIssues(teamID models.TeamID, userID string, issueType IssueType, days int) wf.TriggerImmediateEventForAnotherUser {
 	actionPath := wf.ExternalActionPathWithData(
 		IssuesPath,
 		InitState, 
@@ -31,7 +33,8 @@ func PromptStaleIssues(userID string, issueType IssueType, days int) wf.TriggerI
 		false, // IsOriginalPermanent
 	)
 	return wf.TriggerImmediateEventForAnotherUser{
-		UserID: userID,
+		TeamID:     teamID,
+		UserID:     userID,
 		ActionPath: actionPath,
 	}
 }

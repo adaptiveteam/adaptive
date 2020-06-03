@@ -62,6 +62,7 @@ func InvokeWorkflow(np models.NamespacePayload4, conn common.DynamoDBConnection)
 	if strings.HasPrefix(np.InteractionCallback.CallbackID, "/") {
 		err = invokeWorkflowInner(np,
 			wf.TriggerImmediateEventForAnotherUser{
+				TeamID:     np.TeamID,
 				UserID:     np.SlackRequest.InteractionCallback.User.ID,
 				ActionPath: wf.ActionPathFromCallbackID(np),
 			})(conn)

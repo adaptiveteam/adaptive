@@ -119,6 +119,7 @@ type InteractiveMessage struct {
 
 // TriggerImmediateEventForAnotherUser creates an event for that user
 type TriggerImmediateEventForAnotherUser struct {
+	TeamID models.TeamID
 	UserID string
 	ActionPath models.ActionPath // workflow that will start for that user.
 }

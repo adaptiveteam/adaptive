@@ -55,6 +55,5 @@ var (
 	NowActionLabel  = models.YesLabel
 	SkipActionLabel = models.DefaultSkipThisTemplate
 
-	ViewOpenObjectives      = "view_open_objectives"
 	ViewCollaborationReport = "view_collaboration_report"
 )
