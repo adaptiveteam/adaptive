@@ -37,7 +37,6 @@ const (
 	SimulateUserFieldID    = "simulate_user"
 	CurrentQuarterSchedule = "current_quarter_schedule"
 	NextQuarterSchedule    = "next_quarter_schedule"
-	SelectCoachee          = "select_coachee"
 	RequestCoach           = "request_coach"
 	AdaptiveAccess         = "adaptive_access"
 	CoachConfirm           = "coach_confirm"

@@ -2,6 +2,9 @@ package adaptive_dynamic_menu
 
 import (
 	adaptive_checks "github.com/adaptiveteam/adaptive/adaptive-checks"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	menu "github.com/adaptiveteam/adaptive/dynamic-menu"
 )
 
@@ -38,28 +41,28 @@ func UrgentResponsibilitiesGroup(profile adaptive_checks.TypedProfile, bindings 
 		),
 		// This fetches any IDO's not updated in the last 7 days
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["StaleIDOsExistForMe"],
+			user.StaleIDOsForMe,
 			"Update IDO's",
 			"",
 			profile.StaleIDOsExistForMe(),
 		),
 		// This fetches any Objectives not updated in the last 7 days
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["StaleObjectivesExistForMe"],
+			user.StaleObjectivesForMe,
 			"Update Objectives",
 			"",
 			profile.StaleObjectivesExistForMe(),
 		),
 		// This fetches any Initiatives not updated in the last 7 days
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["StaleInitiativesExistForMe"],
+			user.StaleInitiativesForMe,
 			"Update Initiatives",
 			"",
 			profile.StaleInitiativesExistForMe(),
 		),
 		// Enables the user to create an IDO
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["CreateIDO"],
+			objectives.CreateIDONow,
 			"Create IDO",
 			"",
 			profile.CanBeNudgedForIDO() &&
@@ -90,21 +93,21 @@ func ResponsibilitiesGroup(profile adaptive_checks.TypedProfile, bindings menu.F
 		"Responsibilities",
 		// This fetches all IDO's
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["AllIDOsForMe"],
+			user.ViewObjectives,
 			"All IDO's",
 			"",
 			profile.IDOsExistForMe(),
 		),
 		// This fetches all Objectives
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["AllObjectivesForMe"],
+			strategy.ViewAdvocacyObjectives,
 			"All Objectives",
 			"",
 			profile.ObjectivesExistForMe(),
 		),
 		// This fetches all Initiatives
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["AllInitiativesForMe"],
+			strategy.ViewAdvocacyInitiatives,
 			"All Initiatives",
 			"",
 			profile.InitiativesExistForMe(),
@@ -149,7 +152,7 @@ func ViewGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindi
 		),
 		// Enables the user to see all of the objectives
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["ViewEditObjectives"],
+			strategy.ViewStrategyObjectives,
 			"Objectives",
 			"",
 			profile.ObjectivesExist() &&
@@ -157,37 +160,25 @@ func ViewGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBindi
 		),
 		// Enables the user to see all of the objectives in their Capability & Initiative Communities
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["ViewCommunityObjectives"],
+			strategy.ViewCapabilityCommunityObjectives,
 			"Objectives",
 			"",
 			profile.ObjectivesExistInMyCapabilityCommunities() &&
 				!profile.InStrategyCommunity(),
 		),
-		// Enables the user to see all of the initiatives
+		// Enables the user to see and edit all of the Initiatives
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["ViewCommunityInitiatives"],
+			strategy.ViewInitiatives,
 			"Initiatives",
 			"",
-			!profile.InStrategyCommunity() &&
+			(!profile.InStrategyCommunity() &&
 				profile.InitiativesExistInMyInitiativeCommunities() &&
-				!profile.InCapabilityCommunity(),
-		),
-		// Enables the user to see and edit all of the Initiatives
-		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["ViewEditInitiatives"],
-			"Initiatives",
-			"",
-			!profile.InStrategyCommunity() &&
-				profile.InitiativesExistInMyCapabilityCommunities() &&
-				profile.InCapabilityCommunity(),
-		),
-		// Enables the user to see and edit all of the Initiatives
-		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["ViewEditInitiatives"],
-			"Initiatives",
-			"",
-			profile.InStrategyCommunity() &&
-				profile.InitiativesExist(),
+				!profile.InCapabilityCommunity()) ||
+				(!profile.InStrategyCommunity() &&
+					profile.InitiativesExistInMyCapabilityCommunities() &&
+					profile.InCapabilityCommunity()) ||
+				(profile.InStrategyCommunity() &&
+					profile.InitiativesExist()),
 		),
 		// Enables the user to see all of the team values
 		menu.NewAdaptiveDynamicMenuSpecification(
@@ -257,23 +248,18 @@ func CreateGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBin
 		"Create",
 		// Enables a user to create an IDO
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["CreateIDO"],
+			objectives.CreateIDONow,
 			"IDO",
 			"",
-			profile.CanBeNudgedForIDO() &&
+			(profile.CanBeNudgedForIDO() &&
 				profile.TeamValuesExist() &&
-				profile.IDOsExistForMe(),
+				profile.IDOsExistForMe()) ||
+				(!profile.CanBeNudgedForIDO() &&
+					profile.TeamValuesExist()),
 		),
-		// Enables a non user/initiative community user to create an IDO
-		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["CreateIDO"],
-			"IDO",
-			"",
-			!profile.CanBeNudgedForIDO() &&
-				profile.TeamValuesExist()),
 		// Enables the user to create objectives
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["CreateCapabilityObjectives"],
+			strategy.CreateStrategyObjective,
 			"Objectives",
 			"",
 			profile.CompanyVisionExists() &&
@@ -302,37 +288,25 @@ func CreateGroup(profile adaptive_checks.TypedProfile, bindings menu.FunctionBin
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// Enables the user to create Initiatives
 		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["CreateInitiatives"],
+			strategy.CreateInitiative,
 			"Initiatives",
 			"",
-			!profile.InStrategyCommunity() &&
+			(!profile.InStrategyCommunity() &&
 				profile.ObjectivesExistInMyCapabilityCommunities() &&
-				profile.InInitiativeCommunity(),
-		),
-		// Enables users from the strategy community to create Initiatives
-		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["CreateInitiatives"],
-			"Initiatives",
-			"",
-			profile.InStrategyCommunity() &&
-				profile.InitiativeCommunityExists(),
+				profile.InInitiativeCommunity()) ||
+				(profile.InStrategyCommunity() &&
+					profile.InitiativeCommunityExists()),
 		),
 		// Enables the user to create Initiative Communities
 		menu.NewAdaptiveDynamicMenuSpecification(
 			bindings["CreateInitiativeCommunity"],
 			"Initiative Communities",
 			"",
-			!profile.InStrategyCommunity() &&
+			(!profile.InStrategyCommunity() &&
 				profile.InCapabilityCommunity() &&
-				profile.CompanyVisionExists(),
-		),
-		// Enables users from the strategy community to create Initiative Communities
-		menu.NewAdaptiveDynamicMenuSpecification(
-			bindings["CreateInitiativeCommunity"],
-			"Initiative Communities",
-			"",
-			profile.InStrategyCommunity() &&
-				profile.CapabilityCommunityExists(),
+				profile.CompanyVisionExists()) ||
+				(profile.InStrategyCommunity() &&
+					profile.CapabilityCommunityExists()),
 		),
 		//***************************************************************************************************//
 		// Enables the user to create team values

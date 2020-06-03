@@ -3,7 +3,6 @@ package lambda
 import (
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/values"
@@ -11,19 +10,9 @@ import (
 
 var bindings = map[string]string{
 	"FetchEngagementsForMe":      user.AskForEngagements,
-	"StaleIDOsExistForMe":        user.StaleIDOsForMe,
-	"StaleObjectivesExistForMe":  user.StaleObjectivesForMe,
-	"StaleInitiativesExistForMe": user.StaleInitiativesForMe,
-	"AllIDOsForMe":               user.ViewObjectives,
 	"AllIDOsForCoachees":         "all_idos_for_coachees",
-	"AllObjectivesForMe":         strategy.ViewAdvocacyObjectives,
-	"AllInitiativesForMe":        strategy.ViewAdvocacyInitiatives,
 	"ProvideFeedback":            coaching.GiveFeedback,
 	"RequestFeedback":            coaching.RequestFeedback,
-	"ViewEditObjectives":         strategy.ViewStrategyObjectives,
-	"ViewCommunityObjectives":    strategy.ViewCapabilityCommunityObjectives,
-	"ViewEditInitiatives":        strategy.ViewCapabilityCommunityInitiatives,
-	"ViewCommunityInitiatives":   strategy.ViewInitiativeCommunityInitiatives,
 	// values
 	"ViewValues":     values.AdaptiveValuesListMenuItem,
 	"ViewEditValues": values.AdaptiveValuesListMenuItem,
@@ -37,13 +26,8 @@ var bindings = map[string]string{
 	"ViewEditVision":             strategy.ViewEditVision,
 	"ViewCoachees":               coaching.ViewCoachees,
 	"ViewAdvocates":              coaching.ViewAdvocates,
-	"CreateIDO":                  objectives.CreateIDONow,
 	"CreateVision":               strategy.CreateVision,
-	"CreateFinancialObjectives":  strategy.CreateFinancialObjective,
-	"CreateCustomerObjectives":   strategy.CreateCustomerObjective,
-	"CreateCapabilityObjectives": strategy.CreateStrategyObjective,
 	"CreateCapabilityCommunity":  strategy.CreateCapabilityCommunity,
-	"CreateInitiatives":          strategy.CreateInitiative,
 	"CreateInitiativeCommunity":  strategy.CreateInitiativeCommunity,
 	"CreateValues":               values.AdaptiveValuesCreateNewMenuItem,
 	"CreateHolidays":             holidays.HolidaysCreateNewMenuItem,
