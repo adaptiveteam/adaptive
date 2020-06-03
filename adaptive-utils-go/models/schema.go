@@ -1,5 +1,11 @@
 package models
 
+import (
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
+	"github.com/adaptiveteam/adaptive/daos/userObjective"
+)
+
 // Schema describes tables and indices in DynamoDB
 type Schema struct {
 	Holidays HolidaysTableSchema
@@ -26,11 +32,11 @@ func SchemaForClientID(clientID string) Schema {
 
 var (
 	DialogContentTableName                      = func(clientID string) string { return clientID + "_dialog_content" }
-	StrategyObjectivesTableName                 = func(clientID string) string { return clientID + "_strategy_objectives" }
+	StrategyObjectivesTableName                 = strategyObjective.TableName
 	StrategyInitiativesTableName                = func(clientID string) string { return clientID + "_strategy_initiatives" }
-	UserObjectivesTableName                     = func(clientID string) string { return clientID + "_user_objective" }
+	UserObjectivesTableName                     = userObjective.TableName
 	UserObjectivesProgressTableName             = func(clientID string) string { return clientID + "_user_objectives_progress" }
-	CommunityUsersTableName                     = func(clientID string) string { return clientID + "_community_users" }
+	CommunityUsersTableName                     = adaptiveCommunityUser.TableName
 	CommunitiesTableName                        = func(clientID string) string { return clientID + "_communities" }
 	CompetenciesTableName                       = func(clientID string) string { return clientID + "_adaptive_value" }
 	StrategyInitiativeCommunitiesTableName      = func(clientID string) string { return clientID + "_initiative_communities" }

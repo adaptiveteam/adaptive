@@ -19,7 +19,6 @@ const (
 	IDOUpdateDueWithinQuarter = "ido_update_due_in_quarter"
 	IDOUpdateDueWithinYear    = "ido_update_due_in_year"
 
-	CapabilityObjectiveUpdateDueWithinWeek    = "capability_objective_update_due_in_week"
 	CapabilityObjectiveUpdateDueWithinMonth   = "capability_objective_update_due_in_month"
 	CapabilityObjectiveUpdateDueWithinQuarter = "capability_objective_update_due_in_quarter"
 	CapabilityObjectiveUpdateDueWithinYear    = "capability_objective_update_due_in_year"

@@ -669,7 +669,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							onViewStaleIDOs(request, teamID)
 						// } else if strings.HasPrefix(action.Name, ViewOpenObjectives) {
 						// 	onViewOpenObjectives(request, teamID)
-						} else if strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinWeek) ||
+						} else if 
 							strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinMonth) ||
 							strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinQuarter) ||
 							strings.HasPrefix(action.Name, user.CapabilityObjectiveUpdateDueWithinYear) ||
