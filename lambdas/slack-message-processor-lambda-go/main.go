@@ -27,13 +27,13 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/daos/slackTeam"
 	eb "github.com/adaptiveteam/adaptive/engagement-builder"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	competencies "github.com/adaptiveteam/adaptive/lambdas/competencies-lambda-go"
 	holidaysLambda "github.com/adaptiveteam/adaptive/lambdas/holidays-lambda-go"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/pkg/errors"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -100,14 +100,15 @@ func publish(msg models.PlatformSimpleNotification) {
 }
 
 func helloMessage(userID, channelID string, teamID models.TeamID) {
-	keyParams := map[string]*dynamodb.AttributeValue{
-		"id": daosCommon.DynS(userID),
-	}
-
+	conn := connGen.ForPlatformID(teamID.ToPlatformID())
+	// var users []daosUser.User
+	users := daosUser.ReadOrEmptyUnsafe(conn.PlatformID, userID)(conn)
+	
+	found := len(users) > 0
 	// Check if the user already exists
-	var aUser models.User
-	found, err2 := d.GetItemOrEmptyFromTable(usersTable, keyParams, &aUser)
-	core.ErrorHandler(err2, namespace, "Couldn't find user "+userID)
+	// var aUser models.User
+	// found, err2 := d.GetItemOrEmptyFromTable(usersTable, keyParams, &aUser)
+	// core.ErrorHandler(err2, namespace, "Couldn't find user "+userID)
 	// If the user doesn't exist in our tables, add the user first and then proceed to evaluate ADM
 	if !found {
 		log.Println("User does not exist, adding...")
