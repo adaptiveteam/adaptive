@@ -86,7 +86,7 @@ func HandleRequest(ctx context.Context, e events.SNSEvent) (err error) {
 							switch act {
 							case string(models.Now):
 								// Query user table to get timezone
-								user := daosUser.ReadUnsafe(userID)(conn)
+								user := daosUser.ReadUnsafe(conn.PlatformID, userID)(conn)
 								notes = selectMeetingTimeHandler(request, user.Timezone)
 							case string(models.Cancel):
 								// Remove the engagement

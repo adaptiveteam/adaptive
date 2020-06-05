@@ -1,29 +1,29 @@
 package engagements
 
 import (
-	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	"github.com/adaptiveteam/adaptive/workflows"
-	"github.com/adaptiveteam/adaptive/workflows/exchange"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	"fmt"
 	"log"
 	"strconv"
 	"time"
+
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/workflows"
+	"github.com/adaptiveteam/adaptive/workflows/exchange"
 
 	. "github.com/adaptiveteam/adaptive/adaptive-engagement-scheduling/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/user"
-	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
-	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
+	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	bt "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
-	issuesUtils "github.com/adaptiveteam/adaptive/adaptive-utils-go/issues"
 	feedbackReportingLambda "github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
 )
 
@@ -35,11 +35,6 @@ IDO Creation reminders
 
 var globalConnectionGen = daosCommon.CreateConnectionGenFromEnv
 
-func readUser(userID string) (u models.User, err error) {
-	var conn daosCommon.DynamoDBConnection
-	conn, err = platform.GetConnectionForUserFromEnv(userID)
-	return daosUser.Read(userID)(conn)
-}
 // IDOCreateReminder is meant to trigger the engagements that
 // reminds the user to create personal improvement objects in the event that they have
 // not created any.
@@ -58,7 +53,7 @@ Update Reminders
 
 // slowlyCreateConnection - 
 // Deprecated: use connGen approach
-func slowlyCreateConnection(teamID models.TeamID, userID string) daosCommon.DynamoDBConnection {
+func slowlyCreateConnection(teamID models.TeamID) daosCommon.DynamoDBConnection {
 	return daosCommon.DynamoDBConnection {
 		Dynamo: common.DeprecatedGetGlobalDns().Dynamo,
 		ClientID: utils.NonEmptyEnv("CLIENT_ID"),
@@ -68,10 +63,10 @@ func slowlyCreateConnection(teamID models.TeamID, userID string) daosCommon.Dyna
 // IDOUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale individual improvement
 func IDOUpdateReminder(teamID models.TeamID, _ bt.Date, userID string) {
-	conn := slowlyCreateConnection(teamID, userID)
-	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(userID, issuesUtils.IDO, 7))(conn)
+	conn := slowlyCreateConnection(teamID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(teamID, userID, issuesUtils.IDO, 7))(conn)
 	if err2 != nil {
-		log.Printf("ERROR IDOUpdateReminder: %+v", err2)
+		log.Printf("ERROR IDOUpdateReminder: %+v\n", err2)
 	}
 	// ObjectiveProgressUpdateAsk(userID, user.IDOUpdateDueWithinWeek,
 		// "You have Individual Development Objective(s) that haven't been updated in last 7 days. Would you like to update them?")
@@ -80,10 +75,10 @@ func IDOUpdateReminder(teamID models.TeamID, _ bt.Date, userID string) {
 // ObjectiveUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale objectives
 func ObjectiveUpdateReminder(teamID models.TeamID, date bt.Date, userID string) {
-	conn := slowlyCreateConnection(teamID,userID)
-	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(userID, issuesUtils.SObjective, 30))(conn)
+	conn := slowlyCreateConnection(teamID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(teamID, userID, issuesUtils.SObjective, 30))(conn)
 	if err2 != nil {
-		log.Printf("ERROR ObjectiveUpdateReminder: %+v", err2)
+		log.Printf("ERROR ObjectiveUpdateReminder: %+v\n", err2)
 	}
 	// ObjectiveProgressUpdateAsk(target, user.CapabilityObjectiveUpdateDueWithinMonth,
 	// 	"You have Capability Objective(s) that haven't been updated in last 30 days. Would you like to update them?")
@@ -92,10 +87,10 @@ func ObjectiveUpdateReminder(teamID models.TeamID, date bt.Date, userID string) 
 // InitiativeUpdateReminder is meant to trigger the engagements that
 // reminds the user to update stale initiatives
 func InitiativeUpdateReminder(teamID models.TeamID, date bt.Date, userID string) {
-	conn := slowlyCreateConnection(teamID,userID)
-	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(userID, issuesUtils.Initiative, 7))(conn)
+	conn := slowlyCreateConnection(teamID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(teamID, userID, issuesUtils.Initiative, 7))(conn)
 	if err2 != nil {
-		log.Printf("ERROR InitiativeUpdateReminder: %+v", err2)
+		log.Printf("ERROR InitiativeUpdateReminder: %+v\n", err2)
 	}
 	// ObjectiveProgressUpdateAsk(target, user.InitiativeUpdateDueWithinWeek,
 	// 	"You have Initiative(s) that haven't been updated in last 7 days. Would you like to update them?")
@@ -110,20 +105,35 @@ Closeout reminders
 // IDOCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an IDO due in the coming week and to close it out
 func IDOCloseoutReminder(teamID models.TeamID, date bt.Date, target string) {
-	// TODO: dont ask for update, ask for closeout
-	UserCloseObjectivesAsk(teamID, target, "You have IDOs that are due in a week. Would you like to close them out?")
+	conn := slowlyCreateConnection(teamID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(teamID, target, issues.IDO, 7))(conn)
+	if err2 != nil {
+		log.Printf("ERROR IDOCloseoutReminder: %+v\n", err2)
+	}
+	// // TODO: dont ask for update, ask for closeout
+	// UserCloseObjectivesAsk(teamID, target, "You have IDOs that are due in a week. Would you like to close them out?")
 }
 
 // InitiativeCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an Initiative due in the coming week and to close it out
 func InitiativeCloseoutReminder(teamID models.TeamID, date bt.Date, target string) {
-	UserCloseObjectivesAsk(teamID, target, "You have Initiatives that are due in a week. Would you like to close them out?")
+	conn := slowlyCreateConnection(teamID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(teamID, target, issues.Initiative, 7))(conn)
+	if err2 != nil {
+		log.Printf("ERROR InitiativeCloseoutReminder: %+v\n", err2)
+	}
+	// UserCloseObjectivesAsk(teamID, target, "You have Initiatives that are due in a week. Would you like to close them out?")
 }
 
 // ObjectiveCloseoutReminder is meant to trigger engagements that reminds users
 // that they have an Objective due in the coming week and to close it out
 func ObjectiveCloseoutReminder(teamID models.TeamID, date bt.Date, target string) {
-	UserCloseObjectivesAsk(teamID, target, "You have Capability Objectives that are due in a week. Would you like to close them out?")
+	conn := slowlyCreateConnection(teamID)
+	err2 := workflows.InvokeWorkflowByPath(exchange.PromptStaleIssues(teamID, target, issues.SObjective, 7))(conn)
+	if err2 != nil {
+		log.Printf("ERROR ObjectiveCloseoutReminder: %+v\n", err2)
+	}
+	// UserCloseObjectivesAsk(teamID, target, "You have Capability Objectives that are due in a week. Would you like to close them out?")
 }
 
 /*
@@ -335,7 +345,7 @@ func NotifyOnAbsentFeedback(teamID models.TeamID, date bt.Date, userID string) {
 			)
 			utils.AddEng(eng, EngagementTable, conn.Dynamo, "NotifyOnAbsentFeedback")
 		} else {
-			log.Printf("WARN: NotifyOnAbsentFeedback but feedback exists for user %s", userID)
+			log.Printf("WARN: NotifyOnAbsentFeedback but feedback exists for user %s\n", userID)
 		}
 	}	
 	if err2 != nil {
@@ -343,17 +353,20 @@ func NotifyOnAbsentFeedback(teamID models.TeamID, date bt.Date, userID string) {
 	}
 }
 
-func UserCloseObjectivesAsk(teamID models.TeamID, userID, text string) {
-	if len(userOpenObjectives(userID)) > 0 {
-		// Create an objective
-		year, month := core.CurrentYearMonth()
-		mc := models.MessageCallback{Module: "objectives", Source: userID, Topic: "init", Action: ViewOpenObjectives,
-			Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
-		UserConfirmEng(teamID, mc, text, "", true, Dns)
-	}
-}
+// func UserCloseObjectivesAsk(teamID models.TeamID, userID, text string) {
+// 	if len(openIDOsForUser(userID)) > 0 {
+// 		// View IDOs
 
-func userOpenObjectives(userID string) []models.UserObjective {
+// 		// Create an objective
+// 		year, month := core.CurrentYearMonth()
+// 		mc := models.MessageCallback{Module: "objectives", Source: userID,
+// 			Topic: "init", Action: ViewOpenObjectives,
+// 			Month: strconv.Itoa(int(month)), Year: strconv.Itoa(year)}
+// 		UserConfirmEng(teamID, mc, text, "", true, Dns)
+// 	}
+// }
+
+func openIDOsForUser(userID string) []models.UserObjective {
 	// TODO: Include quarter, year in the query
 	allObjs := objectives.AllUserObjectives(userID, UserObjectivesTable, UserObjectivesUserIDIndex,
 		models.IndividualDevelopmentObjective, 0)

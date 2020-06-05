@@ -15,6 +15,7 @@ import (
 	evalues "github.com/adaptiveteam/adaptive/adaptive-engagements/values"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
+	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
@@ -464,9 +465,9 @@ func feedbackDimensionHandler(
 	value models.AdaptiveValue,
 	conn daosCommon.DynamoDBConnection) []models.PlatformSimpleNotification {
 
-	ut := userTokenSyncUnsafe(request.User.ID)
-	tut := daosUser.ReadUnsafe(mc.Target)(conn)
-	api := slack.New(ut)
+	// ut := userTokenSyncUnsafe(request.User.ID)
+	tut := daosUser.ReadUnsafe(conn.PlatformID, mc.Target)(conn)
+	api := utilsPlatform.GetSlackClientUnsafe(conn)
 	// key := mc.WithAction(value.ID).Sprint()
 	// // Query the feedback table. If this has already been answered, get the confidence factor and script associated with the id
 	// params := map[string]*dynamodb.AttributeValue{
@@ -479,7 +480,8 @@ func feedbackDimensionHandler(
 	// err := d.QueryTable(feedbackTable, params, &op)
 	// core.ErrorHandler(err, namespace, fmt.Sprintf("Could not query %s table for default values", feedbackTable))
 	// Open a survey associated with the engagement
-	err = dialogFromSurvey1(api, request, DimensionSurvey(value, tut.DisplayName, op.ConfidenceFactor, op.Feedback), actionValue)
+	err = dialogFromSurvey1(api, request, 
+		DimensionSurvey(value, tut.DisplayName, op.ConfidenceFactor, op.Feedback), actionValue)
 	core.ErrorHandler(err, namespace, fmt.Sprintf("Could not open dialog from %s survey", actionValue))
 
 	return []models.PlatformSimpleNotification{}

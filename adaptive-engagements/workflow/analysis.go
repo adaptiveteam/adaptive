@@ -94,13 +94,7 @@ func PresentTextAnalysisResults(conversationContext utils.ConversationContext,
 		PassiveMessage: pmsg,
 	}}
 	message.OverrideOriginal = true
-	// colorCodedOriginalMessageOverrideNote := models.PlatformSimpleNotification{
-	// 	Attachments: utils.RepaintAttachmentsWithColor(analysisResults.TextAnalysisInput.OriginalMessageAttachments, color)}
 	return
-	// []models.PlatformSimpleNotification{
-	// 	SendNoteToUserThread(conversationContext, note),
-	// 	UpdateOriginalMessageInUserChannel(conversationContext, colorCodedOriginalMessageOverrideNote),
-	// }
 }
 
 // SendNoteToUserThread updates the message to send it to specific thread and user.

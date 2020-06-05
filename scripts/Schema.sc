@@ -50,8 +50,8 @@ def goField(decl: String): Field = goFieldParser(goTypes)(decl)
 //     ))
 
 val user = Entity(
-        spacedName("user"),
-        List(idField),
+        "User".camel,
+        List(platformIdField, idField),
         List(
             underscoredName("display_name") :: string,
             underscoredName("first_name") :: optionString,
@@ -61,7 +61,6 @@ val user = Entity(
             timezoneOffsetField,
             (underscoredName("adaptive_scheduled_time") :: optionTimestamp) \\ "in 24 hr format, localtime",
             adaptiveScheduledTimeInUtcField,
-            platformIdField,
             "PlatformOrg".camel :: optionString,
             spacedName("is admin") :: boolean,
             // spacedName("deleted") :: boolean,
@@ -70,12 +69,16 @@ val user = Entity(
         Nil, List(DeactivationTrait, CreatedModifiedTimesTrait)
 )
 
-val userTableDefaultIndex = Index(idField, None)
-val userTable = Table(user, userTableDefaultIndex, List(
-    Index(platformIdField, None),
-    Index(platformIdField, Some(timezoneOffsetField)),
-    Index(platformIdField, Some(adaptiveScheduledTimeInUtcField)),
-))
+val userTableDefaultIndex = 
+    Index(idField, Some(platformIdField))
+    
+val userTable = Table(user, 
+    userTableDefaultIndex, 
+    List(
+        Index(platformIdField, None),
+        Index(platformIdField, Some(timezoneOffsetField)),
+        Index(platformIdField, Some(adaptiveScheduledTimeInUtcField)),
+    ))
 
 val userPackage = defaultPackage(userTable, imports)
 
@@ -233,7 +236,15 @@ val UserAttributeTable = Table(UserAttribute,
     List()
 )
 
-val UserAttributePackage = defaultPackage(UserAttributeTable, imports)
+val UserAttributePackage = 
+    Package(UserAttribute.name, 
+        List(
+            daoModule(UserAttributeTable, allEntitySpecificImports(UserAttribute)),
+            daoConnectionModule(UserAttributeTable, awsutilsImport :: 
+                basicImportsForConnections),// removeUnusedImportForConnection(UserObjectiveTable, allEntitySpecificImports(UserAttribute))),
+            fieldNamesModule(UserAttributeTable),
+        )
+    )
 
 val dateField = "Date".camel::timestamp
 
@@ -345,8 +356,8 @@ val UserObjectivePackage = Package(UserObjective.name,
     List(
         DevelopmentObjectiveType :: AlignedStrategyType :: 
             daoModule(UserObjectiveTable, allEntitySpecificImports(UserObjective)),
-        daoConnectionModule(UserObjectiveTable, allEntitySpecificImports(UserObjective)),
-        fieldNamesModule(UserObjectiveTable, allEntitySpecificImports(UserObjective))
+        daoConnectionModule(UserObjectiveTable, removeUnusedImportForConnection(UserObjectiveTable, allEntitySpecificImports(UserObjective))),
+        fieldNamesModule(UserObjectiveTable)
     )
 )
 
@@ -458,8 +469,9 @@ val StrategyObjectiveTable = Table(StrategyObjective,
 val StrategyObjectivePackage = Package(StrategyObjective.name, 
     List(StrategyObjectiveType :: 
         daoModule(StrategyObjectiveTable, allEntitySpecificImports(StrategyObjective)),
-        daoConnectionModule(StrategyObjectiveTable, allEntitySpecificImports(StrategyObjective)),
-        fieldNamesModule(StrategyObjectiveTable, allEntitySpecificImports(StrategyObjective))
+        daoConnectionModule(StrategyObjectiveTable, removeUnusedImportForConnection(StrategyObjectiveTable, allEntitySpecificImports(StrategyObjective))),
+
+        fieldNamesModule(StrategyObjectiveTable)
     )
 )
 
@@ -651,7 +663,16 @@ val MigrationTable = Table(Migration,
     List()
 )
 
-val MigrationPackage = defaultPackage(MigrationTable, imports)
+val MigrationPackage = 
+    Package(Migration.name, 
+        List(
+            daoModule(MigrationTable, allEntitySpecificImports(Migration)),
+            daoConnectionModule(MigrationTable, awsutilsImport :: 
+                basicImportsForConnections),
+            fieldNamesModule(MigrationTable),
+        )
+    )
+
 
 val packages = List(
     commonPackage,

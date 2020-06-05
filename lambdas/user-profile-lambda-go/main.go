@@ -67,7 +67,7 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) (uToken models
 func readUserProfile(userID string) func (conn daosCommon.DynamoDBConnection) (profile models.UserProfile, teamID models.TeamID, found bool, err error) {
 	return func (conn daosCommon.DynamoDBConnection) (profile models.UserProfile, teamID models.TeamID, found bool, err error) {
 		var users []models.User
-		users, err = user.ReadOrEmpty(userID)(conn)
+		users, err = user.ReadOrEmpty(conn.PlatformID, userID)(conn)
 		found = len(users) > 0
 		if found {
 			profile = models.ConvertUserToProfile(users[0])

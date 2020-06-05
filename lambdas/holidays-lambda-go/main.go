@@ -10,7 +10,6 @@ import (
 	eholidays "github.com/adaptiveteam/adaptive/adaptive-engagements/holidays"
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	plat "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/adHocHoliday"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
@@ -106,10 +105,6 @@ func main() {
 var globalConnectionGen = daosCommon.CreateConnectionGenFromEnv
 
 var readUser = daosUser.Read
-
-func retrieveUserToken(request slack.InteractionCallback) (string, error) {
-	return plat.GetTokenForUser(d, clientID, request.User.ID)
-}
 
 func teamID(request slack.InteractionCallback, conn daosCommon.DynamoDBConnection) models.TeamID {
 	// TODO: just use request.Team.ID
@@ -264,7 +259,7 @@ func convertFormToAdHocHoliday(request slack.InteractionCallback, form map[strin
 	name := form["Name"]
 	description := form["Description"]
 	dateStr := form["Date"]
-	user, err2 := daosUser.Read(request.User.ID)(conn)
+	user, err2 := daosUser.Read(conn.PlatformID, request.User.ID)(conn)
 	core.ErrorHandler(err2, "teamID", "readUser failed")
 
 	locations := user.Timezone // We don't have locations in the form anymore // form"Locations"]

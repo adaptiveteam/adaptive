@@ -4,8 +4,13 @@ resource "aws_dynamodb_table" "user_dynamodb_table"  {
 	
 	tags           = local.default_tags
 	hash_key       = "id"
+	range_key      = "platform_id"
 	point_in_time_recovery {
 		enabled = true
+	}
+	attribute {
+	    name = "platform_id"
+	    type = "S"
 	}
 	attribute {
 	    name = "id"
@@ -17,10 +22,6 @@ resource "aws_dynamodb_table" "user_dynamodb_table"  {
 	}
 	attribute {
 	    name = "adaptive_scheduled_time_in_utc"
-	    type = "S"
-	}
-	attribute {
-	    name = "platform_id"
 	    type = "S"
 	}
 	global_secondary_index {

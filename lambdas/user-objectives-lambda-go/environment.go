@@ -7,13 +7,10 @@ import (
 	utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	utilsPlatform "github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
 	"github.com/sirupsen/logrus"
-	"github.com/slack-go/slack"
 )
 
 var (
@@ -65,29 +62,3 @@ var (
 		TableNamePrefix: clientID,
 	}
 )
-
-// // UserIDsToDisplayNames converts a bunch of user ids to their names
-// // NB! O(n)! TODO: implement a query that returns many users at once.
-// func UserIDsToDisplayNames(userIDs []string) (res []models.KvPair) {
-// 	if len(userIDs) > 10 {
-// 		fmt.Println("WARN: Very slow user data fetching")
-// 	}
-// 	for _, userID := range userIDs {
-// 		user := userDAO.ReadUnsafe(userID)
-// 		if !user.IsAdaptiveBot {
-// 			res = append(res, models.KvPair{Key: user.DisplayName, Value: userID})
-// 		}
-// 	}
-// 	return
-// }
-
-func userTokenSyncUnsafe(userID string) string {
-	token, err2 := utilsPlatform.GetTokenForUser(d, clientID, userID)
-	core.ErrorHandler(err2, "userTokenSyncUnsafe", "GetTokenForUser")
-	return token
-}
-
-func getSlackClient(request slack.InteractionCallback) *slack.Client {
-	ut := userTokenSyncUnsafe(request.User.ID)
-	return slack.New(ut)
-}

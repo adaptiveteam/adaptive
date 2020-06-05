@@ -1,18 +1,18 @@
 package platform
 
 import (
-	"github.com/adaptiveteam/adaptive/core-utils-go"
 	"log"
 
 	"github.com/ReneKroon/ttlcache"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
-	"github.com/adaptiveteam/adaptive/daos/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	"github.com/adaptiveteam/adaptive/daos/clientPlatformToken"
 	"github.com/adaptiveteam/adaptive/daos/common"
 	"github.com/adaptiveteam/adaptive/daos/slackTeam"
+	"github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/pkg/errors"
 )
 
 func dynString(str string) (attr *dynamodb.AttributeValue) {
@@ -77,6 +77,7 @@ func GetAdaptiveBotIDOptional(conn common.DynamoDBConnection) (adaptiveBotID str
 }
 
 // GetTokenForUser searches token for the given user
+// Deprecated: we cannot get token having only user id, because it's not unique
 func GetTokenForUser(dynamo *awsutils.DynamoRequest, clientID string, userID string) (token string, err error) {
 	var teamID models.TeamID
 	teamID, err = GetTeamIDForUser(dynamo, clientID, userID)
@@ -101,35 +102,22 @@ func GetTeamIDForUser(dynamo *awsutils.DynamoRequest, clientID string, userID st
 		TableNamePrefix: clientID,
 	}
 
+	platformID := common.PlatformID("YET-UNKNOWN-PLATFORM-ID")
 	// NB! below Read doesn't use platform id from connection at the moment.
-	fakeConnWithArbitraryPlatformID := connGen.ForPlatformID("YET-UNKNOWN-PLATFORM-ID")
-	var u user.User
-	u, err = user.Read(userID)(fakeConnWithArbitraryPlatformID)
+	conn := connGen.ForPlatformID(platformID)
+	var users []user.User
+	users, err = user.ReadByHashKeyID(userID)(conn)
 	if err == nil {
-		teamID = models.ParseTeamID(u.PlatformID)
+		if(len(users) == 1){
+			u := users[0]
+			teamID = models.ParseTeamID(u.PlatformID)
+		} else {
+			err = errors.Errorf("Found the following users with id=%s: %v", userID, users)
+		}
 	}
 	return
 }
 
-// GetConnectionForUserFromEnv reads environment variables
-// and retrieves team id for the user
-func GetConnectionForUserFromEnv(userID string) (conn common.DynamoDBConnection, err error) {
-	connGen := common.CreateConnectionGenFromEnv()
-	var teamID models.TeamID
-	teamID, err = GetTeamIDForUser(connGen.Dynamo, connGen.TableNamePrefix, userID)
-	if err == nil {
-		conn = connGen.ForPlatformID(teamID.ToPlatformID())
-	}
-	return
-}
-// GetConnectionForUserFromEnvUnsafe reads environment variables
-// and retrieves team id for the user
-func GetConnectionForUserFromEnvUnsafe(userID string) (conn common.DynamoDBConnection) {
-	var err error
-	conn, err = GetConnectionForUserFromEnv(userID)
-	core_utils_go.ErrorHandlerf(err, "Couldn't GetConnectionForUserFromEnvUnsafe(userID=%s", userID)
-	return
-}
 
 var _ = func() int {
 	globalTokenCache = InitLocalCache(globalTokenCache)

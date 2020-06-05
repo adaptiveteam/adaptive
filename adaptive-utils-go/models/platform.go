@@ -15,6 +15,9 @@ const (
 	SlackDialogSelectElementNameLimit               = 300
 )
 
+// PlatformSimpleNotification is a representation of a simple message sent to 
+// Slack
+// Deprecated: replace with platform.TeamResponse
 type PlatformSimpleNotification struct {
 	// UserId is used for two purposes:
 	// - for obtaining platform token

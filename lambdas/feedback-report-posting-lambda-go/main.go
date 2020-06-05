@@ -1,23 +1,26 @@
 package feedbackReportPostingLambda
 
 import (
-	"github.com/pkg/errors"
-	"time"
-	"github.com/adaptiveteam/adaptive/daos/user"
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
+	"time"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/coaching"
+	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
+	"github.com/adaptiveteam/adaptive/daos/user"
+	"github.com/pkg/errors"
+
 	// utils "github.com/adaptiveteam/adaptive/adaptive-utils-go"
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
+	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	ls "github.com/aws/aws-lambda-go/lambda"
-	"github.com/slack-go/slack"
-	"github.com/sirupsen/logrus"
 	feedbackReportingLambda "github.com/adaptiveteam/adaptive/lambdas/feedback-reporting-lambda-go"
+	ls "github.com/aws/aws-lambda-go/lambda"
+	"github.com/sirupsen/logrus"
+	"github.com/slack-go/slack"
 )
 
 var (
@@ -59,7 +62,10 @@ func downloadReportContents(reportS3Key string) (contents []byte, err error) {
 	return
 }
 
-func sendReport(reportForUserID string, targetUserDisplayName string, contents []byte) (err error) {
+func sendReport(teamID models.TeamID, reportForUserID string, 
+	targetUserDisplayName string, contents []byte,
+	conn daosCommon.DynamoDBConnection,
+	) (err error) {
 	// reportFor := coaching.ReportFor(engage.UserID, engage.TargetID)
 	postTo := reportForUserID // postTo(engage)
 	// Upload the file only for non-empty content
@@ -72,7 +78,7 @@ func sendReport(reportForUserID string, targetUserDisplayName string, contents [
 				Channels:        []string{postTo},
 				// ThreadTimestamp: engage.ThreadTs,
 			}
-			api := getSlackClient(reportForUserID)
+			api := platform.GetSlackClientUnsafe(conn)
 			_, err = api.UploadFile(params)
 		}
 	} else {
@@ -90,7 +96,8 @@ func HandleRequest(ctx context.Context, engage models.UserEngage) {
 	reportForUserID := coaching.ReportFor(engage.UserID, engage.TargetID)
 	t, err2 := core.ISODateLayout.Parse(engage.Date)
 	if err2 == nil {
-		err2 = DeliverReportToUserImpl(engage.TeamID, reportForUserID, t)
+		conn := connGen.ForPlatformID(engage.TeamID.ToPlatformID())
+		err2 = DeliverReportToUserImpl(engage.TeamID, reportForUserID, t, conn)
 	}
 	if err2 != nil {
 		logger.WithField("error", err2).Errorf("Couldn't load report for %s user", engage.UserID)
@@ -103,6 +110,7 @@ func DeliverReportToUserImpl(
 	teamID models.TeamID, 
 	reportForUserID string,
 	date time.Time,
+	conn daosCommon.DynamoDBConnection,
 ) (err error) {
 
 	reportS3Key := coaching.UserReportIDForPreviousQuarter(date, reportForUserID)
@@ -121,7 +129,7 @@ func DeliverReportToUserImpl(
 			var targetUserDisplayName string
 			targetUserDisplayName, err = getDisplayName(teamID, reportForUserID)
 			if err == nil {
-				err = sendReport(reportForUserID, targetUserDisplayName, contents)
+				err = sendReport(teamID, reportForUserID, targetUserDisplayName, contents, conn)
 			}
 		} 
 	}
@@ -137,7 +145,7 @@ func getDisplayName(teamID models.TeamID, userID string) (displayName string, er
 	connGen := daosCommon.CreateConnectionGenFromEnv()
 	conn := connGen.ForPlatformID(teamID.ToPlatformID())
 	var u user.User
-	u, err = user.Read(userID)(conn)
+	u, err = user.Read(conn.PlatformID, userID)(conn)
 	if err == nil {
 		displayName = u.DisplayName
 	}

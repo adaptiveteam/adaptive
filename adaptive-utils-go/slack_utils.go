@@ -204,7 +204,8 @@ func convertTextElementToTextInputElement(a model.AttachmentActionTextElement) s
 // InteractionCallback utilities
 // - Responses
 
-// InteractionCallbackSimpleResponse creates a simple message 
+// InteractionCallbackSimpleResponse creates a simple message
+// Deprecated: use platform.TeamResponse
 func InteractionCallbackSimpleResponse(request slack.InteractionCallback, message string) models.PlatformSimpleNotification {
 	return models.PlatformSimpleNotification{
 		UserId:  request.User.ID,
@@ -213,6 +214,7 @@ func InteractionCallbackSimpleResponse(request slack.InteractionCallback, messag
 }
 
 // InteractionCallbackSimpleNotificationInThread places the message in a thread connected to
+// Deprecated: use platform.TeamResponse
 func InteractionCallbackSimpleNotificationInThread(request slack.InteractionCallback, message string) models.PlatformSimpleNotification {
 	return models.PlatformSimpleNotification{
 		UserId:   request.User.ID,
@@ -223,6 +225,7 @@ func InteractionCallbackSimpleNotificationInThread(request slack.InteractionCall
 }
 
 // InteractionCallbackOverrideRequestMessage creates a notification that will override the original message from request.
+// Deprecated: use platform.TeamResponse
 func InteractionCallbackOverrideRequestMessage(request slack.InteractionCallback, message string) models.PlatformSimpleNotification {
 	return models.PlatformSimpleNotification{
 		UserId:  request.User.ID,
@@ -233,6 +236,7 @@ func InteractionCallbackOverrideRequestMessage(request slack.InteractionCallback
 }
 
 // InteractionCallbackOverrideOriginalMessage creates a notification that will override the original message from request.
+// Deprecated: use platform.TeamResponse
 func InteractionCallbackOverrideOriginalMessage(request slack.InteractionCallback, message string) models.PlatformSimpleNotification {
 	return models.PlatformSimpleNotification{
 		UserId:  request.User.ID,
@@ -256,11 +260,13 @@ func TimeStamp(request slack.InteractionCallback) string {
 }
 
 // Responses is a helper wrapper that allows easier construction of the list of notifications.
+// Deprecated: use platform.TeamResponse
 func Responses(r ...models.PlatformSimpleNotification) []models.PlatformSimpleNotification {
 	return r
 }
 
 // ClearOriginalMessage creates a notification that will clear the request message
+// Deprecated: use platform.TeamResponse
 func ClearOriginalMessage(request slack.InteractionCallback) []models.PlatformSimpleNotification {
 	return Responses(InteractionCallbackOverrideRequestMessage(request, ""))
 }
