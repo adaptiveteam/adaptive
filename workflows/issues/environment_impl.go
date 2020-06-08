@@ -1,19 +1,9 @@
 package issues
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
-	"github.com/adaptiveteam/adaptive/daos/user"
-	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	"fmt"
 	"log"
-	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
-	"github.com/pkg/errors"
-	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
-	engIssues "github.com/adaptiveteam/adaptive/adaptive-engagements/issues"
-	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
-	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	userEngagement "github.com/adaptiveteam/adaptive/daos/userEngagement"
-	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
+
 	community "github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	objectives "github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
 	strategy "github.com/adaptiveteam/adaptive/adaptive-engagements/strategy"
@@ -21,11 +11,18 @@ import (
 	models "github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	utilsUser "github.com/adaptiveteam/adaptive/adaptive-utils-go/user"
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
-	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
-	aws "github.com/aws/aws-sdk-go/aws"
-	dynamodb "github.com/aws/aws-sdk-go/service/dynamodb"
+	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveValue"
+	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
+	"github.com/adaptiveteam/adaptive/daos/user"
 	userObjectiveProgress "github.com/adaptiveteam/adaptive/daos/userObjectiveProgress"
 	dialogFetcher "github.com/adaptiveteam/adaptive/dialog-fetcher"
+	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
+	wfCommon "github.com/adaptiveteam/adaptive/workflows/common"
+	"github.com/pkg/errors"
 )
 
 // This file contains implementation of interfaces from `environment.go`
@@ -210,13 +207,14 @@ func SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(userI
 	}
 }
 
-func StrategyCommunityByID(id string) func(conn AdaptiveCommunityDynamoDBConnection) (comm strategy.StrategyCommunity, found bool, err error) {
-	return func(conn AdaptiveCommunityDynamoDBConnection) (comm strategy.StrategyCommunity, found bool, err error) {
-		params := map[string]*dynamodb.AttributeValue{
-			"id": dynString(id),
+func StrategyCommunityByID(id string) func(conn AdaptiveCommunityDynamoDBConnection) (comm strategyCommunity.StrategyCommunity, found bool, err error) {
+	return func(conn AdaptiveCommunityDynamoDBConnection) (comm strategyCommunity.StrategyCommunity, found bool, err error) {
+		var comms []strategyCommunity.StrategyCommunity
+		comms, err = strategyCommunity.ReadOrEmpty(id)(conn)
+		found = len(comms) > 0
+		if found {
+			comm = comms[0]
 		}
-		found, err = conn.Dynamo.GetItemOrEmptyFromTable(strategyCommunitiesTableName(conn.ClientID), params, &comm)
-		err = errors.Wrapf(err, "AdaptiveCommunityDynamoDBConnection) StrategyCommunityByID(id=%s)", id)
 		return
 	}
 }
@@ -430,47 +428,6 @@ func SelectKvPairsFromCommunityJoinUsers(communityID community.AdaptiveCommunity
 	}
 }
 
-func DynamoNamespace(conn DynamoDBConnection, namespace string) common.DynamoNamespace {
-	return common.DynamoNamespace{
-		Dynamo:    conn.Dynamo,
-		Namespace: namespace,
-	}
-}
-
-func OnCloseoutImplOld(issue Issue) func(conn DynamoDBConnection) (err error) {
-	return func(conn DynamoDBConnection) (err error) {
-		defer core.RecoverToErrorVar("OnCloseoutImplOld", &err)
-		itype := issue.GetIssueType()
-
-		mc := models.MessageCallback{ // TODO: generate the correct MessageCallback for closeoutEng
-			Module: "objectives",
-			Target: issue.UserObjective.ID,
-			Source: issue.UserObjective.UserID,
-			Action: "ask_closeout", // will be replaced with `closeout`
-			Topic:  "init",
-		}
-		typLabel := string(itype)
-		view := engIssues.GetView(itype)
-		// send a notification to the partner
-		objectives.ObjectiveCloseoutEng(
-			userEngagement.TableName(conn.ClientID),
-			mc,
-			issue.UserObjective.AccountabilityPartner,
-			fmt.Sprintf("<@%s> wants to close the following %s. Are you ok with that?",
-				issue.UserObjective.UserID,
-				typLabel),
-			string(view.GetTextView(issue)),
-			string(closeoutLabel(issue.UserObjective.ID)),
-			objectiveCloseoutPath,
-			false,
-			DynamoNamespace(conn, "OnCloseoutImpl"),
-			models.UserEngagementCheckWithValue{},
-			models.ParseTeamID(issue.UserObjective.PlatformID),
-		)
-		return
-	}
-}
-
 func closeoutLabel(userObjID string) ui.PlainText {
 	return ui.PlainText("Responsibility Closeout")
 }
@@ -490,11 +447,6 @@ func UserHasWriteAccessToIssuesImpl(conn DynamoDBConnection) func(userID string,
 		}
 		return
 	}
-}
-
-func dynString(str string) *dynamodb.AttributeValue {
-	attr := dynamodb.AttributeValue{S: aws.String(str)}
-	return &attr
 }
 
 func LoadObjectives(userID string) func(conn DynamoDBConnection) (objKVs []models.KvPair) {
@@ -523,10 +475,6 @@ func LoadObjectives(userID string) func(conn DynamoDBConnection) (objKVs []model
 	}
 }
 
-// func  UserCommunityObjectives(userID string) (objs []models.StrategyObjective) {
-
-// 	return
-// }
 func removeDuplicates(kvPairs []models.KvPair) (res []models.KvPair) {
 	values := make(map[string]struct{})
 	for _, p := range kvPairs {
