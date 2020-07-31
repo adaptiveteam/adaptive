@@ -16,6 +16,7 @@ import (
 	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
 	daosCommunity "github.com/adaptiveteam/adaptive/daos/community"
+	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
@@ -194,6 +195,25 @@ func StrategyCommunityByIDUnsafe(id, strategyCommunitiesTable string) StrategyCo
 	return comm
 }
 
+func StrategyCommunityWithChannelByIDUnsafe(prefix community.CommunityKindPrefix, id string) func (daosCommon.DynamoDBConnection)(comms [] StrategyCommunity) {
+	return func (conn daosCommon.DynamoDBConnection)(comms [] StrategyCommunity) {
+		teamID := models.ParseTeamID(conn.PlatformID)
+		var all [] StrategyCommunity
+		all = strategyCommunity.ReadOrEmptyUnsafe(id)(conn)
+		for _, each := range all {
+			channel, err2 := GetChannelOrEmpty(teamID, prefix, each.ID)(conn)
+			core.ErrorHandler(err2, "", "StrategyCommunityWithChannelByIDUnsafe")
+			
+			if channel != "" {
+				each.ChannelID = channel
+				each.ChannelCreated = 1
+				comms = append(comms, each)
+			}
+		}
+		return
+	}
+}
+
 // IsChannelCreatedUnsafe checks if the channel is created. Panics on error
 func IsChannelCreatedUnsafe(
 	teamID models.TeamID, 
@@ -214,19 +234,35 @@ func IsChannelCreated(
 	communityKindPrefix community.CommunityKindPrefix,
 	сommunityID string,
 ) func (conn daosCommon.DynamoDBConnection) (res bool, err error) {
-	id := string(communityKindPrefix) + сommunityID
 	return func (conn daosCommon.DynamoDBConnection) (res bool, err error) {
-		var communities [] daosCommunity.Community
-		communities, err = daosCommunity.ReadOrEmpty(teamID.ToPlatformID(), id)(conn)
-		res = len(communities) > 0 && communities[0].ChannelID != ""
-		err = errors.Wrapf(err, "IsChannelCreated(%v, %s, %s)", teamID, communityKindPrefix, сommunityID)
+		var channel string
+		channel, err = GetChannelOrEmpty(teamID, communityKindPrefix, сommunityID)(conn)
+		res = channel != ""
 		return
 	}
 }
 
-// AllCapabilityCommunities Get all the capability communities,
+// GetChannelOrEmpty reads channel of the community.
+func GetChannelOrEmpty(
+	teamID models.TeamID, 
+	communityKindPrefix community.CommunityKindPrefix,
+	сommunityID string,
+) func (conn daosCommon.DynamoDBConnection) (res string, err error) {
+	id := string(communityKindPrefix) + сommunityID
+	return func (conn daosCommon.DynamoDBConnection) (res string, err error) {
+		var communities [] daosCommunity.Community
+		communities, err = daosCommunity.ReadOrEmpty(teamID.ToPlatformID(), id)(conn)
+		err = errors.Wrapf(err, "GetChannelOrEmpty(%v, %s, %s)", teamID, communityKindPrefix, сommunityID)
+		if len(communities) > 0 && communities[0].ChannelID != "none" {
+			res = communities[0].ChannelID
+		}
+		return
+	}
+}
+
+// AllCapabilityCommunitiesWhereChannelExists Get all the capability communities,
 // that have Adaptive associated, for the platform ID
-func AllCapabilityCommunities(teamID models.TeamID)  (res []CapabilityCommunity) {
+func AllCapabilityCommunitiesWhereChannelExists(teamID models.TeamID)  (res []CapabilityCommunity) {
 	conn := daosCommon.CreateConnectionFromEnv(teamID.ToPlatformID())
 	ccs := capabilityCommunity.ReadByPlatformIDUnsafe(teamID.ToPlatformID())(conn)
 	for _, each := range ccs {
@@ -238,10 +274,9 @@ func AllCapabilityCommunities(teamID models.TeamID)  (res []CapabilityCommunity)
 	return
 }
 
-// AllStrategyInitiativeCommunities - Get all the initiative communities
+// AllStrategyInitiativeCommunitiesWhereChannelExists - Get all the initiative communities
 // for the platform ID
-func AllStrategyInitiativeCommunities(teamID models.TeamID, initiativeCommunitiesTable,
-	initiativeCommunitiesPlatformIndex, strategyCommunitiesTable string) (res []StrategyInitiativeCommunity) {
+func AllStrategyInitiativeCommunitiesWhereChannelExists(teamID models.TeamID) (res []StrategyInitiativeCommunity) {
 	conn := daosCommon.CreateConnectionFromEnv(teamID.ToPlatformID())
 	sics := strategyInitiativeCommunity.ReadByPlatformIDUnsafe(teamID.ToPlatformID())(conn)
 	for _, each := range sics {
@@ -260,8 +295,7 @@ func UserStrategyInitiativeCommunities(userID,
 	communityUsersTable, communityUsersUserCommunityIndex, communityUsersUserIndex string,
 	initiativeCommunitiesTable, initiativeCommunitiesPlatformIndex, strategyCommunitiesTable string,
 	teamID models.TeamID) []StrategyInitiativeCommunity {
-	allInitiativeCommunities := AllStrategyInitiativeCommunities(teamID, initiativeCommunitiesTable,
-		initiativeCommunitiesPlatformIndex, strategyCommunitiesTable)
+	allInitiativeCommunities := AllStrategyInitiativeCommunitiesWhereChannelExists(teamID)
 	var op []StrategyInitiativeCommunity
 	if community.IsUserInCommunity(userID, communityUsersTable, communityUsersUserCommunityIndex, community.Strategy) {
 		// When user is in strategy community, list all the initiatives
