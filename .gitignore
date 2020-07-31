@@ -58,3 +58,5 @@ infra/core/bin/
 infra/core/dump/
 dump/
 dynamodump/
+.ammonite/
+*.tar.gz
