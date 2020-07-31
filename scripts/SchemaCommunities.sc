@@ -69,7 +69,7 @@ val AdaptiveCommunityPackage = defaultPackage(AdaptiveCommunityTable, allEntityS
 
 
 
-val channelCreatedField = ("ChannelCreated".camel :: int)\\ "0 for false"
+val channelCreatedField = ("ChannelCreated".camel :: int)\\ "deprecated. Use community.ChannelID"
 val StrategyCommunity = Entity(
     "StrategyCommunity".camel, 
     List(idField),
