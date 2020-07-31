@@ -457,19 +457,24 @@ func postCommunityToStrategy(teamID models.TeamID, mc models.MessageCallback,
 	var attachs []ebm.Attachment
 	switch commType {
 	case string(community.Capability):
-		capComm := strategy.CapabilityCommunityByID(models.TeamID(teamID), commID, capabilityCommunitiesTable)
+		capComm := strategy.CapabilityCommunityByID(teamID, commID, capabilityCommunitiesTable)
 		attachs = strategy.CapabilityCommunityViewAttachment(mc, &capComm, nil, false)
 	case string(community.Initiative):
-		initComm := strategy.InitiativeCommunityByID(models.TeamID(teamID), commID, strategyInitiativeCommunitiesTable)
-		stratComm := StrategyCommunityByID(initComm.CapabilityCommunityID)
+		initComm := strategy.InitiativeCommunityByID(teamID, commID, strategyInitiativeCommunitiesTable)
+		stratComms := strategy.StrategyCommunityWithChannelByIDUnsafe(community.InitiativePrefix, initComm.CapabilityCommunityID)(conn)
 		attachs = strategy.InitiativeCommunityViewAttachmentReadOnly(mc, &initComm, nil, capabilityCommunitiesTable, conn)
+		message := platform.MessageContent{
+			Message:     NotifyAboutNewAbilitiesInCommunityNotification(ui.PlainText(commType)),
+			Attachments: attachs,
+		}
 		// Also post the update to objective community
-		response := platform.Post(platform.ConversationID(stratComm.ChannelID),
-			platform.MessageContent{
-				Message:     NotifyAboutNewAbilitiesInCommunityNotification(ui.PlainText(commType)),
-				Attachments: attachs,
-			})
-		respond(teamID, response)
+		if len(stratComms) > 0 {
+			response := platform.Post(platform.ConversationID(stratComms[0].ChannelID),
+				message)
+			respond(teamID, response)
+		} else {
+			logger.Warnf("Couldn't find channel for commID=%s", commID)
+		}
 	default:
 		fmt.Printf("Unknown strategy community: %s\n", commType)
 		return
