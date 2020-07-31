@@ -17,6 +17,13 @@ const (
 	Competency = common.Competency
 )
 
+type CommunityKindPrefix string
+
+const (
+	EmptyPrefix      CommunityKindPrefix = ""
+	CapabilityPrefix CommunityKindPrefix = "capability:"
+	InitiativePrefix CommunityKindPrefix = "initiative:"
+)
 // AdaptiveCommunityShow - 
 func AdaptiveCommunityShow(community AdaptiveCommunity) (res string) {
 	switch community {

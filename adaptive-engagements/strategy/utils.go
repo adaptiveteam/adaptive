@@ -1,11 +1,10 @@
 package strategy
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
-	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"fmt"
 	"log"
 	"strings"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
@@ -13,7 +12,10 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	daosCommunity "github.com/adaptiveteam/adaptive/daos/community"
+	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -188,6 +190,22 @@ func StrategyCommunityByIDUnsafe(id, strategyCommunitiesTable string) StrategyCo
 	err2 := d().GetItemFromTable(strategyCommunitiesTable, params, &comm)
 	core.ErrorHandler(err2, namespace(), fmt.Sprintf("StrategyCommunityByIDUnsafe: Could not find %s in %s table", id, strategyCommunitiesTable))
 	return comm
+}
+
+// IsChannelCreated checks if channel is present
+// communityKind is either Capability or Initiative
+func IsChannelCreated(
+	teamID models.TeamID, 
+	communityKindPrefix community.CommunityKindPrefix,
+	сommunityID string,
+) func (conn daosCommon.DynamoDBConnection) (res bool, err error) {
+	id := string(communityKindPrefix) + сommunityID
+	return func (conn daosCommon.DynamoDBConnection) (res bool, err error) {
+		var communities [] daosCommunity.Community
+		communities, err = daosCommunity.ReadOrEmpty(teamID.ToPlatformID(), id)(conn)
+		res = len(communities) > 0 && communities[0].ChannelID != ""
+		return
+	}
 }
 
 // AllCapabilityCommunities Get all the capability communities,
