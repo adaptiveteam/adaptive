@@ -12,10 +12,10 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
 	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
-	daosCommunity "github.com/adaptiveteam/adaptive/daos/community"
 	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
 	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
 	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
@@ -250,8 +250,8 @@ func GetChannelOrEmpty(
 ) func (conn daosCommon.DynamoDBConnection) (res string, err error) {
 	id := string(communityKindPrefix) + сommunityID
 	return func (conn daosCommon.DynamoDBConnection) (res string, err error) {
-		var communities [] daosCommunity.Community
-		communities, err = daosCommunity.ReadOrEmpty(teamID.ToPlatformID(), id)(conn)
+		var communities [] adaptiveCommunity.AdaptiveCommunity
+		communities, err = adaptiveCommunity.ReadOrEmpty(teamID.ToPlatformID(), id)(conn)
 		err = errors.Wrapf(err, "GetChannelOrEmpty(%v, %s, %s)", teamID, communityKindPrefix, сommunityID)
 		if len(communities) > 0 && communities[0].ChannelID != "none" {
 			res = communities[0].ChannelID
