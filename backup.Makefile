@@ -27,6 +27,9 @@ restore-table-strategy-objectives: ./dynamodump/dynamodump.py
 restore-table-community-users: ./dynamodump/dynamodump.py
 	python dynamodump/dynamodump.py --skipThroughputUpdate -m restore -r ${AWS_REGION} --dataOnly -s ${ADAPTIVE_CLIENT_ID}_community_users
 
+restore-table-adaptive-users: ./dynamodump/dynamodump.py
+	python dynamodump/dynamodump.py --skipThroughputUpdate -m restore -r ${AWS_REGION} --dataOnly -s ${ADAPTIVE_CLIENT_ID}_adaptive_users
+
 rename-resource-user-objective:
 	cd terraform;\
 	terraform state mv 'aws_dynamodb_table.user_objectives' 'aws_dynamodb_table.user_objective_dynamodb_table'
@@ -37,3 +40,6 @@ backup-all-zip: backup-all
 backup-all-zip-upload-to-s3: backup-all-zip
 	export BUCKET="adaptive-dump-backups" ;\
 	aws s3 cp $(shell date -Idate)-dump-${ADAPTIVE_CLIENT_ID}.tar.gz s3://$${BUCKET}/$(shell date -Idate)-dump-${ADAPTIVE_CLIENT_ID}.tar.gz
+
+replace-app-id-with-team-id:
+	echo "find ./dump -name \*.json -exec sed -i "s/A123456/T123456/g" {} \;"

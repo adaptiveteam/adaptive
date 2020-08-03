@@ -1,11 +1,10 @@
 package strategy
 
 import (
-	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
-	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
 	"fmt"
 	"log"
 	"strings"
+
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/common"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/community"
 	"github.com/adaptiveteam/adaptive/adaptive-engagements/objectives"
@@ -13,7 +12,13 @@ import (
 	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	business_time "github.com/adaptiveteam/adaptive/business-time"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunity"
+	"github.com/adaptiveteam/adaptive/daos/adaptiveCommunityUser"
+	"github.com/adaptiveteam/adaptive/daos/capabilityCommunity"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
+	"github.com/adaptiveteam/adaptive/daos/strategyInitiativeCommunity"
+	"github.com/adaptiveteam/adaptive/daos/strategyObjective"
 	"github.com/adaptiveteam/adaptive/engagement-builder/ui"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -190,56 +195,97 @@ func StrategyCommunityByIDUnsafe(id, strategyCommunitiesTable string) StrategyCo
 	return comm
 }
 
-// AllCapabilityCommunities Get all the capability communities,
-// that have Adaptive associated, for the platform ID
-func AllCapabilityCommunities(teamID models.TeamID,
-	capabilityCommunitiesTable, capabilityCommunitiesPlatformIndex, strategyCommunitiesTable string) []CapabilityCommunity {
-	var ccs, op []CapabilityCommunity
-	err2 := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(capabilityCommunitiesTable,
-		platformIndexExpr(capabilityCommunitiesPlatformIndex, teamID),
-		map[string]string{}, true, -1, &ccs)
-	core.ErrorHandler(err2, "AllCapabilityCommunities.all capabilityCommunities for teamID", fmt.Sprintf("Could not query %s index on %s table. teamID=%s",
-		capabilityCommunitiesPlatformIndex,
-		capabilityCommunitiesTable,
-		teamID))
-
-	for _, each := range ccs {
-		stratComm, found, err3 := StrategyCommunityOrEmptyByID(each.ID, strategyCommunitiesTable)
-		core.ErrorHandler(err3, "AllCapabilityCommunities.StrategyCommunityOrEmptyByID", "Could not StrategyCommunityOrEmptyByID")
-		if found {
-			if stratComm.ChannelCreated == 1 {
-				op = append(op, each)
+func StrategyCommunityWithChannelByIDUnsafe(prefix community.CommunityKindPrefix, id string) func (daosCommon.DynamoDBConnection)(comms [] StrategyCommunity) {
+	return func (conn daosCommon.DynamoDBConnection)(comms [] StrategyCommunity) {
+		teamID := models.ParseTeamID(conn.PlatformID)
+		var all [] StrategyCommunity
+		all = strategyCommunity.ReadOrEmptyUnsafe(id)(conn)
+		for _, each := range all {
+			channel, err2 := GetChannelOrEmpty(teamID, prefix, each.ID)(conn)
+			core.ErrorHandler(err2, "", "StrategyCommunityWithChannelByIDUnsafe")
+			
+			if channel != "" {
+				each.ChannelID = channel
+				each.ChannelCreated = 1
+				comms = append(comms, each)
 			}
-		} else {
-			log.Printf("Couldn't find the respective StrategyCommunity for id=%s", each.ID)
 		}
+		return
 	}
-	return op
 }
 
-// AllStrategyInitiativeCommunities - Get all the initiative communities
-// for the platform ID
-func AllStrategyInitiativeCommunities(teamID models.TeamID, initiativeCommunitiesTable,
-	initiativeCommunitiesPlatformIndex, strategyCommunitiesTable string) []StrategyInitiativeCommunity {
-	var sics, op []StrategyInitiativeCommunity
-	err2 := common.DeprecatedGetGlobalDns().Dynamo.QueryTableWithIndex(
-		initiativeCommunitiesTable,
-		platformIndexExpr(initiativeCommunitiesPlatformIndex, teamID),
-		map[string]string{}, true, -1, &sics)
-	core.ErrorHandler(err2, "AllStrategyInitiativeCommunities", fmt.Sprintf("Could not query %s index on %s table",
-		initiativeCommunitiesPlatformIndex, initiativeCommunitiesTable))
-	for _, each := range sics {
-		stratComm, found, err3 := StrategyCommunityOrEmptyByID(each.ID, strategyCommunitiesTable)
-		core.ErrorHandler(err3, "AllStrategyInitiativeCommunities.StrategyCommunityOrEmptyByID", "Could not StrategyCommunityOrEmptyByID")
-		if found {
-			if stratComm.ChannelCreated == 1 {
-				op = append(op, each)
-			}
-		} else {
-			log.Printf("Couldn't find the respective StrategyCommunity for id=%s", each.ID)
+// IsChannelCreatedUnsafe checks if the channel is created. Panics on error
+func IsChannelCreatedUnsafe(
+	teamID models.TeamID, 
+	communityKindPrefix community.CommunityKindPrefix,
+	сommunityID string,
+) func (conn daosCommon.DynamoDBConnection) (res bool) {
+	return func (conn daosCommon.DynamoDBConnection) (res bool) {
+		var err2 error
+		res, err2 = IsChannelCreated(teamID, communityKindPrefix, сommunityID)(conn)
+		core.ErrorHandler(err2, "IsChannelCreatedUnsafe", сommunityID)
+		return
+	}
+}
+// IsChannelCreated checks if channel is present
+// communityKind is either Capability or Initiative
+func IsChannelCreated(
+	teamID models.TeamID, 
+	communityKindPrefix community.CommunityKindPrefix,
+	сommunityID string,
+) func (conn daosCommon.DynamoDBConnection) (res bool, err error) {
+	return func (conn daosCommon.DynamoDBConnection) (res bool, err error) {
+		var channel string
+		channel, err = GetChannelOrEmpty(teamID, communityKindPrefix, сommunityID)(conn)
+		res = channel != ""
+		return
+	}
+}
+
+// GetChannelOrEmpty reads channel of the community.
+func GetChannelOrEmpty(
+	teamID models.TeamID, 
+	communityKindPrefix community.CommunityKindPrefix,
+	сommunityID string,
+) func (conn daosCommon.DynamoDBConnection) (res string, err error) {
+	id := string(communityKindPrefix) + сommunityID
+	return func (conn daosCommon.DynamoDBConnection) (res string, err error) {
+		var communities [] adaptiveCommunity.AdaptiveCommunity
+		communities, err = adaptiveCommunity.ReadOrEmpty(teamID.ToPlatformID(), id)(conn)
+		err = errors.Wrapf(err, "GetChannelOrEmpty(%v, %s, %s)", teamID, communityKindPrefix, сommunityID)
+		if len(communities) > 0 && communities[0].ChannelID != "none" {
+			res = communities[0].ChannelID
+		}
+		return
+	}
+}
+
+// AllCapabilityCommunitiesWhereChannelExists Get all the capability communities,
+// that have Adaptive associated, for the platform ID
+func AllCapabilityCommunitiesWhereChannelExists(teamID models.TeamID)  (res []CapabilityCommunity) {
+	conn := daosCommon.CreateConnectionFromEnv(teamID.ToPlatformID())
+	ccs := capabilityCommunity.ReadByPlatformIDUnsafe(teamID.ToPlatformID())(conn)
+	for _, each := range ccs {
+		isCreated := IsChannelCreatedUnsafe(teamID, community.CapabilityPrefix, each.ID)(conn)
+		if isCreated {
+			res = append(res, each)
 		}
 	}
-	return op
+	return
+}
+
+// AllStrategyInitiativeCommunitiesWhereChannelExists - Get all the initiative communities
+// for the platform ID
+func AllStrategyInitiativeCommunitiesWhereChannelExists(teamID models.TeamID) (res []StrategyInitiativeCommunity) {
+	conn := daosCommon.CreateConnectionFromEnv(teamID.ToPlatformID())
+	sics := strategyInitiativeCommunity.ReadByPlatformIDUnsafe(teamID.ToPlatformID())(conn)
+	for _, each := range sics {
+		isCreated := IsChannelCreatedUnsafe(teamID, community.InitiativePrefix, each.ID)(conn)
+		if isCreated {
+			res = append(res, each)
+		}	
+	}
+	return
 }
 
 // UserStrategyInitiativeCommunities returns initiative communities associated with a user
@@ -249,8 +295,7 @@ func UserStrategyInitiativeCommunities(userID,
 	communityUsersTable, communityUsersUserCommunityIndex, communityUsersUserIndex string,
 	initiativeCommunitiesTable, initiativeCommunitiesPlatformIndex, strategyCommunitiesTable string,
 	teamID models.TeamID) []StrategyInitiativeCommunity {
-	allInitiativeCommunities := AllStrategyInitiativeCommunities(teamID, initiativeCommunitiesTable,
-		initiativeCommunitiesPlatformIndex, strategyCommunitiesTable)
+	allInitiativeCommunities := AllStrategyInitiativeCommunitiesWhereChannelExists(teamID)
 	var op []StrategyInitiativeCommunity
 	if community.IsUserInCommunity(userID, communityUsersTable, communityUsersUserCommunityIndex, community.Strategy) {
 		// When user is in strategy community, list all the initiatives

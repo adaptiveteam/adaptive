@@ -18,9 +18,9 @@ import (
 	alog "github.com/adaptiveteam/adaptive/adaptive-utils-go/logger"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/models"
 	"github.com/adaptiveteam/adaptive/adaptive-utils-go/platform"
-	awsutils "github.com/adaptiveteam/adaptive/aws-utils-go"
 	core "github.com/adaptiveteam/adaptive/core-utils-go"
 	daosCommon "github.com/adaptiveteam/adaptive/daos/common"
+	"github.com/adaptiveteam/adaptive/daos/strategyCommunity"
 	daosUser "github.com/adaptiveteam/adaptive/daos/user"
 	"github.com/adaptiveteam/adaptive/daos/userObjective"
 	ebm "github.com/adaptiveteam/adaptive/engagement-builder/model"
@@ -119,24 +119,6 @@ func StrategyEntityById(id string, teamID models.TeamID, table string) interface
 	err2 := d.GetItemFromTable(table, params, &comm)
 	core.ErrorHandler(err2, namespace, fmt.Sprintf("Could not query %s table", communitiesTable))
 	return comm
-}
-
-func AllStrategyCommunities(teamID models.TeamID) []strategy.StrategyCommunity {
-	var scs []strategy.StrategyCommunity
-	err := d.QueryTableWithIndex(strategyCommunitiesTable, awsutils.DynamoIndexExpression{
-		IndexName: strategyCommunitiesPlatformIndex,
-		Condition: "platform_id = :p",
-		Attributes: map[string]interface{}{
-			":p": teamID.ToString(),
-		},
-	}, map[string]string{}, true, -1, &scs)
-	if err != nil {
-		logger.Errorf("Could not query %s index on %s table", strategyCommunitiesPlatformIndex,
-			strategyCommunitiesTable)
-	} else {
-		logger.Infof("Queried all strategy communities for %s platform: %v", teamID, scs)
-	}
-	return scs
 }
 
 func dialogFromSurvey(teamID models.TeamID, userID string, message slack.InteractionCallback, survey ebm.AttachmentActionSurvey, callbackID string,
@@ -253,9 +235,10 @@ func handleObjectiveCreate(mc models.MessageCallback, actionName, actionValue st
 						// During update, original SO id is passed into target. We get cap comm id from existing record
 						capCommID = so.CapabilityCommunityIDs[0]
 					}
-					strategyComm, found := StrategyCommunityByID(capCommID)
+					strategyComms := strategy.StrategyCommunityWithChannelByIDUnsafe(community.CapabilityPrefix, capCommID)(conn)
+					// strategyComm, found := StrategyCommunityByID(capCommID)
 					// Check if the community is still associated with Adaptive
-					if found && strategyComm.ChannelCreated == 1 {
+					if len(strategyComms) > 0 {
 						allMembers := communityMembersIncludingStrategyMembers(fmt.Sprintf("%s:%s", community.Capability, capCommID), teamID, conn)
 						if len(allMembers) > 0 {
 							objectiveSurveyElements := EditSObjectiveSurveyElems(&so, ObjectiveTypes(), allMembers,
@@ -381,9 +364,9 @@ func handleInitiativeCreate(mc models.MessageCallback, actionName, actionValue, 
 					// During update, original SI id is passed into target. We get init comm id from existing record
 					initCommID = si.InitiativeCommunityID
 				}
-				strategyComm, found := StrategyCommunityByID(initCommID)
+				strategyComms := strategy.StrategyCommunityWithChannelByIDUnsafe(community.InitiativePrefix, initCommID)(conn)
 				// Check if the community is still associated with Adaptive
-				if found && strategyComm.ChannelCreated == 1 {
+				if len(strategyComms) > 0 {
 					commMembers := communityMembers(fmt.Sprintf("%s:%s", community.Initiative, initCommID), teamID, conn)
 					logger.Infof("Community members for creating an initiative: %s", commMembers)
 					objs := UserCommunityObjectives(userID, conn)
@@ -935,7 +918,7 @@ func AllStrategyCapabilityObjectives(userID string, conn daosCommon.DynamoDBConn
 }
 
 func AllCapabilityCommunities(teamID models.TeamID) []strategy.CapabilityCommunity {
-	return strategy.AllCapabilityCommunities(teamID, capabilityCommunitiesTable, capabilityCommunitiesPlatformIndex, strategyCommunitiesTable)
+	return strategy.AllCapabilityCommunitiesWhereChannelExists  (teamID)
 }
 
 func AllStrategyInitiatives(teamID models.TeamID) []models.StrategyInitiative {
@@ -1028,8 +1011,8 @@ func handleMenuCreateInitiative(userID, channelID string,
 	var adaptiveAssociatedInitComms []strategy.StrategyInitiativeCommunity
 	// Get a list of Adaptive associated Initiative communities
 	for _, each := range initComms {
-		eachStrategyComms, found := StrategyCommunityByID(each.ID)
-		if found && eachStrategyComms.ChannelCreated == 1 {
+		strategyComms := strategy.StrategyCommunityWithChannelByIDUnsafe(community.InitiativePrefix, each.ID)(conn)
+		if len(strategyComms) > 0 {
 			adaptiveAssociatedInitComms = append(adaptiveAssociatedInitComms, each)
 		}
 	}
@@ -1400,6 +1383,7 @@ func onDialogSubmission(np models.NamespacePayload4, conn daosCommon.DynamoDBCon
 	publishAll(notes)
 }
 func onObjectiveEventCreateOrUpdateDialogSubmission(request slack.InteractionCallback, msgState MsgState, teamID models.TeamID, mc *models.MessageCallback) (resp []models.PlatformSimpleNotification) {
+	conn := daosCommon.CreateConnectionFromEnv(teamID.ToPlatformID())
 	dialog := request
 	userID := dialog.User.ID
 	channelID := dialog.Channel.ID
@@ -1457,7 +1441,8 @@ func onObjectiveEventCreateOrUpdateDialogSubmission(request slack.InteractionCal
 	// Post objectives with no actions to strategy community
 	PostMsgToCommunity(community.Strategy, teamID, text, attachsWithNoActions)
 	// Post to associated objective community with no actions
-	stratCommChannelID := StrategyCommunityChannelIDOrEmptyByID(capCommID)
+	var stratCommChannelID string
+	stratCommChannelID, err = strategy.GetChannelOrEmpty(teamID, community.CapabilityPrefix, capCommID)(conn)
 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: stratCommChannelID,
 		Message: text, Attachments: attachsWithNoActions})
 
@@ -1617,12 +1602,17 @@ func onVisionEventCreateOrUpdateDialogSubmission(request slack.InteractionCallba
 		s, platformNotificationTopic, namespace)
 	message := fmt.Sprintf("Below vision statement has been %s by <@%s>", editStatus, userID)
 	PostMsgToCommunity(community.Strategy, teamID, message, attachsWithNoActions)
-	stratComms := AllStrategyCommunities(teamID)
+	conn := daosCommon.CreateConnectionFromEnv(teamID.ToPlatformID())
+	stratComms := strategyCommunity.ReadByHashKeyPlatformIDUnsafe(teamID.ToPlatformID())(conn)
 	// Posting to all of Strategy related communities (e.g., strategy, capability, initiative)
 	for _, each := range stratComms {
+		var channel string
+		channel, err = strategy.GetChannelOrEmpty(teamID, community.CapabilityPrefix, each.ID)(conn)
 		// Posting only to those channels into which Adaptive in invited
-		if each.ChannelCreated == 1 {
-			publish(models.PlatformSimpleNotification{UserId: userID, Channel: each.ChannelID,
+		if channel != "" {
+			publish(models.PlatformSimpleNotification{
+				UserId: userID, 
+				Channel: each.ChannelID,
 				Message: message, Attachments: attachsWithNoActions})
 		}
 	}
@@ -1631,6 +1621,7 @@ func onVisionEventCreateOrUpdateDialogSubmission(request slack.InteractionCallba
 	return responses()
 }
 func onCapabilityCommunityEventCreateOrUpdateDialogSubmission(request slack.InteractionCallback, msgState MsgState, teamID models.TeamID, mc *models.MessageCallback) (resp []models.PlatformSimpleNotification) {
+	conn := daosCommon.CreateConnectionFromEnv(teamID.ToPlatformID())
 	dialog := request
 	userID := dialog.User.ID
 	channelID := dialog.Channel.ID
@@ -1671,9 +1662,9 @@ func onCapabilityCommunityEventCreateOrUpdateDialogSubmission(request slack.Inte
 		mc.ToCallbackID(), userID, channelID, msgState.ThreadTs, msgState.ThreadTs, attachsWithActions,
 		s, platformNotificationTopic, namespace)
 	// Post to strategy community only if Adaptive is subscribed to it
-	stratComm, found := StrategyCommunityByID(newCc.ID)
+	strategyComms := strategy.StrategyCommunityWithChannelByIDUnsafe(community.CapabilityPrefix, newCc.ID)(conn)
 	// Check if Adaptive is associated with the community
-	if found && stratComm.ChannelCreated == 1 {
+	if len(strategyComms) > 0 {
 		PostMsgToCommunity(community.Strategy, teamID,
 			fmt.Sprintf("Below objective community has been %s by <@%s>",
 				editStatus, userID), attachsWithNoActions)
@@ -1682,8 +1673,9 @@ func onCapabilityCommunityEventCreateOrUpdateDialogSubmission(request slack.Inte
 	// There is an index on channel id. Hence, it cannot be empty
 	strComm := strategy.StrategyCommunity{ID: newCc.ID,
 		PlatformID: teamID.ToPlatformID(), Advocate: advocate,
-		Community: community.Capability, ChannelCreated: 0,
-		ChannelID:             "none",
+		Community: community.Capability, 
+		ChannelCreated: 0,
+		ChannelID:      "none",
 		AccountabilityPartner: userID, ParentCommunity: community.Strategy, ParentCommunityChannelID: channelID,
 		CreatedAt: time.Now().Format(string(TimestampFormat))}
 	err3 := d.PutTableEntry(strComm, strategyCommunitiesTable)
@@ -1754,12 +1746,14 @@ func onInitiativeSelectCommunityEventCreateOrUpdateDialogSubmission(
 	// Post to the strategy community
 	PostMsgToCommunity(community.Strategy, teamID, text, attachsWithNoActions)
 	// Post to associated initiative community with no actions
-	initCommChannelID := StrategyCommunityChannelIDOrEmptyByID(initCommID)
+	var initCommChannelID string
+	initCommChannelID, err = strategy.GetChannelOrEmpty(teamID, community.InitiativePrefix, initCommID)(conn)
 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: initCommChannelID,
 		Message: text, Attachments: attachsWithNoActions})
 	// Post to associated objective community id
 	capObj := strategy.StrategyObjectiveByID(teamID, capObjective, strategyObjectivesTable)
-	stratCommChannelID := StrategyCommunityChannelIDOrEmptyByID(capObj.CapabilityCommunityIDs[0])
+	var stratCommChannelID string
+	stratCommChannelID, err = strategy.GetChannelOrEmpty(teamID, community.CapabilityPrefix, capObj.CapabilityCommunityIDs[0])(conn)
 	publish(models.PlatformSimpleNotification{UserId: userID, Channel: stratCommChannelID,
 		Message: text, Attachments: attachsWithNoActions})
 

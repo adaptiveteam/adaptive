@@ -222,8 +222,7 @@ func InCapabilityCommunity(env environment, teamID models.TeamID, userID string,
 // CapabilityCommunityExists Does there exist a capabilility community?
 func CapabilityCommunityExists(env environment, teamID models.TeamID, userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("CapabilityCommunityExists")
-	capComms := strategy.AllCapabilityCommunities(teamID, env.capabilityCommunitiesTable,
-		env.capabilityCommunitiesPlatformIndex, env.strategyCommunitiesTable)
+	capComms := strategy.AllCapabilityCommunitiesWhereChannelExists(teamID)
 	if logEnabled {
 		log.Println("Checked CapabilityCommunityExists: ", len(capComms))
 	}
@@ -233,8 +232,7 @@ func CapabilityCommunityExists(env environment, teamID models.TeamID, userID str
 // MultipleCapabilityCommunitiesExists Is there more than one objective community?
 func MultipleCapabilityCommunitiesExists(env environment, teamID models.TeamID, userID string, _ business_time.Date) (res bool) {
 	defer RecoverToLog("MultipleCapabilityCommunitiesExists")
-	capComms := strategy.AllCapabilityCommunities(teamID, env.capabilityCommunitiesTable,
-		env.capabilityCommunitiesPlatformIndex, env.strategyCommunitiesTable)
+	capComms := strategy.AllCapabilityCommunitiesWhereChannelExists(teamID)
 	if logEnabled {
 		log.Println("Checked MultipleCapabilityCommunitiesExists: ", len(capComms))
 	}

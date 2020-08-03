@@ -110,22 +110,24 @@ func AdaptiveCommunityReadByID(communityID daosCommon.AdaptiveCommunityID) func(
 
 func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated() func(conn AdaptiveCommunityDynamoDBConnection) (res []strategy.CapabilityCommunity, err error) {
 	return func(conn AdaptiveCommunityDynamoDBConnection) (res []strategy.CapabilityCommunity, err error) {
+		teamID := models.ParseTeamID(conn.PlatformID)
 		defer core.RecoverToErrorVar("SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated", &err)
-		capComms := strategy.AllCapabilityCommunities(models.ParseTeamID(conn.PlatformID),
-			capabilityCommunitiesTableName(conn.ClientID), capabilityCommunitiesPlatformIndex, strategyCommunitiesTableName(conn.ClientID))
+		capComms := strategy.AllCapabilityCommunitiesWhereChannelExists(models.ParseTeamID(conn.PlatformID))
 		for _, each := range capComms {
-			var stratComm strategy.StrategyCommunity
-			var found bool
-			stratComm, found, err = StrategyCommunityByID(each.ID)(conn)
+			var comms[] strategy.StrategyCommunity
+			comms, err = strategyCommunity.ReadOrEmpty(each.ID)(conn)
 			if err != nil {
 				err = errors.Wrapf(err, "AdaptiveCommunityDynamoDBConnection) SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(conn.PlatformID=%s)", conn.PlatformID)
 				return
 			}
-			if !found {
+			if len(comms) == 0 {
 				log.Printf("Not found StrategyCommunityByID %s", each.ID)
-			}
-			if found && stratComm.ChannelCreated == 1 {
-				res = append(res, each)
+			} else {
+				var created bool
+				created, err = strategy.IsChannelCreated(teamID, community.CapabilityPrefix, each.ID)(conn)
+				if created {
+					res = append(res, each)
+				}
 			}
 		}
 		return
@@ -168,14 +170,12 @@ func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated() fun
 // }
 func SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(userID string) func(conn DynamoDBConnection) (res []strategy.StrategyInitiativeCommunity, err error) {
 	return func(conn DynamoDBConnection) (res []strategy.StrategyInitiativeCommunity, err error) {
+		teamID := models.ParseTeamID(conn.PlatformID)
 		defer core.RecoverToErrorVar("SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated", &err)
 		// Query all the Strategy Initiative communities
 		var initComms []strategy.StrategyInitiativeCommunity
 		if isMemberInCommunity(conn, userID, community.Strategy) {
-			initComms = strategy.AllStrategyInitiativeCommunities(models.ParseTeamID(conn.PlatformID),
-				strategyInitiativeCommunitiesTableName(conn.ClientID),
-				strategyInitiativeCommunitiesPlatformIndex,
-				strategyCommunitiesTableName(conn.ClientID))
+			initComms = strategy.AllStrategyInitiativeCommunitiesWhereChannelExists(models.ParseTeamID(conn.PlatformID))
 		} else {
 			initComms = strategy.UserStrategyInitiativeCommunities(userID,
 				communityUsersTableName(conn.ClientID), communityUsersUserCommunityIndex, communityUsersUserIndex,
@@ -187,18 +187,20 @@ func SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(userI
 		for _, each := range initComms {
 			if _, ok := existingIds[each.ID]; !ok {
 				existingIds[each.ID] = struct{}{}
-				var stratComm strategy.StrategyCommunity
-				var found bool
-				stratComm, found, err = StrategyCommunityByID(each.ID)(conn)
+				var comms[] strategy.StrategyCommunity
+				comms, err = strategyCommunity.ReadOrEmpty(each.ID)(conn)
 				if err != nil {
 					err = errors.Wrapf(err, "AdaptiveCommunityDynamoDBConnection) SelectFromInitiativeCommunityJoinStrategyCommunityWhereChannelCreated(conn.PlatformID=%s)", conn.PlatformID)
 					return
 				}
-				if !found {
+				if len(comms) == 0 {
 					log.Printf("Not found StrategyCommunityByID %s", each.ID)
-				}
-				if found && stratComm.ChannelCreated == 1 {
-					res = append(res, each)
+				} else {
+					var created bool
+					created, err = strategy.IsChannelCreated(teamID, community.InitiativePrefix, each.ID)(conn)
+					if created {
+						res = append(res, each)
+					}
 				}
 			}
 		}

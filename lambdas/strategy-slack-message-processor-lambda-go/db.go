@@ -23,19 +23,9 @@ func StrategyInitiativeCommunityByID(id string, teamID models.TeamID) (result st
 	return
 }
 
-// StrategyCommunityChannelIDOrEmptyByID - finds community, 
-// if found returns it's channel, if not - empty string
-func StrategyCommunityChannelIDOrEmptyByID(id string) (channelToPost string) {
-	comm, found := StrategyCommunityByID(id)
-	channelToPost = ""
-	if found && comm.ChannelCreated == 1 {
-		channelToPost = comm.ChannelID
-	}
-	return
-}
-
 // StrategyCommunityByID reads community by ID (from `_strategy_communities` table)
 // panics when not found.
+// Deprecated. Use strategyCommunity.ReadOrEmptyUnsafe(id)(conn)
 func StrategyCommunityByID(id string) (comm strategy.StrategyCommunity, found bool) {
 	params := map[string]*dynamodb.AttributeValue{
 		"id": daosCommon.DynS(id),
@@ -48,9 +38,10 @@ func StrategyCommunityByID(id string) (comm strategy.StrategyCommunity, found bo
 
 func SelectFromCapabilityCommunityJoinStrategyCommunityWhereChannelCreated(teamID models.TeamID) (out []strategy.CapabilityCommunity) {
 	capComms := AllCapabilityCommunities(models.TeamID(teamID))
+	conn := daosCommon.CreateConnectionFromEnv(teamID.ToPlatformID())
 	for _, each := range capComms {
-		stratComm, found := StrategyCommunityByID(each.ID)
-		if found && stratComm.ChannelCreated == 1 {
+		comms := strategy.StrategyCommunityWithChannelByIDUnsafe(community.CapabilityPrefix, each.ID)(conn)
+		if len(comms) >0 {
 			out = append(out, each)
 		}
 	}
@@ -137,7 +128,7 @@ func LatestProgressUpdateByObjectiveID(id string) []models.UserObjectiveProgress
 
 func getInitiativeCommunitiesForUserIDUnsafe(userID string, teamID models.TeamID) (initComms []strategy.StrategyInitiativeCommunity) {
 	if isMemberInCommunity(userID, community.Strategy) {
-		initComms = strategy.AllStrategyInitiativeCommunities(teamID, strategyInitiativeCommunitiesTable, strategyInitiativeCommunitiesPlatformIndex, strategyCommunitiesTable)
+		initComms = strategy.AllStrategyInitiativeCommunitiesWhereChannelExists(teamID)
 	} else {
 		initComms = StrategyInitiativeCommunitiesForUserID(userID, models.TeamID(teamID))
 	}
