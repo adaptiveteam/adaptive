@@ -8,7 +8,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-const (
+const ( 
 	AdaptiveClientConfigTableRef          = "adaptive_client_config"
 	AdaptiveUsersTableRef                 = "adaptive_users"
 	AdaptiveCompetenciesTableRef          = "adaptive_value"
@@ -22,7 +22,7 @@ const (
 	AdaptiveObjectiveCommunityTableRef    = "capability_communities"
 	AdaptiveCommunityUserTableRef         = "community_users"
 	AdaptiveInitiativeCommunityTableRef   = "initiative_communities"
-	AdaptivePartnershipRejectionTableRef  = "partnership_rejections"
+	AdaptivePartnershipRejectionTableRef  = "partnership_rejections" // does not exist
 	AdaptiveInitiativeTableRef            = "strategy_initiatives"
 	AdaptiveObjectiveTableRef             = "strategy_objectives"
 	SlackTeamTableRef                     = "slack_team"
@@ -32,10 +32,9 @@ type InterfaceMapping func(interface{}, logger2.AdaptiveLogger) interface{}
 
 type StreamHandling func(e2 model.StreamEntity, conn *gorm.DB, logger logger2.AdaptiveLogger)
 
-// type MappingFunction struct {
-// 	EntityMapper  InterfaceMapping
-// 	StreamHandler StreamHandling
-// }
+// TODO: all these tables should have streaming enabled in .tf file:
+// 	stream_enabled   = true
+//	stream_view_type = var.dynamo_stream_view_type
 
 var (
 	TableMapping = map[string]mapping.DBEntity{
