@@ -4,6 +4,8 @@ resource "aws_dynamodb_table" "strategy_initiatives" {
 
   hash_key       = "id"
   range_key      = "platform_id"
+  stream_enabled   = true
+  stream_view_type = var.dynamo_stream_view_type
 
   attribute {
     name = "id"

@@ -4,6 +4,10 @@ resource "aws_dynamodb_table" "slack_team_dynamodb_table"  {
 	
 	tags           = local.default_tags
 	hash_key       = "team_id"
+
+	stream_enabled   = true
+	stream_view_type = var.dynamo_stream_view_type
+
 	point_in_time_recovery {
 		enabled = true
 	}
